@@ -64,6 +64,8 @@ pthread_create(&thread, NULL, func, args)
 #define MAX_SESSIONS 4
 #define OUT_INTERVAL 20
 
+/* millisecond interval to time out calls */
+#define IAXC_CALL_TIMEOUT 30000
 
 #include "iax-client.h" // LibIAX functions
 #include "gsm.h"
@@ -124,6 +126,10 @@ struct iaxc_call {
 	int state;
 	char remote[IAXC_EVENT_BUFSIZ];
 	char local[IAXC_EVENT_BUFSIZ];
+
+	/* reset whenever we receive packets from remote */
+	struct 	 timeval 	last_activity;
+	struct 	 timeval 	last_ping;
 
 	struct iax_session *session;
 };

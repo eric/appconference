@@ -2047,6 +2047,10 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				e->ts = ts;
 				e = schedule_delivery(e, ts);
 				break;
+			case IAX_COMMAND_PONG:
+				e->etype = IAX_EVENT_PONG;
+				e = schedule_delivery(e, ts);
+				break;
 			case IAX_COMMAND_ACCEPT:
 				e->etype = IAX_EVENT_ACCEPT;
 				e = schedule_delivery(e, ts);

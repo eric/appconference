@@ -46,6 +46,8 @@ static THREADID procThreadID;
 /* QuitFlag: 0: Running 1: Should Quit, -1: Not Running */
 static int procThreadQuitFlag = -1;
 
+static void iaxc_do_pings(void);
+
 iaxc_event_callback_t iaxc_event_callback = NULL;
 
 void iaxc_set_silence_threshold(double thr) {
@@ -151,6 +153,7 @@ static int iaxc_first_free_call()  {
 	
 	return -1;
 }
+
 
 static int iaxc_clear_call(int toDump)
 {
@@ -266,6 +269,56 @@ void iaxc_set_encode_format(int fmt)
 	iax_set_formats(fmt);
 }
 
+static void iaxc_note_activity(int callNo) {
+  //fprintf(stderr, "Noting activity for call %d\n", callNo);
+  gettimeofday(&calls[callNo].last_activity, NULL);   
+}
+
+static void iaxc_do_pings(void) {
+  int i;
+  struct timeval now;
+
+  gettimeofday(&now, NULL);
+  for(i = 0; i < nCalls; i++)
+  {
+      long act_since;
+      long ping_since;
+
+      if(!(calls[i].state & IAXC_CALL_STATE_ACTIVE))
+	  break;
+
+      act_since = iaxc_usecdiff(&now, &calls[i].last_activity)/1000;
+
+      // if we've had any activity in half the timeout, don't worry about anything.
+      if(act_since < IAXC_CALL_TIMEOUT/2)
+	  break;  /* OK */
+
+      ping_since = iaxc_usecdiff(&now, &calls[i].last_ping)/1000;
+
+      /* if we haven't had activity in a while, and also haven't sent a
+       * ping in a while, send a ping.
+       */
+      if(ping_since > IAXC_CALL_TIMEOUT/3) { 
+	  fprintf(stderr, "Sending Ping for call %d\n", i); 
+	  calls[i].last_ping = now;
+	  iax_send_ping(calls[i].session);
+	  break; 
+      }
+
+      /* finally, we've recently sent a ping, and still haven't had any 
+       * activity.  If it's been longer then the timeout, timeout the call.
+       */
+      if(act_since > IAXC_CALL_TIMEOUT) {
+	  /* timeout the call. */
+	  iax_hangup(calls[i].session,"Timed out waiting for ping or activity");
+	  iaxc_usermsg(IAXC_STATUS, "call %d timed out", i);
+	  iaxc_clear_call(i);
+      }
+
+  }
+
+}
+
 void iaxc_refresh_registrations() {
     struct iaxc_registration *cur;
     struct timeval now;
@@ -299,6 +352,7 @@ void iaxc_process_calls(void) {
 #endif
     MUTEXLOCK(&iaxc_lock);
     iaxc_service_network(netfd);
+    iaxc_do_pings();
     service_audio();
     iaxc_refresh_registrations();
 
@@ -432,6 +486,7 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 	}
 }
 
+
 void iaxc_handle_network_event(struct iax_event *e, int callNo)
 {
 //	int len,n;
@@ -439,6 +494,8 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 //	short fr[160];
 //	static paused_xmit = 0;
 
+
+	iaxc_note_activity(callNo);
 
 	switch(e->etype) {
 		case IAX_EVENT_HANGUP:
@@ -473,6 +530,8 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			handle_text_event(e, callNo);
 			break;
 		case IAX_EVENT_RINGA:
+			break;
+		case IAX_EVENT_PONG:  /* we got a pong */
 			break;
 		default:
 			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
@@ -549,6 +608,9 @@ void iaxc_call(char *num)
 	strncpy(calls[callNo].remote,num,IAXC_EVENT_BUFSIZ);
 	calls[callNo].state = IAXC_CALL_STATE_ACTIVE | IAXC_CALL_STATE_OUTGOING;
 
+	/* reset activity and ping "timers" */
+	iaxc_note_activity(callNo);
+	calls[callNo].last_ping = calls[callNo].last_activity;
 
 #ifdef IAXC_IAX2
 	iax_call(calls[callNo].session, "7001234567", "IAXClient User", num, NULL, 0);
@@ -644,7 +706,6 @@ void iaxc_service_network(int netfd)
 				if (FD_ISSET(netfd,&readfd))
 				{
 					do_iax_event();
-					(void) iax_time_to_next_event();
 				} else break;
 			} else break;
 		}
@@ -753,6 +814,7 @@ static void do_iax_event() {
 			    strncpy(calls[callNo].remote,
 				"unknown", IAXC_EVENT_BUFSIZ);
 #endif
+			iaxc_note_activity(callNo);
 			iaxc_usermsg(IAXC_STATUS, "Call from (%s)", calls[callNo].remote);
 
 			calls[callNo].gsmin = 0;
