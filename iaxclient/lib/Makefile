@@ -1,6 +1,6 @@
 
 # set to 2 for IAX2
-IAXVER=2
+IAXVER=1
 
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
 
