@@ -156,6 +156,9 @@ struct iaxc_call {
 	struct 	 timeval 	last_activity;
 	struct 	 timeval 	last_ping;
 
+	/* our negotiated format */
+	int format;
+
 	struct iax_session *session;
 };
 
@@ -165,6 +168,12 @@ struct iaxc_call {
 #ifdef USE_WIN_AUDIO
 #include "audio_win32.h"
 #endif
+
+/* our format capabilities */
+extern int audio_format_capability;
+
+/* our preferred audio format */
+extern int audio_format_preferred;
 
 extern double iaxc_silence_threshold;
 extern int iaxc_audio_output_mode;

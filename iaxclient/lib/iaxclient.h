@@ -30,8 +30,8 @@ extern "C" {
 #define IAXC_FORMAT_GSM          (1 << 1)        /* GSM compression */
 #define IAXC_FORMAT_ULAW         (1 << 2)        /* Raw mu-law data (G.711) */
 #define IAXC_FORMAT_ALAW         (1 << 3)        /* Raw A-law data (G.711) */
-#define IAXC_FORMAT_MP3          (1 << 4)        /* MPEG-2 layer 3 */
-#define IAXC_FORMAT_ADPCM        (1 << 5)        /* ADPCM (whose?) */
+#define IAXC_FORMAT_G726         (1 << 4)        /* ADPCM, 32kbps  */
+#define IAXC_FORMAT_ADPCM        (1 << 5)        /* ADPCM IMA */
 #define IAXC_FORMAT_SLINEAR      (1 << 6)        /* Raw 16-bit Signed Linear (8000 Hz) PCM */
 #define IAXC_FORMAT_LPC10        (1 << 7)        /* LPC10, 180 samples/frame */
 #define IAXC_FORMAT_G729A        (1 << 8)        /* G.729a Audio */
@@ -101,7 +101,8 @@ void iaxc_set_event_callback(iaxc_event_callback_t func);
 
 int iaxc_initialize(int audType, int nCalls);
 void iaxc_shutdown();
-void iaxc_set_encode_format(int fmt);
+void iaxc_set_formats(int preferred, int allowed);
+void iaxc_set_min_outgoing_framesize(int samples);
 void iaxc_set_callerid(char *name, char *number);
 void iaxc_process_calls();
 int iaxc_service_audio();

@@ -150,6 +150,8 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int format, int sampl
 	int silent;
 	int insize = samples;
 
+	//fprintf(stderr, "in encode_audio, format=%d\n", format);
+
 	/* update last input timestamp */
 	gettimeofday( &timeLastInput, NULL ) ;
 
@@ -202,7 +204,8 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int for
 {
 	int insize = len;
 	int outsize = *samples;
-      
+    
+	//fprintf(stderr, "in decode_audio, format=%d\n", format);
 	/* update last output timestamp */
 	gettimeofday( &timeLastOutput, NULL ) ;
 

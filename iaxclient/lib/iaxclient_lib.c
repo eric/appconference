@@ -25,7 +25,11 @@ struct iaxc_registration *registrations = NULL;
 struct iaxc_audio_driver audio;
 
 static int iAudioType;
-static int iEncodeType;
+
+int audio_format_capability;
+int audio_format_preferred;
+
+static int minimum_outgoing_framesize = 160; /* 20ms */
 
 MUTEX iaxc_lock;
 
@@ -282,6 +286,10 @@ int iaxc_initialize(int audType, int inCalls) {
 				return -1;
 			break;
 	}
+
+	audio_format_capability = IAXC_FORMAT_ULAW | IAXC_FORMAT_GSM | IAXC_FORMAT_SPEEX;
+	audio_format_preferred = IAXC_FORMAT_SPEEX;
+
 	return 0;
 }
 
@@ -296,10 +304,14 @@ void iaxc_shutdown() {
 }
 
 
-void iaxc_set_encode_format(int fmt)
+void iaxc_set_formats(int preferred, int allowed)
 {
-	iEncodeType = fmt;
-	iax_set_formats(fmt);
+	audio_format_capability = allowed;
+	audio_format_preferred = preferred;
+}
+
+void iaxc_set_min_outgoing_framesize(int samples) {
+    minimum_outgoing_framesize = samples;
 }
 
 void iaxc_set_callerid(char *name, char *number) {
@@ -374,8 +386,7 @@ void iaxc_refresh_registrations() {
 
     for(cur = registrations; cur != NULL; cur=cur->next) {
 	if(iaxc_usecdiff(&now, &cur->last) > cur->refresh ) {
-	    fprintf(stderr, "refreshing registration %s:%s@%s\n", 
-		cur->user, cur->pass, cur->host);
+	    //fprintf(stderr, "refreshing registration %s:%s@%s\n", cur->user, cur->pass, cur->host);
 
 	    cur->session = iax_session_new();
 	    if(!cur->session) {
@@ -470,7 +481,7 @@ int service_audio()
 		int cmin;
 
 	        /* find mimumum frame size */
-	        toRead = 160; /* default */
+	        toRead = minimum_outgoing_framesize; 
 
 		/* use codec minimum if higher */
 		if(calls[selected_call].encoder)
@@ -500,7 +511,8 @@ int service_audio()
 		/* currently, pa will always give us 0 or what we asked
 		 * for samples */
 
-		send_encoded_audio(&calls[selected_call], buf, iEncodeType, toRead);
+		send_encoded_audio(&calls[selected_call], buf, 
+		      calls[selected_call].format, toRead);
 	    }
 
 	} else {
@@ -553,12 +565,12 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 	while(total_consumed < e->datalen) {
 		cur = decode_audio(call, fr + (bufsize - samples),
 		    e->data+total_consumed,e->datalen-total_consumed,
-		    iEncodeType, &samples);
+		    call->format, &samples);
 #else
 	while(total_consumed < e->event.voice.datalen) {
 		cur = decode_audio(call, fr,
 		    e->event.voice.data+total_consumed,e->event.voice.datalen-total_consumed,
-		    iEncodeType, &samples);
+		    call.format, &samples);
 #endif
 		if(cur < 0) {
 			iaxc_usermsg(IAXC_STATUS, "Bad or incomplete voice packet.  Unable to decode. dropping");
@@ -596,6 +608,8 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			break;
 		case IAX_EVENT_ACCEPT:
 			calls[callNo].state |= IAXC_CALL_STATE_RINGING;	
+			calls[callNo].format = e->ies.format;
+	  //fprintf(stderr, "outgoing call remote accepted, format=%d\n", e->ies.format);
 			iaxc_do_state_callback(callNo);
 			iaxc_usermsg(IAXC_STATUS,"Call %d ringing", callNo);
 //			issue_prompt(f);
@@ -715,7 +729,8 @@ void iaxc_call(char *num)
 
 #ifdef IAXC_IAX2
 	iax_call(calls[callNo].session, calls[callNo].callerid_number,
-	                                calls[callNo].callerid_name, num, NULL, 0);
+	                                calls[callNo].callerid_name, num, NULL, 0,
+					audio_format_preferred, audio_format_capability);
 #else
 	iax_call(calls[callNo].session, calls[callNo].callerid_number, num, NULL, 0);
 #endif
@@ -872,6 +887,27 @@ static void iaxc_handle_regreply(struct iax_event *e) {
     cur->session = NULL;
 }
 
+/* this is what asterisk does */
+static int iaxc_choose_codec(int formats) {
+    int i;
+    static int codecs[] = {
+      IAXC_FORMAT_ULAW,
+      IAXC_FORMAT_ALAW,
+      IAXC_FORMAT_SLINEAR,
+      IAXC_FORMAT_G726,
+      IAXC_FORMAT_ADPCM,
+      IAXC_FORMAT_GSM,
+      IAXC_FORMAT_ILBC,
+      IAXC_FORMAT_SPEEX,
+      IAXC_FORMAT_LPC10,
+      IAXC_FORMAT_G729A,
+      IAXC_FORMAT_G723_1,
+    };
+    for(i=0;i<sizeof(codecs)/sizeof(int);i++)
+	if(codecs[i] & formats)
+	    return codecs[i];
+    return 0;
+}
 
 static void do_iax_event() {
 	struct iax_event *e = 0;
@@ -894,6 +930,7 @@ static void do_iax_event() {
 			iaxc_usermsg(IAXC_ERROR, "Registration requested by someone, but we don't understand!");
 		} else  if(e->etype == IAX_EVENT_CONNECT) {
 			
+			int format = 0;
 			callNo = iaxc_first_free_call();
 
 			if(callNo < 0) {
@@ -902,6 +939,34 @@ static void do_iax_event() {
 				iax_reject(e->session, "Too many calls, we're busy!");
 				goto bail;
 			}
+
+			/* negotiate codec */
+			/* first, try _their_ preferred format */
+			format = audio_format_capability & e->ies.format; 
+
+			if(!format) {
+			    /* then, try our preferred format */
+			    format = audio_format_preferred & e->ies.capability; 
+			}
+
+			if(!format) {
+			    /* finally, see if we have one in common */
+			    format = audio_format_capability & e->ies.capability; 
+
+			    /* now choose amongst these, if we got one */
+			    if(format)
+			    {
+				format=iaxc_choose_codec(format);
+			    }
+			}
+			
+			if(!format) {
+			    iax_reject(e->session, "Could not negotiate common codec");
+			    goto bail;
+			}
+
+			calls[callNo].format = format;
+
 
 #ifndef IAXC_IAX2			  
 			if(e->event.connect.dnid)
@@ -956,9 +1021,7 @@ static void do_iax_event() {
 			calls[callNo].state = IAXC_CALL_STATE_ACTIVE|IAXC_CALL_STATE_RINGING;
 
 
-			// should we even accept?  or, we accept, but
-			// don't necessarily answer..
-			iax_accept(calls[callNo].session);
+			iax_accept(calls[callNo].session,format);
 			iax_ring_announce(calls[callNo].session);
 
 			iaxc_do_state_callback(callNo);

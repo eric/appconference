@@ -228,8 +228,6 @@ void gettimeofday(struct timeval *tv, struct timezone *tz);
 
 char iax_errstr[256];
 
-static int sformats = 0;
-
 #define IAXERROR snprintf(iax_errstr, sizeof(iax_errstr), 
 
 #ifdef DEBUG_SUPPORT
@@ -1086,9 +1084,12 @@ int iax_busy(struct iax_session *session)
 	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_BUSY, 0, NULL, 0, -1);
 }
 
-int iax_accept(struct iax_session *session)
+int iax_accept(struct iax_session *session, int format)
 {
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_ACCEPT, 0, NULL, 0, -1);
+	struct iax_ie_data ied;
+	memset(&ied, 0, sizeof(ied));
+	iax_ie_append_int(&ied, IAX_IE_FORMAT, format);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_ACCEPT, 0, ied.buf, ied.pos, -1);
 }
 
 int iax_answer(struct iax_session *session)
@@ -1212,10 +1213,6 @@ static int iax_regauth_reply(struct iax_session *session, char *password, char *
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
 }
 
-void iax_set_formats(int fmt)
-{
-	sformats = fmt;
-}
 
 int iax_dial(struct iax_session *session, char *number)
 {
@@ -1243,7 +1240,7 @@ int iax_dialplan_request(struct iax_session *session, char *number)
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DPREQ, 0, ied.buf, ied.pos, -1);
 }
 
-int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich, char *lang, int wait)
+int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich, char *lang, int wait, int formats, int capabilities)
 {
 	char tmp[256]="";
 	char *part1, *part2;
@@ -1268,8 +1265,8 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 		iax_ie_append_str(&ied, IAX_IE_CALLING_NAME, cidname);
 	
 	/* XXX We should have a preferred format XXX */
-	iax_ie_append_int(&ied, IAX_IE_FORMAT, sformats);
-	iax_ie_append_int(&ied, IAX_IE_CAPABILITY, sformats);
+	iax_ie_append_int(&ied, IAX_IE_FORMAT, formats);
+	iax_ie_append_int(&ied, IAX_IE_CAPABILITY, capabilities);
 	if (lang)
 		iax_ie_append_str(&ied, IAX_IE_LANGUAGE, lang);
 	
