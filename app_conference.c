@@ -601,6 +601,7 @@ static int conference_exec(struct ast_channel *chan, void *data)
 			if (res == 1) { member = NULL; break };
 		    }
 #endif
+		send_audio(conference,member,f->samples / 8);
 		    if (f) {
 			ast_frfree(f);
 		    }
@@ -619,7 +620,7 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		//} 
 
 	    if (dms >= AST_CONF_MIN_MS) {
-		send_audio(conference,member,dms);
+//		send_audio(conference,member,dms);
 		if (member->priority == 3) {
     		//    ast_log(LOG_NOTICE,"urest=%d dms=%d dus=%d\n",urest,dms,dus);
 		}
