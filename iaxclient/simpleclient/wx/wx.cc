@@ -7,6 +7,7 @@
 
 #include "wx/cmdline.h"
 #include "wx/listctrl.h"
+#include "wx/combobox.h"
 #include "wx/tokenzr.h"
 #include "iaxclient.h"
 
@@ -35,6 +36,7 @@ class IAXClient : public wxApp
 		  bool optNoDialPad;
 		  wxString optDestination;
 		  long optNumCalls;
+		  wxString optRegistration;
 };
 
 DECLARE_APP(IAXClient)
@@ -274,6 +276,9 @@ public:
     void IAXFrame::OnNotify(void);
     void IAXFrame::OnRegisterMenu(wxCommandEvent &evt);
 
+    // utility method
+    void IAXFrame::RegisterFromString(wxString value);
+
     // Handlers for library-initiated events
     void IAXFrame::HandleEvent(wxCommandEvent &evt);
     int IAXFrame::HandleIAXEvent(iaxc_event *e);
@@ -287,7 +292,7 @@ public:
     wxGauge *input; 
     wxGauge *output; 
     IAXTimer *timer;
-    wxTextCtrl *iaxDest;
+    wxComboBox *iaxDest;
     wxStaticText *muteState;
 
     IAXCalls *calls;
@@ -408,8 +413,13 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
 
     /* Destination */
-    topsizer->Add(iaxDest = new wxTextCtrl(aPanel, -1, _T("guest@ast1/8068"), 
+    topsizer->Add(iaxDest = new wxComboBox(aPanel, -1, _T("guest@misery.digium.com/s@default"), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
+
+    iaxDest->Append("guest@misery.digium.com/s@default");
+    iaxDest->Append("guest@ast1/8068");
+    iaxDest->Append("guest@asterisk/208");
+    iaxDest->Append("guest@asterisk/600");
 
     /* main control buttons */    
     row3sizer->Add(dialButton = new wxButton(aPanel, ID_DIAL, _T("Dial"),
@@ -514,32 +524,33 @@ void IAXFrame::OnQuit(wxEvent &evt)
 	Close(TRUE);
 }
 
-void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
+void IAXFrame::RegisterFromString(wxString value) {
+	wxStringTokenizer tok(value, _T(":@"));
+	char user[256], pass[256], host[256];
 
+	if(tok.CountTokens() != 3) {
+	    theFrame->SetStatusText("error in registration format");
+	    return;
+	}
+
+	strncpy( user , tok.GetNextToken().c_str(), 256);
+	strncpy( pass , tok.GetNextToken().c_str(), 256);
+	strncpy( host , tok.GetNextToken().c_str(), 256);
+
+	//fprintf(stderr, "Registering user %s pass %s host %s\n", user, pass, host);
+	iaxc_register(user, pass, host);
+}
+
+
+void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
 	wxTextEntryDialog dialog(this,
 	    _T("Register with a remote asterisk server"),
 	    _T("Format is user:password@hostname"),
-	    _T("iaxuser:iaxpass@ast1"),
+	    _T(wxGetApp().optRegistration),
 	    wxOK | wxCANCEL);
 
 	if(dialog.ShowModal() == wxID_OK)
-	{
-	    wxString value = dialog.GetValue();
-	    wxStringTokenizer tok(value, _T(":@"));
-	    char user[256], pass[256], host[256];
-
-	    if(tok.CountTokens() != 3) {
-		theFrame->SetStatusText("error in registration format");
-		return;
-	    }
-
-	    strncpy( user , tok.GetNextToken().c_str(), 256);
-	    strncpy( pass , tok.GetNextToken().c_str(), 256);
-	    strncpy( host , tok.GetNextToken().c_str(), 256);
-
-	    //fprintf(stderr, "Registering user %s pass %s host %s\n", user, pass, host);
-	    iaxc_register(user, pass, host);
-	}
+	    RegisterFromString(dialog.GetValue());
 }
 
 void IAXFrame::OnPTTChange(wxCommandEvent &evt)
@@ -686,6 +697,8 @@ void IAXClient::OnInitCmdLine(wxCmdLineParser& p)
      p.AddSwitch(_T("d"),_T("disable-dialpad"),_T("Disable Dial Pad"));
      p.AddOption(_T("n"),_T("calls"),_T("number of call appearances"),
 	 wxCMD_LINE_VAL_NUMBER,wxCMD_LINE_PARAM_OPTIONAL);
+     p.AddOption(_T("r"),_T("registration"),_T("Registration"),
+	 wxCMD_LINE_VAL_STRING,wxCMD_LINE_PARAM_OPTIONAL);
      p.AddParam(_T("destination"),wxCMD_LINE_VAL_STRING,wxCMD_LINE_PARAM_OPTIONAL);
 
 }
@@ -698,6 +711,9 @@ bool IAXClient::OnCmdLineParsed(wxCmdLineParser& p)
     }
     if(p.Found(_T("n"), &optNumCalls)) {
 	//fprintf(stderr, "got nCalls (%d)", optNumCalls);
+    }
+    if(p.Found(_T("r"), &optRegistration)) {
+	//fprintf(stderr, "got Registration (%s)", optRegistration.c_str());
     }
     if(p.GetParamCount() >= 1) {
 	optDestination=p.GetParam(0);
@@ -729,6 +745,10 @@ bool IAXClient::OnInit()
 
         iaxc_start_processing_thread();
 
+	if(!optRegistration.IsEmpty()) {
+	    theFrame->RegisterFromString(optRegistration);
+	}
+    
 	if(!optDestination.IsEmpty()) 
 	    iaxc_call((char *)optDestination.c_str());
     
