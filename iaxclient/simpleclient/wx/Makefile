@@ -1,5 +1,5 @@
 
-CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
+CFLAGS=-I../../lib
 
 #debug
 CFLAGS:= $(CFLAGS) -g
@@ -43,7 +43,7 @@ endif
 ifeq ($(OSTYPE),LINUX)
 PROG=wx
 TARGET=wx
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags` `gtk-config --cflags`
+CFLAGS:= $(CFLAGS) `wx-config --cflags` `gtk-config --cflags`
 SYSLIBS=-lpthread -lm `wx-config --static --libs`
 endif
 
