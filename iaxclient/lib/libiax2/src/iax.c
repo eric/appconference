@@ -33,17 +33,21 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <error.h>
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
+
+#ifndef MACOSX
+#include <malloc.h>
+#include <error.h>
+#endif
+
 #endif
 
 
@@ -52,6 +56,19 @@
 #include "iax2-parser.h"
 #include "iax-client.h"
 #include "md5.h"
+
+/* Define socket options for IAX2 sockets, based on platform
+ * availability of flags */
+#ifdef WIN32
+#define IAX_SOCKOPTS 0
+#else
+#ifdef MACOSX
+#define IAX_SOCKOPTS MSG_DONTWAIT
+#else  /* Linux and others */
+#define IAX_SOCKOPTS MSG_DONTWAIT | MSG_NOSIGNAL
+#endif
+#endif
+
 
 #ifdef SNOM_HACK
 /* The snom phone seems to improperly execute memset in some cases */
@@ -231,7 +248,7 @@ void iax_set_sendto(struct iax_session *s, sendto_t ptr)
 	s->sendto = ptr;
 }
 
-/* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ \
+/* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ 
 #ifdef	WIN32
 #define G __FILE__, __LINE__,
 #else
@@ -454,11 +471,7 @@ static int iax_xmit_frame(struct iax_frame *f)
 #endif
 
 	return f->session->sendto(netfd, (const char *) f->data, f->datalen,
-#ifdef	WIN32
-		0,
-#else
-		MSG_DONTWAIT | MSG_NOSIGNAL,
-#endif
+		IAX_SOCKOPTS,
 					f->transfer ? 
 						(struct sockaddr *)&(f->session->transfer) :
 					(struct sockaddr *)&(f->session->peeraddr), sizeof(f->session->peeraddr));

@@ -14,6 +14,10 @@
 #ifndef _ASTERISK_IAX_CLIENT_H
 #define _ASTERISK_IAX_CLIENT_H
 
+#ifdef MACOSX
+#define socklen_t int
+#endif
+
 #include "frame.h"
 #include "iax2.h"
 #include "iax2-parser.h"
