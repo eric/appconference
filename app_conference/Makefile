@@ -45,11 +45,18 @@ CC = gcc
 
 INCLUDE = -I$(ASTERISK_INCLUDE_DIR) 
 LIBS = -ldl -lpthread -lm
-DEBUG := -g -pg
+DEBUG := -g 
 
 CFLAGS = -pipe -std=c99 -Wall -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
-# CFLAGS+=-O6
-CFLAGS += $(shell if $(CC) -march=$(PROC) -S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo "-march=$(PROC)"; fi)
+#CFLAGS += -O2
+#CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math 
+# PERF: below is 10% faster than -O2 or -O3 alone.
+#CFLAGS += -O3 -ffast-math -funroll-loops
+# below is another 5% faster or so.
+CFLAGS += -O3 -ffast-math -funroll-all-loops -march=pentium3 -fprefetch-loop-arrays 
+# adding -msse -mfpmath=sse has little effect.
+#CFLAGS += -O3 -msse -mfpmath=sse
+#CFLAGS += $(shell if $(CC) -march=$(PROC) -S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo "-march=$(PROC)"; fi)
 CFLAGS += $(shell if uname -m | grep -q ppc; then echo "-fsigned-char"; fi)
 CFLAGS += -DCRYPTO
 
@@ -81,6 +88,12 @@ clean:
 
 app_conference.so : $(OBJS)
 	$(CC) -pg -shared -Xlinker -x -o $@ $(OBJS)
+
+vad_test: vad_test.o libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
+	$(CC) $(PROFILE) -o $@ $^ -lm
+
+loop_test: loop_test.o libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
+	$(CC) $(PROFILE) -o $@ $^ -lm
 
 install: all
 	for x in $(SHAREDOS); do $(INSTALL) -m 755 $$x $(INSTALL_MODULES_DIR) ; done

@@ -96,7 +96,7 @@ int member_exec( struct ast_channel* chan, void* data )
 	// setup a conference for the new member
 	//
 
-	conf = setup_member_conference( member ) ;
+	conf = start_conference( member ) ;
 		
 	if ( conf == NULL )
 	{

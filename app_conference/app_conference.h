@@ -128,10 +128,10 @@
 //
 
 // number of frames behind before warning
-#define AST_CONF_OUTGOING_FRAMES_WARN 5
+#define AST_CONF_OUTGOING_FRAMES_WARN 50
 
 // number of milliseconds off AST_CONF_SAMPLE_FREQUENCY before warning
-#define AST_CONF_FREQUENCY_WARNING 10
+#define AST_CONF_FREQUENCY_WARNING 1000
 
 //
 // silence detection values
