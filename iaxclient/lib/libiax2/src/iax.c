@@ -1404,7 +1404,7 @@ static int display_time(int ms)
 
 #define FUDGE 1
 
-static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts)
+static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts, int updatehistory)
 {
 	/* 
 	 * This is the core of the IAX jitterbuffer delivery mechanism: 
@@ -1443,6 +1443,15 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts)
 	/* How many ms from now should this packet be delivered? (remember
 	   this can be a negative number, too */
 	ms = calc_rxstamp(e->session) - ts;
+
+	/* Drop voice frame if timestamp is way off */
+	if ((e->etype == IAX_EVENT_VOICE) && ((ms > 65536) || (ms < -65536))) {
+	    DEBU(G "Dropping a voice packet with odd ts (ts = %d; ms = %d)\n", ts, ms);
+	    free(e);
+	    return NULL;
+	}
+
+	/* Adjust if voice frame timestamp is off by a step */
 	if (ms > 32768) {
 		/* What likely happened here is that our counter has circled but we haven't
 		   gotten the update from the main packet.  We'll just pretend that we did, and
@@ -1459,11 +1468,13 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts)
 	printf("rxstamp is %d, timestamp is %d, ms is %d\n", calc_rxstamp(e->session), ts, ms);
 #endif
 	/* Rotate history queue.  Leading 0's are irrelevant. */
-	for (x=0; x < MEMORY_SIZE - 1; x++) 
-		e->session->history[x] = e->session->history[x+1];
-	
-	/* Add new entry for this time */
-	e->session->history[x] = ms;
+	if (updatehistory) {
+	    for (x=0; x < MEMORY_SIZE - 1; x++) 
+		    e->session->history[x] = e->session->history[x+1];
+	    
+	    /* Add new entry for this time */
+	    e->session->history[x] = ms;
+	}
 	
 	/* We have to find the maximum and minimum time delay we've had to deliver. */
 	min = e->session->history[0];
@@ -1597,7 +1608,9 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 	int nowts;
 	int updatehistory = 1;
 	ts = ntohl(fh->ts);
-	session->last_ts = ts;
+	/* don't run last_ts backwards; i.e. for retransmits and the like */
+	if (ts > session->last_ts) 
+	    session->last_ts = ts;
 	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen + 1);
 
 #ifdef DEBUG_SUPPORT
@@ -1640,7 +1653,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 		}
 
 	/* Check where we are */
-		if (ntohs(fh->dcallno) & IAX_FLAG_RETRANS)
+		if ((ntohs(fh->dcallno) & IAX_FLAG_RETRANS) || (fh->type != AST_FRAME_VOICE))
 			updatehistory = 0;
 		if ((session->iseqno != fh->oseqno) &&
 			(session->iseqno ||
@@ -1690,7 +1703,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 		case AST_FRAME_DTMF:
 			e->etype = IAX_EVENT_DTMF;
 			e->subclass = subclass;
-			return schedule_delivery(e, ts);
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
 		case AST_FRAME_VOICE:
 			e->etype = IAX_EVENT_VOICE;
 			e->subclass = subclass;
@@ -1699,7 +1713,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				memcpy(e->data, fh->iedata, datalen);
 				e->datalen = datalen;
 			}
-			return schedule_delivery(e, ts);
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
 		case AST_FRAME_IAX:
 			/* Parse IE's */
 			if (datalen) {
@@ -1716,7 +1731,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 			case IAX_COMMAND_NEW:
 				/* This is a new, incoming call */
 				e->etype = IAX_EVENT_CONNECT;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_AUTHREQ:
 				/* This is a request for a call */
@@ -1729,19 +1744,19 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 						e = NULL;
 						break;
 				}
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_HANGUP:
 				e->etype = IAX_EVENT_HANGUP;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_INVAL:
 				e->etype = IAX_EVENT_HANGUP;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_REJECT:
 				e->etype = IAX_EVENT_REJECT;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_ACK:
 				e = NULL;
@@ -1750,25 +1765,23 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				/* Pass this along for later handling */
 				e->etype = IAX_EVENT_LAGRQ;
 				e->ts = ts;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_PING:
-				/* Just immediately reply */
+				/* PINGS and PONGS don't get scheduled; */
 				e->etype = IAX_EVENT_PING;
 				e->ts = ts;
-				e = schedule_delivery(e, ts);
 				break;
 			case IAX_COMMAND_PONG:
 				e->etype = IAX_EVENT_PONG;
-				e = schedule_delivery(e, ts);
 				break;
 			case IAX_COMMAND_ACCEPT:
 				e->etype = IAX_EVENT_ACCEPT;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_REGACK:
 				e->etype = IAX_EVENT_REGACK;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_REGAUTH:
 				iax_regauth_reply(session, session->secret, e->ies.challenge, e->ies.authmethods);
@@ -1777,7 +1790,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				break;
 			case IAX_COMMAND_REGREJ:
 				e->etype = IAX_EVENT_REGREJ;
-				e = schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_LAGRP:
 				e->etype = IAX_EVENT_LAGRP;
@@ -1823,7 +1836,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 					iax_send_txready(session);
 				}
 				free(e);
-				return NULL;
+				e = NULL;
+				break;
 			case IAX_COMMAND_TXREL:
 				/* Release the transfer */
 				session->peercallno = e->ies.callno;
@@ -1856,35 +1870,40 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 								sch->frame->retries = -1;
 					sch = sch->next;
 				}
-				return e;
+				break;
 			case IAX_COMMAND_QUELCH:
 				e->etype = IAX_EVENT_QUELCH;
 				session->quelch = 1;
-				return e;
+				break;
 			case IAX_COMMAND_UNQUELCH:
 				e->etype = IAX_EVENT_UNQUELCH;
 				session->quelch = 0;
-				return e;
+				break;
 			default:
 				DEBU(G "Don't know what to do with IAX command %d\n", subclass);
 				free(e);
 				e = NULL;
 			}
-			if (session->aseqno != session->iseqno)
+
+			if (session->aseqno != session->iseqno) {
 				send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0, fh->iseqno);
+			}
 			break;
 		case AST_FRAME_CONTROL:
 			switch(subclass) {
 			case AST_CONTROL_ANSWER:
 				e->etype = IAX_EVENT_ANSWER;
-				return schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
 			case AST_CONTROL_CONGESTION:
 			case AST_CONTROL_BUSY:
 				e->etype = IAX_EVENT_BUSY;
-				return schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
 			case AST_CONTROL_RINGING:
 				e->etype = IAX_EVENT_RINGA;
-				return schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
 			default:
 				DEBU(G "Don't know what to do with AST control %d\n", subclass);
 				free(e);
@@ -1897,14 +1916,16 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 			if (datalen) {
 				memcpy(e->data, fh->iedata, datalen);
 			}
-			return schedule_delivery(e, ts);
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
 
 		case AST_FRAME_TEXT:
 			e->etype = IAX_EVENT_TEXT;
 			if (datalen) {
 				memcpy(e->data, fh->iedata, datalen);
 			}
-			return schedule_delivery(e, ts);
+			e = schedule_delivery(e, ts, updatehistory);
+			break;
 
 		case AST_FRAME_HTML:
 			switch(fh->csub) {
@@ -1917,16 +1938,20 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				if (datalen) {
 					memcpy(e->data, fh->iedata, datalen);
 				}
-				return schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
 			case AST_HTML_LDCOMPLETE:
 				e->etype = IAX_EVENT_LDCOMPLETE;
-				return schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
 			case AST_HTML_UNLINK:
 				e->etype = IAX_EVENT_UNLINK;
-				return schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
 			case AST_HTML_LINKREJECT:
 				e->etype = IAX_EVENT_LINKREJECT;
-				return schedule_delivery(e, ts);
+				e = schedule_delivery(e, ts, updatehistory);
+				break;
 			default:
 				DEBU(G "Don't know how to handle HTML type %d frames\n", fh->csub);
 				free(e);
@@ -1940,7 +1965,12 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 		}
 	} else
 		DEBU(G "Out of memory\n");
-	return NULL;
+	    
+	/* Already ack'd iax frames */
+	if ((fh->type != AST_FRAME_IAX) && (session->aseqno != session->iseqno)) {
+	    send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0, fh->iseqno);
+	}
+	return e;
 }
 
 static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
@@ -1949,6 +1979,7 @@ static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
 {
 	struct iax_event *e;
 	unsigned int ts;
+	int updatehistory = 1;
 	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen);
 	if (e) {
 		if (session->voiceformat > 0) {
@@ -1963,7 +1994,7 @@ static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
 				e->datalen = datalen;
 			}
 			ts = (session->last_ts & 0xFFFF0000) | ntohs(mh->ts);
-			return schedule_delivery(e, ts);
+			return schedule_delivery(e, ts, updatehistory);
 		} else {
 			DEBU(G "No last format received on session %d\n", session->callno);
 			free(e);
