@@ -6,7 +6,7 @@
     name="Controls"
     type="win32"
 />
-<description>main - a basic wxWin xrc app</description>
+<description>iaxComm VOIP app</description>
 <dependency>
     <dependentAssembly>
         <assemblyIdentity

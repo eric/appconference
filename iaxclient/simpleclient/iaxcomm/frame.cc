@@ -544,7 +544,7 @@ void MyFrame::OnExit(wxCommandEvent& WXUNUSED(event))
 void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
     wxString msg;
-    msg.Printf( _T("Pre CVS 28 Feb 2004"));
+    msg.Printf( _T("CVS 22 Oct 2004"));
     wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
 }
 
@@ -629,6 +629,7 @@ void MyFrame::OnDialDirect(wxCommandEvent &event)
     } else {
         Dial(DialString);
     }
+    Extension->Clear();
 }
 
 void MyFrame::OnTransfer(wxCommandEvent &event)

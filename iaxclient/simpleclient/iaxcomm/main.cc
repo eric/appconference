@@ -352,7 +352,7 @@ void MyTaskBarIcon::OnLButtonDClick(wxEvent&)
 
 void MyTaskBarIcon::OnRButtonDown(wxEvent&)
 {
-    PopupMenu(wxXmlResource::Get()->LoadMenu(wxT("TaskBarMenu")));
+    wxGetApp().theFrame->Show(TRUE);
 }
 
 void MyTaskBarIcon::OnLButtonDown(wxEvent&)
