@@ -1,7 +1,4 @@
 
-# set to 2 for IAX2
-IAXVER=2
-
 CODEC_ILBC=0
 
 SPEEX_PREPROCESS=1
@@ -157,10 +154,6 @@ OBJS_MACOSX=\
 	portaudio/pa_common/pa_convert.o \
 	portaudio/pa_mac_core/pa_mac_core.o 
 
-OBJS_IAX1=\
-	libiax/src/md5.o \
-	libiax/src/iax.o \
-
 OBJS_IAX2=\
         libiax2/src/md5.o \
         libiax2/src/iax.o \
@@ -233,14 +226,9 @@ DYNLIB=libiaxclient.dylib
 endif
 
 
-ifeq ($(IAXVER),1)
-OBJS:= $(OBJS) $(OBJS_IAX1)
-CFLAGS:= $(CFLAGS) -Ilibiax/src
-else
 OBJS:= $(OBJS) $(OBJS_IAX2)
 #CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT 
-CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX 
-endif
+CFLAGS:= $(CFLAGS) -Ilibiax2/src -DLIBIAX 
 
 ifeq ($(SPAN_EC),1)
 OBJS:= $(OBJS) ec/echo.o

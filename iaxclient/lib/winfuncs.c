@@ -34,14 +34,12 @@ void gettimeofday( struct timeval* tv, void* tz )
 
 void os_init(void)
 {
-#ifdef IAXC_IAX2
 	WSADATA wsd;
 
 	if(WSAStartup(0x0101,&wsd))
 	{   // Error message?
 	    exit(1);
 	}
-#endif
 }
 
 /* yes, it could have just been a #define, but that makes linking trickier */

@@ -175,10 +175,6 @@ struct iaxc_call {
 #include "audio_portaudio.h"
 #include "audio_file.h"
 
-#ifdef USE_WIN_AUDIO
-#include "audio_win32.h"
-#endif
-
 /* our format capabilities */
 extern int audio_format_capability;
 
@@ -189,9 +185,6 @@ extern double iaxc_silence_threshold;
 extern int iaxc_audio_output_mode;
 extern iaxc_event_callback_t iaxc_event_callback;
 extern MUTEX iaxc_lock;
-
-/* external audio functions */
-void iaxc_external_service_audio();
 
 /* post_event_callback */
 int post_event_callback(iaxc_event e);

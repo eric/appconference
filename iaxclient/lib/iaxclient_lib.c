@@ -644,9 +644,7 @@ void handle_text_event(struct iax_event *e, int callNo) {
     ev.ev.text.type=IAXC_TEXT_TYPE_IAX;
     ev.ev.text.callNo = callNo;
 
-#ifdef IAXC_IAX2
     strncpy(ev.ev.text.message, e->data, IAXC_EVENT_BUFSIZ);
-#endif
     iaxc_post_event(ev);
 }
 
@@ -851,13 +849,9 @@ EXPORT void iaxc_call(char *num)
 	iaxc_note_activity(callNo);
 	calls[callNo].last_ping = calls[callNo].last_activity;
 
-#ifdef IAXC_IAX2
 	iax_call(calls[callNo].session, calls[callNo].callerid_number,
 	                                calls[callNo].callerid_name, num, NULL, 0,
 					audio_format_preferred, audio_format_capability);
-#else
-	iax_call(calls[callNo].session, calls[callNo].callerid_number, num, NULL, 0);
-#endif
 
 	// does state stuff also
 	iaxc_select_call(callNo);
@@ -958,24 +952,11 @@ static void iaxc_handle_regreply(struct iax_event *e) {
     if(cur->firstpass) {
 	cur->firstpass = 0;
       
-#ifdef IAXC_IAX2
 	if(e->etype == IAX_EVENT_REGACK ) {
 	    iaxc_usermsg(IAXC_STATUS, "Registration accepted");
 	} else if(e->etype == IAX_EVENT_REGREJ ) {
 	    iaxc_usermsg(IAXC_STATUS, "Registration rejected");
 	}
-#else // IAX1
-
-	if(e->event.regreply.status == IAX_REG_SUCCESS)
-	    iaxc_usermsg(IAXC_STATUS, "Registration accepted");
-	else if(e->event.regreply.status == IAX_REG_REJECT)
-	    iaxc_usermsg(IAXC_STATUS, "Registration rejected");
-	    // XXX should remove from registrations list?
-	else if(e->event.regreply.status == IAX_REG_TIMEOUT)
-	    iaxc_usermsg(IAXC_STATUS, "Registration timed out");
-	else
-	    iaxc_usermsg(IAXC_ERROR, "Unknown registration event");
-#endif
     }
 
     // XXX I think the session is no longer valid.. at least, that's
@@ -1016,12 +997,7 @@ static void iaxc_service_network() {
 		callNo = iaxc_find_call_by_session(e->session);
 		if(callNo >= 0) {
 			iaxc_handle_network_event(e, callNo);
-		} else if 
-#ifndef IAXC_IAX2
-		( e->etype == IAX_EVENT_REGREP )
-#else 
-		((e->etype == IAX_EVENT_REGACK ) || (e->etype == IAX_EVENT_REGREJ ))
-#endif
+		} else if ((e->etype == IAX_EVENT_REGACK ) || (e->etype == IAX_EVENT_REGREJ ))
 		{ 
 		    iaxc_handle_regreply(e);
 		} else if(e->etype == IAX_EVENT_REGREQ ) {
@@ -1066,21 +1042,6 @@ static void iaxc_service_network() {
 			calls[callNo].format = format;
 
 
-#ifndef IAXC_IAX2			  
-			if(e->event.connect.dnid)
-			    strncpy(calls[callNo].local,e->event.connect.dnid,
-				IAXC_EVENT_BUFSIZ);
-			else
-			    strncpy(calls[callNo].local,"unknown",
-				IAXC_EVENT_BUFSIZ);
-
-			if(e->event.connect.callerid)
-			    strncpy(calls[callNo].remote,
-				e->event.connect.callerid, IAXC_EVENT_BUFSIZ);
-			else
-			    strncpy(calls[callNo].remote,
-				"unknown", IAXC_EVENT_BUFSIZ);
-#else
 			if(e->ies.called_number)
 			    strncpy(calls[callNo].local,e->ies.called_number,
 				IAXC_EVENT_BUFSIZ);
@@ -1108,7 +1069,6 @@ static void iaxc_service_network() {
 			else
 			    strncpy(calls[callNo].remote_name,
     				"unknown", IAXC_EVENT_BUFSIZ);
-#endif
 			iaxc_note_activity(callNo);
 			iaxc_usermsg(IAXC_STATUS, "Call from (%s)", calls[callNo].remote);
 
@@ -1131,18 +1091,6 @@ static void iaxc_service_network() {
 bail:
 		iax_event_free(e);
 	}
-}
-
-static void iaxc_external_audio_event(struct iax_event *e, struct iaxc_call *call)
-{
-	// To be coded in the future
-	return;
-}
-
-static void iaxc_external_service_audio()
-{
-	// To be coded in the future
-	return;
 }
 
 EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring) {
