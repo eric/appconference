@@ -19,8 +19,10 @@
 
 /* wait max 100 ms for audio */
 /* this value may not be longer than the time a ringbuffer can take (~1s) */
-#define AST_CONF_LATENCY 250
+#define AST_CONF_LATENCY 100
 
+/* output audio frames must be at least 20 ms long */
+#define AST_CONF_MIN_MS 20
 
 struct ast_conf_audiobuffer {
     /* lock */
