@@ -295,7 +295,10 @@ void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 
 	switch(e->etype) {
 		case IAX_EVENT_HANGUP:
+#ifndef IAXC_IAX2  /* IAX2 barfs from this.  Should we do this or not? */
+			
 			iax_hangup(most_recent_answer->session, "Byeee!");
+#endif
 			iaxc_usermsg(IAXC_STATUS, "Call disconnected by remote");
 			free(most_recent_answer);
 			most_recent_answer = 0;

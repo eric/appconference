@@ -42,7 +42,7 @@ static int do_level_callback()
 
 static int input_postprocess(void *audio, int len, void *out)
 {
-    int l = len;
+    unsigned long ilen,olen;
     double volume;
     static double lowest_volume = 1;
 
@@ -57,7 +57,15 @@ static int input_postprocess(void *audio, int len, void *out)
 	st_compand_start(&input_compand, argv, 5);
     }
 
-    st_compand_flow(input_compand, audio, out, &l, &l);
+
+    ilen=olen=len;
+    st_compand_flow(input_compand, audio, out, &ilen, &olen);
+
+    /* until the compander fills it's buffer, it might not put out full
+     * buffers worth of data.  So, clear it unless it's all valid 
+     * (also, this helps shut up valgrind :) */
+    if(olen != len)
+	memset(out,0,len*2);
 
     do_level_callback();
 
