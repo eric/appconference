@@ -71,7 +71,7 @@ SYSLIBS= -lsocket -lnsl -lpthread -lrt -lresolv -lm
 MAKE=gmake
 endif
 
-PROGS= testcall$(EXEEXT)
+PROGS= testcall$(EXEEXT) testcall-jb$(EXEEXT)
 
 all: makelib $(PROGS)
 
@@ -86,3 +86,7 @@ makelib:
 
 testcall$(EXEEXT): $(OBJS) $(LIBS)
 	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)
+
+testcall-jb$(EXEEXT): testcall-jb.o $(LIBS)
+	gcc testcall-jb.o $(LIBS) $(SYSLIBS) -o testcall-jb$(EXEEXT)
+
