@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 	    fatal_error("cannot initialize iaxclient!");
 	}
 
-	iaxc_set_encode_format(IAXC_FORMAT_GSM);
+	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
 	iaxc_set_silence_threshold(silence_threshold);
 
 	list_devices();
