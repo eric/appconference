@@ -286,7 +286,7 @@ static int __debug(char *file, int lineno, char *func, char *fmt, ...)
 #ifdef	WIN32
 #define	DEBU
 #else
-#define DEBU(...)
+#define DEBU
 #endif
 #define G
 #endif

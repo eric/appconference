@@ -108,6 +108,9 @@ endif
 ifeq ($(OSTYPE),MACOSX)
 OBJS:= $(OBJS) $(OBJS_MACOSX) 
 RANLIB= ranlib
+# comment these lines to build against current OS, and not 10.1.5.
+#CC=MACOSX_DEPLOYMENT_TARGET=10.1 NEXT_ROOT=/Developer/SDKs/MacOSX10.1.5.sdk cc
+#CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.1.5.sdk/usr/include
 endif
 
 
