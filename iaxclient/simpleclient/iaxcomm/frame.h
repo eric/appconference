@@ -30,8 +30,9 @@
 #include "app.h"
 #include "calls.h"
 #include "directory.h"
+#include "wx/menu.h"
 
-#define LEVEL_MAX -10
+#define LEVEL_MAX -40
 #define LEVEL_MIN -50
 #define DEFAULT_SILENCE_THRESHOLD 1 // positive is "auto"
 
@@ -65,6 +66,7 @@ public:
     void        OnQuit(wxEvent &event);
     void        OnPTTChange(wxCommandEvent &event);
     void        OnSilenceChange(wxCommandEvent &event);
+    void        OnFilterChange(wxCommandEvent &event);
     bool        GetPTTState();
     void        CheckPTT();
     void        SetPTT(bool state);
@@ -80,6 +82,10 @@ public:
     wxChoice   *Server;
     wxTextCtrl *Extension;
     CallList   *Calls;
+
+    wxMenuItem *AGC;
+    wxMenuItem *DeNoise;
+    wxMenuItem *EchoCan;
     
 private:
 

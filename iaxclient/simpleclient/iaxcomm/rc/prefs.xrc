@@ -17,7 +17,7 @@
           <usenotebooksizer>1</usenotebooksizer>
           <size>200,160</size>
           <object class="notebookpage">
-            <label>Audio</label>
+            <label>Devices</label>
             <object class="wxPanel" name="AudioTab">
               <object class="wxFlexGridSizer">
                 <cols>1</cols>
@@ -104,6 +104,64 @@
             </object>
           </object>
           <object class="notebookpage">
+            <label>CallerID</label>
+            <object class="wxPanel" name="Caller ID">
+              <object class="wxFlexGridSizer">
+                <cols>1</cols>
+                <object class="spacer">
+                  <size>5,5</size>
+                </object>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label>Name:</label>
+                      </object>
+                      <minsize>100,20</minsize>
+                      <flag>wxALIGN_RIGHT|wxALIGN_BOTTOM</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxTextCtrl" name="Name"/>
+                      <minsize>260,24</minsize>
+                      <border>10</border>
+                      <flag>wxALIGN_RIGHT</flag>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <border>10</border>
+                  <minsize></minsize>
+                </object>
+                <vgap>8</vgap>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label>Number:</label>
+                      </object>
+                      <minsize>100,20</minsize>
+                      <flag>wxALIGN_RIGHT|wxALIGN_BOTTOM</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxTextCtrl" name="Number"/>
+                      <minsize>260,24</minsize>
+                      <border>10</border>
+                      <flag>wxALIGN_RIGHT</flag>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <border>10</border>
+                  <minsize></minsize>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="notebookpage">
             <label>Appearance</label>
             <object class="wxPanel" name="Appearance">
               <object class="wxFlexGridSizer">
@@ -118,7 +176,7 @@
                     </object>
                     <object class="sizeritem">
                       <object class="wxStaticText">
-                        <label>Show Keypad:  </label>
+                        <label>Use This View:  </label>
                       </object>
                       <minsize>100,20</minsize>
                       <flag>wxALIGN_RIGHT|wxALIGN_BOTTOM</flag>

@@ -41,6 +41,8 @@ private:
     wxChoice    *InputDevice;
     wxChoice    *OutputDevice;
     wxChoice    *RingDevice;
+    wxTextCtrl  *Name;
+    wxTextCtrl  *Number;
     wxCheckBox  *ShowKeyPad;
     wxButton    *SaveButton;
     wxButton    *ApplyButton;

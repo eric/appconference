@@ -138,6 +138,29 @@
                   <minsize></minsize>
                 </object>
                 <vgap>8</vgap>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label></label>
+                      </object>
+                      <minsize>100,20</minsize>
+                      <flag>wxALIGN_RIGHT</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxCheckBox" name="Default">
+                        <label> Use as default for outgoing calls</label>
+                      </object>
+                      <minsize>260,24</minsize>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <border>10</border>
+                  <minsize></minsize>
+                </object>
               </object>
             </object>
           </object>

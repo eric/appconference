@@ -39,6 +39,7 @@ public:
     wxTextCtrl  *UserName;
     wxTextCtrl  *Password;
     wxTextCtrl  *Confirm;
+    wxCheckBox  *Default;
     wxComboBox  *EntryName;
     wxChoice    *ChooseServer;
     wxTextCtrl  *Extension;

@@ -85,6 +85,7 @@ DirectoryDialog::DirectoryDialog( wxWindow* parent )
     UserName     = XRCCTRL(*this, "UserName",     wxTextCtrl);
     Password     = XRCCTRL(*this, "Password",     wxTextCtrl);
     Confirm      = XRCCTRL(*this, "Confirm",      wxTextCtrl);
+    Default      = XRCCTRL(*this, "Default",      wxCheckBox);
 
     // Entries tab
     EntryName    = XRCCTRL(*this, "EntryName",    wxComboBox);
@@ -120,6 +121,10 @@ DirectoryDialog::DirectoryDialog( wxWindow* parent )
     // Needed so we can appear to clear it
     ChooseServer->Append(" ");
     ChooseEntry->Append(" ");
+
+    ChooseServer->SetStringSelection(" ");
+    ChooseEntry->SetStringSelection(" ");
+
 }
 
 //----------------------------------------------------------------------------------------
@@ -131,6 +136,7 @@ void DirectoryDialog::OnServerName(wxCommandEvent &event)
     wxConfig *config = new wxConfig("iaxComm");
     wxString  val;
     wxString  KeyPath;
+    wxString  DefaultName;
 
     // Update the Host/Username/Password boxes
     KeyPath = "/Servers/" + ServerName->GetStringSelection();
@@ -141,6 +147,12 @@ void DirectoryDialog::OnServerName(wxCommandEvent &event)
         UserName->SetValue(config->Read("Username", ""));
         Password->SetValue(config->Read("Password", ""));
         Confirm->SetValue(Password->GetValue());
+
+        if(ServerName->GetStringSelection().IsSameAs(config->Read("/DefaultServer",""))) {
+            Default->SetValue(TRUE);
+        } else {
+            Default->SetValue(FALSE);
+        }
     }
 }
 
@@ -194,6 +206,13 @@ void DirectoryDialog::OnSave(wxCommandEvent &event)
       case 0:
            //--Server Tab ----------------------------------------------------------------
            if(!IsEmpty(ServerName->GetValue())) {
+               if(Default->GetValue()) {
+                   config->Write("/DefaultServer", ServerName->GetValue());
+                   // Update current default server
+                   wxGetApp().theFrame->Server->SetSelection(
+                   wxGetApp().theFrame->Server->FindString(config->Read("/DefaultServer", "")));
+               }
+
                KeyPath = "/Servers/" + ServerName->GetValue();
                config->SetPath(KeyPath);
 

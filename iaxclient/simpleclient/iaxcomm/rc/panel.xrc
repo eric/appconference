@@ -1,5 +1,319 @@
 <?xml version="1.0" ?>
 <resource version="2.3.0.1" xmlns="http://www.wxwindows.org/wxxrc">
+  <object class="wxPanel" name="Panel">
+    <pos></pos>
+    <object class="wxFlexGridSizer">
+      <cols>1</cols>
+      <rows>0</rows>
+      <growablecols>0</growablecols>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxALL|wxALIGN_LEFT</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <size>05</size>
+            <flag>wxEXPAND|wxGROW</flag>
+          </object>
+          <object class="sizeritem">
+            <object class="wxGauge" name="Input">
+              <style></style>
+              <tooltip>Input Audio meter</tooltip>
+            </object>
+            <minsize>100,13</minsize>
+            <flag>wxEXPAND</flag>
+          </object>
+          <object class="sizeritem">
+            <object class="wxGauge" name="Output">
+              <tooltip>Output Audio meter</tooltip>
+            </object>
+            <minsize>100,13</minsize>
+            <flag>wxEXPAND</flag>
+          </object>
+        </object>
+        <minsize></minsize>
+      </object>
+      <object class="sizeritem">
+        <flag>wxALL|wxEXPAND|wxGROW|wxALIGN_LEFT</flag>
+        <border>5</border>
+        <object class="wxFlexGridSizer">
+          <object class="sizeritem">
+            <object class="unknown" name="Calls">
+              <style></style>
+            </object>
+            <minsize>100,72</minsize>
+            <flag>wxEXPAND|wxGROW</flag>
+          </object>
+          <cols>1</cols>
+          <rows>1</rows>
+          <growablecols>0</growablecols>
+          <growablerows>0</growablerows>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <flag>wxEXPAND|wxALIGN_CENTRE</flag>
+        <object class="wxFlexGridSizer">
+          <object class="spacer">
+            <size>01</size>
+            <flag>wxEXPAND|wxGROW</flag>
+          </object>
+          <object class="sizeritem">
+            <object class="wxChoice" name="Server">
+              <content/>
+              <tooltip>Default server for Direct Dialling</tooltip>
+            </object>
+            <flag>wxEXPAND</flag>
+          </object>
+          <object class="spacer">
+            <size>01</size>
+            <flag>wxEXPAND|wxGROW</flag>
+          </object>
+          <object class="spacer">
+            <size>01</size>
+            <flag>wxEXPAND|wxGROW</flag>
+          </object>
+          <object class="sizeritem">
+            <object class="wxTextCtrl" name="Extension">
+              <tooltip>Dial this number @ selected server</tooltip>
+            </object>
+            <minsize>180,24</minsize>
+            <flag>wxEXPAND|wxGROW</flag>
+          </object>
+          <cols>3</cols>
+          <rows>2</rows>
+          <vgap>5</vgap>
+          <hgap>5</hgap>
+          <growablecols>1</growablecols>
+          <object class="spacer">
+            <size>01</size>
+            <flag>wxEXPAND|wxGROW</flag>
+          </object>
+        </object>
+        <border>4</border>
+      </object>
+      <object class="sizeritem">
+        <object class="wxFlexGridSizer">
+          <cols>4</cols>
+          <object class="sizeritem">
+            <flag>wxLEFT|wxALIGN_CENTRE_VERTICAL</flag>
+            <border>2</border>
+            <object class="wxButton" name="Dial">
+              <label>Dial</label>
+              <size>92,28</size>
+            </object>
+          </object>
+          <object class="spacer">
+            <size>2,1</size>
+          </object>
+          <object class="sizeritem">
+            <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
+            <border>2</border>
+            <object class="wxButton" name="Flash">
+              <label>Flash</label>
+              <size>92,28</size>
+              <enabled>0</enabled>
+              <tooltip>Server/Direct Dial</tooltip>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
+            <border>2</border>
+            <object class="wxButton" name="Hangup">
+              <label>Hangup</label>
+              <size>92,28</size>
+              <tooltip>Server/Direct Dial</tooltip>
+            </object>
+          </object>
+          <growablecols>3</growablecols>
+          <growablecols>4</growablecols>
+        </object>
+        <flag>wxALIGN_CENTRE</flag>
+      </object>
+      <object class="sizeritem">
+        <object class="wxFlexGridSizer">
+          <object class="sizeritem">
+            <flag>wxALIGN_CENTER</flag>
+            <border>2</border>
+            <object class="wxGridSizer">
+              <object class="sizeritem">
+                <object class="wxButton" name="KP1">
+                  <label>1</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP2">
+                  <label>2</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP3">
+                  <label>3</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP4">
+                  <label>4</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP5">
+                  <label>5</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP6">
+                  <label>6</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP7">
+                  <label>7</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP8">
+                  <label>8</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP9">
+                  <label>9</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KPSTAR">
+                  <label>*</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KP0">
+                  <label>0</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="KPPOUND">
+                  <label>#</label>
+                  <size>28,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <cols>3</cols>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxALIGN_CENTER</flag>
+            <border>7</border>
+            <object class="wxGridSizer">
+              <object class="sizeritem">
+                <object class="wxButton" name="OT0">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="OT1">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="OT2">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="OT3">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <cols>2</cols>
+              <object class="sizeritem">
+                <object class="wxButton" name="OT4">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="OT5">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="OT6">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+              <object class="sizeritem">
+                <object class="wxButton" name="OT7">
+                  <label></label>
+                  <size>92,28</size>
+                </object>
+                <border>2</border>
+                <flag>wxALL|wxALIGN_CENTER</flag>
+              </object>
+            </object>
+          </object>
+          <cols>2</cols>
+          <rows>2</rows>
+        </object>
+        <flag>wxALIGN_CENTER</flag>
+      </object>
+      <minsize/>
+      <growablerows>1</growablerows>
+    </object>
+  </object>
   <object class="wxPanel" name="FullPanel">
     <pos></pos>
     <object class="wxFlexGridSizer">
@@ -39,7 +353,7 @@
         <object class="wxFlexGridSizer">
           <object class="sizeritem">
             <object class="unknown" name="Calls">
-              <style>wxLC_REPORT|wxLC_SINGLE_SEL</style>
+              <style></style>
             </object>
             <minsize>100,72</minsize>
             <flag>wxEXPAND|wxGROW</flag>
@@ -341,7 +655,7 @@
       <growablerows>1</growablerows>
     </object>
   </object>
-  <object class="wxPanel" name="Panel">
+  <object class="wxPanel" name="MidPanel">
     <pos></pos>
     <object class="wxFlexGridSizer">
       <cols>1</cols>
@@ -380,7 +694,7 @@
         <object class="wxFlexGridSizer">
           <object class="sizeritem">
             <object class="unknown" name="Calls">
-              <style>wxLC_REPORT|wxLC_SINGLE_SEL</style>
+              <style></style>
             </object>
             <minsize>100,72</minsize>
             <flag>wxEXPAND|wxGROW</flag>

@@ -6,6 +6,7 @@ CFLAGS:= $(CFLAGS) -g
 OBJS= wx.o 
 REZ=echo
 
+CFLAGS:= $(CFLAGS) -DDEFAULT_DESTSERV=\"guest@ast1\" -DDEFAULT_DESTEXT=\"1001\" -DDEFAULT_NUM_CALLS=1
 
 LIBS=	../../lib/libiaxclient.a
 

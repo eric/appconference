@@ -38,24 +38,23 @@ class CallList : public wxListCtrl
 
 public:
 
-    CallList     ( wxWindow *parent,
-                   wxWindowID id = -1,
-                   const wxPoint &pos = wxDefaultPosition,
-                   const wxSize &size = wxDefaultSize,
-#ifdef __WXMSW__		   
-                   long style = wxLC_REPORT|wxLC_SINGLE_SEL|wxLC_HRULES);
-#else
-                   long style = wxLC_REPORT|wxLC_HRULES);
-#endif
+    CallList        ( wxWindow *parent,
+                      wxWindowID id = -1,
+                      const wxPoint &pos = wxDefaultPosition,
+                      const wxSize &size = wxDefaultSize,
+                      long style = wxLC_REPORT|wxLC_HRULES);
                    
-    void            OnSize( wxSizeEvent &event);
-    void            AutoSize();
-    void            OnSelect(wxListEvent &event);
-    void            OnDClick(wxListEvent &event);
-    int             HandleStateEvent(struct iaxc_ev_call_state e);
+    void              OnSize( wxSizeEvent &event);
+    void              AutoSize();
+    void              OnSelect(wxListEvent &event);
+    void              OnDClick(wxListEvent &event);
+    int               HandleStateEvent(struct iaxc_ev_call_state e);
+
+    struct iaxc_sound ringback;
+    struct iaxc_sound ringtone;
 
 private:
-    wxWindow*       m_parent;    
+    wxWindow         *m_parent;
 
     DECLARE_EVENT_TABLE()
 };

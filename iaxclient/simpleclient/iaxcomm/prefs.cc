@@ -55,6 +55,8 @@ BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
     EVT_CHOICE(  XRCID("OutputDevice"),  PrefsDialog::OnDirty)
     EVT_CHOICE(  XRCID("RingDevice"),    PrefsDialog::OnDirty)
     EVT_CHECKBOX(XRCID("ShowKeyPad"),    PrefsDialog::OnDirty)
+    EVT_TEXT(    XRCID("Name"),          PrefsDialog::OnDirty)
+    EVT_TEXT(    XRCID("Number"),        PrefsDialog::OnDirty)
 END_EVENT_TABLE()
 
 //----------------------------------------------------------------------------------------
@@ -74,15 +76,21 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     OutputDevice = XRCCTRL(*this, "OutputDevice", wxChoice);
     RingDevice   = XRCCTRL(*this, "RingDevice",   wxChoice);
 
+    Name         = XRCCTRL(*this, "Name",         wxTextCtrl);
+    Number       = XRCCTRL(*this, "Number",       wxTextCtrl);
+
     ShowKeyPad   = XRCCTRL(*this, "ShowKeyPad",   wxCheckBox);
 
     SaveButton   = XRCCTRL(*this, "wxID_SAVE",    wxButton);
     ApplyButton  = XRCCTRL(*this, "wxID_APPLY",   wxButton);
-    CancelButton = XRCCTRL(*this, "wxID_CANCEL",    wxButton);
+    CancelButton = XRCCTRL(*this, "wxID_CANCEL",  wxButton);
 
     GetAudioDevices();
 
     config->SetPath("/");
+
+    Name->SetValue(config->Read("Name", "Caller Name"));
+    Number->SetValue(config->Read("Number", "700000000"));
 
     SetAudioDevices(config->Read("Input Device",  ""),
                     config->Read("Output Device", ""),
@@ -142,6 +150,11 @@ void PrefsDialog::OnSave(wxCommandEvent &event)
     config->Write("Output Device", OutputDevice->GetStringSelection());
     config->Write("Ring Device",   RingDevice->GetStringSelection());
 
+    config->Write("Name",          Name->GetValue());
+    config->Write("Number",        Number->GetValue());
+
+    iaxc_set_callerid((char *)Name->GetValue().c_str(), (char *)Number->GetValue().c_str());
+
     config->Write("ShowKeyPad",    ShowKeyPad->GetValue());
 
     delete config;
@@ -197,8 +210,4 @@ void SetAudioDevices(wxString inname, wxString outname,
         devices++;
     }
     iaxc_audio_devices_set(input,output,ring);
-
-//    InputDevice->SetStringSelection(inname);
-//    OutputDevice->SetStringSelection(outname);
-//    RingDevice->SetStringSelection(ringname);
 }

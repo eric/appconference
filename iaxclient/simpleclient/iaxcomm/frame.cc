@@ -50,8 +50,8 @@
 #include "calls.h"
 #include "dial.h"
 
-static bool pttMode;  // are we in PTT mode?
-static bool pttState; // is the PTT button pressed?
+static bool pttMode;      // are we in PTT mode?
+static bool pttState;     // is the PTT button pressed?
 static bool silenceMode;  // are we in silence suppression mode?
 
 //----------------------------------------------------------------------------------------
@@ -62,6 +62,10 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
 
     EVT_MENU    (XRCID("PTT"),         MyFrame::OnPTTChange)
     EVT_MENU    (XRCID("Silence"),     MyFrame::OnSilenceChange)
+    EVT_MENU    (XRCID("AGC"),         MyFrame::OnFilterChange)
+    EVT_MENU    (XRCID("DeNoise"),     MyFrame::OnFilterChange)
+    EVT_MENU    (XRCID("EchoCan"),     MyFrame::OnFilterChange)
+
     EVT_MENU    (XRCID("Prefs"),       MyFrame::OnPrefs)
     EVT_MENU    (XRCID("Directory"),   MyFrame::OnDirectory)
     EVT_MENU    (XRCID("Exit"),        MyFrame::OnExit)
@@ -104,6 +108,7 @@ END_EVENT_TABLE()
 MyFrame::MyFrame( wxWindow* parent )
 {
     wxBoxSizer *panelSizer;
+    wxMenuBar  *aMenuBar;
     wxPanel    *aPanel;
     wxConfig   *config = new wxConfig("iaxComm");
     wxButton   *ot;
@@ -128,12 +133,12 @@ MyFrame::MyFrame( wxWindow* parent )
 
     //----Set the icon------------------------------------------------------------------
 #ifdef __WXMSW__   
-    // XXX under linux, I got "`application_xpm' undeclared (first use this function)" here.
     SetIcon(wxICON(application));
 #endif
 
     //----Add the menu------------------------------------------------------------------
-    SetMenuBar( wxXmlResource::Get()->LoadMenuBar( "main_menubar" ) );
+    aMenuBar =  wxXmlResource::Get()->LoadMenuBar( "main_menubar" );
+    SetMenuBar( aMenuBar);
 
     //----Add the statusbar-------------------------------------------------------------
     const int widths[] = {-1, 60};
@@ -165,7 +170,7 @@ MyFrame::MyFrame( wxWindow* parent )
         Server->Append(EntryName);
         bCont = config->GetNextGroup(EntryName, dummy);
     }
-    Server->SetSelection(0);
+    Server->SetSelection(Server->FindString(config->Read("/DefaultServer", "")));
 
     //----Load up One Touch Keys--------------------------------------------------------
     config->SetPath("/OneTouch");
@@ -197,6 +202,9 @@ MyFrame::MyFrame( wxWindow* parent )
 
     pttMode = false;
 
+    int flag = IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO;
+    iaxc_set_filters(iaxc_get_filters() | flag);
+
 #ifdef __WXGTK__
     // window used for getting keyboard state
     GdkWindowAttr attr;
@@ -214,8 +222,9 @@ MyFrame::~MyFrame()
         iaxc_millisleep(100);
     }
     iaxc_stop_processing_thread();
-//    exit(0); 
-    iaxc_shutdown();
+
+//  This hangs under linux; appears unnecessary under Win32
+//  iaxc_shutdown();
 }
 
 void MyFrame::OnNotify()
@@ -273,6 +282,29 @@ void MyFrame::OnSilenceChange(wxCommandEvent &event)
     }
 }
 
+void MyFrame::OnFilterChange(wxCommandEvent &event)
+{
+    bool checked =  event.IsChecked();
+    int  id      = event.GetId();
+    int  flag;    
+
+    // these all toggle a flag in the library; first, figure out which flag.
+
+    if(id == XRCID("AGC"))
+            flag = IAXC_FILTER_AGC;
+
+    if(id == XRCID("DeNoise"))
+            flag = IAXC_FILTER_DENOISE;
+
+    if(id == XRCID("EchoCan"))
+            flag = IAXC_FILTER_ECHO;
+
+    if(checked)
+        iaxc_set_filters(iaxc_get_filters() | flag);
+    else
+        iaxc_set_filters(iaxc_get_filters() & ~flag);
+}
+
 bool MyFrame::GetPTTState()
 {
     bool pressed;
@@ -324,7 +356,7 @@ void MyFrame::HandleEvent(wxCommandEvent &evt)
     free (e);
 }
 
-int MyFrame:: HandleIAXEvent(iaxc_event *e)
+int MyFrame::HandleIAXEvent(iaxc_event *e)
 {
     int ret = 0;
 
@@ -344,13 +376,13 @@ int MyFrame:: HandleIAXEvent(iaxc_event *e)
      return ret;
 }
 
-int MyFrame:: HandleStatusEvent(char *msg)
+int MyFrame::HandleStatusEvent(char *msg)
 {
     wxGetApp().theFrame->SetStatusText(msg);
     return 1;
 }
 
-int MyFrame:: HandleLevelEvent(float input, float output)
+int MyFrame::HandleLevelEvent(float input, float output)
 {
     int inputLevel, outputLevel;
 
@@ -445,6 +477,7 @@ void MyFrame::OnKeyPad(wxCommandEvent &event)
         digit = '#';
 
     iaxc_send_dtmf(digit);
+    Extension->WriteText(digit);
 }
 
 void MyFrame::OnDialDirect(wxCommandEvent &event)

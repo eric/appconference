@@ -87,6 +87,9 @@ bool theApp::OnInit()
 
     m_single_instance_checker = new wxSingleInstanceChecker( GetAppName() );
 
+// XXX this seems broken on mac with wx-2.4.1
+#ifndef __WXMAC__
+	
     // And if a copy is alreay running, then abort...
     if ( m_single_instance_checker->IsAnotherRunning() ) {
         wxMessageDialog second_instance_messagedialog( (wxWindow*)NULL,
@@ -97,6 +100,7 @@ bool theApp::OnInit()
         // Returning FALSE from within wxApp::OnInit() will terminate the application.
         return FALSE;
     }
+#endif
 
     // Load up the XML Resource handler, to be able to load XML resources..
 
@@ -147,8 +151,11 @@ bool theApp::OnInit()
 
     iaxc_start_processing_thread();
 
-    // Register from wxConfig
+    // Callerid from wxConfig
+    iaxc_set_callerid((char *)config->Read("Name", "IaxComm USer").c_str(),
+                      (char *)config->Read("Number",  "700000000").c_str());
 
+    // Register from wxConfig
     config->SetPath("/Servers");
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {

@@ -48,6 +48,11 @@
 #include "prefs.h"
 #include "frame.h"
 
+#include <math.h>
+#ifndef M_PI
+  #define M_PI 3.14159265358979323846
+#endif
+ 
 //----------------------------------------------------------------------------------------
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
@@ -73,29 +78,44 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
 
     // Column Headings
     InsertColumn( 0, _(""),       wxLIST_FORMAT_CENTER, (16));
-    InsertColumn( 1, _("State"),  wxLIST_FORMAT_CENTER, (48));
+    InsertColumn( 1, _("State"),  wxLIST_FORMAT_CENTER, (60));
     InsertColumn( 2, _("Remote"), wxLIST_FORMAT_LEFT,  (200));
 
     Hide();
     for(i=0;i<MAX_CALLS;i++) {
         InsertItem(i,wxString::Format("%ld", i+1), 0);
-        SetItem(i, 2, _T("No call"));
+        SetItem(i, 2, _T(""));
         item.m_itemId=i;
         item.m_mask = 0;
-        item.SetTextColour(*wxLIGHT_GREY);
-        item.SetBackgroundColour(*wxWHITE);
         SetItem(item);
     }
     Refresh();
     Show();
     AutoSize();
+
+    ringback.len = 6*8000;
+    ringtone.len = 6*8000;
+
+    ringback.data = (short *)calloc(ringback.len , sizeof(short));
+    ringtone.data = (short *)calloc(ringtone.len , sizeof(short));
+
+    for( int i=0;i < 2*8000; i++ )
+    {
+      ringback.data[i] =  (short)(0x7fff*0.4*sin((double)i*440*M_PI/8000));
+      ringback.data[i] += (short)(0x7fff*0.4*sin((double)i*480*M_PI/8000));
+
+      ringtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*880*M_PI/8000));
+      ringtone.data[i] += (short)(0x7fff*0.4*sin((double)i*960*M_PI/8000));
+    }
+    ringback.repeat = 1;
+    ringtone.repeat = 1;
 }
 
 void CallList::AutoSize()
 {
-    SetColumnWidth(2, GetClientSize().x - 65);
+    SetColumnWidth(2, GetClientSize().x - 77);
     // Stupid boundary condition.  Avoid unwanted HScroller
-    SetColumnWidth(2, GetClientSize().x - 64);
+    SetColumnWidth(2, GetClientSize().x - 76);
 }
 
 void CallList::OnSize(wxSizeEvent &event)
@@ -115,10 +135,7 @@ void CallList::OnSelect(wxListEvent &event)
 
 void CallList::OnDClick(wxListEvent &event)
 {
-//    Don't need to select, because single click should have done it
-//    int selected = event.m_itemIndex;
-//    iaxc_select_call(selected);
-
+    //Don't need to select, because single click should have done it
     iaxc_dump_call();
 }
 
@@ -131,45 +148,51 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     if(c.state & IAXC_CALL_STATE_RINGING) {
       wxGetApp().theFrame->Show();
       wxGetApp().theFrame->Raise();
+      iaxc_play_sound(&ringtone, 1);
+    } else {
+      iaxc_stop_sound(ringtone.id);
     }
  
+
     // first, handle inactive calls
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
-        //fprintf(stderr, "state for item %d is free\n", c.callNo);
-        SetItem(c.callNo, 2, _T("No call") );
+        SetItem(c.callNo, 2, _T("") );
         SetItem(c.callNo, 1, _T("") );
-        stateItem.SetTextColour(*wxLIGHT_GREY);
-        stateItem.SetBackgroundColour(*wxWHITE);
     } else {
-        // set remote 
-        SetItem(c.callNo, 2, c.remote );
+        bool     active   = c.state & IAXC_CALL_STATE_ACTIVE;
+        bool     outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
+        bool     ringing  = c.state & IAXC_CALL_STATE_RINGING;
+        bool     complete = c.state & IAXC_CALL_STATE_COMPLETE;
+        bool     selected = c.state & IAXC_CALL_STATE_SELECTED;
+        wxString info;
 
-        bool outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
-        bool ringing = c.state & IAXC_CALL_STATE_RINGING;
-        bool complete = c.state & IAXC_CALL_STATE_COMPLETE;
-
-        if( ringing && !outgoing ) {
-            stateItem.SetTextColour(*wxBLACK);
-            stateItem.SetBackgroundColour(*wxRED);
-        } else {
-            stateItem.SetTextColour(*wxBLUE);
-            stateItem.SetBackgroundColour(*wxWHITE);
-        }
+        info.Printf("%s <%s>", c.remote_name, c.remote);
+        SetItem(c.callNo, 2, info );
 
         if(outgoing) {
-            if(ringing) 
-               SetItem(c.callNo, 1, _T("<r>") );
-           else if(complete)
-               SetItem(c.callNo, 1, _T("<->") );
-           else // not accepted yet..
-               SetItem(c.callNo, 1, _T("< >") );
+            if(ringing) {
+                SetItem(c.callNo, 1, _T("ring out") );
+                iaxc_play_sound(&ringback, 0);
+            } else {
+                if(complete) {
+                    SetItem(c.callNo, 1, _T("ACTIVE") );
+                    iaxc_stop_sound(ringback.id);
+                } else {
+                    // not accepted yet..
+                    SetItem(c.callNo, 1, _T("---") );
+                }
+            }
         } else {
-            if(ringing) 
-                SetItem(c.callNo, 1, _T(">R<") );
-            else if(complete)
-                SetItem(c.callNo, 1, _T(">-<") );
-            else // not accepted yet..  shouldn't happen!
-                SetItem(c.callNo, 1, _T("> <") );
+            if(ringing) {
+                SetItem(c.callNo, 1, _T("ring in") );
+            } else {
+                if(complete) {
+                    SetItem(c.callNo, 1, _T("ACTIVE") );
+                } else { 
+                    // not accepted yet..  shouldn't happen!
+                    SetItem(c.callNo, 1, _T("???") );
+                }
+            }
         } 
     // XXX do something more noticable if it's incoming, ringing!
     }
