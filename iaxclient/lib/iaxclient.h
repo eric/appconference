@@ -100,6 +100,7 @@ int iaxc_stop_processing_thread();
 void iaxc_call(char *num);
 void iaxc_register(char *user, char *pass, char *host);
 void iaxc_answer_call(int callNo); 
+void iaxc_dump_all_calls(void);
 void iaxc_dump_call(void);
 void iaxc_reject_call(void);
 void iaxc_send_dtmf(char digit);

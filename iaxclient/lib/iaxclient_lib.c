@@ -252,6 +252,7 @@ int iaxc_initialize(int audType, int inCalls) {
 
 void iaxc_shutdown() {
 	MUTEXLOCK(&iaxc_lock);
+	iaxc_dump_all_calls();
 	switch (iAudioType) {
 		case AUDIO_INTERNAL:
 #ifdef USE_WIN_AUDIO
@@ -559,6 +560,25 @@ void iaxc_answer_call(int callNo)
 	iaxc_do_state_callback(callNo);
 }
 
+static void iaxc_dump_one_call(int callNo)
+{
+      if(calls[callNo].state == IAXC_CALL_STATE_FREE) return;
+      
+      iax_hangup(calls[callNo].session,"Dumped Call");
+      iaxc_usermsg(IAXC_STATUS, "Hanging up call %d", callNo);
+      iaxc_clear_call(callNo);
+}
+
+void iaxc_dump_all_calls(void)
+{
+      int callNo;
+      MUTEXLOCK(&iaxc_lock);
+	for(callNo=0; callNo<nCalls; callNo++)
+	    iaxc_dump_one_call(callNo);
+      MUTEXUNLOCK(&iaxc_lock);
+}
+
+
 void iaxc_dump_call(void)
 {
 	int toDump = selected_call;
@@ -566,9 +586,7 @@ void iaxc_dump_call(void)
 	if(toDump < 0) {
 	    iaxc_usermsg(IAXC_ERROR, "Error: tried to dump but no call selected");
 	} else {
-	    iax_hangup(calls[selected_call].session,"Dumped Call");
-	    iaxc_usermsg(IAXC_STATUS, "Hanging up call %d", toDump);
-	    iaxc_clear_call(toDump);
+	    iaxc_dump_one_call(selected_call);
 	}
 	MUTEXUNLOCK(&iaxc_lock);
 }
