@@ -557,7 +557,19 @@ static void do_iax_event() {
 			    strncpy(calls[callNo].remote,
 				"unknown", IAXC_EVENT_BUFSIZ);
 #else
-			// XXX TODO
+			if(e->ies.called_number)
+			    strncpy(calls[callNo].local,e->ies.called_number,
+				IAXC_EVENT_BUFSIZ);
+			else
+			    strncpy(calls[callNo].local,"unknown",
+				IAXC_EVENT_BUFSIZ);
+
+			if(e->ies.calling_number)
+			    strncpy(calls[callNo].remote,
+				e->ies.calling_number, IAXC_EVENT_BUFSIZ);
+			else
+			    strncpy(calls[callNo].remote,
+				"unknown", IAXC_EVENT_BUFSIZ);
 #endif
 			iaxc_usermsg(IAXC_STATUS, "Call from (%s)", calls[callNo].remote);
 
