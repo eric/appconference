@@ -755,6 +755,9 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			//fprintf(stderr, "**********GOT A PONG!\n");
 			generate_netstat_event(callNo);
 			break;
+		case IAX_EVENT_CNG:
+			/* ignore? */
+			break;
 		default:
 			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
 			break;
