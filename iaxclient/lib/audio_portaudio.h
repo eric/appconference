@@ -37,7 +37,7 @@ typedef short SAMPLE;
 
 int pa_initialize_audio();
 void pa_shutdown_audio();
-void handle_paerror(PaError err);
+void handle_paerror(PaError err, char *where);
 void pa_read_audio_input();
 void pa_play_recv_audio(void *fr, int fr_size);
 void pa_send_audio(struct timeval *outtm, struct peer *most_recent_answer, int iEncodeType);

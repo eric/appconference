@@ -30,14 +30,17 @@ endif
 
 ifeq ($(OSTYPE),WIN32)
 EXEEXT=.exe
-LIBS:=	$(LIBS) 
 SYSLIBS=-lwinmm -lwsock32 
 endif
 
-ifneq ($(OSTYPE),WIN32)
+ifeq ($(OSTYPE),LINUX)
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
-LIBS:=	$(LIBS)
 SYSLIBS=-lpthread
+endif
+
+ifeq ($(OSTYPE),MACOSX)
+CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
+SYSLIBS=-framework CoreAudio -framework AudioToolbox
 endif
 
 PROGS= testcall$(EXEEXT)

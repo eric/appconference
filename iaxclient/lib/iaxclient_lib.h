@@ -17,7 +17,10 @@
 /* not win32 */
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 #endif
+
+
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -29,6 +32,8 @@
 #ifdef WIN32
 #include "audio_win32.h"
 #endif
+
+
 
 /* os-dependent macros, etc */
 #ifdef WIN32

@@ -44,10 +44,13 @@ OBJS_LINUX=\
 
 OBJS_MACOSX=\
 	unixfuncs.o \
+	portaudio/pa_common/pa_convert.o \
 	portaudio/pa_mac_core/pa_mac_core.o 
 	
 
 LIB=libiaxclient.a
+
+RANLIB= echo
 
 all: $(LIB)
 
@@ -79,7 +82,8 @@ OBJS:= $(OBJS) $(OBJS_LINUX)
 endif
 
 ifeq ($(OSTYPE),MACOSX)
-OBJS:= $(OBJS) $(OBJS_WIN32) 
+OBJS:= $(OBJS) $(OBJS_MACOSX) 
+RANLIB= ranlib
 endif
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)
@@ -88,6 +92,7 @@ CFLAGS:= $(CFLAGS) -D$(OSTYPE)
 $(LIB): $(OBJS)
 	rm -f $(LIB)
 	ar cru $(LIB) $(OBJS)
+	$(RANLIB) $(LIB)
 
 plat:
 	echo Platform is $(OSTYPE)

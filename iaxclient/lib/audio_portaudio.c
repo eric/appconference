@@ -19,37 +19,30 @@
  *
  */
 
-#include "audio_portaudio.h"
+#include "iaxclient_lib.h"
 
-PABLIO_Stream *inStream, *outStream;
+PABLIO_Stream *stream;
 SAMPLE samples[SAMPLES_PER_FRAME * FRAMES_PER_BLOCK];
 
 int pa_initialize_audio() {
     PaError  err;
 
     /* Open simplified blocking I/O layer on top of PortAudio. */
-    err = OpenAudioStream( &inStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_READ  | PABLIO_MONO) );
+    err = OpenAudioStream( &stream, SAMPLE_RATE, paInt16,
+                           (PABLIO_READ  | PABLIO_WRITE | PABLIO_MONO) );
     if( err != paNoError ) {
-		handle_paerror(err);
+		handle_paerror(err, "opening stream");
 		return -1;
-	}
-    err = OpenAudioStream( &outStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_WRITE  | PABLIO_MONO) );
-    if( err != paNoError ) {
-		handle_paerror(err);
-		return -1;
-	}
-	return 0;
+    }
+    return 0;
 }
 
 void pa_shutdown_audio() {
-    CloseAudioStream( inStream );
-    CloseAudioStream( outStream );
+    CloseAudioStream( stream );
 }
 
-void handle_paerror(PaError err) {
-	fprintf(stderr, "PortAudio error: %s\n", Pa_GetErrorText(err));
+void handle_paerror(PaError err, char * where) {
+	fprintf(stderr, "PortAudio error at %s: %s\n", where, Pa_GetErrorText(err));
 }
 
 void pa_read_audio_input() {
@@ -58,7 +51,7 @@ void pa_read_audio_input() {
 
 void pa_play_recv_audio(void *fr, int fr_size) {
 	// Play the audio as decoded
-	WriteAudioStream(outStream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);
+	WriteAudioStream(stream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);
 }
 
 void pa_send_audio(struct timeval *lastouttm, struct peer *most_recent_answer, int iEncodeType) {
@@ -66,7 +59,7 @@ void pa_send_audio(struct timeval *lastouttm, struct peer *most_recent_answer, i
 	short fr[160];
 	long i;
 
-	long framecount = GetAudioStreamReadable(inStream);
+	long framecount = GetAudioStreamReadable(stream);
 	for(i = 0; i < framecount; i++) {
 		long diff;
 		gettimeofday(&now,NULL);
@@ -80,7 +73,7 @@ void pa_send_audio(struct timeval *lastouttm, struct peer *most_recent_answer, i
 
 		//fprintf(stderr, "PORTAUDIO: reading audio\n");
 		// Read the audio from the audio buffer
-		ReadAudioStream(inStream, samples, FRAMES_PER_BLOCK);
+		ReadAudioStream(stream, samples, FRAMES_PER_BLOCK);
 
 		// Encode it, then send it
 		send_encoded_audio(most_recent_answer, samples, iEncodeType);
