@@ -193,9 +193,8 @@ static unsigned long RoundUpToNextPowerOf2( unsigned long n )
  *    PABLIO_READ, PABLIO_WRITE, or PABLIO_READ_WRITE,
  *    and either PABLIO_MONO or PABLIO_STEREO
  */
-PaError OpenAudioStreamByID( PABLIO_Stream **rwblPtr, double sampleRate,
-                         PaSampleFormat format, long flags ,
-			 PaDeviceID inID, PaDeviceID outID)
+PaError OpenAudioStream( PABLIO_Stream **rwblPtr, double sampleRate,
+                         PaSampleFormat format, long flags )
 {
     long   bytesPerSample;
     long   doRead = 0;
@@ -265,11 +264,11 @@ PaError OpenAudioStreamByID( PABLIO_Stream **rwblPtr, double sampleRate,
      * audio drivers. */
     err = Pa_OpenStream(
               &aStream->stream,
-              (doRead ? inID : paNoDevice),
+              (doRead ? Pa_GetDefaultInputDeviceID() : paNoDevice),
               (doRead ? aStream->samplesPerFrame : 0 ),
               format,
               NULL,
-              (doWrite ? outID : paNoDevice),
+              (doWrite ? Pa_GetDefaultOutputDeviceID() : paNoDevice),
               (doWrite ? aStream->samplesPerFrame : 0 ),
               format,
               NULL,
@@ -291,14 +290,6 @@ error:
     CloseAudioStream( aStream );
     *rwblPtr = NULL;
     return err;
-}
-
-PaError OpenAudioStream( PABLIO_Stream **rwblPtr, double sampleRate,
-                         PaSampleFormat format, long flags )
-{
-	return OpenAudioStreamByID(rwblPtr, sampleRate, format, flags,
-		Pa_GetDefaultInputDeviceID(), 	
-		Pa_GetDefaultOutputDeviceID());
 }
 
 /************************************************************/
