@@ -1,11 +1,12 @@
 
-CFLAGS=-Igsm/inc -Ilibiax/src -Iportaudio/pa_common -Iportaudio/pablio
+# set to 2 for IAX2
+IAXVER=1
+
+CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
 
 CFLAGS:= $(CFLAGS) -g
 
 OBJS=\
-	libiax/src/md5.o \
-	libiax/src/iax.o \
 	gsm/src/add.o \
 	gsm/src/code.o \
 	gsm/src/debug.o \
@@ -46,7 +47,17 @@ OBJS_MACOSX=\
 	unixfuncs.o \
 	portaudio/pa_common/pa_convert.o \
 	portaudio/pa_mac_core/pa_mac_core.o 
-	
+
+OBJS_IAX1=\
+	libiax/src/md5.o \
+	libiax/src/iax.o \
+
+OBJS_IAX2=\
+        libiax2/src/md5.o \
+        libiax2/src/iax.o \
+        libiax2/src/iax2-parser.o \
+
+
 
 LIB=libiaxclient.a
 
@@ -84,6 +95,15 @@ endif
 ifeq ($(OSTYPE),MACOSX)
 OBJS:= $(OBJS) $(OBJS_MACOSX) 
 RANLIB= ranlib
+endif
+
+
+ifeq ($(IAXVER),1)
+OBJS:= $(OBJS) $(OBJS_IAX1)
+CFLAGS:= $(CFLAGS) -Ilibiax/src
+else
+OBJS:= $(OBJS) $(OBJS_IAX2)
+CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX
 endif
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)

@@ -29,8 +29,7 @@ NOTE: If all this isnt done, the system doesnt not handle this
 cleanly and has to be rebooted. What a pile of doo doo!! */
 void killem(void)
 {
-	iax_shutdown();
-
+	iaxc_shutdown();
 	return;
 }
 
@@ -73,12 +72,11 @@ int main(int argc, char *argv[])
 
 	fprintf(f, "\n\
 	    TestCall accept some keyboard input while it's running.\n\
-	    You must hit 'enter' for your keypresses to be recognized,\n\ 
+	    You must hit 'enter' for your keypresses to be recognized,\n\
 	    although you can type more than one key on a line\n\
 \n\
 	    q: drop the call and hangup.\n\
-	    0-9 * or #: dial those DTMF digits.\n\
-	");
+	    0-9 * or #: dial those DTMF digits.\n");
 	fprintf(f, "Calling %s\n", dest);
 	
 	iaxc_call(f,dest);

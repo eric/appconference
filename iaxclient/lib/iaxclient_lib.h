@@ -4,7 +4,6 @@
 /* This is the internal include file for IAXCLIENT -- externally
  * accessible APIs should be declared in iaxclient.h */
 
-#include "iaxclient.h"
 
 #ifdef WIN32
 #include "winpoop.h" // Win32 Support Functions
@@ -20,18 +19,9 @@
 #include <sys/time.h>
 #endif
 
-
-
 #include <stdio.h>
 #include <sys/types.h>
-#include "gsm.h"
 
-#include "audio_portaudio.h"
-#include "audio_encode.h"
-
-#ifdef WIN32
-#include "audio_win32.h"
-#endif
 
 
 
@@ -77,11 +67,29 @@ pthread_create(&thread, NULL, func, args)
 
 
 #include "iax-client.h" // LibIAX functions
+#include "gsm.h"
 
+struct peer {
+	int time;
+	gsm gsmin;
+	gsm gsmout;
+
+	struct iax_session *session;
+	struct peer *next;
+};
 static struct peer *peers;
 
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
 void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p);
 void iaxc_service_network(int netfd, FILE *f);
+
+#include "iaxclient.h"
+#include "audio_encode.h"
+#include "audio_portaudio.h"
+
+#ifdef WIN32
+#include "audio_win32.h"
+#endif
+
 #endif
 

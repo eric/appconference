@@ -19,38 +19,40 @@ int send_encoded_audio(struct peer *most_recent_answer, void *data, int iEncodeT
 	return 0;
 }
 
-int decode_audio(struct iax_event *e, struct peer *p, void *fr, int len, int iEncodeType)
+int decode_audio(struct iax_event *e, struct peer *p, void *fr, int *len, int iEncodeType)
 {
+	int ret;
+	int datalen;
+
+#ifdef IAXC_IAX2
+#define EVENTLEN (e->datalen)
+#define EVENTDATA (e->data)
+#else
+#define EVENTLEN (e->event.voice.datalen)
+#define EVENTDATA (e->event.voice.data)
+#endif
+
+	if(EVENTLEN == 0) {
+		fprintf(stderr, "Empty voice frame\n");
+		return -1;
+	}
+
 	switch (iEncodeType) {
 	case AST_FORMAT_GSM:
-
+		if(EVENTLEN % 33) {
+			fprintf(stderr, "Weird gsm frame, not a multiple of 33.\n");
+			return -1;
+		}
 		if (!p->gsmin)
 			p->gsmin = gsm_create();
+		ret = gsm_decode(p->gsmin, (char *) EVENTDATA + *len, fr);
+		if(!ret)
+		      *len += 33;
+		return ret;
 
-		return gsm_decode(p->gsmin, (char *) e->event.voice.data + len, fr);
 		break;
 	}
 	return 0;
 }
 
-int check_encoded_audio_length(struct iax_event *e, int iEncodeType)
-{
-	switch (iEncodeType) {
-		case AST_FORMAT_GSM:
-			if(e->event.voice.datalen % 33) {
-				fprintf(stderr, "Weird gsm frame, not a multiple of 33.\n");
-				return -1;
-			}
-			break;
-	}
-	return 0;
-}
-
-void increment_encoded_data_count(int *i, int iEncodeType) {
-	switch (iEncodeType) {
-		case AST_FORMAT_GSM:
-			*i += 33;
-			break;
-	}
-}
 		 

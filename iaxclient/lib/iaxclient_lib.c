@@ -70,7 +70,6 @@ int iaxc_initialize(int audType, FILE *file) {
 }
 
 void iaxc_shutdown() {
-	iax_shutdown();
 	switch (iAudioType) {
 		case AUDIO_INTERNAL:
 #ifdef WIN32
@@ -153,7 +152,11 @@ int service_audio()
 {
 	/* do audio input stuff for buffers that have received data from audio in device already. Must
 		do them in serial number order (the order in which they were originally queued). */
+#ifdef IAXC_IAX2
+	if(1)  /* HACK ALERT! calls don't get into answered state with IAX2 FIX ME FAST */
+#else
 	if(answered_call) /* send audio only if call answered */
+#endif
 	{
 		switch (iAudioType) {
 			case AUDIO_INTERNAL:
@@ -182,13 +185,14 @@ void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p) {
 	int len;
 	short fr[160];
 
-	if (check_encoded_audio_length(e, iEncodeType) < 0)
-		return;
-
 	len = 0;
+#ifdef IAXC_IAX2
+	while(len < e->datalen) {
+#else
 	while(len < e->event.voice.datalen) {
+#endif
 //		if(gsm_decode(p->gsmin, (char *) e->event.voice.data + len, fr)) {
-		if(decode_audio(e,p,fr,len,iEncodeType)) {
+		if(decode_audio(e,p,fr,&len,iEncodeType)) {
 			fprintf(stderr, "Bad voice packet.  Unable to decode.\n");
 			return;
 		} else {  /* its an audio packet to be output to user */
@@ -209,7 +213,6 @@ void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p) {
 					break;
 			}
 		}
-		increment_encoded_data_count(&len, iEncodeType);
 	}
 }
 
@@ -284,8 +287,11 @@ void iaxc_call(FILE *f, char *num)
 
 	most_recent_answer = peer;
 
-	iax_call(peer->session, "IAXCLIENT", num, NULL, 10);
-	/* start_call_processing(); */
+#ifdef IAXC_IAX2
+	iax_call(peer->session, "7001234567", "IAXClient User", num, NULL, 10);
+#else
+	iax_call(peer->session, "7001234567", num, NULL, 10);
+#endif
 }
 
 void iaxc_answer_call(void) 
@@ -381,7 +387,7 @@ static void do_iax_event(FILE *f) {
 				fprintf(f, "Missed a call... too many sessions open.\n");
 			}
 
-
+#ifndef IAXC_IAX2
 			if(e->event.connect.callerid && e->event.connect.dnid)
 				fprintf(f, "Call from '%s' for '%s'", e->event.connect.callerid, 
 				e->event.connect.dnid);
@@ -389,7 +395,9 @@ static void do_iax_event(FILE *f) {
 				fprintf(f, "Call from '%s'", e->event.connect.dnid);
 			} else if(e->event.connect.callerid) {
 				fprintf(f, "Call from '%s'", e->event.connect.callerid);
-			} else printf("Call from");
+			} else 
+#endif
+			    printf("Call from");
 			fprintf(f, " (%s)\n", inet_ntoa(iax_get_peer_addr(e->session).sin_addr));
 
 			if(most_recent_answer) {
