@@ -1,6 +1,6 @@
 
 # set to 2 for IAX2
-IAXVER=1
+IAXVER=2
 
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
 
@@ -109,7 +109,7 @@ OBJS:= $(OBJS) $(OBJS_IAX1)
 CFLAGS:= $(CFLAGS) -Ilibiax/src
 else
 OBJS:= $(OBJS) $(OBJS_IAX2)
-CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX
+CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT -DDEBUG_DEFAULT
 endif
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)
