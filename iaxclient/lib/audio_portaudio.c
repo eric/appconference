@@ -54,7 +54,8 @@ static RingBuffer inRing, outRing;
 
 static int oneStream;
 static int auxStream;
-static int virtualMono;
+static int virtualMonoIn;
+static int virtualMonoOut;
 
 static int running;
 
@@ -133,7 +134,7 @@ static void mix_slin(short *dst, short *src, int samples) {
     int i=0,val=0;
     for (i=0;i<samples;i++) {
 
-        if(virtualMono)
+        if(virtualMonoOut)
 	  val = ((short *)dst)[2*i] + ((short *)src)[i];
 	else
 	  val = ((short *)dst)[i] + ((short *)src)[i];
@@ -144,7 +145,7 @@ static void mix_slin(short *dst, short *src, int samples) {
             val = -0x7fff+1;
         } 
 
-	if(virtualMono) {
+	if(virtualMonoOut) {
 	    dst[2*i] = val;
 	    dst[2*i+1] = val;
 	} else {
@@ -340,16 +341,19 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
     short virtualInBuffer[FRAMES_PER_BUFFER * 2];
     short virtualOutBuffer[FRAMES_PER_BUFFER * 2];
 
+#if 0
+    /* I think this can't happen */
     if(virtualMono && framesPerBuffer > FRAMES_PER_BUFFER) {
 	fprintf(stderr, "ERROR: buffer in callback is too big!\n");
 	exit(1);
     }
+#endif
 
     if(outputBuffer)
     {  
 	int bWritten;
 	/* output underflow might happen here */
-	if(virtualMono) {
+	if(virtualMonoOut) {
 	  bWritten = RingBuffer_Read(&outRing, virtualOutBuffer, totBytes);
 	  /* we zero "virtualOutBuffer", then convert the whole thing,
 	   * yes, because we use virtualOutBuffer for ec below */
@@ -373,7 +377,7 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 
     if(inputBuffer) {
 	/* input overflow might happen here */
-	if(virtualMono) {
+	if(virtualMonoIn) {
 	  stereo2mono(virtualInBuffer, inputBuffer, framesPerBuffer);
 	  iaxc_echo_can(virtualInBuffer, virtualOutBuffer, framesPerBuffer);
 
@@ -396,11 +400,15 @@ int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 
     short virtualOutBuffer[FRAMES_PER_BUFFER * 2];
 
+#if 0
+    /* shouldn't ever happen */
     if(virtualMono && framesPerBuffer > FRAMES_PER_BUFFER) {
 	fprintf(stderr, "ERROR: buffer in callback is too big!\n");
 	exit(1);
     }
+#endif
 
+    /* XXX: need to handle virtualMonoOut case!!! */
     if(outputBuffer)
     {  
         memset((char *)outputBuffer, 0, totBytes);
@@ -425,6 +433,15 @@ int pa_aux_callback(void *inputBuffer, void *outputBuffer,
  *
  * Win32 works fine, in all cases, with a single stream and real mono,
  * so far.
+ *
+ * Unfortunately, things get more complicated for MacOSX.  In a reported
+ * case, a user has stereo output, but only Mono Input (a particular
+ * Plantronics USB headset.  So, we need to handle a new case of mono 
+ * input, but virtualMono output.  argh.
+ *
+ * We could probably do this more cleanly, because there are still cases
+ * where we will fail (i.e. if the user has only mono in and out on a Mac).
+ *
  * */
 int pa_openstreams (struct iaxc_audio_driver *d ) {
     PaError err;
@@ -447,7 +464,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
 	/* if this works, set iStream, oStream to this stream */
 	oStream = iStream;
 	oneStream = 1;
-	virtualMono = 0;
+	virtualMonoIn = virtualMonoOut = 0;
 	return 0;
     }
 #endif
@@ -470,14 +487,36 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
 	/* if this works, set iStream, oStream to this stream */
 	oStream = iStream;
 	oneStream = 1;
-	virtualMono = 1;
+	virtualMonoIn = virtualMonoOut = 1;
+	return 0;
+    }
+
+    /* then, we try a single stream, virtual stereo.  Except on linux,
+     * see note above */
+    err = Pa_OpenStream ( &iStream, 
+	      selectedInput,  1, paInt16, NULL,  /* input info */
+	      selectedOutput, 2, paInt16, NULL,  /* output info */
+	      8000.0, 
+	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
+	      0,   /* numbuffers */  /* use default */
+	      0,   /* flags */
+	      pa_callback, 
+	      NULL /* userdata */
+      );
+    
+    if( err == paNoError ) {
+	/* if this works, set iStream, oStream to this stream */
+	oStream = iStream;
+	oneStream = 1;
+	virtualMonoIn = 0;
+	virtualMonoOut = 1;
 	return 0;
     }
 #endif
 
     /* finally, we go to the worst case.  Two opens, virtual mono */
     oneStream = 0;
-    virtualMono = 1;
+    virtualMonoIn = virtualMonoOut = 1;
     err = Pa_OpenStream ( &iStream, 
 	      selectedInput,  2, paInt16, NULL,  /* input info */
 	      paNoDevice, 0, paInt16, NULL,  /* output info */
@@ -518,7 +557,7 @@ int pa_openauxstream (struct iaxc_audio_driver *d ) {
 
     err = Pa_OpenStream ( &aStream, 
 	      paNoDevice, 0, paInt16, NULL,  /* input info */
-	      selectedRing,  virtualMono+1, paInt16, NULL,  /* output info */
+	      selectedRing,  virtualMonoOut+1, paInt16, NULL,  /* output info */
 	      8000.0, 
 	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
 	      0,   /* numbuffers */  /* use default */
