@@ -50,13 +50,15 @@
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
 BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
-    EVT_BUTTON(  wxID_SAVE,              PrefsDialog::OnSave)
-    EVT_BUTTON(  wxID_APPLY,             PrefsDialog::OnApply)
-    EVT_CHOICE(  XRCID("InputDevice"),   PrefsDialog::OnDirty)
-    EVT_CHOICE(  XRCID("OutputDevice"),  PrefsDialog::OnDirty)
-    EVT_CHOICE(  XRCID("RingDevice"),    PrefsDialog::OnDirty)
-    EVT_TEXT(    XRCID("Name"),          PrefsDialog::OnDirty)
-    EVT_TEXT(    XRCID("Number"),        PrefsDialog::OnDirty)
+    EVT_BUTTON( XRCID("BrowseRingTone"), PrefsDialog::OnBrowse)
+    EVT_BUTTON( XRCID("BrowseRingBack"), PrefsDialog::OnBrowse)
+    EVT_BUTTON( wxID_SAVE,               PrefsDialog::OnSave)
+    EVT_BUTTON( wxID_APPLY,              PrefsDialog::OnApply)
+    EVT_CHOICE( XRCID("InputDevice"),    PrefsDialog::OnDirty)
+    EVT_CHOICE( XRCID("OutputDevice"),   PrefsDialog::OnDirty)
+    EVT_CHOICE( XRCID("RingDevice"),     PrefsDialog::OnDirty)
+    EVT_TEXT(   XRCID("Name"),           PrefsDialog::OnDirty)
+    EVT_TEXT(   XRCID("Number"),         PrefsDialog::OnDirty)
 END_EVENT_TABLE()
 
 //----------------------------------------------------------------------------------------
@@ -74,25 +76,29 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
 
     // Reach in for our controls
 
-    InputDevice   = XRCCTRL(*this, "InputDevice",   wxChoice);
-    OutputDevice  = XRCCTRL(*this, "OutputDevice",  wxChoice);
-    RingDevice    = XRCCTRL(*this, "RingDevice",    wxChoice);
+    InputDevice    = XRCCTRL(*this, "InputDevice",    wxChoice);
+    OutputDevice   = XRCCTRL(*this, "OutputDevice",   wxChoice);
+    RingDevice     = XRCCTRL(*this, "RingDevice",     wxChoice);
+    RingBack       = XRCCTRL(*this, "RingBack",       wxTextCtrl);
+    BrowseRingBack = XRCCTRL(*this, "BrosweRingBack", wxButton);
+    RingTone       = XRCCTRL(*this, "RingTone",       wxTextCtrl);
+    BrowseRingTone = XRCCTRL(*this, "BrosweRingTone", wxButton);
 
-    Name          = XRCCTRL(*this, "Name",          wxTextCtrl);
-    Number        = XRCCTRL(*this, "Number",        wxTextCtrl);
+    Name           = XRCCTRL(*this, "Name",           wxTextCtrl);
+    Number         = XRCCTRL(*this, "Number",         wxTextCtrl);
 
-    UseView       = XRCCTRL(*this, "UseView",       wxChoice);
-    DefaultServer = XRCCTRL(*this, "DefaultServer", wxChoice);
-    Intercom      = XRCCTRL(*this, "Intercom",      wxTextCtrl);
-    nCalls        = XRCCTRL(*this, "nCalls",        wxSpinCtrl);
+    UseView        = XRCCTRL(*this, "UseView",        wxChoice);
+    DefaultServer  = XRCCTRL(*this, "DefaultServer",  wxChoice);
+    Intercom       = XRCCTRL(*this, "Intercom",       wxTextCtrl);
+    nCalls         = XRCCTRL(*this, "nCalls",         wxSpinCtrl);
 
-    AGC           = XRCCTRL(*this, "AGC",           wxCheckBox);
-    NoiseReduce   = XRCCTRL(*this, "NoiseReduce",   wxCheckBox);
-    EchoCancel    = XRCCTRL(*this, "EchoCancel",    wxCheckBox);
+    AGC            = XRCCTRL(*this, "AGC",            wxCheckBox);
+    NoiseReduce    = XRCCTRL(*this, "NoiseReduce",    wxCheckBox);
+    EchoCancel     = XRCCTRL(*this, "EchoCancel",     wxCheckBox);
 
-    SaveButton    = XRCCTRL(*this, "wxID_SAVE",     wxButton);
-    ApplyButton   = XRCCTRL(*this, "wxID_APPLY",    wxButton);
-    CancelButton  = XRCCTRL(*this, "wxID_CANCEL",   wxButton);
+    SaveButton     = XRCCTRL(*this, "wxID_SAVE",      wxButton);
+    ApplyButton    = XRCCTRL(*this, "wxID_APPLY",     wxButton);
+    CancelButton   = XRCCTRL(*this, "wxID_CANCEL",    wxButton);
 
     GetAudioDevices();
 
@@ -101,6 +107,8 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     SetAudioDevices(config->Read("Input Device",  ""),
                     config->Read("Output Device", ""),
                     config->Read("Ring Device",   ""));
+    RingTone->SetValue(config->Read("/RingTone", ""));
+    RingBack->SetValue(config->Read("/RingBack", ""));
 
     Name->SetValue(config->Read("Name", "Caller Name"));
     Number->SetValue(config->Read("Number", "700000000"));
@@ -181,6 +189,8 @@ void PrefsDialog::OnSave(wxCommandEvent &event)
     config->Write("Input Device",   InputDevice->GetStringSelection());
     config->Write("Output Device",  OutputDevice->GetStringSelection());
     config->Write("Ring Device",    RingDevice->GetStringSelection());
+    config->Write("RingTone",       RingTone->GetValue());
+    config->Write("RingBack",       RingBack->GetValue());
 
     config->Write("Name",           Name->GetValue());
     config->Write("Number",         Number->GetValue());
@@ -226,7 +236,6 @@ void PrefsDialog::OnApply(wxCommandEvent &event)
 
     iaxc_set_filters(iaxc_get_filters() | flag);
 
-
     Close();
 }
 
@@ -269,4 +278,20 @@ void SetAudioDevices(wxString inname, wxString outname,
         devices++;
     }
     iaxc_audio_devices_set(input,output,ring);
+}
+
+void PrefsDialog::OnBrowse(wxCommandEvent &event)
+{
+    wxString dirHome;
+    wxGetHomeDir(&dirHome);
+
+    wxFileDialog where(NULL, _("Raw sound file"), dirHome, "", "*.*", wxOPEN );
+    where.ShowModal();
+
+    if(event.GetId() == XRCID("BrowseRingBack"))
+        RingBack->SetValue(where.GetPath());
+
+    if(event.GetId() == XRCID("BrowseRingTone"))
+        RingTone->SetValue(where.GetPath());
+
 }

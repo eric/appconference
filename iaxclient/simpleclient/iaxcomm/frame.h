@@ -60,6 +60,7 @@ public:
     MyFrame( wxWindow* parent=(wxWindow *)NULL);
    ~MyFrame();
    
+    void        ShowDirectoryControls();
     void        OnShow();
     void        OnNotify();
     void        OnHangup(wxEvent &event);
@@ -92,6 +93,7 @@ private:
 
     // An icon for the corner of dialog and application's taskbar button
     wxIcon      m_icon;
+    wxPanel    *aPanel;
     void        OnPrefs(wxCommandEvent& event);
     void        OnDirectory(wxCommandEvent& event);
     void        OnExit(wxCommandEvent& event);

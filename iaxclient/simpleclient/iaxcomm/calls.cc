@@ -47,6 +47,7 @@
 #include "main.h"
 #include "prefs.h"
 #include "frame.h"
+#include <wx/ffile.h>
 
 #include <math.h>
 #ifndef M_PI
@@ -75,6 +76,9 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
     long        i;
     int         nCalls;
     wxListItem  item;
+    wxString    Filename;
+    wxFFile     fRingTone;
+    wxFFile     fRingBack;
 
     m_parent = parent;
 
@@ -97,24 +101,6 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
     Show();
     AutoSize();
 
-
-    ringback.len = 6*8000;
-    ringtone.len = 6*8000;
-
-    ringback.data = (short *)calloc(ringback.len , sizeof(short));
-    ringtone.data = (short *)calloc(ringtone.len , sizeof(short));
-
-    for( int i=0;i < 2*8000; i++ )
-    {
-      ringback.data[i] =  (short)(0x7fff*0.4*sin((double)i*440*M_PI/8000));
-      ringback.data[i] += (short)(0x7fff*0.4*sin((double)i*480*M_PI/8000));
-
-      ringtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*880*M_PI/8000));
-      ringtone.data[i] += (short)(0x7fff*0.4*sin((double)i*960*M_PI/8000));
-    }
-    ringback.repeat = 10;
-    ringtone.repeat = 10;
-
     icomtone.len = 6000;
     icomtone.data = (short *)calloc(icomtone.len , sizeof(short));
     for( int i=0;i < 3000; i++ )
@@ -126,6 +112,49 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
       }
     }
     icomtone.repeat = 1;
+
+    Filename = config->Read("/RingTone", "");
+    if(!Filename.IsEmpty())
+        fRingTone.Open(Filename, "r");
+
+    if(fRingTone.IsOpened()) {
+        ringtone.len  = fRingTone.Length();
+        ringtone.data = (short *)calloc(ringtone.len , sizeof(short));
+
+        fRingTone.Read(&ringtone.data[0], ringtone.len);
+
+    } else {
+        ringtone.len  = 6*8000;
+        ringtone.data = (short *)calloc(ringtone.len , sizeof(short));
+
+        for( int i=0;i < 2*8000; i++ )
+        {
+            ringtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*880*M_PI/8000));
+            ringtone.data[i] += (short)(0x7fff*0.4*sin((double)i*960*M_PI/8000));
+        }
+    }
+    ringtone.repeat = 10;
+
+    Filename = config->Read("/RingBack", "");
+    if(!Filename.IsEmpty())
+        fRingBack.Open(Filename, "r");
+
+    if(fRingBack.IsOpened()) {
+        ringback.len  = fRingBack.Length();
+        ringback.data = (short *)calloc(ringback.len , sizeof(short));
+        fRingBack.Read(&ringback.data[0], ringback.len);
+
+    } else {
+        ringback.len  = 6*8000;
+        ringback.data = (short *)calloc(ringback.len , sizeof(short));
+
+        for( int i=0;i < 2*8000; i++ )
+        {
+            ringback.data[i] =  (short)(0x7fff*0.4*sin((double)i*440*M_PI/8000));
+            ringback.data[i] += (short)(0x7fff*0.4*sin((double)i*480*M_PI/8000));
+        }
+    }
+    ringback.repeat = 10;
 }
 
 void CallList::AutoSize()
@@ -160,26 +189,23 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     wxString   str;
     long       dummy;
     bool       bCont;
+    static int wow = 0;
 
     if(c.state & IAXC_CALL_STATE_RINGING) {
       wxGetApp().theFrame->Show();
       wxGetApp().theFrame->Raise();
-      iaxc_play_sound(&ringtone, 1);
-    } else {
-      iaxc_stop_sound(ringtone.id);
     }
- 
 
     // first, handle inactive calls
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
         SetItem(c.callNo, 2, _T("") );
         SetItem(c.callNo, 1, _T("") );
+        iaxc_stop_sound(ringback.id);
+        iaxc_stop_sound(ringtone.id);
     } else {
-        bool     active   = c.state & IAXC_CALL_STATE_ACTIVE;
         bool     outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
         bool     ringing  = c.state & IAXC_CALL_STATE_RINGING;
         bool     complete = c.state & IAXC_CALL_STATE_COMPLETE;
-        bool     selected = c.state & IAXC_CALL_STATE_SELECTED;
         wxString info;
         wxString fullname;
 
@@ -219,19 +245,35 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                     config->Write(str, c.remote);
                 }
 
-
-
-
-                if(strcmp(c.local_context, "intercom") == 0)
+                if(strcmp(c.local_context, "intercom") == 0) {
                     if(config->Read("/Intercom","s").IsSameAs(c.local)) {
-                        iaxc_stop_sound(ringtone.id);
                         iaxc_play_sound(&icomtone, 1);
                         iaxc_millisleep(1000);
                         iaxc_select_call(c.callNo);
                     }
+                } else {
 
 
+
+    SetAudioDevices(config->Read("/Input Device", ""),
+                    config->Read("/Output Device", ""),
+                    config->Read("/Output Device", ""));
+
+                    iaxc_play_sound(&ringtone, 1);
+                }
             } else {
+
+
+
+    SetAudioDevices(config->Read("/Input Device", ""),
+                    config->Read("/Output Device", ""),
+                    config->Read("/Ring Device", ""));
+
+
+
+
+
+                iaxc_stop_sound(ringtone.id);
                 if(complete) {
                     SetItem(c.callNo, 1, _T("ACTIVE") );
                 } else { 
@@ -240,7 +282,6 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 }
             }
         } 
-    // XXX do something more noticable if it's incoming, ringing!
     }
     
     // select if necessary
@@ -255,8 +296,4 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 
     return 0;
 }
-
-//----------------------------------------------------------------------------------------
-// Private methods
-//----------------------------------------------------------------------------------------
 

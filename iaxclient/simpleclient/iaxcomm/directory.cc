@@ -75,6 +75,31 @@ END_EVENT_TABLE()
 
 DirectoryDialog::DirectoryDialog( wxWindow* parent )
 {
+    wxXmlResource::Get()->LoadDialog(this, parent, wxT("Directory"));
+
+    //----Reach in for our controls-----------------------------------------------------
+    DirectoryNotebook  = XRCCTRL(*this, "DirectoryNotebook", wxNotebook);
+
+    OTList       = XRCCTRL(*this, "OTList",       wxListCtrl);
+    PhoneList    = XRCCTRL(*this, "PhoneList",    wxListCtrl);
+    ServerList   = XRCCTRL(*this, "ServerList",   wxListCtrl);
+
+    OTList->InsertColumn(    0, _("No"),           wxLIST_FORMAT_LEFT,  40);
+    OTList->InsertColumn(    1, _("Name"),         wxLIST_FORMAT_LEFT, 100);
+    OTList->InsertColumn(    2, _("Extension"),    wxLIST_FORMAT_LEFT, 100);
+
+    PhoneList->InsertColumn( 0, _("Name"),      wxLIST_FORMAT_LEFT, 100);
+    PhoneList->InsertColumn( 1, _("Extension"), wxLIST_FORMAT_LEFT, 100);
+
+    ServerList->InsertColumn(0, _("Name"),     wxLIST_FORMAT_LEFT, 100);
+    ServerList->InsertColumn(1, _("Host"),     wxLIST_FORMAT_LEFT, 100);
+    ServerList->InsertColumn(2, _("Username"), wxLIST_FORMAT_LEFT, 100);
+
+    Show();
+}
+
+void DirectoryDialog::Show( void )
+{
     wxConfig  *config = new wxConfig("iaxComm");
     wxString   str;
     long       dummy;
@@ -82,114 +107,64 @@ DirectoryDialog::DirectoryDialog( wxWindow* parent )
     wxListItem item;
     long       i;
 
-    wxXmlResource::Get()->LoadDialog(this, parent, wxT("Directory"));
-
-    //----Reach in for our controls-----------------------------------------------------
-    DirectoryNotebook  = XRCCTRL(*this, "DirectoryNotebook", wxNotebook);
-
-    // One Touch tab
-    OTList       = XRCCTRL(*this, "OTList",       wxListCtrl);
-
-    // Phone Book tab
-    PhoneList    = XRCCTRL(*this, "PhoneList",    wxListCtrl);
-
-    // Server tab
-    ServerList   = XRCCTRL(*this, "ServerList",   wxListCtrl);
-
     //----Populate OTList listctrl--------------------------------------------------
-    OTList->InsertColumn( 0, _("No"),         wxLIST_FORMAT_LEFT,  40);
-    OTList->InsertColumn( 1, _("Name"),       wxLIST_FORMAT_LEFT, 100);
-    OTList->InsertColumn( 2, _("Extension"),  wxLIST_FORMAT_LEFT, 100);
-
     config->SetPath("/OT");
+    i = 0;
+    OTList->DeleteAllItems();
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         OTList->InsertItem(i, str);
+        OTList->SetItem(i, 1, config->Read(OTList->GetItemText(i) + "/Name" ,""));
+        OTList->SetItem(i, 2, config->Read(OTList->GetItemText(i) + "/Extension" ,""));
         bCont = config->GetNextGroup(str, dummy);
         i++;
-    }
-
-    // I don't know why, but I can't seem to add these during the first pass
-    for(i=0;i<OTList->GetItemCount();i++) {
-        OTList->SetItem(i, 1, config->Read(OTList->GetItemText(i) +
-                                              "/Name" ,""));
-        OTList->SetItem(i, 2, config->Read(OTList->GetItemText(i) +
-                                              "/Extension" ,""));
     }
 
     OTList->SetColumnWidth(0, -1);
     OTList->SetColumnWidth(1, -1);
     OTList->SetColumnWidth(2, -1);
-
-    if(OTList->GetColumnWidth(0) < 40)
-        OTList->SetColumnWidth(0,  40);
-    if(OTList->GetColumnWidth(1) < 100)
-        OTList->SetColumnWidth(1,  100);
-    if(OTList->GetColumnWidth(2) < 100)
-        OTList->SetColumnWidth(2,  100);
-
+    if(OTList->GetColumnWidth(0) <  40)        OTList->SetColumnWidth(0,   40);
+    if(OTList->GetColumnWidth(1) < 100)        OTList->SetColumnWidth(1,  100);
+    if(OTList->GetColumnWidth(2) < 100)        OTList->SetColumnWidth(2,  100);
 
     //----Populate PhoneList listctrl--------------------------------------------------
-    PhoneList->InsertColumn( 0, _("Name"),       wxLIST_FORMAT_LEFT, 100);
-    PhoneList->InsertColumn( 1, _("Extension"),  wxLIST_FORMAT_LEFT, 100);
-
     config->SetPath("/PhoneBook");
+    PhoneList->DeleteAllItems();
+    i=0;
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         PhoneList->InsertItem(i, str);
+        PhoneList->SetItem(i, 1, config->Read(PhoneList->GetItemText(i) + "/Extension" ,""));
         bCont = config->GetNextGroup(str, dummy);
         i++;
-    }
-
-    // I don't know why, but I can't seem to add these during the first pass
-    for(i=0;i<PhoneList->GetItemCount();i++) {
-        PhoneList->SetItem(i, 1, config->Read(PhoneList->GetItemText(i) +
-                                              "/Extension" ,""));
     }
 
     PhoneList->SetColumnWidth(0, -1);
     PhoneList->SetColumnWidth(1, -1);
-
-    if(PhoneList->GetColumnWidth(0) < 100)
-        PhoneList->SetColumnWidth(0,  100);
-    if(PhoneList->GetColumnWidth(1) < 100)
-        PhoneList->SetColumnWidth(1,  100);
-
-
+    if(PhoneList->GetColumnWidth(0) < 100)        PhoneList->SetColumnWidth(0,  100);
+    if(PhoneList->GetColumnWidth(1) < 100)        PhoneList->SetColumnWidth(1,  100);
 
     //----Populate ServerList listctrl--------------------------------------------------
-    ServerList->InsertColumn( 0, _("Name"),     wxLIST_FORMAT_LEFT, 100);
-    ServerList->InsertColumn( 1, _("Host"),     wxLIST_FORMAT_LEFT, 100);
-    ServerList->InsertColumn( 2, _("Username"), wxLIST_FORMAT_LEFT, 100);
-
     config->SetPath("/Servers");
+    ServerList->DeleteAllItems();
+    i = 0;
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         ServerList->InsertItem(i, str);
+        ServerList->SetItem(i, 1, config->Read(ServerList->GetItemText(i) + "/Host" ,""));
+        ServerList->SetItem(i, 2, config->Read(ServerList->GetItemText(i) + "/Username" ,""));
         bCont = config->GetNextGroup(str, dummy);
         i++;
-    }
-
-    // I don't know why, but I can't seem to add these during the first pass
-    for(i=0;i<ServerList->GetItemCount();i++) {
-        ServerList->SetItem(i, 1, config->Read(ServerList->GetItemText(i) +
-                                              "/Host" ,""));
-        ServerList->SetItem(i, 2, config->Read(ServerList->GetItemText(i) +
-                                              "/Username" ,""));
     }
 
     ServerList->SetColumnWidth(0, -1);
     ServerList->SetColumnWidth(1, -1);
     ServerList->SetColumnWidth(2, -1);
+    if(ServerList->GetColumnWidth(0) < 100)        ServerList->SetColumnWidth(0,  100);
+    if(ServerList->GetColumnWidth(1) < 100)        ServerList->SetColumnWidth(1,  100);
+    if(ServerList->GetColumnWidth(2) < 100)        ServerList->SetColumnWidth(2,  100);
 
-    if(ServerList->GetColumnWidth(0) < 100)
-        ServerList->SetColumnWidth(0,  100);
-    if(ServerList->GetColumnWidth(1) < 100)
-        ServerList->SetColumnWidth(1,  100);
-    if(ServerList->GetColumnWidth(2) < 100)
-        ServerList->SetColumnWidth(2,  100);
 }
-
 
 //----------------------------------------------------------------------------------------
 
@@ -284,6 +259,9 @@ void DirectoryDialog::OnAddOTList(wxCommandEvent &event)
     }
     AddOTListDialog dialog(this, val);
     dialog.ShowModal();
+
+    Show();
+    wxGetApp().theFrame->ShowDirectoryControls();
 }
 
 void DirectoryDialog::OnAddPhoneList(wxCommandEvent &event)
@@ -297,6 +275,8 @@ void DirectoryDialog::OnAddPhoneList(wxCommandEvent &event)
     }
     AddPhoneListDialog dialog(this, val);
     dialog.ShowModal();
+
+    Show();
 }
 
 void DirectoryDialog::OnAddServerList(wxCommandEvent &event)
@@ -310,6 +290,9 @@ void DirectoryDialog::OnAddServerList(wxCommandEvent &event)
     }
     AddServerDialog dialog(this, val);
     dialog.ShowModal();
+
+    Show();
+    wxGetApp().theFrame->ShowDirectoryControls();
 }
 
 //----------------------------------------------------------------------------------------
@@ -365,6 +348,7 @@ void DirectoryDialog::OnRemoveOTList(wxCommandEvent &event)
         }
     }
     delete config;
+    wxGetApp().theFrame->ShowDirectoryControls();
 }
 
 void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
@@ -399,6 +383,7 @@ void DirectoryDialog::OnRemoveServerList(wxCommandEvent &event)
         }
     }
     delete config;
+    wxGetApp().theFrame->ShowDirectoryControls();
 }
 
 //----------------------------------------------------------------------------------------

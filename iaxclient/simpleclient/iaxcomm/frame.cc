@@ -107,17 +107,10 @@ END_EVENT_TABLE()
 
 MyFrame::MyFrame( wxWindow* parent )
 {
+    wxConfig   *config = new wxConfig("iaxComm");
     wxBoxSizer *panelSizer;
     wxMenuBar  *aMenuBar;
-    wxPanel    *aPanel;
-    wxConfig   *config = new wxConfig("iaxComm");
-    wxButton   *ot;
-    wxString    OTName;
-    wxString    DialString;
     wxString    Name;
-    wxString    Label;
-    long        dummy;
-    bool        bCont;
     MyTimer    *timer;
 
     // Load up this frame from XRC. [Note, instead of making a class's
@@ -165,39 +158,9 @@ MyFrame::MyFrame( wxWindow* parent )
     if(Calls == NULL)
         wxFatalError(_("Can't Load CallList in frame.cc"));
 
-
     wxXmlResource::Get()->AttachUnknownControl("Calls", Calls);
 
-    //----Add Servers-------------------------------------------------------------------
-    config->SetPath("/Servers");
-    bCont = config->GetFirstGroup(Name, dummy);
-    while ( bCont ) {
-        Server->Append(Name);
-        bCont = config->GetNextGroup(Name, dummy);
-    }
-    Server->SetSelection(Server->FindString(config->Read("/DefaultServer", "")));
-
-    //----Load up One Touch Keys--------------------------------------------------------
-    config->SetPath("/OT");
-    bCont = config->GetFirstGroup(OTName, dummy);
-    while ( bCont ) {
-        ot = XRCCTRL(*aPanel, OTName, wxButton);
-        if(ot != NULL) {
-            Name = OTName + "/Name";
-            Label = config->Read(Name, "");
-            if(!Label.IsEmpty()) {
-                ot->SetLabel(Label);
-            } else {
-                ot->SetLabel(OTName);
-            }
-            DialString = OTName + "/Extension";
-            Label = config->Read(DialString, "");
-            if(!Label.IsEmpty()) {
-                ot->SetToolTip(Label);
-            }
-        }
-        bCont = config->GetNextGroup(OTName, dummy);
-    }
+    ShowDirectoryControls();
 
     panelSizer = new wxBoxSizer(wxVERTICAL);
     panelSizer->Add(aPanel,1,wxEXPAND);
@@ -230,6 +193,50 @@ MyFrame::~MyFrame()
 
 //  This hangs under linux; appears unnecessary under Win32
 //  iaxc_shutdown();
+}
+
+void MyFrame::ShowDirectoryControls()
+{
+    wxConfig   *config = new wxConfig("iaxComm");
+    wxButton   *ot;
+    wxString    OTName;
+    wxString    DialString;
+    wxString    Name;
+    wxString    Label;
+    long        dummy;
+    bool        bCont;
+
+    //----Add Servers-------------------------------------------------------------------
+    Server->Clear();
+    config->SetPath("/Servers");
+    bCont = config->GetFirstGroup(Name, dummy);
+    while ( bCont ) {
+        Server->Append(Name);
+        bCont = config->GetNextGroup(Name, dummy);
+    }
+    Server->SetSelection(Server->FindString(config->Read("/DefaultServer", "")));
+
+    //----Load up One Touch Keys--------------------------------------------------------
+    config->SetPath("/OT");
+    bCont = config->GetFirstGroup(OTName, dummy);
+    while ( bCont ) {
+        ot = XRCCTRL(*aPanel, OTName, wxButton);
+        if(ot != NULL) {
+            Name = OTName + "/Name";
+            Label = config->Read(Name, "");
+            if(!Label.IsEmpty()) {
+                ot->SetLabel(Label);
+            } else {
+                ot->SetLabel("OT" + OTName);
+            }
+            DialString = OTName + "/Extension";
+            Label = config->Read(DialString, "");
+            if(!Label.IsEmpty()) {
+                ot->SetToolTip(Label);
+            }
+        }
+        bCont = config->GetNextGroup(OTName, dummy);
+    }
 }
 
 void MyFrame::OnNotify()

@@ -41,6 +41,11 @@ private:
     wxChoice    *InputDevice;
     wxChoice    *OutputDevice;
     wxChoice    *RingDevice;
+    wxTextCtrl  *RingBack;
+    wxButton    *BrowseRingBack;
+    wxTextCtrl  *RingTone;
+    wxButton    *BrowseRingTone;
+
     wxTextCtrl  *Name;
     wxTextCtrl  *Number;
     wxChoice    *UseView;
@@ -55,6 +60,7 @@ private:
     wxButton    *CancelButton;
 
     void         GetAudioDevices();
+    void         OnBrowse(wxCommandEvent &event);
     void         OnSave(wxCommandEvent &event);
     void         OnApply(wxCommandEvent &event);
     void         OnDirty(wxCommandEvent &event);

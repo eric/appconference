@@ -153,7 +153,7 @@ bool theApp::OnInit()
     iaxc_start_processing_thread();
 
     // Callerid from wxConfig
-    iaxc_set_callerid((char *)config->Read("Name", "IaxComm USer").c_str(),
+    iaxc_set_callerid((char *)config->Read("Name", "IaxComm User").c_str(),
                       (char *)config->Read("Number",  "700000000").c_str());
 
     // Register from wxConfig
@@ -228,7 +228,7 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
         CFStringRef resPath = CFURLCopyFileSystemPath(resDirAbs, kCFURLPOSIXPathStyle);
         char path[1024];
         CFStringGetCString(resPath, path, 1024, kCFStringEncodingASCII);
-        xrc_subdirectory = wxString(path) + wxFILE_SEP_PATH + "rc";
+        xrc_subdirectory = wxString(path) + wxFILE_SEP_PATH + xrc_subdirectory;
     }
 #endif
 

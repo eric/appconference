@@ -40,6 +40,8 @@ public:
         
 private:
 
+    void         Show(void);
+
     wxNotebook  *DirectoryNotebook;
     void         OnAddOTList(wxCommandEvent &event);
     void         OnRemoveOTList(wxCommandEvent &event);

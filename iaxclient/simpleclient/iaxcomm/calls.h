@@ -56,7 +56,7 @@ public:
 
 private:
     wxWindow         *m_parent;
-
+    
     DECLARE_EVENT_TABLE()
 };
     
