@@ -166,6 +166,11 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int format, int sampl
 	    call->encoder = NULL;
 	}
 
+	/* just break early if there's no format defined: this happens for the
+	 * first couple of frames of new calls */
+	if(format == 0)
+	  return 0;
+
 	/* create encoder if necessary */
 	if(!call->encoder) {
 	    call->encoder = create_codec(format);
@@ -211,6 +216,11 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int for
 
 	if(len == 0) {
 		fprintf(stderr, "Empty voice frame\n");
+		return -1;
+	}
+
+	if(format == 0) {
+		fprintf(stderr, "decode_audio: Format is zero (should't happen)!\n");
 		return -1;
 	}
 
