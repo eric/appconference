@@ -139,7 +139,7 @@ int pa_mix_sounds (void *outputBuffer, unsigned long frames) {
   MUTEXLOCK(&sound_lock);
     /* mix each sound into the outputBuffer */
     sp = &sounds;
-    while(*sp)  {
+    while(sp && *sp)  {
 	s = *sp;
 	outpos = 0;
 
@@ -170,7 +170,8 @@ int pa_mix_sounds (void *outputBuffer, unsigned long frames) {
 	  s->pos += n;
 	  outpos += n;
 	}
-	sp = &(s->next);
+	if((*sp)) /* don't advance if we removed this member */
+	  sp = &((*sp)->next);
     }
   MUTEXUNLOCK(&sound_lock);
   return 0;
@@ -184,10 +185,10 @@ int pa_play_sound(struct iaxc_sound *inSound, int ring) {
 
   *sound = *inSound;
   
+  MUTEXLOCK(&sound_lock);
   sound->id = nextSoundId++; 
   sound->pos = 0;
 
-  MUTEXLOCK(&sound_lock);
   sound->next = sounds;
   sounds = sound;
   MUTEXUNLOCK(&sound_lock);
