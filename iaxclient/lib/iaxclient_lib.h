@@ -65,6 +65,12 @@ pthread_create(&thread, NULL, func, args)
 #define MUTEXDESTROY(m) pthread_mutex_destroy(m)
 #endif
 
+#ifdef MACOSX
+#include <mach/mach_init.h>
+#include <mach/thread_policy.h>
+#include <sched.h>
+#include <sys/sysctl.h>
+#endif
 
 #define MAXARGS 10
 #define MAXARG 256
