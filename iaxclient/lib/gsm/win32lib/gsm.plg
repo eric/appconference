@@ -1,0 +1,150 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: gsm - Win32 Release--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\shawn\LOCALS~1\Temp\RSP303.tmp" with contents
+[
+/nologo /ML /W3 /GX /O2 /I "..\inc" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /Fp"Release/gsm.pch" /YX /Fo"Release/" /Fd"Release/" /FD /c 
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\add.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\code.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\debug.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\decode.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_create.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_decode.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_destroy.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_encode.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_explode.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_implode.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_option.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\gsm_print.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\long_term.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\preprocess.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\rpe.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c"
+"D:\terracedev\asterisk\iaxclient\lib\gsm\src\table.c"
+]
+Creating command line "cl.exe @C:\DOCUME~1\shawn\LOCALS~1\Temp\RSP303.tmp" 
+Creating temporary file "C:\DOCUME~1\shawn\LOCALS~1\Temp\RSP304.tmp" with contents
+[
+/nologo /out:"Release\gsm.lib" 
+.\Release\add.obj
+.\Release\code.obj
+.\Release\debug.obj
+.\Release\decode.obj
+.\Release\gsm_create.obj
+.\Release\gsm_decode.obj
+.\Release\gsm_destroy.obj
+.\Release\gsm_encode.obj
+.\Release\gsm_explode.obj
+.\Release\gsm_implode.obj
+.\Release\gsm_option.obj
+.\Release\gsm_print.obj
+.\Release\long_term.obj
+.\Release\lpc.obj
+.\Release\preprocess.obj
+.\Release\rpe.obj
+.\Release\short_term.obj
+.\Release\table.obj
+]
+Creating command line "link.exe -lib @C:\DOCUME~1\shawn\LOCALS~1\Temp\RSP304.tmp"
+<h3>Output Window</h3>
+Compiling...
+add.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\add.c(26) : warning C4244: 'return' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\add.c(32) : warning C4244: 'return' : conversion from 'const long ' to 'short ', possible loss of data
+code.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\code.c(91) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+debug.c
+decode.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\decode.c(30) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+gsm_create.c
+gsm_decode.c
+gsm_destroy.c
+gsm_encode.c
+gsm_explode.c
+gsm_implode.c
+gsm_option.c
+gsm_print.c
+long_term.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\long_term.c(865) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\long_term.c(866) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\long_term.c(867) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\long_term.c(868) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\long_term.c(945) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+lpc.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(262) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(266) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(269) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(343) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(343) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(344) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(344) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(345) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(345) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(346) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(346) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(348) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(348) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(349) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(349) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(350) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(350) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(351) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\lpc.c(351) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+preprocess.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\preprocess.c(122) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+rpe.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\rpe.c(112) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\rpe.c(383) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+short_term.c
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(65) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(65) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(65) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(66) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(66) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(66) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(67) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(67) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(67) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(68) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(68) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(68) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(70) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(70) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(70) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(71) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(71) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(71) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(72) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(72) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(72) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(73) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(73) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(73) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(105) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(106) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(118) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(131) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(132) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(176) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(181) : warning C4244: '=' : conversion from 'const long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(222) : warning C4244: '=' : conversion from 'long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(234) : warning C4244: '=' : conversion from 'long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(323) : warning C4244: '=' : conversion from 'long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(325) : warning C4244: '=' : conversion from 'long ' to 'short ', possible loss of data
+D:\terracedev\asterisk\iaxclient\lib\gsm\src\short_term.c(381) : warning C4101: 'i' : unreferenced local variable
+table.c
+Creating library...
+
+
+
+<h3>Results</h3>
+gsm.lib - 0 error(s), 67 warning(s)
+</pre>
+</body>
+</html>
