@@ -1,0 +1,43 @@
+
+=============================================================
+Building
+
+In order to build the wxWindows GUI client, you must have the wxwindows
+library had header files installed on your system.
+
+You can get wxWindows from www.wxwindows.org
+
+
+The makefiles are set up to build binaries with wxwindows (and
+libiaxclient) statically linked.  This will make it such that users of
+the binaries will not need wxwindows (or any iacxclient libraries)
+installed in order to run the application.
+
+
+For Linux and MacOSX, you should have "wx-config" installed somewhere in
+your PATH when you build.  The default "configure" install of wxwindows
+will do this for you.  You might need to build wxwindows with
+"--disable-shared" in order to compile the static libraries.
+
+
+For Win32, when compiling with cygwin/mingw, you'll need to have
+wxwindows compiled to static libraries, and the "WXWIN" environment
+variable set to the location of your wxwindows installation.
+
+
+=============================================================
+Contributions sought:
+
+The contribution of Step-by-step build directions, especially for Win32
+developers,  is encouraged, and will be included here in this README.
+If you can write such directions, please send them to the
+iaxclient-devel@lists.sourceforge.net mailing list, and we can include
+them here for the benefit of others.
+
+Also, if someone would like to contribute MSVC "project files" (i.e. a
+.dsp/.dsw file set), and directions for those building with MSVC, those
+would also be helpful for people afraid of the command-line.
+
+=============================================================
+
+
