@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 {
 	FILE *f;
 	char *dest;
-	unsigned long lastouttick = 0;
+	char c;
 
 
 	f = stdout;
@@ -72,16 +72,28 @@ int main(int argc, char *argv[])
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 
 	fprintf(f, "TestCall \n\n");
-	fprintf(f, "Calling %s\nHit ^C to quit\n", dest);
+	fprintf(f, "Calling %s\n 'q' to quit\n", dest);
 	
 	iaxc_call(f,dest);
-		
 
-	/* main tight loop */
-	while(1) {
-		iaxc_process_calls();
-		answered_call = iaxc_was_call_answered();
-		mysleep();
+	iaxc_start_processing_thread();
+		
+	while(c = getc(stdin)) {
+	    switch (tolower(c)) {
+	      case 'q':
+		printf("Hanging up and exiting\n");
+		iaxc_dump_call();
+		sleep(1);
+		iaxc_stop_processing_thread();
+		exit(0);
+	      break;		
+
+	      case '1': case '2': case '3': case '4': case '5':
+	      case '6': case '7': case '8': case '9': case '0':
+	      case '#': case '*':
+		iaxc_send_dtmf(c);
+	      break;
+	    }
 	}
 
 	return 0;

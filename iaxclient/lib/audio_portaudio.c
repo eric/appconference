@@ -50,7 +50,10 @@ void pa_read_audio_input() {
 
 void pa_play_recv_audio(void *fr, int fr_size) {
 	if(GetAudioStreamWriteable(stream) < SAMPLES_PER_FRAME * FRAMES_PER_BLOCK)
-	      fprintf(stderr, "audio_portaudio: might block writing audio\n");
+	{
+	      fprintf(stderr, "audio_portaudio: audio output overflow\n");
+	      return;
+	}
 
 	// Play the audio as decoded
 	WriteAudioStream(stream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);

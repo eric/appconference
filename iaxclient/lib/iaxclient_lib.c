@@ -19,6 +19,12 @@ struct timeval lastouttm;
 static struct peer * find_peer(struct iax_session *session);
 static void do_iax_event(FILE *f);
 
+static THREAD procThread;
+static THREADID procThreadID;
+
+/* QuitFlag: 0: Running 1: Should Quit, -1: Not Running */
+static int procThreadQuitFlag = -1;
+
 
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
       long secs = timeA->tv_sec - timeB->tv_sec;
@@ -85,31 +91,48 @@ void iaxc_set_encode_format(int fmt)
 	iax_set_formats(fmt);
 }
 
-void iaxc_process_calls(void *dummy) {
-	while (1) {
-		/* service the network stuff */
-		iaxc_service_network(netfd,f);
+void iaxc_process_calls(void) {
+
 #ifdef WIN32	
 		win_flush_audio_output_buffers();
-		iaxc_service_network(netfd,f);
 		if (iAudioType == AUDIO_INTERNAL) {
 			win_prepare_audio_buffers();
 		}
-#else
 #endif
 		iaxc_service_network(netfd,f);
 		service_audio();
-		iaxc_service_network(netfd,f);
-		os_millisleep(10);
-		//if (service_audio() == -1)
-		//	break;
-		if (!answered_call)
-			break;
-	}
-#ifdef WIN32
-	_endthread();
-#else
-#endif
+}
+
+THREADFUNCDECL(iaxc_processor)
+{
+    THREADFUNCRET(ret);
+    while(1) { 
+	iaxc_process_calls();
+	os_millisleep(10);	
+	if(procThreadQuitFlag)
+	  break;
+    }
+    return ret;
+}
+
+int iaxc_start_processing_thread()
+{
+      procThreadQuitFlag = 0;
+      if( THREADCREATE(iaxc_processor, NULL, procThread, procThreadID) 
+	    == THREADCREATE_ERROR)	
+	  return -1;
+
+      return 0;
+}
+
+int iaxc_stop_processing_thread()
+{
+    if(procThreadQuitFlag >= 0)
+    {
+	procThreadQuitFlag = 1;
+	THREADJOIN(procThread);
+    }
+    procThreadQuitFlag = -1;
 }
 
 void start_call_processing() {
