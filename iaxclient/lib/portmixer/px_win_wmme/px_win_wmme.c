@@ -1001,46 +1001,71 @@ int _Px_GetMicrophoneBoost( PxMixer* mixer )
 		return -1 ;
 
 	//
-	// get boost control
+	// get all controls
 	//
 
-	MIXERCONTROL mixerControl ;
+	LPMIXERCONTROL mixerControl = malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 	
 	MIXERLINECONTROLS mixerLineControls ;
 	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
 	mixerLineControls.dwLineID = mixerLine.dwLineID ;
-	mixerLineControls.dwControlType = MIXERCONTROL_CONTROLTYPE_ONOFF ;
-	mixerLineControls.cControls = 1 ;
+	mixerLineControls.cControls = mixerLine.cControls ;
 	mixerLineControls.cbmxctrl = sizeof( MIXERCONTROL ) ;
-	mixerLineControls.pamxctrl = &mixerControl ;
+	mixerLineControls.pamxctrl = ( LPMIXERCONTROL )( mixerControl ) ;
 	
 	mmr = mixerGetLineControls(
 		( HMIXEROBJ )( info->hInputMixer ), 
 		&mixerLineControls,
-		MIXER_GETLINECONTROLSF_ONEBYTYPE
+		MIXER_GETLINECONTROLSF_ALL
 	) ;
 	
 	if ( mmr != MMSYSERR_NOERROR )
 		return -1 ;
 
 	//
-	// setup structs
+	// find boost control
 	//
 
-	MIXERCONTROLDETAILS_BOOLEAN value ;
+	DWORD boost_id = -1 ;
+	int x = 0 ;
+	
+	for ( ; x < mixerLineControls.cControls ; ++x )
+	{
+		// check control type
+		if ( mixerControl[x].dwControlType == MIXERCONTROL_CONTROLTYPE_ONOFF )
+		{
+			// normalize control name
+			char* name = _strupr( mixerControl[x].szName ) ;
 
-	MIXERCONTROLDETAILS mixerControlDetails ;
-	mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
-	mixerControlDetails.dwControlID = mixerControl.dwControlID ;
-	mixerControlDetails.cChannels = 1 ;
-	mixerControlDetails.cMultipleItems = 0 ;
-	mixerControlDetails.cbDetails = sizeof( MIXERCONTROLDETAILS_BOOLEAN ) ;
-	mixerControlDetails.paDetails = &value ;
+			// check for 'mic' and 'boost'
+			if (
+				( strstr( name, "MIC" ) != NULL )
+				&& ( strstr( name, "BOOST" ) != NULL )
+			)
+			{
+				boost_id = mixerControl[x].dwControlID ;
+				break ;
+			}
+		}
+	}
+
+	if ( boost_id == -1 )
+		return -1 ;
 
 	//
 	// get control details
 	//
 	
+	MIXERCONTROLDETAILS_BOOLEAN value ;
+
+	MIXERCONTROLDETAILS mixerControlDetails ;
+	mixerControlDetails.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
+	mixerControlDetails.dwControlID = boost_id ;
+	mixerControlDetails.cChannels = 1 ;
+	mixerControlDetails.cMultipleItems = 0 ;
+	mixerControlDetails.cbDetails = sizeof( MIXERCONTROLDETAILS_BOOLEAN ) ;
+	mixerControlDetails.paDetails = &value ;
+
 	mmr = mixerGetControlDetails( 
 		( HMIXEROBJ )( info->hInputMixer ),
 		&mixerControlDetails,
