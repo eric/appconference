@@ -2,9 +2,7 @@
 #define ONERING_SAMPLES ONERING_SIZE / 2
 
 struct ast_onering {
-	struct ast_frame f;
 	char data[ONERING_SIZE];
-	char framedata[ONERING_SIZE + AST_FRIENDLY_OFFSET];
 	int len;
 };
 
