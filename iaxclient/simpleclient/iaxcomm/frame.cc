@@ -726,7 +726,7 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
                              _T(""),
                              wxOK | wxCANCEL);
 
-    if(dialog.ShowModal() == wxID_OK) {
+    if(dialog.ShowModal() != wxID_CANCEL) {
         strncpy(ext, dialog.GetValue().c_str(), 256);
         iaxc_blind_transfer_call(selected, ext);
     }

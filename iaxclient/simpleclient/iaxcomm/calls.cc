@@ -85,6 +85,11 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
 
     Hide();
 
+    wxFont font   = GetFont();
+    font.SetPointSize(11);
+    font.SetFamily(wxSWISS);
+    SetFont(font);
+
     for(i=0;i<nCalls;i++) {
         InsertItem(i,wxString::Format("%ld", i+1), 0);
         SetItem(i, 2, _T(""));
@@ -146,7 +151,7 @@ void CallList::OnRClick(wxListEvent &event)
                              _T(""),
                              wxOK | wxCANCEL);
 
-    if(dialog.ShowModal() == wxID_OK) {
+    if(dialog.ShowModal() != wxID_CANCEL) {
         strncpy(ext, dialog.GetValue().c_str(), 256);
         iaxc_blind_transfer_call(selected, ext);
     }

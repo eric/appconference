@@ -48,6 +48,7 @@
 //----------------------------------------------------------------------------------------
 
 #include "app.h"
+#include "dial.h"
 #include "frame.h"
 #include "wx/dirdlg.h"
 
@@ -218,6 +219,13 @@ bool theApp::OnInit()
     while ( bCont ) {
         RegisterByName(str);
         bCont = config->GetNextGroup(str, dummy);
+    }
+
+    wxString dest;
+
+    if(argc > 1) {
+        dest.Printf("%s", argv[1]);
+        Dial(dest);
     }
 
     return TRUE;
