@@ -36,7 +36,7 @@ public:
 
     wxListCtrl  *OTList;
     wxListCtrl  *PhoneList;
-    wxListCtrl  *ServerList;
+    wxListCtrl  *AccountList;
         
 private:
 
@@ -49,8 +49,8 @@ private:
     void         OnAddPhoneList(wxCommandEvent &event);
     void         OnRemovePhoneList(wxCommandEvent &event);
     void         OnDialPhoneList(wxCommandEvent &event);
-    void         OnAddServerList(wxCommandEvent &event);
-    void         OnRemoveServerList(wxCommandEvent &event);
+    void         OnAddAccountList(wxCommandEvent &event);
+    void         OnRemoveAccountList(wxCommandEvent &event);
 
     DECLARE_EVENT_TABLE()
 
@@ -89,12 +89,12 @@ private:
 
 };
 
-class AddServerDialog : public wxDialog
+class AddAccountDialog : public wxDialog
 {
 public: 
-    AddServerDialog( wxWindow* parent, wxString selection );
+    AddAccountDialog( wxWindow* parent, wxString selection );
 
-    wxTextCtrl  *ServerName;
+    wxTextCtrl  *AccountName;
     wxTextCtrl  *HostName;
     wxTextCtrl  *UserName;
     wxTextCtrl  *Password;

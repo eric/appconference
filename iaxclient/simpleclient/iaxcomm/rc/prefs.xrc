@@ -17,87 +17,12 @@
           <usenotebooksizer>1</usenotebooksizer>
           <size>200,160</size>
           <object class="notebookpage">
-            <label>Devices</label>
+            <label>Audio</label>
             <object class="wxPanel" name="AudioTab">
               <object class="wxFlexGridSizer">
                 <cols>1</cols>
                 <object class="spacer">
                   <size>5,5</size>
-                </object>
-                <object class="sizeritem">
-                  <object class="wxBoxSizer">
-                    <object class="spacer">
-                      <size>10,10</size>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxStaticText">
-                        <label>Input Device:  </label>
-                      </object>
-                      <minsize>130,20</minsize>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxChoice" name="InputDevice">
-                        <content/>
-                      </object>
-                      <minsize>260,24</minsize>
-                      <border>10</border>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
-                    <orient></orient>
-                  </object>
-                  <border>10</border>
-                  <minsize></minsize>
-                </object>
-                <object class="sizeritem">
-                  <object class="wxBoxSizer">
-                    <object class="spacer">
-                      <size>10,10</size>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxStaticText">
-                        <label>Output Device:  </label>
-                      </object>
-                      <minsize>130,20</minsize>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxChoice" name="OutputDevice">
-                        <content/>
-                      </object>
-                      <minsize>260,24</minsize>
-                      <border>10</border>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
-                    <orient></orient>
-                  </object>
-                  <border>10</border>
-                  <minsize></minsize>
-                </object>
-                <object class="sizeritem">
-                  <object class="wxBoxSizer">
-                    <object class="spacer">
-                      <size>10,10</size>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxStaticText">
-                        <label>Ring Device:  </label>
-                      </object>
-                      <minsize>130,20</minsize>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxChoice" name="RingDevice">
-                        <content/>
-                      </object>
-                      <minsize>260,24</minsize>
-                      <border>10</border>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
-                    <orient></orient>
-                  </object>
-                  <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <vgap>8</vgap>
                 <object class="sizeritem">
@@ -129,7 +54,6 @@
                     </object>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <object class="sizeritem">
                   <object class="wxBoxSizer">
@@ -160,8 +84,66 @@
                     </object>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label>Intercom Tone:  </label>
+                      </object>
+                      <minsize>130,20</minsize>
+                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxTextCtrl" name="Intercom"/>
+                      <minsize>260,24</minsize>
+                      <border>10</border>
+                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
+                    </object>
+                    <orient></orient>
+                    <object class="spacer">
+                      <size>4,4</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxButton" name="BrowseIntercom">
+                        <label>Browse ...</label>
+                      </object>
+                    </object>
+                  </object>
+                  <border>10</border>
+                </object>
+                <growablecols>0</growablecols>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="SaveAudio">
+                        <label>Save</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="ApplyAudio">
+                        <label>Apply</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="wxID_CANCEL">
+                        <label>Cancel</label>
+                      </object>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <flag>wxALIGN_BOTTOM|wxALIGN_CENTRE_HORIZONTAL</flag>
+                </object>
+                <growablerows>4</growablerows>
               </object>
             </object>
           </object>
@@ -194,7 +176,6 @@
                     <orient></orient>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <vgap>8</vgap>
                 <object class="sizeritem">
@@ -218,8 +199,36 @@
                     <orient></orient>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
+                <growablecols>0</growablecols>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="SaveCallerID">
+                        <label>Save</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="ApplyCallerID">
+                        <label>Apply</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="wxID_CANCEL">
+                        <label>Cancel</label>
+                      </object>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <flag>wxALIGN_BOTTOM|wxALIGN_CENTRE_HORIZONTAL</flag>
+                </object>
+                <growablerows>3</growablerows>
               </object>
             </object>
           </object>
@@ -244,7 +253,7 @@
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxChoice" name="UseView">
+                      <object class="wxComboBox" name="UseView">
                         <content/>
                       </object>
                       <minsize>260,24</minsize>
@@ -252,16 +261,8 @@
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <orient></orient>
-                    <object class="sizeritem">
-                      <object class="wxStaticText">
-                        <label> (requires restart)</label>
-                      </object>
-                      <minsize>130,20</minsize>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <vgap>8</vgap>
                 <object class="sizeritem">
@@ -271,13 +272,13 @@
                     </object>
                     <object class="sizeritem">
                       <object class="wxStaticText">
-                        <label>Default Server:  </label>
+                        <label>Default Account:  </label>
                       </object>
                       <minsize>130,20</minsize>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxChoice" name="DefaultServer">
+                      <object class="wxChoice" name="DefaultAccount">
                         <content/>
                       </object>
                       <minsize>260,24</minsize>
@@ -287,7 +288,6 @@
                     <orient></orient>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <object class="sizeritem">
                   <object class="wxBoxSizer">
@@ -302,7 +302,7 @@
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxTextCtrl" name="Intercom"/>
+                      <object class="wxTextCtrl" name="IntercomPass"/>
                       <minsize>260,24</minsize>
                       <border>10</border>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
@@ -310,7 +310,6 @@
                     <orient></orient>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <object class="sizeritem">
                   <object class="wxBoxSizer">
@@ -344,8 +343,36 @@
                     </object>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="SaveMisc">
+                        <label>Save</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="ApplyMisc">
+                        <label>Apply</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="wxID_CANCEL">
+                        <label>Cancel</label>
+                      </object>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <flag>wxALIGN_BOTTOM|wxALIGN_CENTRE_HORIZONTAL</flag>
+                </object>
+                <growablecols>0</growablecols>
+                <growablerows>5</growablerows>
               </object>
             </object>
           </object>
@@ -379,7 +406,6 @@
                     <orient></orient>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <vgap>8</vgap>
                 <object class="sizeritem">
@@ -404,7 +430,6 @@
                     <orient></orient>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
                 </object>
                 <object class="sizeritem">
                   <object class="wxBoxSizer">
@@ -428,43 +453,40 @@
                     <orient></orient>
                   </object>
                   <border>10</border>
-                  <minsize></minsize>
+                </object>
+                <growablecols>0</growablecols>
+                <growablerows>4</growablerows>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="SaveFilters">
+                        <label>Save</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="ApplyFilters">
+                        <label>Apply</label>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <flag>wxALIGN_CENTRE|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxButton" name="wxID_CANCEL">
+                        <label>Cancel</label>
+                      </object>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <flag>wxALIGN_BOTTOM|wxALIGN_CENTRE_HORIZONTAL</flag>
                 </object>
               </object>
             </object>
           </object>
         </object>
-      </object>
-      <object class="sizeritem">
-        <object class="wxBoxSizer">
-          <object class="sizeritem">
-            <flag>wxALIGN_CENTRE|wxALL</flag>
-            <border>5</border>
-            <object class="wxButton" name="wxID_SAVE">
-              <label>Save</label>
-              <enabled>0</enabled>
-            </object>
-          </object>
-          <object class="sizeritem">
-            <flag>wxALIGN_CENTRE|wxALL</flag>
-            <border>5</border>
-            <object class="wxButton" name="wxID_APPLY">
-              <label>Apply</label>
-              <enabled>0</enabled>
-            </object>
-          </object>
-          <object class="sizeritem">
-            <flag>wxALIGN_CENTRE|wxALL</flag>
-            <border>5</border>
-            <object class="wxButton" name="wxID_CANCEL">
-              <label>Cancel</label>
-            </object>
-          </object>
-          <orient></orient>
-        </object>
-        <border></border>
-        <minsize></minsize>
-        <flag>wxALL|wxALIGN_CENTER</flag>
       </object>
     </object>
   </object>

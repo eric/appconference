@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------
-// Name:        calls.cpp
+// Name:        calls.cc
 // Purpose:     Call appearances listctrl
 // Author:      Michael Van Donselaar
 // Modified by:
@@ -7,7 +7,7 @@
 // Copyright:   (c) Michael Van Donselaar ( michael@vandonselaar.org )
 // Licence:     GPL
 //----------------------------------------------------------------------------------------
-#define SPEAKER_RING
+
 //----------------------------------------------------------------------------------------
 // GCC implementation
 //----------------------------------------------------------------------------------------
@@ -53,7 +53,11 @@
 #ifndef M_PI
   #define M_PI 3.14159265358979323846
 #endif
- 
+#ifdef __WXGTK__
+  #include <sys/ioctl.h>
+  #include <sys/fcntl.h>
+  #include <linux/kd.h>
+#endif 
 //----------------------------------------------------------------------------------------
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
@@ -76,9 +80,6 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
     long        i;
     int         nCalls;
     wxListItem  item;
-    wxString    Filename;
-    wxFFile     fRingTone;
-    wxFFile     fRingBack;
 
     m_parent = parent;
 
@@ -101,60 +102,61 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
     Show();
     AutoSize();
 
-    icomtone.len = 6000;
-    icomtone.data = (short *)calloc(icomtone.len , sizeof(short));
-    for( int i=0;i < 3000; i++ )
+    // Calculate some reasonable sounding defaults
+    CalcTone(&ringtone, 880, 960, 16000, 48000, 10);
+    CalcTone(&ringback, 440, 480, 16000, 48000, 10);
+    CalcTone(&icomtone, 440, 960,  6000,  6000,  1);
+
+    // Replace with user's tones
+    RingToneName = config->Read("/RingTone", "");
+    RingBackName = config->Read("/RingBack", "");
+    IntercomName = config->Read("/Intercom", "");
+
+    LoadTone(&ringtone, RingToneName, 10);
+    LoadTone(&ringback, RingBackName, 10);
+    LoadTone(&icomtone, IntercomName,  1);
+}
+
+void CalcTone(struct iaxc_sound *tone, int F1, int F2, 
+                        int Dur, int Len, int Repeat)
+{
+    // Free old tone, if there was one
+    if(tone->data != NULL)
+        free(tone->data);
+
+    tone->len  = Len;
+    tone->data = (short *)calloc(tone->len , sizeof(short));
+
+    for( int i=0;i < Dur; i++ )
     {
-      if(i<3000) {
-          icomtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*440*M_PI/8000));
-          if((i>1000) && (i<2000))
-              icomtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*880*M_PI/8000));
-      }
+        tone->data[i] = (short)(0x7fff*0.4*sin((double)i*F1*M_PI/8000))
+                      + (short)(0x7fff*0.4*sin((double)i*F2*M_PI/8000));
     }
-    icomtone.repeat = 1;
 
-    Filename = config->Read("/RingTone", "");
-    if(!Filename.IsEmpty())
-        fRingTone.Open(Filename, "r");
+    tone->repeat = Repeat;
+}
+void LoadTone(struct iaxc_sound *tone, wxString Filename, int Repeat)
+{
+    wxFFile     fTone;
 
-    if(fRingTone.IsOpened()) {
-        ringtone.len  = fRingTone.Length();
-        ringtone.data = (short *)calloc(ringtone.len , sizeof(short));
+    if(Filename.IsEmpty())
+        return;
 
-        fRingTone.Read(&ringtone.data[0], ringtone.len);
+    fTone.Open(Filename, "r");
 
-    } else {
-        ringtone.len  = 6*8000;
-        ringtone.data = (short *)calloc(ringtone.len , sizeof(short));
+    if(!fTone.IsOpened())
+        return;
 
-        for( int i=0;i < 2*8000; i++ )
-        {
-            ringtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*880*M_PI/8000));
-            ringtone.data[i] += (short)(0x7fff*0.4*sin((double)i*960*M_PI/8000));
-        }
-    }
-    ringtone.repeat = 10;
+    // Free old tone, if there was one
+    if(tone->data != NULL)
+        free(tone->data);
 
-    Filename = config->Read("/RingBack", "");
-    if(!Filename.IsEmpty())
-        fRingBack.Open(Filename, "r");
+    tone->len  = fTone.Length();
+    tone->data = (short *)calloc(tone->len , sizeof(short));
+    fTone.Read(&tone->data[0], tone->len);
+    fTone.Close();
 
-    if(fRingBack.IsOpened()) {
-        ringback.len  = fRingBack.Length();
-        ringback.data = (short *)calloc(ringback.len , sizeof(short));
-        fRingBack.Read(&ringback.data[0], ringback.len);
-
-    } else {
-        ringback.len  = 6*8000;
-        ringback.data = (short *)calloc(ringback.len , sizeof(short));
-
-        for( int i=0;i < 2*8000; i++ )
-        {
-            ringback.data[i] =  (short)(0x7fff*0.4*sin((double)i*440*M_PI/8000));
-            ringback.data[i] += (short)(0x7fff*0.4*sin((double)i*480*M_PI/8000));
-        }
-    }
-    ringback.repeat = 10;
+    tone->repeat = Repeat;
 }
 
 void CallList::AutoSize()
@@ -181,6 +183,27 @@ void CallList::OnDClick(wxListEvent &event)
 {
     //Don't need to select, because single click should have done it
     iaxc_dump_call();
+}
+
+void CallList::RingStart(int type)
+{
+    if(type == 1)
+        iaxc_play_sound(&icomtone, 1);
+    else
+        iaxc_play_sound(&ringtone, 1);
+
+    if(wxGetApp().theFrame->Speaker) {
+        #ifdef __WXMSW__
+          Beep(440,300);
+          Beep(880,900);
+          Beep(220,300);
+        #endif
+        #ifdef __WXGTK__
+          int fd = open("/dev/console", O_WRONLY)
+          if(fd >= 0) 
+              ioctl(fd, KDMKTONE, (long)(1193180/2) << 16 + (1193180/440));
+        #endif
+    }
 }
 
 int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
@@ -245,19 +268,13 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 }
 
                 if(strcmp(c.local_context, "intercom") == 0) {
-                    if(config->Read("/Intercom","s").IsSameAs(c.local)) {
-                        iaxc_play_sound(&icomtone, 1);
+                    if(config->Read("/IntercomPass","s").IsSameAs(c.local)) {
+                        RingStart(1);
                         iaxc_millisleep(1000);
                         iaxc_select_call(c.callNo);
                     }
                 } else {
-                    iaxc_play_sound(&ringtone, 1);
-
-                    #ifdef SPEAKER_RING
-                    Beep(440,300);
-                    Beep(880,900);
-                    Beep(220,300);
-                    #endif
+                    RingStart(0);
                 }
             } else {
                 iaxc_stop_sound(ringtone.id);

@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------
-// Name:        main.cpp
+// Name:        main.cc
 // Purpose:     Core application
 // Author:      Michael Van Donselaar
 // Modified by:
@@ -38,6 +38,7 @@
 //----------------------------------------------------------------------------------------
 
 #include "main.h"
+#include "devices.h"
 #include "prefs.h"
 #include "wx/tokenzr.h"
 
@@ -114,6 +115,7 @@ bool theApp::OnInit()
     load_xrc_resource( "panel.xrc" );
     load_xrc_resource( "prefs.xrc" );
     load_xrc_resource( "directory.xrc" );
+    load_xrc_resource( "devices.xrc" );
 
     // Create an instance of the main frame.
     // Using a pointer since behaviour will be when close the frame, it will
@@ -153,11 +155,12 @@ bool theApp::OnInit()
     iaxc_start_processing_thread();
 
     // Callerid from wxConfig
-    iaxc_set_callerid((char *)config->Read("Name", "IaxComm User").c_str(),
-                      (char *)config->Read("Number",  "700000000").c_str());
+    theFrame->Name   = config->Read("Name", "IaxComm User");
+    theFrame->Number = config->Read("Number",  "700000000");
+    SetCallerID(theFrame->Name, theFrame->Number);
 
     // Register from wxConfig
-    config->SetPath("/Servers");
+    config->SetPath("/Accounts");
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         RegisterByName(str);
@@ -186,7 +189,7 @@ void theApp::RegisterByName(wxString RegName)
         strncpy( host , tok.GetNextToken().c_str(), 256);
     } else {
         // Check if it's a Speed Dial
-        wxStrcpy(KeyPath,     "/Servers/");
+        wxStrcpy(KeyPath,     "/Accounts/");
         wxStrcat(KeyPath,     RegName);
         config->SetPath(KeyPath);
         if(!config->Exists(KeyPath)) {

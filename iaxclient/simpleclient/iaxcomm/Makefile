@@ -3,7 +3,7 @@ CFLAGS=-I../../lib
 
 #debug
 CFLAGS:= $(CFLAGS) -g -Wall
-OBJS = main.o prefs.o calls.o directory.o dial.o frame.o
+OBJS = main.o prefs.o calls.o directory.o dial.o frame.o devices.o
 REZ=echo
 
 
@@ -39,7 +39,7 @@ WINSYSFLAGS=-Wl,--subsystem,windows -mwindows
 #WINSYSFLAGS=
 EXTRALIBS = -lwxxrc
 SYSLIBS=$(EXTRALIBS) $(WINSYSFLAGS) -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib
-OBJS=main.o prefs.o calls.o directory.o dial.o frame.o iaxcomm_resources.o
+OBJS=main.o prefs.o calls.o directory.o dial.o frame.o devices.o iaxcomm_resources.o
 endif
 
 ifeq ($(OSTYPE),LINUX)

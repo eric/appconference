@@ -66,10 +66,10 @@ void DialEntry( wxString& EntryName )
         wxMessageBox(KeyPath, EntryName);
         return;
     }
-    wxString ServerName = config->Read("Server", "");
-    wxString Extension  = config->Read("Extension", "s");
+    wxString AccountName = config->Read("Account",   "");
+    wxString Extension   = config->Read("Extension", "s");
 
-    Dial(ServerName + "/" + Extension);
+    Dial(AccountName + "/" + Extension);
 }
 
 void Dial( wxString DialStr )
@@ -77,36 +77,36 @@ void Dial( wxString DialStr )
     wxConfig *config = new wxConfig("iaxComm");
     wxString  FQIN;
 
-    wxString  ServerInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
+    wxString  AccountInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
     wxString  Extension  = DialStr.AfterLast('/');     // dialstr if no '/'
 
-    if(ServerInfo.IsEmpty()) {
-        ServerInfo = wxGetApp().theFrame->Server->GetStringSelection();
+    if(AccountInfo.IsEmpty()) {
+        AccountInfo = wxGetApp().theFrame->Account->GetStringSelection();
 
         // Dialstr has no "/" and no default server: add default extension
-        if(ServerInfo.IsEmpty()) {
-            ServerInfo = Extension;
+        if(AccountInfo.IsEmpty()) {
+            AccountInfo = Extension;
             Extension  = "s";
         }
     }
 
-    wxString  RegInfo    = ServerInfo.BeforeLast('@'); // Empty   if no '@'
-    wxString  Server     = ServerInfo.AfterLast('@');
+    wxString  RegInfo    = AccountInfo.BeforeLast('@'); // Empty   if no '@'
+    wxString  Host       = AccountInfo.AfterLast('@');
 
     wxString  Username   = RegInfo.BeforeFirst(':');
     wxString  Password   = RegInfo.AfterFirst(':');     // Empty if no ':'
 
 
     if(RegInfo.IsEmpty()) {
-        config->SetPath("/Servers/" + Server);
-        Server   = config->Read("Host",     Server);
+        config->SetPath("/Accounts/" + Host);
+        Host     = config->Read("Host",     Host);
         Username = config->Read("Username", "");
         Password = config->Read("Password", "");
     }
 
     FQIN.Printf("%s:%s@%s/%s", Username.c_str(),
                                Password.c_str(),
-                               Server.c_str(),
+                               Host.c_str(),
                                Extension.c_str());
 
 

@@ -29,7 +29,7 @@
 
 #include "app.h"
 
-void         SetAudioDevices(wxString in, wxString out, wxString ring);
+void         SetCallerID(wxString name, wxString number);
 
 class PrefsDialog : public wxDialog
 {
@@ -38,32 +38,32 @@ public:
         
 private:
 
-    wxChoice    *InputDevice;
-    wxChoice    *OutputDevice;
-    wxChoice    *RingDevice;
     wxTextCtrl  *RingBack;
-    wxButton    *BrowseRingBack;
     wxTextCtrl  *RingTone;
-    wxButton    *BrowseRingTone;
+    wxTextCtrl  *Intercom;
 
     wxTextCtrl  *Name;
     wxTextCtrl  *Number;
-    wxChoice    *UseView;
-    wxChoice    *DefaultServer;
-    wxTextCtrl  *Intercom;
+    wxComboBox  *UseView;
+    wxChoice    *DefaultAccount;
+    wxTextCtrl  *IntercomPass;
     wxSpinCtrl  *nCalls;
     wxCheckBox  *AGC;
     wxCheckBox  *NoiseReduce;
     wxCheckBox  *EchoCancel;
     wxButton    *SaveButton;
     wxButton    *ApplyButton;
-    wxButton    *CancelButton;
 
-    void         GetAudioDevices();
     void         OnBrowse(wxCommandEvent &event);
-    void         OnSave(wxCommandEvent &event);
-    void         OnApply(wxCommandEvent &event);
-    void         OnDirty(wxCommandEvent &event);
+    void         OnSaveAudio(wxCommandEvent &event);
+    void         OnSaveCallerID(wxCommandEvent &event);
+    void         OnSaveMisc(wxCommandEvent &event);
+    void         OnSaveFilters(wxCommandEvent &event);
+    void         OnApplyAudio(wxCommandEvent &event);
+    void         OnApplyCallerID(wxCommandEvent &event);
+    void         OnApplyMisc(wxCommandEvent &event);
+    void         OnApplyFilters(wxCommandEvent &event);
+    void         ApplyFilters(void);
 
     DECLARE_EVENT_TABLE()
 

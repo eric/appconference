@@ -1,6 +1,6 @@
 //----------------------------------------------------------------------------------------
-// Name:        prefs.cpp
-// Purpose:     prefernces dialog
+// Name:        prefs.cc
+// Purpose:     preferences dialog
 // Author:      Michael Van Donselaar
 // Modified by:
 // Created:     2003
@@ -45,20 +45,28 @@
 #include "app.h"
 #include "frame.h"
 #include "main.h"
+#include "calls.h"
 
 //----------------------------------------------------------------------------------------
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
 BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
-    EVT_BUTTON( XRCID("BrowseRingTone"), PrefsDialog::OnBrowse)
-    EVT_BUTTON( XRCID("BrowseRingBack"), PrefsDialog::OnBrowse)
-    EVT_BUTTON( wxID_SAVE,               PrefsDialog::OnSave)
-    EVT_BUTTON( wxID_APPLY,              PrefsDialog::OnApply)
-    EVT_CHOICE( XRCID("InputDevice"),    PrefsDialog::OnDirty)
-    EVT_CHOICE( XRCID("OutputDevice"),   PrefsDialog::OnDirty)
-    EVT_CHOICE( XRCID("RingDevice"),     PrefsDialog::OnDirty)
-    EVT_TEXT(   XRCID("Name"),           PrefsDialog::OnDirty)
-    EVT_TEXT(   XRCID("Number"),         PrefsDialog::OnDirty)
+    EVT_BUTTON( XRCID("BrowseRingTone"),     PrefsDialog::OnBrowse)
+    EVT_BUTTON( XRCID("BrowseIntercom"),     PrefsDialog::OnBrowse)
+    EVT_BUTTON( XRCID("BrowseRingBack"),     PrefsDialog::OnBrowse)
+
+    EVT_BUTTON( XRCID("SaveAudio"),          PrefsDialog::OnSaveAudio)
+    EVT_BUTTON( XRCID("ApplyAudio"),         PrefsDialog::OnApplyAudio)
+
+    EVT_BUTTON( XRCID("SaveCallerID"),       PrefsDialog::OnSaveCallerID)
+    EVT_BUTTON( XRCID("ApplyCallerID"),      PrefsDialog::OnApplyCallerID)
+
+    EVT_BUTTON( XRCID("SaveMisc"),           PrefsDialog::OnSaveMisc)
+    EVT_BUTTON( XRCID("ApplyMisc"),          PrefsDialog::OnApplyMisc)
+
+    EVT_BUTTON( XRCID("SaveFilters"),        PrefsDialog::OnSaveFilters)
+    EVT_BUTTON( XRCID("ApplyFilters"),       PrefsDialog::OnApplyFilters)
+
 END_EVENT_TABLE()
 
 //----------------------------------------------------------------------------------------
@@ -76,65 +84,52 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
 
     // Reach in for our controls
 
-    InputDevice    = XRCCTRL(*this, "InputDevice",    wxChoice);
-    OutputDevice   = XRCCTRL(*this, "OutputDevice",   wxChoice);
-    RingDevice     = XRCCTRL(*this, "RingDevice",     wxChoice);
     RingBack       = XRCCTRL(*this, "RingBack",       wxTextCtrl);
-    BrowseRingBack = XRCCTRL(*this, "BrosweRingBack", wxButton);
     RingTone       = XRCCTRL(*this, "RingTone",       wxTextCtrl);
-    BrowseRingTone = XRCCTRL(*this, "BrosweRingTone", wxButton);
+    Intercom       = XRCCTRL(*this, "Intercom",       wxTextCtrl);
 
     Name           = XRCCTRL(*this, "Name",           wxTextCtrl);
     Number         = XRCCTRL(*this, "Number",         wxTextCtrl);
 
-    UseView        = XRCCTRL(*this, "UseView",        wxChoice);
-    DefaultServer  = XRCCTRL(*this, "DefaultServer",  wxChoice);
-    Intercom       = XRCCTRL(*this, "Intercom",       wxTextCtrl);
+    UseView        = XRCCTRL(*this, "UseView",        wxComboBox);
+    DefaultAccount = XRCCTRL(*this, "DefaultAccount", wxChoice);
+    IntercomPass   = XRCCTRL(*this, "IntercomPass",   wxTextCtrl);
     nCalls         = XRCCTRL(*this, "nCalls",         wxSpinCtrl);
 
     AGC            = XRCCTRL(*this, "AGC",            wxCheckBox);
     NoiseReduce    = XRCCTRL(*this, "NoiseReduce",    wxCheckBox);
     EchoCancel     = XRCCTRL(*this, "EchoCancel",     wxCheckBox);
 
-    SaveButton     = XRCCTRL(*this, "wxID_SAVE",      wxButton);
-    ApplyButton    = XRCCTRL(*this, "wxID_APPLY",     wxButton);
-    CancelButton   = XRCCTRL(*this, "wxID_CANCEL",    wxButton);
-
-    GetAudioDevices();
-
     config->SetPath("/");
 
-    SetAudioDevices(config->Read("Input Device",  ""),
-                    config->Read("Output Device", ""),
-                    config->Read("Ring Device",   ""));
-    RingTone->SetValue(config->Read("/RingTone", ""));
-    RingBack->SetValue(config->Read("/RingBack", ""));
+    RingTone->SetValue(wxGetApp().theFrame->Calls->RingToneName);
+    RingBack->SetValue(wxGetApp().theFrame->Calls->RingBackName);
+    Intercom->SetValue(wxGetApp().theFrame->Calls->IntercomName);
 
     Name->SetValue(config->Read("Name", "Caller Name"));
     Number->SetValue(config->Read("Number", "700000000"));
 
     UseView->Append("default");
     UseView->Append("compact");
-    UseView->Append("expanded");
-    UseView->SetStringSelection(config->Read("UseView", "default"));
+    UseView->SetValue(config->Read("UseView", "default"));
 
-    config->SetPath("/Servers");
+    config->SetPath("/Accounts");
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
-        DefaultServer->Append(str);
+        DefaultAccount->Append(str);
         bCont = config->GetNextGroup(str, dummy);
     }
-    dummy = DefaultServer->FindString(config->Read("/DefaultServer", ""));
+    dummy = DefaultAccount->FindString(config->Read("/DefaultAccount", ""));
     if(dummy <= 0)
         dummy = 0;
-    DefaultServer->SetSelection(dummy);
+    DefaultAccount->SetSelection(dummy);
 
-    Intercom->SetValue(config->Read("/Intercom", ""));
+    IntercomPass->SetValue(config->Read("/IntercomPass", ""));
     nCalls->SetValue(config->Read("/nCalls", 2));
 
-    AGC->SetValue(config->Read("/AGC", 0l));
-    NoiseReduce->SetValue(config->Read("/NoiseReduce", 0l));
-    EchoCancel->SetValue(config->Read("/EchoCancel", 0l));
+    AGC->SetValue(wxGetApp().theFrame->AGC);
+    NoiseReduce->SetValue(wxGetApp().theFrame->NoiseReduce);
+    EchoCancel->SetValue(wxGetApp().theFrame->EchoCancel);
 
     delete config;
 }
@@ -142,143 +137,6 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
 //----------------------------------------------------------------------------------------
 // Private methods
 //----------------------------------------------------------------------------------------
-
-void PrefsDialog::GetAudioDevices()
-{
-    struct iaxc_audio_device *devices;
-    int               nDevs;
-    int               input, output, ring;
-    int               i;
-    long              caps;
-    wxString          devname;
-
-    iaxc_audio_devices_get(&devices, &nDevs, &input, &output, &ring);
-
-    for(i=0; i<nDevs; i++) {
-        caps =    devices->capabilities;
-        devname = devices->name;
-
-        if(caps & IAXC_AD_INPUT)
-            InputDevice->Append(devname);
-
-        if(caps & IAXC_AD_OUTPUT)
-            OutputDevice->Append(devname);
-
-        if(caps & IAXC_AD_RING)
-            RingDevice->Append(devname);
-
-        if(i == input)
-            InputDevice->SetStringSelection(devname);
-
-        if(i == output)
-            OutputDevice->SetStringSelection(devname);
-
-        if(i == ring)
-            RingDevice->SetStringSelection(devname);
-
-        devices++;
-    }
-}
-
-void PrefsDialog::OnSave(wxCommandEvent &event)
-{
-    wxConfig *config = new wxConfig("iaxComm");
-
-    config->SetPath("/");
-
-    config->Write("Input Device",   InputDevice->GetStringSelection());
-    config->Write("Output Device",  OutputDevice->GetStringSelection());
-    config->Write("Ring Device",    RingDevice->GetStringSelection());
-    config->Write("RingTone",       RingTone->GetValue());
-    config->Write("RingBack",       RingBack->GetValue());
-
-    config->Write("Name",           Name->GetValue());
-    config->Write("Number",         Number->GetValue());
-
-    config->Write("UseView",        UseView->GetStringSelection());
-    config->Write("DefaultServer",  DefaultServer->GetStringSelection());
-    config->Write("Intercom",       Intercom->GetValue());
-    config->Write("nCalls",         nCalls->GetValue());
-
-    config->Write("AGC",            AGC->GetValue());
-    config->Write("NoiseReduce",    NoiseReduce->GetValue());
-    config->Write("EchoCancel",     EchoCancel->GetValue());
-
-    delete config;
-    SaveButton->Disable();
-}
-
-void PrefsDialog::OnApply(wxCommandEvent &event)
-{
-    SetAudioDevices(InputDevice->GetStringSelection(),
-                    OutputDevice->GetStringSelection(),
-                    RingDevice->GetStringSelection());
-
-    iaxc_set_callerid((char *)Name->GetValue().c_str(), (char *)Number->GetValue().c_str());
-
-    // Update the main frame
-    int which = wxGetApp().theFrame->Server->FindString(DefaultServer->GetStringSelection());
-    wxGetApp().theFrame->Server->SetSelection(which);
-
-    // Clear these filters
-    int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
-    iaxc_set_filters(iaxc_get_filters() & flag);
-
-    flag = 0;
-    if(AGC->GetValue())
-       flag = IAXC_FILTER_AGC;
-
-    if(NoiseReduce->GetValue())
-       flag |= IAXC_FILTER_DENOISE;
-
-    if(EchoCancel->GetValue())
-       flag |= IAXC_FILTER_ECHO;
-
-    iaxc_set_filters(iaxc_get_filters() | flag);
-
-    Close();
-}
-
-void PrefsDialog::OnDirty(wxCommandEvent &event)
-{
-    SaveButton->Enable();
-    ApplyButton->Enable();
-}
-
-void SetAudioDevices(wxString inname, wxString outname, 
-                                  wxString ringname)
-{
-    struct iaxc_audio_device *devices;
-    int                      nDevs;
-    int                      i;
-    int                      input  = 0;
-    int                      output = 0;
-    int                      ring   = 0;
-
-    // Note that if we're called with an invalid devicename, the deviceID
-    // stays 0, which equals default.
-
-    iaxc_audio_devices_get(&devices, &nDevs, &input, &output, &ring);
-
-    for(i=0; i<nDevs; i++) {
-        if(devices->capabilities & IAXC_AD_INPUT) {
-            if(inname.Cmp(devices->name) == 0)
-                input = devices->devID;
-        }
-
-        if(devices->capabilities & IAXC_AD_OUTPUT) {
-            if(outname.Cmp(devices->name) == 0)
-                output = devices->devID;
-        }
-
-        if(devices->capabilities & IAXC_AD_RING) {
-            if(ringname.Cmp(devices->name) == 0)
-                ring = devices->devID;
-        }
-        devices++;
-    }
-    iaxc_audio_devices_set(input,output,ring);
-}
 
 void PrefsDialog::OnBrowse(wxCommandEvent &event)
 {
@@ -294,4 +152,133 @@ void PrefsDialog::OnBrowse(wxCommandEvent &event)
     if(event.GetId() == XRCID("BrowseRingTone"))
         RingTone->SetValue(where.GetPath());
 
+    if(event.GetId() == XRCID("BrowseIntercom"))
+        Intercom->SetValue(where.GetPath());
+
+}
+
+void SetCallerID(wxString name, wxString number)
+{
+    iaxc_set_callerid((char *)name.c_str(),
+                      (char *)number.c_str());
+}
+
+void PrefsDialog::OnSaveAudio(wxCommandEvent &event)
+{
+    wxConfig *config = new wxConfig("iaxComm");
+    config->SetPath("/");
+
+    config->Write("RingTone",   RingTone->GetValue());
+    config->Write("RingBack",   RingBack->GetValue());
+    config->Write("Intercom",   Intercom->GetValue());
+
+    delete config;
+    OnApplyAudio(event);
+}
+
+void PrefsDialog::OnApplyAudio(wxCommandEvent &event)
+{
+    if(!RingTone->GetValue().IsEmpty())
+        LoadTone(&wxGetApp().theFrame->Calls->ringtone, RingTone->GetValue(),10);
+    else
+        CalcTone(&wxGetApp().theFrame->Calls->ringtone, 880, 960, 16000, 48000, 10);
+
+    if(!RingBack->GetValue().IsEmpty())
+        LoadTone(&wxGetApp().theFrame->Calls->ringback, RingBack->GetValue(),10);
+    else
+        CalcTone(&wxGetApp().theFrame->Calls->ringback, 440, 480, 16000, 48000, 10);
+
+    if(!Intercom->GetValue().IsEmpty())
+        LoadTone(&wxGetApp().theFrame->Calls->icomtone, Intercom->GetValue(),10);
+    else
+        CalcTone(&wxGetApp().theFrame->Calls->icomtone, 440, 960,  6000,  6000,  1);
+
+    wxGetApp().theFrame->Calls->RingToneName = RingTone->GetValue();
+    wxGetApp().theFrame->Calls->RingBackName = RingBack->GetValue();
+    wxGetApp().theFrame->Calls->IntercomName = Intercom->GetValue();
+}
+
+void PrefsDialog::OnSaveCallerID(wxCommandEvent &event)
+{
+    wxConfig *config = new wxConfig("iaxComm");
+    config->SetPath("/");
+
+    config->Write("Name",           Name->GetValue());
+    config->Write("Number",         Number->GetValue());
+
+    delete config;
+    OnApplyCallerID(event);
+}
+
+void PrefsDialog::OnApplyCallerID(wxCommandEvent &event)
+{
+    wxGetApp().theFrame->Name   = Name->GetValue();
+    wxGetApp().theFrame->Number = Number->GetValue();
+    SetCallerID(wxGetApp().theFrame->Name, wxGetApp().theFrame->Number);
+}
+
+void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
+{
+    wxConfig *config = new wxConfig("iaxComm");
+    config->SetPath("/");
+
+    config->Write("UseView",        UseView->GetValue());
+    config->Write("DefaultAccount", DefaultAccount->GetStringSelection());
+    config->Write("IntercomPass",   IntercomPass->GetValue());
+    config->Write("nCalls",         nCalls->GetValue());
+
+    delete config;
+    OnApplyMisc(event);
+}
+
+void PrefsDialog::OnApplyMisc(wxCommandEvent &event)
+{
+    // Update the Default Account
+    wxGetApp().theFrame->DefaultAccount = DefaultAccount->GetStringSelection();
+    wxGetApp().theFrame->ShowDirectoryControls();
+
+    wxGetApp().theFrame->IntercomPass = IntercomPass->GetValue();
+
+    wxGetApp().theFrame->RePanel(UseView->GetValue());
+}
+
+void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
+{
+    wxConfig *config = new wxConfig("iaxComm");
+    config->SetPath("/");
+
+    config->Write("AGC",            AGC->GetValue());
+    config->Write("NoiseReduce",    NoiseReduce->GetValue());
+    config->Write("EchoCancel",     EchoCancel->GetValue());
+
+    delete config;
+    OnApplyFilters(event);
+}
+
+void PrefsDialog::OnApplyFilters(wxCommandEvent &event)
+{
+    wxGetApp().theFrame->AGC         = AGC->GetValue();
+    wxGetApp().theFrame->NoiseReduce = NoiseReduce->GetValue();
+    wxGetApp().theFrame->EchoCancel  = EchoCancel->GetValue();
+
+    ApplyFilters();
+}
+
+void PrefsDialog::ApplyFilters()
+{
+    // Clear these filters
+    int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
+    iaxc_set_filters(iaxc_get_filters() & flag);
+
+    flag = 0;
+    if(wxGetApp().theFrame->AGC)
+       flag = IAXC_FILTER_AGC;
+
+    if(wxGetApp().theFrame->NoiseReduce)
+       flag |= IAXC_FILTER_DENOISE;
+
+    if(wxGetApp().theFrame->EchoCancel)
+       flag |= IAXC_FILTER_ECHO;
+
+    iaxc_set_filters(iaxc_get_filters() | flag);
 }

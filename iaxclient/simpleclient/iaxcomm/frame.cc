@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------
-// Name:        frame.cpp
+// Name:        frame.cc
 // Purpose:     Main frame
 // Author:      Michael Van Donselaar
 // Modified by:
@@ -46,6 +46,7 @@
 #include "app.h"
 #include "main.h"
 #include "prefs.h"
+#include "devices.h"
 #include "directory.h"
 #include "calls.h"
 #include "dial.h"
@@ -64,8 +65,10 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU    (XRCID("Silence"),     MyFrame::OnSilenceChange)
 
     EVT_MENU    (XRCID("Prefs"),       MyFrame::OnPrefs)
+    EVT_MENU    (XRCID("Devices"),     MyFrame::OnDevices)
     EVT_MENU    (XRCID("Directory"),   MyFrame::OnDirectory)
     EVT_MENU    (XRCID("Exit"),        MyFrame::OnExit)
+    EVT_MENU    (XRCID("About"),       MyFrame::OnAbout)
     EVT_SIZE    (                      CallList::OnSize)  
 #ifdef __WXMSW__
     EVT_ICONIZE (                      MyTaskBarIcon::OnHide)
@@ -95,7 +98,11 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_BUTTON  (XRCID("KPSTAR"),      MyFrame::OnKeyPad)
     EVT_BUTTON  (XRCID("KPPOUND"),     MyFrame::OnKeyPad)
     EVT_BUTTON  (XRCID("Dial"),        MyFrame::OnDialDirect)
+    EVT_BUTTON  (XRCID("Next"),        MyFrame::OnNextKey)
     EVT_BUTTON  (XRCID("Hangup"),      MyFrame::OnHangup)
+
+    EVT_BUTTON  (XRCID("AddAccount"),         MyFrame::OnAddAccountList)
+    EVT_BUTTON  (XRCID("DeleteAccount"),      MyFrame::OnRemoveAccountList)
 
     EVT_COMMAND_SCROLL(XRCID("OutputSlider"), MyFrame::OnSlider)
     EVT_TEXT_ENTER    (XRCID("Extension"),    MyFrame::OnDialDirect)
@@ -105,10 +112,9 @@ END_EVENT_TABLE()
 // Public methods
 //----------------------------------------------------------------------------------------
 
-MyFrame::MyFrame( wxWindow* parent )
+MyFrame::MyFrame( wxWindow *parent )
 {
     wxConfig   *config = new wxConfig("iaxComm");
-    wxBoxSizer *panelSizer;
     wxMenuBar  *aMenuBar;
     wxString    Name;
     MyTimer    *timer;
@@ -139,17 +145,56 @@ MyFrame::MyFrame( wxWindow* parent )
     SetStatusWidths(2, widths);
 
     //----Add the panel-----------------------------------------------------------------
-    aPanel = new wxPanel(this);
     Name = config->Read("/UseView", "default");
-    aPanel = wxXmlResource::Get()->LoadPanel(this, Name);
+    DefaultAccount = config->Read("/DefaultAccount", "");
+    AddPanel(this, Name);
+
+    pttMode = false;
+
+    Speaker     = config->Read("Speaker", 0l);
+    AGC         = config->Read("/AGC", 0l);
+    NoiseReduce = config->Read("/NoiseReduce", 0l);
+    EchoCancel  = config->Read("/EchoCancel", 0l);
+
+    ApplyFilters();
+
+    if(OutputSlider != NULL)
+        OutputSlider->SetValue(config->Read("/OutputLevel", 70));
+
+#ifdef __WXGTK__
+    // window used for getting keyboard state
+    GdkWindowAttr attr;
+    keyStateWindow = gdk_window_new(NULL, &attr, 0);
+#endif
+
+    timer = new MyTimer();
+    timer->Start(100);
+}
+
+void MyFrame::RePanel(wxString Name)
+{
+    aPanel->Destroy();
+    AddPanel(this, Name);
+    Layout();
+}
+
+void MyFrame::AddPanel(wxWindow *parent, wxString Name)
+{
+    wxBoxSizer *panelSizer;
+
+    aPanel = new wxPanel(parent);
+    aPanel = wxXmlResource::Get()->LoadPanel(parent, Name);
     if(aPanel == NULL)
-        aPanel = wxXmlResource::Get()->LoadPanel(this, wxT("default"));
+        aPanel = wxXmlResource::Get()->LoadPanel(parent, wxT("default"));
+
+    if(aPanel == NULL)
+        wxFatalError(_("Can't Load Panel in frame.cc"));
 
     //----Reach in for our controls-----------------------------------------------------
     Input        = XRCCTRL(*aPanel, "Input",        wxGauge);
     Output       = XRCCTRL(*aPanel, "Output",       wxGauge);
     OutputSlider = XRCCTRL(*aPanel, "OutputSlider", wxSlider);
-    Server       = XRCCTRL(*aPanel, "Server",       wxChoice);
+    Account      = XRCCTRL(*aPanel, "Account",      wxChoice);
     Extension    = XRCCTRL(*aPanel, "Extension",    wxTextCtrl);
 
     //----Insert the Calls listctrl into it's "unknown" placeholder---------------------
@@ -166,21 +211,26 @@ MyFrame::MyFrame( wxWindow* parent )
     panelSizer->Add(aPanel,1,wxEXPAND);
 
     SetSizer(panelSizer); 
-    panelSizer->SetSizeHints(this);
+    panelSizer->SetSizeHints(parent);
+}
 
-    pttMode = false;
+void MyFrame::ApplyFilters()
+{
+    // Clear these filters
+    int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
+    iaxc_set_filters(iaxc_get_filters() & flag);
 
-    if(OutputSlider != NULL)
-        OutputSlider->SetValue(config->Read("/OutputLevel", 70));
+    flag = 0;
+    if(AGC)
+       flag = IAXC_FILTER_AGC;
 
-#ifdef __WXGTK__
-    // window used for getting keyboard state
-    GdkWindowAttr attr;
-    keyStateWindow = gdk_window_new(NULL, &attr, 0);
-#endif
+    if(NoiseReduce)
+       flag |= IAXC_FILTER_DENOISE;
 
-    timer = new MyTimer();
-    timer->Start(100);
+    if(EchoCancel)
+       flag |= IAXC_FILTER_ECHO;
+
+    iaxc_set_filters(iaxc_get_filters() | flag);
 }
 
 MyFrame::~MyFrame()
@@ -195,6 +245,31 @@ MyFrame::~MyFrame()
 //  iaxc_shutdown();
 }
 
+void MyFrame::OnAddAccountList(wxCommandEvent &event)
+{
+    wxString val;
+
+    AddAccountDialog dialog(this, val);
+    dialog.ShowModal();
+    ShowDirectoryControls();
+}
+
+void MyFrame::OnRemoveAccountList(wxCommandEvent &event)
+{
+    wxConfig  *config = new wxConfig("iaxComm");
+    long       sel = -1;
+
+    sel = Account->GetSelection();
+
+    if(sel >= 0) {
+        config->DeleteGroup("/Accounts/"+ Account->GetStringSelection());
+        Account->Delete(sel);
+    }
+
+    delete config;
+    ShowDirectoryControls();
+}
+
 void MyFrame::ShowDirectoryControls()
 {
     wxConfig   *config = new wxConfig("iaxComm");
@@ -206,15 +281,16 @@ void MyFrame::ShowDirectoryControls()
     long        dummy;
     bool        bCont;
 
-    //----Add Servers-------------------------------------------------------------------
-    Server->Clear();
-    config->SetPath("/Servers");
+    //----Add Accounts-------------------------------------------------------------------
+    Account->Clear();
+    config->SetPath("/Accounts");
     bCont = config->GetFirstGroup(Name, dummy);
     while ( bCont ) {
-        Server->Append(Name);
+        Account->Append(Name);
         bCont = config->GetNextGroup(Name, dummy);
     }
-    Server->SetSelection(Server->FindString(config->Read("/DefaultServer", "")));
+
+    Account->SetSelection(Account->FindString(DefaultAccount));
 
     //----Load up One Touch Keys--------------------------------------------------------
     config->SetPath("/OT");
@@ -247,6 +323,16 @@ void MyFrame::OnNotify()
 void MyFrame::OnShow()
 {
     Show(TRUE);
+}
+
+void MyFrame::OnNextKey(wxEvent &event)
+{
+    int n = iaxc_first_free_call();
+
+    if(n < 0)
+        wxMessageBox(_("Sorry, there are no free calls"), "Oops");
+    else
+        iaxc_select_call(n);
 }
 
 void MyFrame::OnHangup(wxEvent &event)
@@ -429,6 +515,12 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 void MyFrame::OnPrefs(wxCommandEvent& WXUNUSED(event))
 {
     PrefsDialog dialog(this);
+    dialog.ShowModal();
+}
+
+void MyFrame::OnDevices(wxCommandEvent& WXUNUSED(event))
+{
+    DevicesDialog dialog(this);
     dialog.ShowModal();
 }
 

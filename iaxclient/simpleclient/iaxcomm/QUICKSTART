@@ -11,15 +11,15 @@ iaxComm needs to be able to see the rc directory.  If you've moved the
 executable without moving the rc directory, iaxComm will look for it.
 If it can't find them, it will ask you where they are.
 
-To test, type a destination in the text box above the Dial button and
-click Dial. NOTE:  If you haven't yet configured servers, you'll need 
+To test, type a destination in the text box above the SEND button and
+click SEND. NOTE:  If you haven't yet configured any account, you'll need 
 to include a username and hostname as well as extension, for example
 "guest@misery.digiumcom/s"
 
-You only need to configure a server if you want to register with it
-for inbound calls, or simplify your dialling.  If you add a server
-called asterisk and set it as your default then dialling "100" would
-connect you to "user:password@asterisk/100"
+You only need to configure an account if you want to register with a
+a server for inbound calls, or simplify your dialling.  If you add an
+account on a server called asterisk and set it as your default then 
+dialling "100" would connect you to "user:password@asterisk/100"
 
 After you've added a couple of Entries in the directory, you can make
 them One Touch keys that show up on the main panel.

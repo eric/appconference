@@ -64,6 +64,7 @@ public:
     void        OnShow();
     void        OnNotify();
     void        OnHangup(wxEvent &event);
+    void        OnNextKey(wxEvent &event);
     void        OnQuit(wxEvent &event);
     void        OnPTTChange(wxCommandEvent &event);
     void        OnSilenceChange(wxCommandEvent &event);
@@ -71,6 +72,9 @@ public:
     bool        GetPTTState();
     void        CheckPTT();
     void        SetPTT(bool state);
+    void        OnAddAccountList(wxCommandEvent &event);
+    void        OnRemoveAccountList(wxCommandEvent &event);
+    void        RePanel(wxString Name);
 
     // Handlers for library-initiated events
     void        HandleEvent(wxCommandEvent &evt);
@@ -81,13 +85,23 @@ public:
     wxGauge    *Input;
     wxGauge    *Output;
     wxSlider   *OutputSlider;
-    wxChoice   *Server;
+    wxChoice   *Account;
     wxTextCtrl *Extension;
     CallList   *Calls;
 
-    wxMenuItem *AGC;
-    wxMenuItem *DeNoise;
-    wxMenuItem *EchoCan;
+    // From wxConfig
+    wxString    Name;
+    wxString    Number;
+    wxString    RingToneName;
+    wxString    RingBackName;
+    wxString    IntercomName;
+    wxString    DefaultAccount;
+    wxString    IntercomPass;
+
+    bool        Speaker;
+    bool        AGC;
+    bool        NoiseReduce;
+    bool        EchoCancel;
     
 private:
 
@@ -95,12 +109,15 @@ private:
     wxIcon      m_icon;
     wxPanel    *aPanel;
     void        OnPrefs(wxCommandEvent& event);
+    void        OnDevices(wxCommandEvent& event);
     void        OnDirectory(wxCommandEvent& event);
     void        OnExit(wxCommandEvent& event);
     void        OnAbout(wxCommandEvent& event);
     void        OnOneTouch(wxCommandEvent& event);
     void        OnKeyPad(wxCommandEvent& event);
     void        OnDialDirect(wxCommandEvent& event);
+    void        AddPanel(wxWindow *parent, wxString Name);
+    void        ApplyFilters(void);
 
 #ifdef __WXGTK__
     GdkWindow *keyStateWindow;

@@ -54,13 +54,13 @@
 BEGIN_EVENT_TABLE(DirectoryDialog, wxDialog)
     EVT_BUTTON(XRCID("AddOTList"),               DirectoryDialog::OnAddOTList)
     EVT_BUTTON(XRCID("AddPhoneList"),            DirectoryDialog::OnAddPhoneList)
-    EVT_BUTTON(XRCID("AddServerList"),           DirectoryDialog::OnAddServerList)
+    EVT_BUTTON(XRCID("AddAccountList"),          DirectoryDialog::OnAddAccountList)
     EVT_BUTTON(XRCID("EditOTList"),              DirectoryDialog::OnAddOTList)
     EVT_BUTTON(XRCID("EditPhoneList"),           DirectoryDialog::OnAddPhoneList)
-    EVT_BUTTON(XRCID("EditServerList"),          DirectoryDialog::OnAddServerList)
+    EVT_BUTTON(XRCID("EditAccountList"),         DirectoryDialog::OnAddAccountList)
     EVT_BUTTON(XRCID("RemoveOTList"),            DirectoryDialog::OnRemoveOTList)
     EVT_BUTTON(XRCID("RemovePhoneList"),         DirectoryDialog::OnRemovePhoneList)
-    EVT_BUTTON(XRCID("RemoveServerList"),        DirectoryDialog::OnRemoveServerList)
+    EVT_BUTTON(XRCID("RemoveAccountList"),       DirectoryDialog::OnRemoveAccountList)
     EVT_BUTTON(XRCID("DialOTList"),              DirectoryDialog::OnDialOTList)
     EVT_BUTTON(XRCID("DialPhoneList"),           DirectoryDialog::OnDialPhoneList)
 
@@ -80,20 +80,20 @@ DirectoryDialog::DirectoryDialog( wxWindow* parent )
     //----Reach in for our controls-----------------------------------------------------
     DirectoryNotebook  = XRCCTRL(*this, "DirectoryNotebook", wxNotebook);
 
-    OTList       = XRCCTRL(*this, "OTList",       wxListCtrl);
-    PhoneList    = XRCCTRL(*this, "PhoneList",    wxListCtrl);
-    ServerList   = XRCCTRL(*this, "ServerList",   wxListCtrl);
+    OTList       = XRCCTRL(*this, "OTList",      wxListCtrl);
+    PhoneList    = XRCCTRL(*this, "PhoneList",   wxListCtrl);
+    AccountList  = XRCCTRL(*this, "AccountList", wxListCtrl);
 
-    OTList->InsertColumn(    0, _("No"),           wxLIST_FORMAT_LEFT,  40);
-    OTList->InsertColumn(    1, _("Name"),         wxLIST_FORMAT_LEFT, 100);
-    OTList->InsertColumn(    2, _("Extension"),    wxLIST_FORMAT_LEFT, 100);
+    OTList->InsertColumn(     0, _("No"),        wxLIST_FORMAT_LEFT,  40);
+    OTList->InsertColumn(     1, _("Name"),      wxLIST_FORMAT_LEFT, 100);
+    OTList->InsertColumn(     2, _("Extension"), wxLIST_FORMAT_LEFT, 100);
 
-    PhoneList->InsertColumn( 0, _("Name"),      wxLIST_FORMAT_LEFT, 100);
-    PhoneList->InsertColumn( 1, _("Extension"), wxLIST_FORMAT_LEFT, 100);
+    PhoneList->InsertColumn(  0, _("Name"),      wxLIST_FORMAT_LEFT, 100);
+    PhoneList->InsertColumn(  1, _("Extension"), wxLIST_FORMAT_LEFT, 100);
 
-    ServerList->InsertColumn(0, _("Name"),     wxLIST_FORMAT_LEFT, 100);
-    ServerList->InsertColumn(1, _("Host"),     wxLIST_FORMAT_LEFT, 100);
-    ServerList->InsertColumn(2, _("Username"), wxLIST_FORMAT_LEFT, 100);
+    AccountList->InsertColumn(0, _("Name"),      wxLIST_FORMAT_LEFT, 100);
+    AccountList->InsertColumn(1, _("Host"),      wxLIST_FORMAT_LEFT, 100);
+    AccountList->InsertColumn(2, _("Username"),  wxLIST_FORMAT_LEFT, 100);
 
     Show();
 }
@@ -144,25 +144,27 @@ void DirectoryDialog::Show( void )
     if(PhoneList->GetColumnWidth(0) < 100)        PhoneList->SetColumnWidth(0,  100);
     if(PhoneList->GetColumnWidth(1) < 100)        PhoneList->SetColumnWidth(1,  100);
 
-    //----Populate ServerList listctrl--------------------------------------------------
-    config->SetPath("/Servers");
-    ServerList->DeleteAllItems();
+    //----Populate AccountList listctrl--------------------------------------------------
+    config->SetPath("/Accounts");
+    AccountList->DeleteAllItems();
     i = 0;
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
-        ServerList->InsertItem(i, str);
-        ServerList->SetItem(i, 1, config->Read(ServerList->GetItemText(i) + "/Host" ,""));
-        ServerList->SetItem(i, 2, config->Read(ServerList->GetItemText(i) + "/Username" ,""));
+        AccountList->InsertItem(i, str);
+        AccountList->SetItem(i, 1, config->Read(AccountList->GetItemText(i) +
+                                                "/Host" ,""));
+        AccountList->SetItem(i, 2, config->Read(AccountList->GetItemText(i) +
+                                                "/Username" ,""));
         bCont = config->GetNextGroup(str, dummy);
         i++;
     }
 
-    ServerList->SetColumnWidth(0, -1);
-    ServerList->SetColumnWidth(1, -1);
-    ServerList->SetColumnWidth(2, -1);
-    if(ServerList->GetColumnWidth(0) < 100)        ServerList->SetColumnWidth(0,  100);
-    if(ServerList->GetColumnWidth(1) < 100)        ServerList->SetColumnWidth(1,  100);
-    if(ServerList->GetColumnWidth(2) < 100)        ServerList->SetColumnWidth(2,  100);
+    AccountList->SetColumnWidth(0, -1);
+    AccountList->SetColumnWidth(1, -1);
+    AccountList->SetColumnWidth(2, -1);
+    if(AccountList->GetColumnWidth(0) < 100)        AccountList->SetColumnWidth(0,  100);
+    if(AccountList->GetColumnWidth(1) < 100)        AccountList->SetColumnWidth(1,  100);
+    if(AccountList->GetColumnWidth(2) < 100)        AccountList->SetColumnWidth(2,  100);
 
 }
 
@@ -217,17 +219,17 @@ AddPhoneListDialog::AddPhoneListDialog( wxWindow* parent, wxString Selection )
 
 //----------------------------------------------------------------------------------------
 
-BEGIN_EVENT_TABLE(AddServerDialog, wxDialog)
-    EVT_BUTTON(XRCID("Add"),            AddServerDialog::OnAdd)
+BEGIN_EVENT_TABLE(AddAccountDialog, wxDialog)
+    EVT_BUTTON(XRCID("Add"),            AddAccountDialog::OnAdd)
 END_EVENT_TABLE()
 
-AddServerDialog::AddServerDialog( wxWindow* parent, wxString Selection )
+AddAccountDialog::AddAccountDialog( wxWindow* parent, wxString Selection )
 {
     wxConfig  *config = new wxConfig("iaxComm");
-    wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddServer"));
+    wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddAccount"));
 
     //----Reach in for our controls-----------------------------------------------------
-    ServerName   = XRCCTRL(*this, "ServerName",   wxTextCtrl);
+    AccountName  = XRCCTRL(*this, "AccountName",  wxTextCtrl);
     HostName     = XRCCTRL(*this, "HostName",     wxTextCtrl);
     UserName     = XRCCTRL(*this, "UserName",     wxTextCtrl);
     Password     = XRCCTRL(*this, "Password",     wxTextCtrl);
@@ -235,8 +237,8 @@ AddServerDialog::AddServerDialog( wxWindow* parent, wxString Selection )
 
     if(!Selection.IsEmpty()) {
         SetTitle(_("Edit " + Selection));
-        ServerName->SetValue(Selection);
-        config->SetPath("/Servers/" + Selection);
+        AccountName->SetValue(Selection);
+        config->SetPath("/Accounts/" + Selection);
         HostName->SetValue(config->Read("Host" ,""));
         UserName->SetValue(config->Read("Username" ,""));
         Password->SetValue(config->Read("Password" ,""));
@@ -279,16 +281,16 @@ void DirectoryDialog::OnAddPhoneList(wxCommandEvent &event)
     Show();
 }
 
-void DirectoryDialog::OnAddServerList(wxCommandEvent &event)
+void DirectoryDialog::OnAddAccountList(wxCommandEvent &event)
 {
     long     sel = -1;
     wxString val;
 
-    if(event.GetId() == XRCID("EditServerList")) {
-        if((sel = ServerList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0)
-            val = ServerList->GetItemText(sel);
+    if(event.GetId() == XRCID("EditAccountList")) {
+        if((sel = AccountList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0)
+            val = AccountList->GetItemText(sel);
     }
-    AddServerDialog dialog(this, val);
+    AddAccountDialog dialog(this, val);
     dialog.ShowModal();
 
     Show();
@@ -368,18 +370,18 @@ void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
     delete config;
 }
 
-void DirectoryDialog::OnRemoveServerList(wxCommandEvent &event)
+void DirectoryDialog::OnRemoveAccountList(wxCommandEvent &event)
 {
     wxConfig  *config = new wxConfig("iaxComm");
     long       sel = -1;
     int        isOK;
 
-    if((sel=ServerList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0) {
-        isOK = wxMessageBox("Really remove " + ServerList->GetItemText(sel) + "?",
-                            "Remove from Server List", wxOK|wxCANCEL|wxCENTRE);
+    if((sel=AccountList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0) {
+        isOK = wxMessageBox("Really remove " + AccountList->GetItemText(sel) + "?",
+                            "Remove from Account List", wxOK|wxCANCEL|wxCENTRE);
         if(isOK == wxOK) {
-            config->DeleteGroup("/Servers/"+ServerList->GetItemText(sel));
-            ServerList->DeleteItem(sel);
+            config->DeleteGroup("/Accounts/"+AccountList->GetItemText(sel));
+            AccountList->DeleteItem(sel);
         }
     }
     delete config;
@@ -419,7 +421,7 @@ void AddPhoneListDialog::OnAdd(wxCommandEvent &event)
 
 //----------------------------------------------------------------------------------------
 
-void AddServerDialog::OnAdd(wxCommandEvent &event)
+void AddAccountDialog::OnAdd(wxCommandEvent &event)
 {
     wxConfig  *config = new wxConfig("iaxComm");
 
@@ -429,13 +431,13 @@ void AddServerDialog::OnAdd(wxCommandEvent &event)
                        wxICON_INFORMATION);
         return;
     }
-    config->SetPath("/Servers/" + ServerName->GetValue());
+    config->SetPath("/Accounts/" + AccountName->GetValue());
     config->Write("Host",     HostName->GetValue());
     config->Write("Username", UserName->GetValue());
     config->Write("Password", Password->GetValue());
     delete config;
 
-    ServerName->SetValue("");
+    AccountName->SetValue("");
     HostName->SetValue("");
     UserName->SetValue("");
     HostName->SetValue("");

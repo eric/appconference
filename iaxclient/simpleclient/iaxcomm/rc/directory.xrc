@@ -140,15 +140,15 @@
             </object>
           </object>
           <object class="notebookpage">
-            <label>Servers</label>
-            <object class="wxPanel" name="Servers">
+            <label>Accounts</label>
+            <object class="wxPanel" name="Accounts">
               <object class="wxFlexGridSizer">
                 <cols>1</cols>
                 <object class="spacer">
                   <size>5,5</size>
                 </object>
                 <object class="sizeritem">
-                  <object class="wxListCtrl" name="ServerList">
+                  <object class="wxListCtrl" name="AccountList">
                     <style>wxLC_REPORT</style>
                   </object>
                   <flag>wxALL|wxGROW</flag>
@@ -161,21 +161,21 @@
                     <object class="sizeritem">
                       <flag>wxALIGN_CENTRE|wxALL</flag>
                       <border>5</border>
-                      <object class="wxButton" name="AddServerList">
+                      <object class="wxButton" name="AddAccountList">
                         <label>Add ...</label>
                       </object>
                     </object>
                     <object class="sizeritem">
                       <flag>wxALIGN_CENTRE|wxALL</flag>
                       <border>5</border>
-                      <object class="wxButton" name="EditServerList">
+                      <object class="wxButton" name="EditAccountList">
                         <label>Edit ...</label>
                       </object>
                     </object>
                     <object class="sizeritem">
                       <flag>wxALIGN_CENTRE|wxALL</flag>
                       <border>5</border>
-                      <object class="wxButton" name="RemoveServerList">
+                      <object class="wxButton" name="RemoveAccountList">
                         <label>Remove</label>
                       </object>
                     </object>
@@ -197,8 +197,8 @@
       </object>
     </object>
   </object>
-  <object class="wxDialog" name="AddServer">
-    <title>Add a Server</title>
+  <object class="wxDialog" name="AddAccount">
+    <title>Add a Account</title>
     <centered>1</centered>
     <object class="wxFlexGridSizer">
       <cols>1</cols>
@@ -220,13 +220,13 @@
               </object>
               <object class="sizeritem">
                 <object class="wxStaticText">
-                  <label>Server Name:  </label>
+                  <label>Account Name:  </label>
                 </object>
                 <minsize>100,20</minsize>
                 <flag>wxALIGN_RIGHT|wxALIGN_CENTRE_VERTICAL</flag>
               </object>
               <object class="sizeritem">
-                <object class="wxTextCtrl" name="ServerName"/>
+                <object class="wxTextCtrl" name="AccountName"/>
                 <minsize>240,24</minsize>
                 <flag>wxALIGN_RIGHT</flag>
                 <border>10</border>

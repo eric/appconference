@@ -1,7 +1,7 @@
 =======================================================================
 INTRODUCTION
 
-This is iaxComm, a portable IAX/IAX2 protocol telephony client.
+This is iaxComm, a portable IAX2 protocol telephony client.
 
 I had made some minor UI changes to Steve's wx client and renamed it
 iaxPhone without realizing there was already another project called
@@ -52,10 +52,10 @@ Documentation for your platform)
 Developed/Tested on WinXP with MinGW
 
 Win32 MinGW: type "make"
+Linux: type "make" using standard gnu make/gcc
+MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
+
 
 Untested:
 
-Linux: type "make" using standard gnu make/gcc
 FreeBSD: type "gmake" using standard gnu make/gcc
-MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
-
