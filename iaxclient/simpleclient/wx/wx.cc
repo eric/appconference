@@ -46,7 +46,6 @@ public:
     wxGauge *output; 
     IAXTimer *timer;
     wxTextCtrl *iaxDest;
-    wxButton *dialButton, *hangButton, *quitButton;
 
 protected:
     DECLARE_EVENT_TABLE()
@@ -64,9 +63,15 @@ void IAXTimer::Notify()
 IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int height)
   : wxFrame((wxFrame *) NULL, -1, title, wxPoint(xpos, ypos), wxSize(width, height))
 {
+    wxBoxSizer *panelSizer = new wxBoxSizer(wxVERTICAL);
+    wxPanel *aPanel = new wxPanel(this);
+
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *row1sizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
+
+
+
 
     /* add status bar first; otherwise, sizer doesn't take it into
      * account */
@@ -78,38 +83,45 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     for(int i=0; i<12;i++)
     {
 	dialpadsizer->Add(
-	  new wxButton(this, i, wxString(buttonlabels[i]),
+	  new wxButton(aPanel, i, wxString(buttonlabels[i]),
 		  wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 
 	    1, wxEXPAND|wxALL, 3);
     }
     row1sizer->Add(dialpadsizer,1, wxEXPAND);
 
     /* volume meters */
-    row1sizer->Add(input  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
+    row1sizer->Add(input  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("input level")),0,wxEXPAND); 
 
-    row1sizer->Add(output  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
+    row1sizer->Add(output  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("output level")),0, wxEXPAND); 
 
     topsizer->Add(row1sizer,1,wxEXPAND);
 
     /* Destination */
-    topsizer->Add(iaxDest = new wxTextCtrl(this, -1, wxString("guest@ast1/8068"), 
+    topsizer->Add(iaxDest = new wxTextCtrl(aPanel, -1, wxString("guest@ast1/8068"), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
     /* main control buttons */    
-    row3sizer->Add(dialButton = new wxButton(this, 101, wxString("Dial"),
+    row3sizer->Add(new wxButton(aPanel, 101, wxString("Dial"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
-    row3sizer->Add(hangButton = new wxButton(this, 102, wxString("Hang Up"),
+    row3sizer->Add(new wxButton(aPanel, 102, wxString("Hang Up"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
-    row3sizer->Add(quitButton = new wxButton(this, 100, wxString("Quit"),
+#if 0
+    row3sizer->Add(quitButton = new wxButton(aPanel, 100, wxString("Quit"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
+#endif
+
     topsizer->Add(row3sizer,0,wxEXPAND);
 
-    SetSizer(topsizer);
-    topsizer->SetSizeHints(this);
+    aPanel->SetSizer(topsizer);
+    topsizer->SetSizeHints(aPanel);
+
+    panelSizer->Add(aPanel,1,wxEXPAND);
+    SetSizer(panelSizer);	
+    panelSizer->SetSizeHints(this);
 
     timer = new IAXTimer();
     timer->Start(10);
