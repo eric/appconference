@@ -6,22 +6,31 @@
 --------------------Configuration: iaxclient_lib - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\shawn\LOCALS~1\Temp\RSPE4.tmp" with contents
+Creating temporary file "C:\DOCUME~1\shawn\LOCALS~1\Temp\RSP8.tmp" with contents
 [
 /nologo /MLd /W3 /Gm /GX /ZI /Od /I ".\libiax\src" /I ".\gsm\inc" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /Fp"Debug/iaxclient_lib.pch" /YX /Fo"Debug/" /Fd"Debug/" /FD /GZ /c 
-"D:\TERRACEDEV\ASTERISK\IAXCLIENT\lib\iaxclient_lib.c"
+"D:\terracedev\asterisk\iaxclient\iaxclient\lib\audio_win32.c"
+"D:\terracedev\asterisk\iaxclient\iaxclient\lib\libiax\src\iax.c"
+"D:\terracedev\asterisk\iaxclient\iaxclient\lib\iaxclient_lib.c"
+"D:\terracedev\asterisk\iaxclient\iaxclient\lib\libiax\src\md5.c"
+"D:\terracedev\asterisk\iaxclient\iaxclient\lib\winfuncs.c"
 ]
-Creating command line "cl.exe @C:\DOCUME~1\shawn\LOCALS~1\Temp\RSPE4.tmp" 
+Creating command line "cl.exe @C:\DOCUME~1\shawn\LOCALS~1\Temp\RSP8.tmp" 
 Creating command line "link.exe -lib /nologo /out:"Debug\iaxclient_lib.lib"  .\Debug\audio_win32.obj .\Debug\iax.obj .\Debug\iaxclient_lib.obj .\Debug\md5.obj .\Debug\winfuncs.obj .\gsm\win32lib\Release\gsm.lib "
 <h3>Output Window</h3>
 Compiling...
+audio_win32.c
+iax.c
 iaxclient_lib.c
+d:\terracedev\asterisk\iaxclient\iaxclient\lib\libiax\src\iax.c(1983) : warning C4761: integral size mismatch in argument; conversion supplied
+md5.c
+winfuncs.c
 Creating library...
 
 
 
 <h3>Results</h3>
-iaxclient_lib.lib - 0 error(s), 0 warning(s)
+iaxclient_lib.lib - 0 error(s), 1 warning(s)
 </pre>
 </body>
 </html>

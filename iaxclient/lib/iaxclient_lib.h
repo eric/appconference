@@ -27,6 +27,7 @@ static struct peer *peers;
 int initialize_client(int audType, FILE *file);
 void shutdown_client();
 int process_calls();
+int service_audio();
 void handle_network_event(FILE *f, struct iax_event *e, struct peer *p);
 void client_call(FILE *f, char *num);
 void client_answer_call(void); 
@@ -37,5 +38,6 @@ void service_network(int netfd, FILE *f);
 void do_iax_event(FILE *f);
 int was_call_answered();
 void external_audio_event(FILE *f, struct iax_event *e, struct peer *p);
-
+void external_service_audio();
+void *get_audio_data(int i);
 #endif

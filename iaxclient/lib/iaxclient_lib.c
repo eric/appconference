@@ -41,9 +41,7 @@ int initialize_client(int audType, FILE *file) {
 	newcall=0;
 	lastouttick=0;
 	if (iAudioType == AUDIO_INTERNAL) {
-		if (initialize_audio() < 0)
-			return -1;
-		if (prepare_audio_buffers() < 0)
+		if (initialize_audio() != 0)
 			return -1;
 	}
 	return 0;
@@ -62,49 +60,63 @@ int process_calls() {
 	service_network(netfd,f);
 	flush_audio_output_buffers();
 	service_network(netfd,f);
+	if (iAudioType == AUDIO_INTERNAL) {
+		prepare_audio_buffers();
+	}
+	return service_audio();
+}
+
+int service_audio()
+{
 	/* do audio input stuff for buffers that have received data from audio in device already. Must
 		do them in serial number order (the order in which they were originally queued). */
 	if(answered_call) /* send audio only if call answered */
 	{
 		int i;
 		gsm_frame fo;
-		for(;;) /* loop until all are found */
-		{
-			for(i = 0; i < NWHIN; i++) /* find an available one that's the one we are looking for */
+		if (iAudioType == AUDIO_INTERNAL) {
+			for(;;) /* loop until all are found */
 			{
-				service_network(netfd,f); /* service network here for better performance */
-				/* if not time to send any more, dont */
-				if (GetTickCount() < (lastouttick + OUT_INTERVAL))
+
+				for(i = 0; i < NWHIN; i++) /* find an available one that's the one we are looking for */
 				{
-					i = NWHIN; /* set to value that WILL exit loop */
-					break;
-				}
-				if (audio_ready(i)) {
-			
-					/* must have read exactly 320 bytes */
-					if (check_audio_packet_size(i) == 0)
-					{
-						fprintf(stderr,"Short audio read, got %d bytes, expected %d bytes\n", whin[i].dwBytesRecorded,
-							whin[i].dwBufferLength);
-						return -1;
-					}
-					if(!most_recent_answer->gsmout)
-							most_recent_answer->gsmout = gsm_create();
 					service_network(netfd,f); /* service network here for better performance */
-					/* encode the audio from the buffer into GSM format */
-					gsm_encode(most_recent_answer->gsmout, (short *) ((char *) whin[i].lpData), fo);
-					if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, (char *)fo, sizeof(gsm_frame)) == -1)
-						puts("Failed to send voice!"); 
-					lastouttick = GetTickCount(); /* save time of last output */
-					/* unprepare (free) the header */
-					free_audio_header(i);
-					/* bump the serial number to look for the next time */
-					bump_audio_sn();
-					/* exit the loop so that we can start at lowest buffer again */
-					break;
-				}
-			} 
-			if (i >= NWHIN) break; /* if all found, get out of loop */
+					/* if not time to send any more, dont */
+					if (GetTickCount() < (lastouttick + OUT_INTERVAL))
+					{
+						i = NWHIN; /* set to value that WILL exit loop */
+						break;
+					}
+					if (audio_ready(i) == 1) {
+				
+						/* must have read exactly 320 bytes */
+						if (check_audio_packet_size(i) == 0)
+						{
+//							fprintf(stderr,"Short audio read, got %d bytes, expected %d bytes\n", whin[i].dwBytesRecorded,
+//								get_audio_packet_size(i));
+							return -1;
+						}
+						if(!most_recent_answer->gsmout)
+								most_recent_answer->gsmout = gsm_create();
+						service_network(netfd,f); /* service network here for better performance */
+						/* encode the audio from the buffer into GSM format */
+						gsm_encode(most_recent_answer->gsmout, (short *) ((char *) get_audio_data(i)), fo);
+						if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, (char *)fo, sizeof(gsm_frame)) == -1)
+							puts("Failed to send voice!"); 
+						lastouttick = GetTickCount(); /* save time of last output */
+						/* unprepare (free) the header */
+						free_audio_header(i);
+						/* bump the serial number to look for the next time */
+						bump_audio_sn();
+						/* exit the loop so that we can start at lowest buffer again */
+						break;
+					}
+				} 
+				if (i >= NWHIN) break; /* if all found, get out of loop */
+			}
+		}
+		else {
+			external_service_audio();
 		}
 	}
 	return 0;
@@ -323,6 +335,12 @@ int was_call_answered()
 }
 
 void external_audio_event(FILE *f, struct iax_event *e, struct peer *p)
+{
+	// To be coded in the future
+	return;
+}
+
+void external_service_audio()
 {
 	// To be coded in the future
 	return;

@@ -55,6 +55,7 @@ void flush_audio_output_buffers();
 //int process_call_audio();
 int audio_ready(int i);
 int check_audio_packet_size(int i);
+int get_audio_packet_size(int i);
 void free_audio_header(int i);
 void bump_audio_sn();
 

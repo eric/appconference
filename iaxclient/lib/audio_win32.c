@@ -3,7 +3,7 @@
 #include "iax-client.h"
 
 /* initialize the sequence variables for the audio in stuff */
-unsigned int whinserial = 1,nextwhin = 1;
+unsigned int whinserial,nextwhin;
 
 WHOUT *outqueue = NULL;
 
@@ -17,6 +17,8 @@ int initialize_audio() {
 	wf.nBlockAlign = 2;
 	wf.wBitsPerSample = 16;
 	wf.cbSize = 0;
+	whinserial = 1;
+	nextwhin = 1;
 	/* open the audio out channel */
 	if (waveOutOpen(&wout,0,&wf,0,0,CALLBACK_NULL) != MMSYSERR_NOERROR)
 	{
@@ -235,6 +237,11 @@ int check_audio_packet_size(int i)
 	return 1;
 }
 
+int get_audio_packet_size(int i)
+{
+	return whin[i].dwBytesRecorded;
+}
+
 void free_audio_header(int i)
 {
 	waveInUnprepareHeader(win,&whin[i],sizeof(WAVEHDR));
@@ -245,4 +252,9 @@ void free_audio_header(int i)
 void bump_audio_sn()
 {
 	nextwhin++;
+}
+
+void *get_audio_data(int i)
+{
+	return whin[i].lpData;
 }
