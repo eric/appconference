@@ -13,6 +13,7 @@
 #include "iaxclient_lib.h"
 #include "speex/speex.h"
 
+
 struct state {
       void *state;
       SpeexBits bits;
@@ -84,13 +85,12 @@ static int encode ( struct iaxc_audio_codec *c,
     return 0;
 }
 
-struct iaxc_audio_codec *iaxc_audio_codec_speex_new() {
+struct iaxc_audio_codec *iaxc_audio_codec_speex_new(struct iaxc_speex_settings *set) {
   
   struct state * encstate;
   struct state * decstate;
   struct iaxc_audio_codec *c = calloc(sizeof(struct iaxc_audio_codec),1);
 
-  
   if(!c) return c;
 
   strcpy(c->name,"speex");
@@ -117,6 +117,26 @@ struct iaxc_audio_codec *iaxc_audio_codec_speex_new() {
   speex_bits_init(&decstate->bits);
   speex_bits_reset(&encstate->bits);
   speex_bits_reset(&decstate->bits);
+
+  speex_decoder_ctl(decstate->state, SPEEX_SET_ENH, &set->decode_enhance);
+
+  speex_encoder_ctl(encstate->state, SPEEX_SET_COMPLEXITY, &set->complexity);
+
+  if(set->quality >= 0) {
+    if(set->vbr) {
+      speex_encoder_ctl(encstate->state, SPEEX_SET_VBR_QUALITY, &set->quality);
+    } else {
+      int quality = set->quality;
+      speex_encoder_ctl(encstate->state, SPEEX_SET_QUALITY, &quality);
+    }
+  }
+  if(set->bitrate >= 0) 
+    speex_encoder_ctl(encstate->state, SPEEX_SET_BITRATE, &set->bitrate);
+  if(set->vbr) 
+    speex_encoder_ctl(encstate->state, SPEEX_SET_VBR, &set->vbr);
+  if(set->abr)
+    speex_encoder_ctl(encstate->state, SPEEX_SET_ABR, &set->abr);
+
 
   if(!(encstate->state && decstate->state)) 
       return NULL;

@@ -17,6 +17,14 @@ int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC|IAXC_
 static struct timeval timeLastInput ;
 static struct timeval timeLastOutput ;
 
+static struct iaxc_speex_settings speex_settings = {
+  1,    /* decode_enhance */
+  -1,   /* float quality */
+  -1,   /* bitrate */
+  0, 0, /* vbr, abr */
+  3     /* complexity */
+};
+
 static double vol_to_db(double vol)
 {
     /* avoid calling log10 on zero */
@@ -163,7 +171,7 @@ static struct iaxc_audio_codec *create_codec(int format) {
 	  return iaxc_audio_codec_alaw_new();
 	break;
 	case IAXC_FORMAT_SPEEX:
-	  return iaxc_audio_codec_speex_new();
+	  return iaxc_audio_codec_speex_new(&speex_settings);
 	break;
 #ifdef CODEC_ILBC
 	case IAXC_FORMAT_ILBC:
@@ -175,6 +183,15 @@ static struct iaxc_audio_codec *create_codec(int format) {
 	  fprintf(stderr, "ERROR: Codec not supported: %d\n", format);
 	  return NULL;
     }
+}
+
+void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity) {
+  speex_settings.decode_enhance = decode_enhance;
+  speex_settings.quality = quality;
+  speex_settings.bitrate = bitrate;
+  speex_settings.vbr = vbr;
+  speex_settings.abr = abr;
+  speex_settings.complexity = complexity;
 }
 
 int send_encoded_audio(struct iaxc_call *call, void *data, int format, int samples)

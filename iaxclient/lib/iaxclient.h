@@ -187,6 +187,8 @@ int iaxc_stop_sound(int id);
 int iaxc_get_filters(void);
 void iaxc_set_filters(int filters);
 
+/* speex specific codec settings */
+void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity);
 
 #ifdef __cplusplus
 }
