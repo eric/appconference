@@ -18,6 +18,7 @@
 #include <limits.h>
 
 #define jb_warn(...) fprintf(stderr, __VA_ARGS__)
+//#define jb_warn(...) 
 #define jb_err(...)  fprintf(stderr, __VA_ARGS__)
 //#define jb_dbg(...)  fprintf(stderr, __VA_ARGS__)
 #define jb_dbg(...)  
@@ -155,8 +156,7 @@ static long history_get(jitterbuf *jb, long *minptr) {
     if(jb->hist_shortcur > 2) {
       qsort(jb->hist_short,jb->hist_shortcur,sizeof(long),longcmp);
       min = jb->hist_short[0];
-      /* intentionally drop one from max */
-      max = jb->hist_short[jb->hist_shortcur-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
+      max = jb->hist_short[jb->hist_shortcur-1-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
     }
 
     n = jb->hist_ts/JB_HISTORY_SHORTTM;
@@ -601,7 +601,7 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 
 
     /* target */
-    jb->info.target = jb->info.jitter + jb->info.min + 3 * jb->info.last_voice_ms; 
+    jb->info.target = jb->info.jitter + jb->info.min + 2 * jb->info.last_voice_ms; 
 	//now - jb->info.last_voice_ts;
 
     diff = jb->info.target - jb->info.current;
@@ -652,7 +652,8 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 	jb->info.frames_late++;
 	jb->info.frames_lost--;
 	jb_warn("l");
-	jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
+	//jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
+	//jb_warninfo(jb);
 	return JB_DROP;
       }
 
@@ -700,12 +701,12 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 	   * But, this still seemed like a good idea, except that it ended up making a single actual
 	   * lost frame get interpolated two or more times, when there was "room" to grow, so it might
 	   * be a bit of a bad idea overall */
-	  if(diff > -1 * jb->info.last_voice_ms) { 
+	  /*if(diff > -1 * jb->info.last_voice_ms) { 
 	      jb->info.current += jb->info.last_voice_ms;
 	      jb->info.last_adjustment = now;
 	      jb_warn("g");
 	      return JB_INTERP;
-	  }
+	  } */
 	  jb->info.frames_lost++;
 	  jb_warn("L");
 	  return JB_INTERP;

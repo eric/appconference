@@ -25,7 +25,7 @@ extern "C" {
 #define JB_HISTORY_LONGSZ	10
 #define JB_HISTORY_SHORTSZ	150
 #define JB_HISTORY_SHORTTM	2500
-#define JB_HISTORY_DROPPCT	1
+#define JB_HISTORY_DROPPCT	2
 
 /* return codes */
 #define JB_OK		0
