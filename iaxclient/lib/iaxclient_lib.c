@@ -553,7 +553,7 @@ void iaxc_call(char *num)
 
 void iaxc_answer_call(int callNo) 
 {
-	fprintf(stderr, "iaxc answering call %d\n", callNo);
+	//fprintf(stderr, "iaxc answering call %d\n", callNo);
 	calls[callNo].state |= IAXC_CALL_STATE_COMPLETE;
 	calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;
 	iax_answer(calls[callNo].session);

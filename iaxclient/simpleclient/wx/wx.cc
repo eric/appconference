@@ -127,6 +127,8 @@ IAXCalls::IAXCalls(wxWindow *parent, int inCalls)
   item.m_mask = wxLIST_MASK_TEXT | wxLIST_MASK_IMAGE;
   item.m_image = -1;
   item.m_text = _T("Call");
+  item.SetTextColour(*wxLIGHT_GREY);
+  item.SetBackgroundColour(*wxWHITE);
   InsertColumn(0, item);
   item.m_text = _T("State");
   InsertColumn(1, item);
@@ -136,9 +138,14 @@ IAXCalls::IAXCalls(wxWindow *parent, int inCalls)
   Hide();
   for(i=0;i<nCalls;i++) {
       InsertItem(i,wxString::Format("%ld", i+1), 0);
-      // XXX ??? SetItemData(tmp,i);
       SetItem(i, 2, _T("No call"));
+      item.m_itemId=i;
+      item.m_mask = 0;
+      item.SetTextColour(*wxLIGHT_GREY);
+      item.SetBackgroundColour(*wxWHITE);
+      SetItem(item);
   }
+  Refresh();
   Show();
   AutoSize();
 }
@@ -184,19 +191,33 @@ void IAXCalls::OnSize(wxSizeEvent& evt) {
 
 int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
 {
+    wxListItem stateItem; // for all the state color
+
+    stateItem.m_itemId = c.callNo;
 
     // first, handle inactive calls
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
 	//fprintf(stderr, "state for item %d is free\n", c.callNo);
 	SetItem(c.callNo, 2, _T("No call") );
 	SetItem(c.callNo, 1, _T("") );
+	stateItem.SetTextColour(*wxLIGHT_GREY);
+	stateItem.SetBackgroundColour(*wxWHITE);
     } else {
 	// set remote 
 	SetItem(c.callNo, 2, c.remote );
 
+	
 	bool outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
 	bool ringing = c.state & IAXC_CALL_STATE_RINGING;
 	bool complete = c.state & IAXC_CALL_STATE_COMPLETE;
+
+	if( ringing && !outgoing ) {
+	    stateItem.SetTextColour(*wxBLACK);
+	    stateItem.SetBackgroundColour(*wxRED);
+	} else {
+	    stateItem.SetTextColour(*wxBLUE);
+	    stateItem.SetBackgroundColour(*wxWHITE);
+	}
 
 	if(outgoing) {
 	  if(ringing) 
@@ -215,7 +236,8 @@ int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
 	} 
 	// XXX do something more noticable if it's incoming, ringing!
     }
-    
+   
+    SetItem( stateItem ); 
     
     // select if necessary
     if((c.state & IAXC_CALL_STATE_SELECTED) &&
@@ -225,6 +247,7 @@ int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
 	SetItemState(c.callNo,wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
     }
     AutoSize();
+    Refresh();
 
     return 0;
 }
