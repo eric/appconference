@@ -70,3 +70,19 @@ int post_event_callback(iaxc_event ev) {
   PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e);
   return 0;
 }
+
+/* Increasing the Thread Priority.  See
+ * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/dllproc/base/scheduling_priorities.asp
+ * for discussion on Win32 scheduling priorities.
+ */
+
+int iaxc_prioboostbegin() {
+      if ( !SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_TIME_CRITICAL)  ) {
+            fprintf(stderr, "SetThreadPriority failed: %ld.\n", GetLastError());
+      }
+}
+
+int iaxc_prioboostend() {
+    /* TODO */
+}
+

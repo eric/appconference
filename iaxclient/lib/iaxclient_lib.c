@@ -413,11 +413,11 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 #endif
 		default:
 		case AUDIO_INTERNAL_PA:
-			if (pa_initialize(&audio))
+			if (pa_initialize(&audio, 8000))
 				return -1;
 			break;
 		case AUDIO_INTERNAL_FILE:
-			if (file_initialize(&audio))
+			if (file_initialize(&audio, 8000))
 				return -1;
 			break;
 	}
@@ -554,81 +554,16 @@ THREADFUNCDECL(iaxc_processor)
 {
     THREADFUNCRET(ret);
     /* Increase Priority */
-#ifdef WIN32
-    /* Increasing the Thread Priority.  See
-     * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/dllproc/base/scheduling_priorities.asp
-     * for discussion on Win32 scheduling priorities.
-     */
-      if ( !SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_TIME_CRITICAL)  ) {
-            fprintf(stderr, "SetThreadPriority failed: %ld.\n", GetLastError());
-      }
-#endif
-#ifdef MACOSX
-    /* Presently, OSX allows user-level processes to request RT
-     * priority.  The API is nice, but the scheduler presently ignores
-     * the parameters (but the API validates that you're not asking for
-     * too much).  See
-     * http://lists.apple.com/archives/darwin-development/2004/Feb/msg00079.html
-     */
-    {
-      struct thread_time_constraint_policy ttcpolicy;
-      int params [2] = {CTL_HW,HW_BUS_FREQ};
-      int hzms;
-      size_t sz;
-      int ret;
-
-      /* get hz */
-      sz = sizeof (hzms);
-      sysctl (params, 2, &hzms, &sz, NULL, 0);
-
-      /* make hzms actually hz per ms */
-      hzms /= 1000;
-
-      /* give us at least how much? 6-8ms every 10ms (we generally need less) */
-      ttcpolicy.period = 10 * hzms; /* 10 ms */
-      ttcpolicy.computation = 2 * hzms;
-      ttcpolicy.constraint = 3 * hzms;
-      ttcpolicy.preemptible = 1;
-
-      if ((ret=thread_policy_set(mach_thread_self(),
-        THREAD_TIME_CONSTRAINT_POLICY, (int *)&ttcpolicy,
-        THREAD_TIME_CONSTRAINT_POLICY_COUNT)) != KERN_SUCCESS) {
-            fprintf(stderr, "thread_policy_set failed: %d.\n", ret);
-      }    
-    }
-#endif
-#ifdef LINUX
     iaxc_prioboostbegin(); 
-#endif
 
-#if 0 /* test canary/watchdog */
-	{ int i;
-	  struct timeval then;
-	  struct timeval now;
-		gettimeofday(&then,NULL);
-		sleep(2);
-		for(i=0;i<5000000;i++) {
-		  getpid();
-		  gettimeofday(&now,NULL) ;
-		  if(now.tv_sec != then.tv_sec) {
-		      fprintf(stderr, "tick\n");
-		      then = now;
-		  }
-		  fprintf(stderr, "");
-		  getpid();
-		}
-	}
-	fprintf(stderr, "DONE\n");
-#endif
     while(1) { 
 	iaxc_process_calls();
 	iaxc_millisleep(5);	
 	if(procThreadQuitFlag)
 	  break;
     }
-#ifdef LINUX
+
     iaxc_prioboostend(); 
-#endif
     return ret;
 }
 

@@ -22,6 +22,8 @@
 
 #include "iaxclient_lib.h"
 
+typedef short SAMPLE;
+
 static FILE *inFile=NULL, *outFile=NULL;
 
 #define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
@@ -102,7 +104,10 @@ int file_set_files(FILE *input, FILE *output) {
 
 
 /* initialize audio driver */
-int file_initialize (struct iaxc_audio_driver *d ) {
+int file_initialize (struct iaxc_audio_driver *d , int sample_rate) {
+
+    if(sample_rate != 8000 ) return -1;
+
     /* setup methods */
     d->initialize = file_initialize;
     d->destroy = file_destroy;

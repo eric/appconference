@@ -25,7 +25,6 @@
 #include <winsock.h>
 #include <process.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <time.h>
 
 #else
@@ -42,6 +41,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "spandsp/plc.h"
 
 
@@ -114,7 +114,7 @@ struct iaxc_audio_driver {
 	void *priv;	/* pointer to private data */
 
 	/* methods */
-	int (*initialize)(struct iaxc_audio_driver *d);
+	int (*initialize)(struct iaxc_audio_driver *d, int sample_rate);
 	int (*destroy)(struct iaxc_audio_driver *d);  /* free resources */
 	int (*select_devices)(struct iaxc_audio_driver *d, int input, int output, int ring);
 	int (*selected_devices)(struct iaxc_audio_driver *d, int *input, int *output, int *ring);
