@@ -457,7 +457,8 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 			ies->rsa_result = data + 2;
 			break;
 		case IAX_IE_APPARENT_ADDR:
-			ies->apparent_addr = ((struct sockaddr_in *)(GET_ALIGN_32(data+2)));
+			/* XXX need to check alignment? */
+			ies->apparent_addr = ((struct sockaddr_in *)(data+2));
 			break;
 		case IAX_IE_REFRESH:
 			if (len != sizeof(unsigned short)) {

@@ -2066,14 +2066,22 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				/* Can't call schedule_delivery since timestamp is non-normal */
 				break;;
 			case IAX_COMMAND_TXREQ:
-				/* so a full voice frame is sent on the next voice output */
-				session->svoiceformat = -1;	
-				session->transfer = *e->ies.apparent_addr;
-				session->transfer.sin_family = AF_INET;
-				session->transfercallno = e->ies.callno;
-				session->transferring = TRANSFER_BEGIN;
-				session->transferid = e->ies.transferid;
-				iax_send_txcnt(session);
+				/* added check for defensive programming
+				 * - in case the asterisk server
+				 * or another client does not send the
+				 *  apparent transfer address
+				 */
+				if (e->ies.apparent_addr != NULL) {
+				    /* so a full voice frame is sent on the 
+				       next voice output */
+				    session->svoiceformat = -1;	
+				    session->transfer = *e->ies.apparent_addr;
+				    session->transfer.sin_family = AF_INET;
+				    session->transfercallno = e->ies.callno;
+				    session->transferring = TRANSFER_BEGIN;
+				    session->transferid = e->ies.transferid;
+				    iax_send_txcnt(session);
+				}
 				free(e);
 				e = NULL;
 				break;
