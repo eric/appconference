@@ -52,9 +52,9 @@
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
 BEGIN_EVENT_TABLE(AccountsDialog, wxDialog)
-    EVT_BUTTON(XRCID(_T("AddAccountList")),      AccountsDialog::OnAddAccountList)
-    EVT_BUTTON(XRCID(_T("EditAccountList")),     AccountsDialog::OnAddAccountList)
-    EVT_BUTTON(XRCID(_T("RemoveAccountList")),   AccountsDialog::OnRemoveAccountList)
+    EVT_BUTTON(XRCID("AddAccountList"),     AccountsDialog::OnAddAccountList)
+    EVT_BUTTON(XRCID("EditAccountList"),    AccountsDialog::OnAddAccountList)
+    EVT_BUTTON(XRCID("RemoveAccountList"),  AccountsDialog::OnRemoveAccountList)
 END_EVENT_TABLE()
 
 //----------------------------------------------------------------------------------------
@@ -164,10 +164,11 @@ void AccountsDialog::OnRemoveAccountList(wxCommandEvent &event)
     int        isOK;
 
     if((sel=AccountList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0) {
-        isOK = wxMessageBox("Really remove " + AccountList->GetItemText(sel) + "?",
-                            "Remove from Account List", wxOK|wxCANCEL|wxCENTRE);
+        isOK = wxMessageBox(_("Really remove ") + AccountList->GetItemText(sel) + _T("?"),
+                            _("Remove from Account List"),
+                            wxOK|wxCANCEL|wxCENTRE);
         if(isOK == wxOK) {
-            config->DeleteGroup("/Accounts/"+AccountList->GetItemText(sel));
+            config->DeleteGroup(_T("/Accounts/") + AccountList->GetItemText(sel));
             AccountList->DeleteItem(sel);
         }
     }
@@ -177,6 +178,9 @@ void AccountsDialog::OnRemoveAccountList(wxCommandEvent &event)
 
 void AddAccountDialog::OnAdd(wxCommandEvent &event)
 {
+#if defined(__UNICODE__)
+    wxMBConvUTF8 utf8;
+#endif
     wxConfig  *config = new wxConfig(_T("iaxComm"));
 
     if(!Password->GetValue().IsSameAs(Confirm->GetValue())) {
@@ -198,9 +202,16 @@ void AddAccountDialog::OnAdd(wxCommandEvent &event)
     // Well we wouldn't have added it if we didn't want to regiser
     // Thanks, AJ
     char user[256], pass[256], host[256];
+
+#if defined(__UNICODE__)
+    utf8.WC2MB(user, UserName->GetValue().c_str(), 256);
+    utf8.WC2MB(pass, Password->GetValue().c_str(), 256);
+    utf8.WC2MB(host, HostName->GetValue().c_str(), 256);
+#else
     wxStrcpy(user, UserName->GetValue());
     wxStrcpy(pass, Password->GetValue());
     wxStrcpy(host, HostName->GetValue());
+#endif
     iaxc_register(user, pass, host);
 
     AccountName->SetValue(_T(""));

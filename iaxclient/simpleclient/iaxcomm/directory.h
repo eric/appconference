@@ -46,9 +46,11 @@ private:
     void         OnAddOTList(wxCommandEvent &event);
     void         OnRemoveOTList(wxCommandEvent &event);
     void         OnDialOTList(wxCommandEvent &event);
+    void         OnDialOTListActivatedEvent(wxListEvent &event);
     void         OnAddPhoneList(wxCommandEvent &event);
     void         OnRemovePhoneList(wxCommandEvent &event);
     void         OnDialPhoneList(wxCommandEvent &event);
+    void         OnDialPhoneListActivatedEvent(wxListEvent &event);
 
     DECLARE_EVENT_TABLE()
 

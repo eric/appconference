@@ -115,10 +115,12 @@ private:
     void         OnCodecAllow(wxCommandEvent &event);
 
     void         OnSpeexTune(wxCommandEvent &event);
+    void         OnSpeexTuneSpinEvent(wxSpinEvent &event);
 
     void         OnAudioDirty(wxCommandEvent &event);
     void         OnCallerIDDirty(wxCommandEvent &event);
     void         OnMiscDirty(wxCommandEvent &event);
+    void         OnMiscDirtySpinEvent(wxSpinEvent &event);
     void         OnFiltersDirty(wxCommandEvent &event);
 
     DECLARE_EVENT_TABLE()

@@ -85,10 +85,12 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
 
     Hide();
 
+#if !defined(__UNICODE__)
     wxFont font   = GetFont();
     font.SetPointSize(11);
     font.SetFamily(wxSWISS);
     SetFont(font);
+#endif
 
     for(i=0;i<nCalls;i++) {
         InsertItem(i,wxString::Format(_T("%ld"), i + 1), 0);
@@ -143,6 +145,9 @@ void CallList::OnRClick(wxListEvent &event)
     int      selected = event.m_itemIndex;
     char     ext[256];
     wxString Title;
+#if defined(__UNICODE__)
+    wxMBConvUTF8 utf8;
+#endif
 
     Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
@@ -152,7 +157,11 @@ void CallList::OnRClick(wxListEvent &event)
                              wxOK | wxCANCEL);
 
     if(dialog.ShowModal() != wxID_CANCEL) {
+#if defined(__UNICODE__)
+        utf8.WC2MB(ext, dialog.GetValue().c_str(), 256);
+#else
         strncpy(ext, dialog.GetValue().c_str(), 256);
+#endif
         iaxc_blind_transfer_call(selected, ext);
     }
 }
@@ -182,6 +191,10 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     long       dummy;
     bool       bCont;
     static int selectedcall = -1;
+#if defined(__UNICODE__)
+    wchar_t ws[256];
+    wxMBConvUTF8 utf8;
+#endif
 
     if(c.state & IAXC_CALL_STATE_RINGING) {
       wxGetApp().theFrame->Show();
@@ -258,6 +271,16 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 // Look for the caller in our phonebook
                 config->SetPath(_T("/PhoneBook"));
                 bCont = config->GetFirstGroup(str, dummy);
+#if defined(__UNICODE__)
+                utf8.MB2WC(ws, c.remote_name, 256);
+                while ( bCont ) {
+                    if(str.IsSameAs(ws))
+                        break;
+                    bCont = config->GetNextGroup(str, dummy);
+                }
+
+                if(!str.IsSameAs(ws)) {
+#else
                 while ( bCont ) {
                     if(str.IsSameAs(c.remote_name))
                         break;
@@ -265,6 +288,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 }
 
                 if(!str.IsSameAs(c.remote_name)) {
+#endif
                     // Add to phone book if not there already
                     str.Printf(_T("%s/Extension"), c.remote_name);
                     config->Write(str, c.remote);
@@ -275,7 +299,12 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 }
 
                 if(strcmp(c.local_context, "intercom") == 0) {
+#if defined(__UNICODE__)
+                    utf8.MB2WC(ws, c.local, 256);
+                    if(config->Read(_T("/Prefs/IntercomPass"), _T("s")).IsSameAs(ws)) {
+#else
                     if(config->Read(_T("/Prefs/IntercomPass"), _T("s")).IsSameAs(c.local)) {
+#endif
                         wxGetApp().IntercomTone.Start(1);
                         iaxc_millisleep(1000);
                         iaxc_unquelch(c.callNo);

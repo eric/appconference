@@ -66,9 +66,9 @@ public:
     void        OnSize(wxSizeEvent &event);
     void        OnShow();
     void        OnNotify();
-    void        OnHangup(wxEvent &event);
-    void        OnHoldKey(wxEvent &event);
-    void        OnSpeakerKey(wxEvent &event);
+    void        OnHangup(wxCommandEvent &event);
+    void        OnHoldKey(wxCommandEvent &event);
+    void        OnSpeakerKey(wxCommandEvent &event);
     void        OnQuit(wxEvent &event);
     void        OnPTTChange(wxCommandEvent &event);
     void        OnSilenceChange(wxCommandEvent &event);

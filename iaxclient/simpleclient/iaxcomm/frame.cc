@@ -159,7 +159,7 @@ MyFrame::MyFrame(wxWindow *parent)
     NoiseReduce   = config->Read(_T("NoiseReduce"), 1l);
     EchoCancel    = config->Read(_T("EchoCancel"), 0l);
 
-    config->SetPath("/Codecs");
+    config->SetPath(_T("/Codecs"));
 
     AllowuLawVal    = config->Read(_T("AllowuLaw"),  0l);
     AllowaLawVal    = config->Read(_T("AllowaLaw"),  0l);
@@ -178,7 +178,7 @@ MyFrame::MyFrame(wxWindow *parent)
     SPXVBRVal       = config->Read(_T("SPXVBR"),         0l);
     SPXComplexityVal= config->Read(_T("SPXComplexity"),  3l);
 
-    config->SetPath("/Prefs");
+    config->SetPath(_T("/Prefs"));
 
     //----Add the panel-----------------------------------------------------------------
     Name = config->Read(_T("UseSkin"), _T("default"));
@@ -238,7 +238,11 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
         aPanel = wxXmlResource::Get()->LoadPanel(parent, wxT("default"));
 
     if(aPanel == NULL)
+#if defined(__UNICODE__)
+        wxLogError(_("Can't Load Panel in frame.cc"));
+#else
         wxFatalError(_("Can't Load Panel in frame.cc"));
+#endif
 
     //----Reach in for our controls-----------------------------------------------------
     Input        = XRCCTRL(*aPanel, "Input",        wxGauge);
@@ -252,7 +256,11 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
     Calls = new CallList(aPanel, wxGetApp().nCalls);
 
     if(Calls == NULL)
+#if defined(__UNICODE__)
+        wxLogError(_("Can't Load CallList in frame.cc"));
+#else
         wxFatalError(_("Can't Load CallList in frame.cc"));
+#endif
 
     wxXmlResource::Get()->AttachUnknownControl(_T("Calls"), Calls);
 
@@ -362,7 +370,11 @@ void MyFrame::ShowDirectoryControls()
     config->SetPath(_T("/OT"));
     bCont = config->GetFirstGroup(OTName, dummy);
     while ( bCont ) {
+#if defined(__UNICODE__)
+        ot = ((wxButton *)((*aPanel).FindWindow(wxXmlResource::GetXRCID(OTName))));
+#else
         ot = XRCCTRL(*aPanel, OTName, wxButton);
+#endif
         if(ot != NULL) {
             Name = OTName + _T("/Name");
             Label = config->Read(Name, _T(""));
@@ -406,7 +418,7 @@ void MyFrame::OnShow()
     Show(TRUE);
 }
 
-void MyFrame::OnSpeakerKey(wxEvent &event)
+void MyFrame::OnSpeakerKey(wxCommandEvent &event)
 {
     if(UsingSpeaker != true) {
         UsingSpeaker = true;
@@ -421,7 +433,7 @@ void MyFrame::OnSpeakerKey(wxEvent &event)
     }
 }
 
-void MyFrame::OnHoldKey(wxEvent &event)
+void MyFrame::OnHoldKey(wxCommandEvent &event)
 {
     int selected = iaxc_selected_call();
 
@@ -432,7 +444,7 @@ void MyFrame::OnHoldKey(wxEvent &event)
     iaxc_select_call(-1);
 }
 
-void MyFrame::OnHangup(wxEvent &event)
+void MyFrame::OnHangup(wxCommandEvent &event)
 {
     iaxc_dump_call();
 }
@@ -563,8 +575,18 @@ int MyFrame::HandleIAXEvent(iaxc_event *e)
 
 int MyFrame::HandleStatusEvent(char *msg)
 {
+#if defined(__UNICODE__)
+    wchar_t ws[256];
+    wxMBConvUTF8 utf8;
+#endif
+
     MessageTicks = 0;
+#if defined(__UNICODE__)
+    utf8.MB2WC(ws, msg, 256);
+    wxGetApp().theFrame->SetStatusText(ws);
+#else
     wxGetApp().theFrame->SetStatusText(msg);
+#endif
     return 1;
 }
 
@@ -619,7 +641,7 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
     char*     libver = (char *)malloc(256);
     
     libver = iaxc_version(libver);
-    msg.Printf("iaxComm version:\t%s\nlibiaxclient version:\t%s", VERSION, libver);
+    msg.Printf(_T("iaxComm version:\t%s\nlibiaxclient version:\t%s"), VERSION, libver);
     wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
 }
 
@@ -675,7 +697,11 @@ void MyFrame::OnOneTouch(wxCommandEvent &event)
 void MyFrame::OnKeyPad(wxCommandEvent &event)
 {
     wxString  Message;
+#if defined(__UNICODE__)
+    wchar_t   digit;
+#else
     char      digit;
+#endif
     int       OTNo;
 
     OTNo  = event.GetId() - XRCID("KP0");
@@ -718,6 +744,9 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
     int      selected = iaxc_selected_call();
     char     ext[256];
     wxString Title;
+#if defined(__UNICODE__)
+    wxMBConvUTF8 utf8;
+#endif
 
     Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
@@ -727,7 +756,11 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
                              wxOK | wxCANCEL);
 
     if(dialog.ShowModal() != wxID_CANCEL) {
+#if defined(__UNICODE__)
+        utf8.WC2MB(ext, dialog.GetValue().c_str(), 256);
+#else
         strncpy(ext, dialog.GetValue().c_str(), 256);
+#endif
         iaxc_blind_transfer_call(selected, ext);
     }
 }

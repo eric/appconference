@@ -61,8 +61,8 @@ BEGIN_EVENT_TABLE(DirectoryDialog, wxDialog)
     EVT_BUTTON(XRCID("DialOTList"),              DirectoryDialog::OnDialOTList)
     EVT_BUTTON(XRCID("DialPhoneList"),           DirectoryDialog::OnDialPhoneList)
 
-    EVT_LIST_ITEM_ACTIVATED(XRCID("OTList"),     DirectoryDialog::OnDialOTList)
-    EVT_LIST_ITEM_ACTIVATED(XRCID("PhoneList"),  DirectoryDialog::OnDialPhoneList)
+    EVT_LIST_ITEM_ACTIVATED(XRCID("OTList"),     DirectoryDialog::OnDialOTListActivatedEvent)
+    EVT_LIST_ITEM_ACTIVATED(XRCID("PhoneList"),  DirectoryDialog::OnDialPhoneListActivatedEvent)
 END_EVENT_TABLE()
 
 
@@ -242,6 +242,11 @@ void DirectoryDialog::OnAddPhoneList(wxCommandEvent &event)
 
 //----------------------------------------------------------------------------------------
 
+void DirectoryDialog::OnDialOTListActivatedEvent(wxListEvent &event)
+{
+    OnDialOTList(*((wxCommandEvent *) &event));
+}
+
 void DirectoryDialog::OnDialOTList(wxCommandEvent &event)
 {
     wxConfig  *config = new wxConfig(_T("iaxComm"));
@@ -261,6 +266,11 @@ void DirectoryDialog::OnDialOTList(wxCommandEvent &event)
         Dial(DialString);
         Close(TRUE);
     }
+}
+
+void DirectoryDialog::OnDialPhoneListActivatedEvent(wxListEvent &event)
+{
+    OnDialPhoneList(*((wxCommandEvent *) &event));
 }
 
 void DirectoryDialog::OnDialPhoneList(wxCommandEvent &event)

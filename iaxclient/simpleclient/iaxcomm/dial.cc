@@ -76,6 +76,10 @@ void Dial( wxString DialStr )
 {
     wxConfig *config = new wxConfig(_T("iaxComm"));
     wxString  FQIN;
+#if defined(__UNICODE__)
+    wxMBConvUTF8 utf8;
+    char to[256];
+#endif
 
     wxString  AccountInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
     wxString  Extension   = DialStr.AfterLast('/');     // dialstr if no '/'
@@ -107,11 +111,17 @@ void Dial( wxString DialStr )
         Password = config->Read(_T("Password"), _T(""));
     }
 
-    FQIN.Printf("%s:%s@%s/%s", Username.c_str(),
-                               Password.c_str(),
-                               Host.c_str(),
-                               Extension.c_str());
+    FQIN.Printf(_T("%s:%s@%s/%s"),
+                Username.c_str(),
+                Password.c_str(),
+                Host.c_str(),
+                Extension.c_str());
 
-    iaxc_call((char *)FQIN.c_str());
+#if defined(__UNICODE__)
+    utf8.WC2MB(to, FQIN.c_str(), 256);
+    iaxc_call(to);
+#else
+    iaxc_call((char *) FQIN.c_str());
+#endif
 }
 

@@ -99,7 +99,7 @@ void Ringer::LoadTone(wxString Filename, int Repeat)
     if(Filename.IsEmpty())
         return;
 
-    fTone.Open(Filename, "r");
+    fTone.Open(Filename, _T("r"));
 
     if(!fTone.IsOpened())
         return;

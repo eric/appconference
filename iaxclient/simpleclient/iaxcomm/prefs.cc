@@ -73,7 +73,7 @@ BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
     EVT_TEXT    ( XRCID("UseSkin"),          PrefsDialog::OnMiscDirty)
     EVT_CHOICE  ( XRCID("DefaultAccount"),   PrefsDialog::OnMiscDirty)
     EVT_TEXT    ( XRCID("IntercomPass"),     PrefsDialog::OnMiscDirty)
-    EVT_SPINCTRL( XRCID("nCalls"),           PrefsDialog::OnMiscDirty)
+    EVT_SPINCTRL( XRCID("nCalls"),           PrefsDialog::OnMiscDirtySpinEvent)
 
     EVT_BUTTON  ( XRCID("SaveFilters"),      PrefsDialog::OnSaveFilters)
     EVT_BUTTON  ( XRCID("ApplyFilters"),     PrefsDialog::OnApplyFilters)
@@ -100,11 +100,11 @@ BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
 
     EVT_CHECKBOX( XRCID("SPXTune"),          PrefsDialog::OnSpeexTune)
     EVT_CHECKBOX( XRCID("SPXEnhance"),       PrefsDialog::OnSpeexTune)
-    EVT_SPINCTRL( XRCID("SPXQuality"),       PrefsDialog::OnSpeexTune)
-    EVT_SPINCTRL( XRCID("SPXBitrate"),       PrefsDialog::OnSpeexTune)
-    EVT_SPINCTRL( XRCID("SPXABR"),           PrefsDialog::OnSpeexTune)
+    EVT_SPINCTRL( XRCID("SPXQuality"),       PrefsDialog::OnSpeexTuneSpinEvent)
+    EVT_SPINCTRL( XRCID("SPXBitrate"),       PrefsDialog::OnSpeexTuneSpinEvent)
+    EVT_SPINCTRL( XRCID("SPXABR"),           PrefsDialog::OnSpeexTuneSpinEvent)
     EVT_CHECKBOX( XRCID("SPXVBR"),           PrefsDialog::OnSpeexTune)
-    EVT_SPINCTRL( XRCID("SPXComplexity"),    PrefsDialog::OnSpeexTune)
+    EVT_SPINCTRL( XRCID("SPXComplexity"),    PrefsDialog::OnSpeexTuneSpinEvent)
 
     EVT_BUTTON  ( XRCID("CancelAudio"),      PrefsDialog::OnCancel)
     EVT_BUTTON  ( XRCID("CancelCallerID"),   PrefsDialog::OnCancel)
@@ -493,6 +493,11 @@ void PrefsDialog::OnCodecAllow(wxCommandEvent &event)
     CancelCodecs->SetLabel(_T("Cancel"));
 }
 
+void PrefsDialog::OnSpeexTuneSpinEvent(wxSpinEvent &event)
+{
+    OnSpeexTune(*((wxCommandEvent *) &event));
+}
+
 void PrefsDialog::OnSpeexTune(wxCommandEvent &event)
 {
     wxGetApp().theFrame->SPXTuneVal = SPXTune->GetValue();
@@ -580,6 +585,11 @@ void PrefsDialog::OnCallerIDDirty(wxCommandEvent &event)
     ApplyCallerID->Enable();
     SaveCallerID->Enable();
     CancelCallerID->SetLabel(_T("Cancel"));
+}
+
+void PrefsDialog::OnMiscDirtySpinEvent(wxSpinEvent &event)
+{
+    OnMiscDirty(*((wxCommandEvent *) &event));
 }
 
 void PrefsDialog::OnMiscDirty(wxCommandEvent &event)

@@ -99,12 +99,21 @@ void DevicesDialog::GetAudioDevices()
     int               i;
     long              caps;
     wxString          devname;
+#if defined(__UNICODE__)
+    wchar_t           wdevname[256];
+    wxMBConvUTF8      utf8;
+#endif
 
     iaxc_audio_devices_get(&devices, &nDevs, &input, &output, &ring);
 
     for(i=0; i<nDevs; i++) {
         caps =    devices->capabilities;
+#if defined(__UNICODE__)
+        utf8.MB2WC(wdevname, devices->name, 256);
+        devname = wdevname;
+#else
         devname = devices->name;
+#endif
 
         if(caps & IAXC_AD_INPUT) {
             InputDevice->Append(devname);
@@ -155,16 +164,16 @@ void DevicesDialog::OnSave(wxCommandEvent &event)
     //First, apply the changes
     OnApply(event);
 
-    wxConfig *config = new wxConfig("iaxComm");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
 
-    config->SetPath("/Prefs");
+    config->SetPath(_T("/Prefs"));
 
-    config->Write("Input Device",          wxGetApp().InputDevice);
-    config->Write("Output Device",         wxGetApp().OutputDevice);
-    config->Write("Speaker Input Device",  wxGetApp().SpkInputDevice);
-    config->Write("Speaker Output Device", wxGetApp().SpkOutputDevice);
-    config->Write("Ring Device",           wxGetApp().RingDevice);
-    config->Write("RingOnSpeaker",         wxGetApp().theFrame->RingOnSpeaker);
+    config->Write(_T("Input Device"),          wxGetApp().InputDevice);
+    config->Write(_T("Output Device"),         wxGetApp().OutputDevice);
+    config->Write(_T("Speaker Input Device"),  wxGetApp().SpkInputDevice);
+    config->Write(_T("Speaker Output Device"), wxGetApp().SpkOutputDevice);
+    config->Write(_T("Ring Device"),           wxGetApp().RingDevice);
+    config->Write(_T("RingOnSpeaker"),         wxGetApp().theFrame->RingOnSpeaker);
 
     delete config;
     SaveButton->Disable();
@@ -187,14 +196,14 @@ void DevicesDialog::OnApply(wxCommandEvent &event)
                     wxGetApp().RingDevice);
 
     ApplyButton->Disable();
-    CancelButton->SetLabel("Done");
+    CancelButton->SetLabel(_("Done"));
 }
 
 void DevicesDialog::OnDirty(wxCommandEvent &event)
 {
     SaveButton->Enable();
     ApplyButton->Enable();
-    CancelButton->SetLabel("Cancel");
+    CancelButton->SetLabel(_("Cancel"));
 }
 
 void SetAudioDevices(wxString inname, wxString outname, wxString ringname)
@@ -205,6 +214,10 @@ void SetAudioDevices(wxString inname, wxString outname, wxString ringname)
     int                      input  = 0;
     int                      output = 0;
     int                      ring   = 0;
+#if defined(__UNICODE__)
+    wchar_t                  wdevname[256];
+    wxMBConvUTF8             utf8;
+#endif
 
     // Note that if we're called with an invalid devicename, the deviceID
     // stays 0, which equals default.
@@ -213,17 +226,32 @@ void SetAudioDevices(wxString inname, wxString outname, wxString ringname)
 
     for(i=0; i<nDevs; i++) {
         if(devices->capabilities & IAXC_AD_INPUT) {
+#if defined(__UNICODE__)
+            utf8.MB2WC(wdevname, devices->name, 256);
+            if(inname.Cmp(wdevname) == 0)
+#else
             if(inname.Cmp(devices->name) == 0)
+#endif
                 input = devices->devID;
         }
 
         if(devices->capabilities & IAXC_AD_OUTPUT) {
+#if defined(__UNICODE__)
+            utf8.MB2WC(wdevname, devices->name, 256);
+            if(outname.Cmp(wdevname) == 0)
+#else
             if(outname.Cmp(devices->name) == 0)
+#endif
                 output = devices->devID;
         }
 
         if(devices->capabilities & IAXC_AD_RING) {
+#if defined(__UNICODE__)
+            utf8.MB2WC(wdevname, devices->name, 256);
+            if(ringname.Cmp(wdevname) == 0)
+#else
             if(ringname.Cmp(devices->name) == 0)
+#endif
                 ring = devices->devID;
         }
         devices++;
