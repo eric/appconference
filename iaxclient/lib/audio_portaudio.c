@@ -22,7 +22,6 @@
 #include "iaxclient_lib.h"
 
 PABLIO_Stream *stream;
-SAMPLE samples[SAMPLES_PER_FRAME * FRAMES_PER_BLOCK];
 
 int pa_initialize_audio() {
     PaError  err;
@@ -55,30 +54,13 @@ void pa_play_recv_audio(void *fr, int fr_size) {
 }
 
 void pa_send_audio(struct timeval *lastouttm, struct peer *most_recent_answer, int iEncodeType) {
-	struct timeval now;
-	short fr[160];
-	long i;
+	SAMPLE samples[SAMPLES_PER_FRAME * FRAMES_PER_BLOCK];
 
-	long framecount = GetAudioStreamReadable(stream);
-	for(i = 0; i < framecount; i++) {
-		long diff;
-		gettimeofday(&now,NULL);
-		// See if we should be sending (jitter buffer for IAX)
-		if ((diff=iaxc_usecdiff(&now,lastouttm)) < (OUT_INTERVAL*1000))
-		{
-			//fprintf(stderr, "PORTAUDIO: out interval not satisfied diff=%ld\n", diff);
-			i = framecount;
-			break;
-		}
-
-		//fprintf(stderr, "PORTAUDIO: reading audio\n");
-		// Read the audio from the audio buffer
+	/* send all available complete frames */
+	while(GetAudioStreamReadable(stream) >= FRAMES_PER_BLOCK)
+	{
 		ReadAudioStream(stream, samples, FRAMES_PER_BLOCK);
-
-		// Encode it, then send it
 		send_encoded_audio(most_recent_answer, samples, iEncodeType);
-		// Update the counter
-		*lastouttm = now;  /* save time of last output */
 	}
 }
 
