@@ -101,6 +101,11 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
     Show();
     AutoSize();
 
+    // clear tone structures. (otherwise we free un-allocated memory below)
+    memset(&ringtone, 0, sizeof(ringtone));
+    memset(&ringback, 0, sizeof(ringback));
+    memset(&icomtone, 0, sizeof(icomtone));
+
     // Calculate some reasonable sounding defaults
     CalcTone(&ringtone, 880, 960, 16000, 48000, 10);
     CalcTone(&ringback, 440, 480, 16000, 48000, 10);
@@ -166,8 +171,13 @@ void CallList::AutoSize()
 void CallList::OnSize(wxSizeEvent &event)
 {
     event.Skip();
-#ifndef __WXGTK__
+#ifdef __WXMSW__
     // XXX FIXME: for some reason not yet investigated, this crashes Linux-GTK (for SK, at least).
+    // XXX2 This causes a crash _later_ in MacOSX -- but when compiled
+    // with a debugging wx library, it causes an immediate assertion
+    // failure saying column 2 is out of range.  Maybe it happens before
+    // the columns are added or something.  Dunno.  But, the resize
+    // later when you select a call is OK.
     AutoSize();
 #endif
 }
