@@ -360,7 +360,7 @@ void iaxc_call(char *num)
 	most_recent_answer = peer;
 
 #ifdef IAXC_IAX2
-	iax_call(peer->session, "7001234567", "IAXClient User", num, NULL, 10);
+	iax_call(peer->session, "7001234567", "IAXClient User", num, NULL, 0);
 #else
 	iax_call(peer->session, "7001234567", num, NULL, 10);
 #endif
