@@ -41,7 +41,7 @@ static SpeexEchoState *ec;
 
 
 static PortAudioStream *iStream, *oStream;
-static PxMixer *iMixer, *oMixer;
+static PxMixer *iMixer = NULL, *oMixer = NULL;
 
 static selectedInput, selectedOutput, selectedRing;
 
@@ -214,7 +214,7 @@ int pa_play_sound(struct iaxc_sound *inSound, int ring) {
   sounds = sound;
   MUTEXUNLOCK(&sound_lock);
 
-  if(!running) pa_start(); /* XXX fixme: start/stop semantics */
+  if(!running) pa_start(NULL); /* XXX fixme: start/stop semantics */
 
   return sound->id; 
 }
@@ -488,7 +488,18 @@ int pa_start (struct iaxc_audio_driver *d ) {
 
     if(running) return 0;
 
-    iMixer = oMixer = NULL;
+    /* re-open mixers if necessary */
+    if(iMixer)
+    { 
+	Px_CloseMixer(iMixer);
+	iMixer = NULL;
+    }
+
+    if(oMixer) 
+    {
+	Px_CloseMixer(oMixer);
+	oMixer = NULL;
+    }
 	
     //fprintf(stderr, "starting pa\n");
 
@@ -520,13 +531,11 @@ int pa_stop (struct iaxc_audio_driver *d ) {
     if(!running) return 0;
     if(sounds) return 0;
 
-    Px_CloseMixer(iMixer);
     err = Pa_AbortStream(iStream); 
     err = Pa_CloseStream(iStream); 
 
 
     if(!oneStream){ 
-	Px_CloseMixer(oMixer);
 	err = Pa_AbortStream(oStream);
 	err = Pa_CloseStream(oStream);
     }
@@ -596,25 +605,26 @@ int pa_destroy (struct iaxc_audio_driver *d ) {
 }
 
 double pa_input_level_get(struct iaxc_audio_driver *d){
-    if(!running) return -1;
+    if(!iMixer) return -1;
     //fprintf(stderr, "getting input level %f\n", Px_GetInputVolume(iMixer));
     return Px_GetInputVolume(iMixer);
 }
 
 double pa_output_level_get(struct iaxc_audio_driver *d){
     PxMixer *mix;
-    if(!running) return -1;
 
-    if(oneStream)
+    if(iMixer)
       mix = iMixer;
-    else
+    else if (oMixer)
       mix = oMixer;
+    else
+      return -1;
 
     return Px_GetPCMOutputVolume(mix);
 }
 
 int pa_input_level_set(struct iaxc_audio_driver *d, double level){
-    if(!running) return -1;
+    if(!iMixer) return -1;
     fprintf(stderr, "setting input level to %f\n", level);
     Px_SetInputVolume(iMixer, level);
     return 0;
@@ -622,12 +632,13 @@ int pa_input_level_set(struct iaxc_audio_driver *d, double level){
 
 int pa_output_level_set(struct iaxc_audio_driver *d, double level){
     PxMixer *mix;
-    if(!running) return -1;
 
-    if(oneStream)
+    if(iMixer)
       mix = iMixer;
-    else
+    else if (oMixer)
       mix = oMixer;
+    else
+      return -1;
 
     Px_SetPCMOutputVolume(mix, level);
     return 0;
@@ -675,6 +686,10 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     RingBuffer_Init(&outRing, RBSZ, outRingBuf);
 
     running = 0;
+
+    /* start, then stop streams, in order to test devices, and get mixers */
+    pa_start(d);
+    pa_stop(d);
 
     return 0;
 }
