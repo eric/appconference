@@ -104,6 +104,7 @@ static int input_postprocess(void *audio, int len)
     /* Analog AGC: Bring speex AGC gain out to mixer, with lots of hysteresis */
     /* use a higher continuation threshold for AAGC than for VAD itself */
     if(!silent && 
+	(iaxc_silence_threshold != 0) &&
 	(iaxc_filters & IAXC_FILTER_AGC) && 
 	(iaxc_filters & IAXC_FILTER_AAGC) && 
 	(st->speech_prob > .20)
