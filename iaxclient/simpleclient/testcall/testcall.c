@@ -176,6 +176,8 @@ int main(int argc, char **argv)
 	}
 
 	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
+	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
+	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
 	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ILBC|IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
 	iaxc_set_silence_threshold(silence_threshold);
 
@@ -205,6 +207,10 @@ int main(int argc, char **argv)
 	}
 	while(c = getc(stdin)) {
 	    switch (tolower(c)) {
+	      case 'a':
+		printf("Answering call 0\n");
+		iaxc_select_call(0);
+	      break;		
 	      case 'q':
 		printf("Hanging up and exiting\n");
 		iaxc_dump_call();
