@@ -308,21 +308,12 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
     
 #if defined(SPEEX_EC)
     {
-      /* convert buffers to float, echo cancel, convert back */
-      float finBuffer[1024], foutBuffer[1024], fcancBuffer[1024];
-      for(i=0;i<n;i++)
-      {
-	  finBuffer[i] = inputBuffer[i];
-	  foutBuffer[i] = delayedBuf[i];
-      }
+      short cancelledBuffer[1024];
 
-      speex_echo_cancel(ec, finBuffer, foutBuffer, fcancBuffer, NULL);
+      speex_echo_cancel(ec, inputBuffer, delayedBuf, cancelledBuffer, NULL);
 
       for(i=0;i<n;i++)
-      {
-	  inputBuffer[i] =  fcancBuffer[i];
-//	  inputBuffer[i] =  (short)(finBuffer[i] + fcancBuffer[i]);
-      }
+	  inputBuffer[i] =  cancelledBuffer[i];
     }
 #endif
 
