@@ -74,17 +74,7 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo);
 void iaxc_service_network(int netfd);
 void iaxc_do_levels_callback(float input, float output);
 
-
-#define IAXC_AD_INPUT		(1<<0)
-#define IAXC_AD_OUTPUT		(1<<1)
-#define IAXC_AD_INPUT_DEFAULT	(1<<2)
-#define IAXC_AD_OUTPUT_DEFAULT	(1<<3)
-
-struct iaxc_audio_device {
-	char *name; 		/* name of the device */
-	long capabilities; 	/* flags, defined above */
-	int devID; 		/* driver-specific ID */
-};
+#include "iaxclient.h"
 
 struct iaxc_audio_driver {
 	/* data */
@@ -96,8 +86,8 @@ struct iaxc_audio_driver {
 	/* methods */
 	int (*initialize)(struct iaxc_audio_driver *d);
 	int (*destroy)(struct iaxc_audio_driver *d);  /* free resources */
-	int (*select_input)(struct iaxc_audio_driver *d, int devID);
-	int (*select_output)(struct iaxc_audio_driver *d, int devID);
+	int (*select_devices)(struct iaxc_audio_driver *d, int input, int output, int ring);
+	int (*selected_devices)(struct iaxc_audio_driver *d, int *input, int *output, int *ring);
 
 	/* 
 	 * select_ring ? 
@@ -114,7 +104,6 @@ struct iaxc_audio_driver {
 
 
 
-#include "iaxclient.h"
 
 
 struct iaxc_call {

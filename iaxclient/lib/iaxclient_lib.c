@@ -770,3 +770,15 @@ void iaxc_external_service_audio()
 	// To be coded in the future
 	return;
 }
+
+int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring) {
+      *devs = audio.devices;
+      *nDevs = audio.nDevices;
+      audio.selected_devices(&audio,input,output,ring);
+      return 0;
+}
+
+int iaxc_audio_devices_set(int input, int output, int ring) {
+    return audio.select_devices(&audio, input, output, ring);
+}
+

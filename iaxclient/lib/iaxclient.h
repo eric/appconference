@@ -110,6 +110,21 @@ void iaxc_set_silence_threshold(double thr);
 void iaxc_set_audio_output(int mode);
 int iaxc_select_call(int callNo);
 
+#define IAXC_AD_INPUT           (1<<0)
+#define IAXC_AD_OUTPUT          (1<<1)
+#define IAXC_AD_INPUT_DEFAULT   (1<<2)
+#define IAXC_AD_OUTPUT_DEFAULT  (1<<3)
+
+struct iaxc_audio_device {
+	char *name;             /* name of the device */
+	long capabilities;      /* flags, defined above */
+	int devID;              /* driver-specific ID */
+};
+
+int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring);
+int iaxc_audio_devices_set(int input, int output, int ring);
+
+
 #ifdef __cplusplus
 }
 #endif

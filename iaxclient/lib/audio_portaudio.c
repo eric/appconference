@@ -23,7 +23,7 @@
 
 static PortAudioStream *iStream, *oStream;
 
-static selectedInput, selectedOutput;
+static selectedInput, selectedOutput, selectedRing;
 
 #define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
 
@@ -316,20 +316,22 @@ int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 	return 0;
 }
 
-int pa_select_input (struct iaxc_audio_driver *d, int input) {
+int pa_select_devices (struct iaxc_audio_driver *d, int input, int output, int ring) {
     selectedInput = input;
+    selectedOutput = output;
+    selectedRing = ring;
     if(running) {
       pa_stop(d);
       pa_start(d);
     }
+    return 0;
 }
 
-int pa_select_output (struct iaxc_audio_driver *d, int output) {
-    selectedOutput = output;
-    if(running) {
-      pa_stop(d);
-      pa_start(d);
-    }
+int pa_selected_devices (struct iaxc_audio_driver *d, int *input, int *output, int *ring) {
+    *input = selectedInput;
+    *output = selectedOutput;
+    *ring = selectedRing;
+    return 0;
 }
 
 int pa_destroy (struct iaxc_audio_driver *d ) {
@@ -351,8 +353,8 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     /* setup methods */
     d->initialize = pa_initialize;
     d->destroy = pa_destroy;
-    d->select_input = pa_select_input;
-    d->select_output = pa_select_output;
+    d->select_devices = pa_select_devices;
+    d->selected_devices = pa_selected_devices;
     d->start = pa_start;
     d->stop = pa_stop;
     d->output = pa_output;
@@ -361,6 +363,7 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     /* setup private data stuff */
     selectedInput  = Pa_GetDefaultInputDeviceID();
     selectedOutput = Pa_GetDefaultOutputDeviceID();
+    selectedRing   = Pa_GetDefaultOutputDeviceID();
 
     RingBuffer_Init(&inRing, RBSZ, inRingBuf);
     RingBuffer_Init(&outRing, RBSZ, outRingBuf);
