@@ -1,0 +1,61 @@
+=======================================================================
+INTRODUCTION
+
+This is iaxComm, a portable IAX/IAX2 protocol telephony client.
+
+I had made some minor UI changes to Steve's wx client and renamed it
+iaxPhone without realizing there was already another project called
+iaxphone.
+
+When I renamed the app to iaxComm, I added minimize to systray functionality
+for the Win32 platform, and One Touch keys.
+
+Then I discovered wxWindows' XRC feature, which allows dialog boxen to be
+edited without recompiling.  Changing dialog box layout or languages can now
+be done without a recompile.
+
+The home page for iaxclient is "http://iaxclient.sourceforge.net/"
+
+=======================================================================
+LICENSES
+
+
+Like the iaxclient library, iaxComm is provided under the terms of the LGPL:
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+=======================================================================
+CONTRIBUTORS:
+
+iaxComm is based upon Steve Kann's wx client.
+
+=======================================================================
+BUILDING THE APPLICATION:
+
+NOTE: 
+
+First you must make sure you have XRC support installed.  (Check with wx
+Documentation for your platform)
+
+Developed/Tested on WinXP with MinGW
+
+Win32 MinGW: type "make"
+
+Untested:
+
+Linux: type "make" using standard gnu make/gcc
+FreeBSD: type "gmake" using standard gnu make/gcc
+MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
+

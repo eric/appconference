@@ -1,0 +1,178 @@
+<?xml version="1.0" ?>
+<resource version="2.3.0.1" xmlns="http://www.wxwindows.org/wxxrc">
+  <object class="wxDialog" name="Prefs">
+    <title>Preferences</title>
+    <centered>1</centered>
+    <object class="wxFlexGridSizer">
+      <cols>1</cols>
+      <rows>0</rows>
+      <vgap>0</vgap>
+      <hgap>0</hgap>
+      <growablecols>0</growablecols>
+      <growablerows>0</growablerows>
+      <object class="sizeritem">
+        <flag>wxGROW|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+        <border>5</border>
+        <object class="wxNotebook" name="PrefsNotebook">
+          <usenotebooksizer>1</usenotebooksizer>
+          <size>200,160</size>
+          <object class="notebookpage">
+            <label>Audio</label>
+            <object class="wxPanel" name="AudioTab">
+              <object class="wxFlexGridSizer">
+                <cols>1</cols>
+                <object class="spacer">
+                  <size>5,5</size>
+                </object>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label>Input Device:  </label>
+                      </object>
+                      <minsize>100,20</minsize>
+                      <flag>wxALIGN_RIGHT|wxALIGN_BOTTOM</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxChoice" name="InputDevice">
+                        <content/>
+                      </object>
+                      <minsize>260,24</minsize>
+                      <border>10</border>
+                      <flag>wxALIGN_RIGHT</flag>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <border>10</border>
+                  <minsize></minsize>
+                </object>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label>Output Device:  </label>
+                      </object>
+                      <minsize>100,20</minsize>
+                      <flag>wxALIGN_RIGHT|wxALIGN_BOTTOM</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxChoice" name="OutputDevice">
+                        <content/>
+                      </object>
+                      <minsize>260,24</minsize>
+                      <border>10</border>
+                      <flag>wxALIGN_RIGHT</flag>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <border>10</border>
+                  <minsize></minsize>
+                </object>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label>Ring Device:  </label>
+                      </object>
+                      <minsize>100,20</minsize>
+                      <flag>wxALIGN_RIGHT|wxALIGN_BOTTOM</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxChoice" name="RingDevice">
+                        <content/>
+                      </object>
+                      <minsize>260,24</minsize>
+                      <border>10</border>
+                      <flag>wxALIGN_RIGHT</flag>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <border>10</border>
+                  <minsize></minsize>
+                </object>
+                <vgap>8</vgap>
+              </object>
+            </object>
+          </object>
+          <object class="notebookpage">
+            <label>Appearance</label>
+            <object class="wxPanel" name="Appearance">
+              <object class="wxFlexGridSizer">
+                <cols>1</cols>
+                <object class="spacer">
+                  <size>5,5</size>
+                </object>
+                <object class="sizeritem">
+                  <object class="wxBoxSizer">
+                    <object class="spacer">
+                      <size>10,10</size>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxStaticText">
+                        <label>Show Keypad:  </label>
+                      </object>
+                      <minsize>100,20</minsize>
+                      <flag>wxALIGN_RIGHT|wxALIGN_BOTTOM</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxCheckBox" name="ShowKeyPad">
+                        <label>(Requires Restart)</label>
+                      </object>
+                      <minsize>260,24</minsize>
+                      <border>10</border>
+                      <flag>wxALIGN_RIGHT</flag>
+                    </object>
+                    <orient></orient>
+                  </object>
+                  <border>10</border>
+                  <minsize></minsize>
+                </object>
+                <vgap>8</vgap>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <object class="wxBoxSizer">
+          <object class="sizeritem">
+            <flag>wxALIGN_CENTRE|wxALL</flag>
+            <border>5</border>
+            <object class="wxButton" name="wxID_SAVE">
+              <label>Save</label>
+              <enabled>0</enabled>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxALIGN_CENTRE|wxALL</flag>
+            <border>5</border>
+            <object class="wxButton" name="wxID_APPLY">
+              <label>Apply</label>
+              <enabled>0</enabled>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <flag>wxALIGN_CENTRE|wxALL</flag>
+            <border>5</border>
+            <object class="wxButton" name="wxID_CANCEL">
+              <label>Cancel</label>
+            </object>
+          </object>
+          <orient></orient>
+        </object>
+        <border></border>
+        <minsize></minsize>
+        <flag>wxALL|wxALIGN_CENTER</flag>
+      </object>
+    </object>
+  </object>
+</resource>
