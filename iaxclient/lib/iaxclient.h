@@ -55,6 +55,7 @@ void iaxc_dump_call(void);
 void iaxc_reject_call(void);
 void iaxc_send_dtmf(char digit);
 int iaxc_was_call_answered();
+void iaxc_millisleep(long ms);
 
 typedef int (*iaxc_levels_callback_t)(float input, float output);
 void iaxc_set_levels_callback(iaxc_levels_callback_t func);
@@ -63,12 +64,6 @@ typedef void (*iaxc_message_callback_t)(char *);
 void iaxc_set_status_callback(iaxc_message_callback_t func);
 void iaxc_set_error_callback(iaxc_message_callback_t func);
 
-
-#ifdef WIN32
-#define iaxc_millisleep(x) Sleep(x)
-#else
-void iaxc_millisleep(long ms);
-#endif
 
 #ifdef __cplusplus
 }
