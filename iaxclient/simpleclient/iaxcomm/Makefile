@@ -46,7 +46,7 @@ ifeq ($(OSTYPE),LINUX)
 PROG=iaxcomm
 TARGET=iaxcomm
 CFLAGS:= $(CFLAGS) `wx-config --cflags` `gtk-config --cflags`
-EXTRALIBS = -lwx_gtk_xrc-2.4
+EXTRALIBS = /usr/lib/libwx_gtk_xrc-2.4.a
 SYSLIBS=$(EXTRALIBS) -lpthread -lm `wx-config --static --libs`
 endif
 

@@ -7,7 +7,7 @@
 // Copyright:   (c) Michael Van Donselaar ( michael@vandonselaar.org )
 // Licence:     GPL
 //----------------------------------------------------------------------------------------
-
+#define SPEAKER_RING
 //----------------------------------------------------------------------------------------
 // GCC implementation
 //----------------------------------------------------------------------------------------
@@ -189,7 +189,6 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     wxString   str;
     long       dummy;
     bool       bCont;
-    static int wow = 0;
 
     if(c.state & IAXC_CALL_STATE_RINGING) {
       wxGetApp().theFrame->Show();
@@ -252,27 +251,15 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                         iaxc_select_call(c.callNo);
                     }
                 } else {
-
-
-
-    SetAudioDevices(config->Read("/Input Device", ""),
-                    config->Read("/Output Device", ""),
-                    config->Read("/Output Device", ""));
-
                     iaxc_play_sound(&ringtone, 1);
+
+                    #ifdef SPEAKER_RING
+                    Beep(440,300);
+                    Beep(880,900);
+                    Beep(220,300);
+                    #endif
                 }
             } else {
-
-
-
-    SetAudioDevices(config->Read("/Input Device", ""),
-                    config->Read("/Output Device", ""),
-                    config->Read("/Ring Device", ""));
-
-
-
-
-
                 iaxc_stop_sound(ringtone.id);
                 if(complete) {
                     SetItem(c.callNo, 1, _T("ACTIVE") );
