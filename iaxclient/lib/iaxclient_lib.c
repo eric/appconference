@@ -1,5 +1,12 @@
 #include "iaxclient_lib.h"
 
+#ifdef __STDC__
+#include <stdarg.h>
+#else
+#include <varargs.h>
+#endif
+
+
 static int iAudioType;
 static int iEncodeType;
 
@@ -44,6 +51,42 @@ long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
 }
 
 
+// Messaging functions
+static void default_message_callback(char *message) {
+  fprintf(stderr, "IAXCLIENT: ");
+  fprintf(stderr, message);
+  fprintf(stderr, "\n");
+}
+iaxc_message_callback_t iaxc_error_callback = default_message_callback;
+iaxc_message_callback_t iaxc_status_callback = default_message_callback;
+
+void iaxc_set_error_callback(iaxc_message_callback_t func) {
+    iaxc_error_callback = func;
+}
+
+void iaxc_set_status_callback(iaxc_message_callback_t func) {
+    iaxc_status_callback = func;
+}
+
+#define IAXC_ERROR  1
+#define IAXC_STATUS 2
+
+static iaxc_usermsg(int type, const char *fmt, ...)
+{
+    va_list args;
+    char buf[256];
+
+    va_start(args, fmt);
+    vsnprintf(buf, 250, fmt, args);
+    va_end(args);
+
+    if(type == IAXC_ERROR)
+	iaxc_error_callback(buf);
+    else
+	iaxc_status_callback(buf);
+}
+
+
 
 // Parameters:
 // audType - Define whether audio is handled by library or externally
@@ -53,7 +96,7 @@ int iaxc_initialize(int audType, FILE *file) {
 	os_init();
 
 	if ( (port = iax_init(0) < 0)) {
-		fprintf(stderr, "Fatal error: failed to initialize iax with port %d\n", port);
+		iaxc_usermsg(IAXC_ERROR, "Fatal error: failed to initialize iax with port %d", port);
 		return -1;
 	}
 	netfd = iax_get_fd();
@@ -186,6 +229,8 @@ int service_audio()
 				iaxc_service_network(netfd, f);
 				break;
 		}
+	} else {
+		if(iaxc_levels_callback) iaxc_levels_callback(-99,-99);
 	}
 	return 0;
 }
@@ -208,7 +253,7 @@ void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p) {
 		    iEncodeType);
 #endif
 		if(cur < 0) {
-			fprintf(stderr, "Bad or incomplete voice packet.  Unable to decode. dropping\n");
+			iaxc_usermsg(IAXC_STATUS, "Bad or incomplete voice packet.  Unable to decode. dropping");
 			return;
 		} else {  /* its an audio packet to be output to user */
 			total_consumed += cur;
@@ -243,7 +288,7 @@ void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 	switch(e->etype) {
 		case IAX_EVENT_HANGUP:
 			iax_hangup(most_recent_answer->session, "Byeee!");
-			fprintf(f, "Call disconnected by peer\n");
+			iaxc_usermsg(IAXC_STATUS, "Call disconnected by remote");
 			free(most_recent_answer);
 			most_recent_answer = 0;
 			answered_call = 0;
@@ -253,10 +298,10 @@ void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 			break;
 
 		case IAX_EVENT_REJECT:
-			fprintf(f, "Authentication was rejected\n");
+			iaxc_usermsg(IAXC_STATUS, "Authentication rejected by remote");
 			break;
 		case IAX_EVENT_ACCEPT:
-			fprintf(f, "Waiting for answer... RING RING\n");
+			iaxc_usermsg(IAXC_STATUS,"RING RING");
 //			issue_prompt(f);
 			break;
 		case IAX_EVENT_ANSWER:
@@ -271,7 +316,7 @@ void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 		case IAX_EVENT_RINGA:
 			break;
 		default:
-			fprintf(f, "Unknown event: %d\n", e->etype);
+			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d", e->etype);
 			break;
 	}
 }
@@ -284,12 +329,12 @@ void iaxc_call(FILE *f, char *num)
 	if(!newcall)
 		newcall = iax_session_new();
 	else {
-		fprintf(f, "Already attempting to call somewhere, please cancel first!\n");
+		iaxc_usermsg(IAXC_STATUS, "Call already in progress");
 		return;
 	}
 
 	if ( !(peer = malloc(sizeof(struct peer)))) {
-		fprintf(f, "Warning: Unable to allocate memory!\n");
+		iaxc_usermsg(IAXC_ERROR, "Warning: Unable to allocate memory!");
 		return;
 	}
 
@@ -314,7 +359,7 @@ void iaxc_answer_call(void)
 {
 	if(most_recent_answer)
 		iax_answer(most_recent_answer->session);
-	printf("Answering call!\n");
+	iaxc_usermsg(IAXC_STATUS,"Connected");
 	answered_call = 1;
 }
 
@@ -325,7 +370,7 @@ void iaxc_dump_call(void)
 		iax_hangup(most_recent_answer->session,"");
 		free(most_recent_answer);
 	}
-	printf("Dumping call!\n");
+	iaxc_usermsg(IAXC_STATUS, "Hanging up");
 	answered_call = 0;
 	most_recent_answer = 0;
 	answered_call = 0;
@@ -395,34 +440,35 @@ static void do_iax_event(FILE *f) {
 			iax_event_free(e);
 		} else {
 			if(e->etype != IAX_EVENT_CONNECT) {
-				fprintf(stderr, "Huh? This is an event for a non-existant session?\n");
+				iaxc_usermsg(IAXC_STATUS, "Huh? This is an event for a non-existant session?");
 			}
 			sessions++;
 
 			if(sessions >= MAX_SESSIONS) {
-				fprintf(f, "Missed a call... too many sessions open.\n");
+				iaxc_usermsg(IAXC_STATUS, "Missed a call... too many sessions open.");
 			}
 
 #ifndef IAXC_IAX2
 			if(e->event.connect.callerid && e->event.connect.dnid)
-				fprintf(f, "Call from '%s' for '%s'", e->event.connect.callerid, 
+				iaxc_usermsg(IAXC_STATUS, "Call from '%s' for '%s'", e->event.connect.callerid, 
 				e->event.connect.dnid);
 			else if(e->event.connect.dnid) {
-				fprintf(f, "Call from '%s'", e->event.connect.dnid);
+				iaxc_usermsg(IAXC_STATUS, "Call from '%s'", e->event.connect.dnid);
 			} else if(e->event.connect.callerid) {
-				fprintf(f, "Call from '%s'", e->event.connect.callerid);
+				iaxc_usermsg(IAXC_STATUS, "Call from '%s'", e->event.connect.callerid);
 			} else 
 #endif
-			    printf("Call from");
-			fprintf(f, " (%s)\n", inet_ntoa(iax_get_peer_addr(e->session).sin_addr));
+				iaxc_usermsg(IAXC_STATUS, "Call from");
+
+			iaxc_usermsg(IAXC_STATUS, " (%s)", inet_ntoa(iax_get_peer_addr(e->session).sin_addr));
 
 			if(most_recent_answer) {
-				fprintf(f, "Incoming call ignored, there's already a call waiting for answer... \
-please accept or reject first\n");
+				iaxc_usermsg(IAXC_STATUS, "Incoming call ignored, there's already a call waiting for answer... \
+please accept or reject first");
 				iax_reject(e->session, "Too many calls, we're busy!");
 			} else {
 				if ( !(peer = malloc(sizeof(struct peer)))) {
-					fprintf(f, "Warning: Unable to allocate memory!\n");
+					iaxc_usermsg(IAXC_STATUS, "Warning: Unable to allocate memory!");
 					return;
 				}
 
@@ -437,7 +483,7 @@ please accept or reject first\n");
 				iax_accept(peer->session);
 				iax_ring_announce(peer->session);
 				most_recent_answer = peer;
-				fprintf(f, "Incoming call!\n");
+				iaxc_usermsg(IAXC_STATUS, "Incoming call!");
 			}
 			iax_event_free(e);
 //			issue_prompt(f);

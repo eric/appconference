@@ -94,6 +94,8 @@ void iaxc_service_network(int netfd, FILE *f);
 
 extern double iaxc_silence_threshold;
 extern iaxc_levels_callback_t iaxc_levels_callback;
+extern iaxc_message_callback_t iaxc_error_callback;
+extern iaxc_message_callback_t iaxc_status_callback;
 
 
 

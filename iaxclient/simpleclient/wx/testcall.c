@@ -109,6 +109,7 @@ int doTestCall(int argc, char **argv)
 	  iaxc_set_levels_callback(levels_callback); 
 
 
+#if 0		
 	fprintf(f, "\n\
 	    TestCall accept some keyboard input while it's running.\n\
 	    You must hit 'enter' for your keypresses to be recognized,\n\
@@ -120,7 +121,6 @@ int doTestCall(int argc, char **argv)
 	
 
 	printf("ready for keyboard input\n");
-#if 0		
 	while(c = getc(stdin)) {
 	    switch (tolower(c)) {
 	      case 'q':

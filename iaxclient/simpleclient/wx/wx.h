@@ -12,6 +12,7 @@ class IAXClient : public wxApp
 DECLARE_APP(IAXClient) 
 
 extern "C" {
+	void status_callback(char *msg);
 	int levels_callback(float input, float output);
 	int doTestCall(int ac, char **av);
 }

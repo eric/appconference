@@ -93,7 +93,7 @@ void DialPad::ButtonHandler(wxEvent &evt)
 {
 	int buttonNo = evt.m_id;	
 	char *button = buttonlabels[buttonNo];
-	fprintf(stderr, "got Button Event for button %s\n", button);
+	//fprintf(stderr, "got Button Event for button %s\n", button);
 	iaxc_send_dtmf(*button);
 }
 
@@ -121,7 +121,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
 
     CreateStatusBar();
-    SetStatusText("status text area");
+    SetStatusText("Welcome to IAXClient!");
     
     row1sizer->Add(dialPad = new DialPad(this, wxDefaultPosition, wxDefaultSize),1, wxEXPAND);
 
@@ -159,7 +159,7 @@ void IAXFrame::ButtonHandler(wxEvent &evt)
 {
 	int buttonNo = evt.m_id;	
 
-	fprintf(stderr, "got Button Event for button %d\n", buttonNo);
+	//fprintf(stderr, "got Button Event for button %d\n", buttonNo);
 
 	switch(buttonNo) {
 		case 101:
@@ -202,12 +202,19 @@ bool IAXClient::OnInit()
 	SetTopWindow(theFrame); 
     
 	doTestCall(0,NULL);
+	iaxc_set_error_callback(status_callback);
+	iaxc_set_status_callback(status_callback);
 
 	return true; 
 
 }
 
 extern "C" {
+   void status_callback(char *msg)
+   {
+      theFrame->SetStatusText(msg);
+   }
+
    int levels_callback(float input, float output)
    {
       if (input < LEVEL_MIN)
