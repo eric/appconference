@@ -1583,6 +1583,8 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 	}
 	if (username)
 		iax_ie_append_str(&ied, IAX_IE_USERNAME, username);
+	if (exten && strlen(exten))
+		iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, exten);
 	if (dnid && strlen(dnid))
 		iax_ie_append_str(&ied, IAX_IE_DNID, dnid);
 	if (context && strlen(context))
