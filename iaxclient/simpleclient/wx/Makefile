@@ -3,7 +3,7 @@ CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portau
 
 #debug
 CFLAGS:= $(CFLAGS) -g
-OBJS= wx.o testcall.o	
+OBJS= wx.o 
 REZ=echo
 
 

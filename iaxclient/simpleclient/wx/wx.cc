@@ -5,8 +5,7 @@
 #include  "wx/wx.h"
 #endif 
 
-#include  "wx.h"  
-
+#include "wx/cmdline.h"
 #include "iaxclient.h"
 
 
@@ -23,7 +22,26 @@
 #define LEVEL_MIN -50
 #define DEFAULT_SILENCE_THRESHOLD 1 // positive is "auto"
 
+class IAXClient : public wxApp
+{
+          public:
+	          virtual bool OnInit();
+		  virtual bool OnCmdLineParsed(wxCmdLineParser& p);
+		  virtual void OnInitCmdLine(wxCmdLineParser& p);
+};
+
+DECLARE_APP(IAXClient)
+
 IMPLEMENT_APP(IAXClient) 
+
+// forward decls for callbacks
+extern "C" {
+     void status_callback(char *msg);
+     int levels_callback(float input, float output);
+     int doTestCall(int ac, char **av);
+}
+
+
 
 // event constants
 enum
@@ -380,21 +398,47 @@ IAXFrame::~IAXFrame()
     gdk_window_destroy(keyStateWindow);
 #endif
     iaxc_stop_processing_thread();
+    iaxc_shutdown();
+}
+
+
+void IAXClient::OnInitCmdLine(wxCmdLineParser& p)
+{
+     // declare our CmdLine options and stuff.
+     p.AddSwitch(_T("d"),_T("disable-dialpad"),_T("Disable Dial Pad"));
+}
+
+bool IAXClient::OnCmdLineParsed(wxCmdLineParser& p)
+{
+    if(p.Found(_T("d"))) 
+	fprintf(stderr, "found -d switch\n");
+
+    return true;
 }
 
 bool IAXClient::OnInit() 
 { 
+	if(!wxApp::OnInit())
+	  return false;
+
 	theFrame = new IAXFrame("IAXTest", 0,0,130,220);
+
 
 	theFrame->Show(TRUE); 
 	SetTopWindow(theFrame); 
     
-	doTestCall(0,NULL);
+        iaxc_initialize(AUDIO_INTERNAL_PA);
+
+        iaxc_set_encode_format(IAXC_FORMAT_GSM);
+        iaxc_set_silence_threshold(0);
+	iaxc_set_levels_callback(levels_callback);
 	iaxc_set_error_callback(status_callback);
 	iaxc_set_status_callback(status_callback);
 
-	return true; 
+        iaxc_start_processing_thread();
 
+
+	return true; 
 }
 
 
