@@ -23,6 +23,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <errno.h>
+#include <limits.h>
 
 
 #define	snprintf _snprintf
