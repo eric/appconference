@@ -22,7 +22,6 @@ struct ast_onering *ast_onering_new(void)
 	}
 	s->len = 0;
 	memset(s->data,0x0,sizeof(s->data));
-	memset(s->framedata,0x0,sizeof(s->framedata));
 	return s; 
 }
 

@@ -416,6 +416,8 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 			res = 0;
 			ast_frfree(f);
 		    } else {
+			// this doesnt have to be an error, because * doesnt send iax audio frames when it
+			// has nothing to send, for example in the demo context before Sandy says goodbye.
 			// remember that this member didnt give us data
 			bufferl->ringfails++;
 			if (bufferl->ringfails > 100) {
@@ -436,30 +438,16 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	ast_pthread_mutex_unlock(&(conference->memberlock));
 	ast_pthread_mutex_unlock(&(conference->lock));
 
-	if (res == 0) {
-	    fout = malloc(sizeof(struct ast_frame));
-	    fout->frametype = AST_FRAME_VOICE;
-	    fout->subclass = AST_FORMAT_SLINEAR;
-	    fout->samples = samples;
-	    fout->datalen = samples * 2;
-	    fout->offset = AST_FRIENDLY_OFFSET;
-	    fout->mallocd = AST_MALLOCD_HDR | AST_MALLOCD_DATA;
-	    fout->data = databuf + AST_FRIENDLY_OFFSET;
-	    fout->src = NULL;
-	    return fout;
-	} else {
-	    fout = malloc(sizeof(struct ast_frame));
-	    fout->frametype = AST_FRAME_VOICE;
-	    fout->subclass = AST_FORMAT_SLINEAR;
-	    fout->samples = samples;
-	    fout->datalen = samples * 2;
-	    fout->offset = AST_FRIENDLY_OFFSET;
-	    fout->mallocd =  AST_MALLOCD_HDR | AST_MALLOCD_DATA;
-	    fout->data = databuf + AST_FRIENDLY_OFFSET;
-	    fout->src = NULL;
-	    memset(databuf,0,(samples * 2) + AST_FRIENDLY_OFFSET);
-	    return fout;
-	}
+	fout = malloc(sizeof(struct ast_frame));
+	fout->frametype = AST_FRAME_VOICE;
+	fout->subclass = AST_FORMAT_SLINEAR;
+	fout->samples = samples;
+	fout->datalen = samples * 2;
+	fout->offset = AST_FRIENDLY_OFFSET;
+	fout->mallocd = AST_MALLOCD_HDR | AST_MALLOCD_DATA;
+	fout->data = databuf + AST_FRIENDLY_OFFSET;
+	fout->src = NULL;
+	return fout;
 }
 
 static int send_audio(struct ast_conference *conference, struct ast_conf_member *member, int ms) {
@@ -469,27 +457,19 @@ static int send_audio(struct ast_conference *conference, struct ast_conf_member 
 	if (cf != NULL) {
 	    if (member->smoother != NULL) {
 		ast_smoother_feed(member->smoother,cf);
-/*		if (cf->data) {
-    		    free(cf->data);
-		}
-		free(cf); */
+		ast_frfree(cf);
 		while (cf = ast_smoother_read(member->smoother)) {
 		    ast_write(member->chan,cf);
+		    ast_frfree(cf);
 		}
 	    } else {
 		ast_write(member->chan,cf);
-/*		if (cf->data) {
-    		    free(cf->data);
-		}
-		free(cf); */
+		ast_frfree(cf);
 	    }
 	    return 0;
 	} else {
 	    /* kaboom */
-	    ast_log(LOG_NOTICE,"silence is golden...\n");
-//	    return -1;
-//	    nf.frametype == AST_FRAME_NULL;
-//	    ast_write(member->chan,cf);
+	    ast_log(LOG_ERROR,"couldnt read a frame from the conference!\n");
 	    return 0;	    
 	}
 }
