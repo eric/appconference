@@ -22,6 +22,8 @@
 #define LEVEL_MIN -50
 #define DEFAULT_SILENCE_THRESHOLD 1 // positive is "auto"
 
+#define TRY_GUILOCK
+
 class IAXClient : public wxApp
 {
           public:
@@ -119,10 +121,12 @@ public:
     bool pttState; // is the PTT button pressed?
     bool silenceMode;  // are we in silence suppression mode?
 
+#ifndef TRY_GUILOCK
     // values set by callbacks
     int	      inputLevel;
     int	      outputLevel;
     wxString  statusString;
+#endif
 
 protected:
     DECLARE_EVENT_TABLE()
@@ -136,11 +140,10 @@ static IAXFrame *theFrame;
 
 void IAXFrame::OnNotify()
 {
+#ifndef TRY_GUILOCK
     static wxString lastStatus;
     static int lastInputLevel = 0;
     static int lastOutputLevel = 0;
-
-    if(pttMode) CheckPTT(); 
 
     if(statusString != lastStatus) {
       SetStatusText(statusString);
@@ -156,6 +159,9 @@ void IAXFrame::OnNotify()
       output->SetValue(outputLevel); 
       lastOutputLevel = outputLevel;
     }
+#endif
+
+    if(pttMode) CheckPTT(); 
 }
 
 void IAXTimer::Notify()
@@ -174,9 +180,11 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
     pttMode = false;
+#ifndef TRY_GUILOCK
     inputLevel = 0;
     outputLevel = 0;
     statusString = _T("Welcome to IAXClient");
+#endif
 
 
 
@@ -409,7 +417,10 @@ END_EVENT_TABLE()
 IAXFrame::~IAXFrame()
 {
 #ifdef __WXGTK__
+#if 0
+    // apparently, I'm not supposed to destroy this, cause it's a "root" window
     gdk_window_destroy(keyStateWindow);
+#endif
 #endif
     iaxc_stop_processing_thread();
     iaxc_shutdown();
@@ -428,11 +439,11 @@ bool IAXClient::OnCmdLineParsed(wxCmdLineParser& p)
 {
     if(p.Found(_T("d"))) { 
 	optNoDialPad = true;
-	fprintf(stderr, "-d option found\n");
+	//fprintf(stderr, "-d option found\n");
     }
     if(p.GetParamCount() >= 1) {
 	optDestination=p.GetParam(0);
-	fprintf(stderr, "dest is %s\n", optDestination.c_str());
+	//fprintf(stderr, "dest is %s\n", optDestination.c_str());
     }
 
     return true;
@@ -487,22 +498,57 @@ extern "C" {
     */
    void status_callback(char *msg)
    {
+#ifdef TRY_GUILOCK
+      static wxString lastStatus;
+      if(lastStatus == msg) return;
+
+      if (!wxThread::IsMain()) wxMutexGuiEnter();
+      theFrame->SetStatusText(msg);
+      lastStatus = msg;
+      if (!wxThread::IsMain()) wxMutexGuiLeave();
+#else
       theFrame->statusString = wxString(msg);
+#endif
+
    }
 
    int levels_callback(float input, float output)
    {
+      int inputLevel, outputLevel;
 
       if (input < LEVEL_MIN)
 	input = LEVEL_MIN; 
       else if (input > LEVEL_MAX)
 	input = LEVEL_MAX;
-      theFrame->inputLevel = (int)input - (LEVEL_MIN); 
+      inputLevel = (int)input - (LEVEL_MIN); 
 
       if (output < LEVEL_MIN)
 	output = LEVEL_MIN; 
       else if (input > LEVEL_MAX)
 	output = LEVEL_MAX;
+      outputLevel = (int)output - (LEVEL_MIN); 
+
+#ifdef TRY_GUILOCK
+      static int lastInputLevel = 0;
+      static int lastOutputLevel = 0;
+
+      if (!wxThread::IsMain()) wxMutexGuiEnter();
+
+	if(lastInputLevel != inputLevel) {
+	  theFrame->input->SetValue(inputLevel); 
+	  lastInputLevel = inputLevel;
+	}
+
+	if(lastOutputLevel != outputLevel) {
+	  theFrame->output->SetValue(outputLevel); 
+	  lastOutputLevel = outputLevel;
+	}
+
+      if (!wxThread::IsMain()) wxMutexGuiLeave();
+#else
+      theFrame->inputLevel = (int)input - (LEVEL_MIN); 
       theFrame->outputLevel = (int)output - (LEVEL_MIN); 
+#endif
+     return 0;
    }
 }
