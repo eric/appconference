@@ -121,6 +121,7 @@ void iaxc_do_levels_callback(float input, float output)
 void iaxc_do_state_callback(int callNo)
 {  
       iaxc_event e;   
+      if(callNo < 0 || callNo >= nCalls) return;
       e.type = IAXC_EVENT_STATE;
       e.ev.call.callNo = callNo;
       e.ev.call.state = calls[callNo].state;
