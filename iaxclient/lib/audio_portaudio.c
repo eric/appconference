@@ -21,15 +21,20 @@
 
 #include "iaxclient_lib.h"
 
+static PortAudioStream *iStream, *oStream;
 
-static PABLIO_Stream *iStream;
-static PABLIO_Stream *oStream;
+static selectedInput, selectedOutput;
+
+#define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
+
+#define RBSZ 1024 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
+static char inRingBuf[RBSZ], outRingBuf[RBSZ]; 
+static RingBuffer inRing, outRing;
+
 static int oneStream;
 static int virtualMono;
-static const PaDeviceInfo **inputDevices;
-static const PaDeviceInfo **outputDevices;
-static int nInputDevices;
-static int nOutputDevices;
+
+static int running;
 
 /* scan devices and stash pointers to dev structures. 
  *  But, these structures only remain valid while Pa is initialized,
@@ -38,129 +43,38 @@ static int nOutputDevices;
  *  PaDeviceID's associated with devices (since their index in these
  *  input/output arrays isn't the same as their index in the combined
  *  array */
-static int pa_scan_devices() {
+static int scan_devices(struct iaxc_audio_driver *d) {
     int nDevices; 
     int i;
 
-    /* we may be called multiple times */
-    if(inputDevices){ 
-	free(inputDevices);
-	inputDevices=NULL;
-    }
-
-    if(outputDevices){ 
-	free(outputDevices);
-	outputDevices=NULL;
-    }
-
-    nInputDevices = nOutputDevices = 0;
-
-    nDevices = Pa_CountDevices();
-
-    /* allocate in/out arrays big enough for all devices */
-    inputDevices = malloc(nDevices * sizeof(PaDeviceInfo *));
-    outputDevices = malloc(nDevices * sizeof(PaDeviceInfo *));
+    d->nDevices = nDevices = Pa_CountDevices();
+    d->devices = malloc(nDevices * sizeof(struct iaxc_audio_device));
 
     for(i=0;i<nDevices;i++)
     {
-	const PaDeviceInfo *d;	
-	d=Pa_GetDeviceInfo(i);
+	const PaDeviceInfo *pa;	
+	struct iaxc_audio_device *dev;
 
-	if(d->maxInputChannels > 0)
-	  inputDevices[nInputDevices++] = d;
+	pa=Pa_GetDeviceInfo(i);
+	dev = &(d->devices[i]);
 
-	if(d->maxOutputChannels > 0)
-	  outputDevices[nOutputDevices++] = d;
+	dev->name = (char *)pa->name;
+	dev->devID = i;
+	dev->capabilities = 0;
+
+	if(pa->maxInputChannels > 0)
+	  dev->capabilities |= IAXC_AD_INPUT;
+
+	if(pa->maxOutputChannels > 0)
+	  dev->capabilities |= IAXC_AD_OUTPUT;
+
+	if(i == Pa_GetDefaultInputDeviceID())
+	  dev->capabilities |= IAXC_AD_INPUT_DEFAULT;
+
+	if(i == Pa_GetDefaultOutputDeviceID())
+	  dev->capabilities |= IAXC_AD_OUTPUT_DEFAULT;
     }
 }
-
-
-/* some commentaty here:
- * 1: MacOSX: MacOSX needs "virtual mono" and a single stream.  That's
- * really the only choice there, and it should always work (Famous last
- * words).
- *
- * 2: Unix/OSS: most cards are OK with real mono, and a single stream.
- * Except some.  For those, a single open with real mono will succeed,
- * but execution will fail.  Maybe others will open OK with a single
- * stream, and real mono, but fail later?
- *
- * The failure mode I saw with a volunteer was that reads/writes would
- * return -enodev (down in the portaudio code).  Bummer.
- *
- * Win32 works fine, in all cases, with a single stream and real mono,
- * so far.
- * */
-
-int pa_initialize_audio() {
-    PaError  err;
-
-    /* Open simplified blocking I/O layer on top of PortAudio. */
-
-#ifndef MACOSX
-    /* first, try opening one stream for in/out, Mono */
-    /* except for MacOSX, which needs virtual stereo */
-    err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_READ  | PABLIO_WRITE | PABLIO_MONO) );
-    
-    if( err == paNoError ) {
-	/* if this works, set iStream, oStream to this stream */
-	oStream = iStream;
-	oneStream = 1;
-	virtualMono = 0;
-	return 0;
-    }
-#endif
-
-#ifndef LINUX
-    /* then, we try a single stream, virtual stereo.  Except on linux,
-     * see note above */
-    err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_READ  | PABLIO_WRITE | PABLIO_STEREO) );
-    
-    if( err == paNoError ) {
-	/* if this works, set iStream, oStream to this stream */
-	oStream = iStream;
-	oneStream = 1;
-	virtualMono = 1;
-	return 0;
-    }
-#endif
-
-    /* finally, we go to the worst case.  Two opens, virtual mono */
-    oneStream = 0;
-    virtualMono = 1;
-    err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_READ  | PABLIO_STEREO) );
-    if( err != paNoError ) 
-    {
-	handle_paerror(err, "opening separate input stream");
-	return -1;
-    }
-    err = OpenAudioStream( &oStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_WRITE  | PABLIO_STEREO) );
-    if( err != paNoError ) 
-    {
-	handle_paerror(err, "opening separate output stream");
-	return -1;
-    }
-
-    return 0;
-}
-
-void pa_shutdown_audio() {
-    CloseAudioStream( iStream );
-    if(!oneStream) CloseAudioStream( oStream );
-}
-
-void handle_paerror(PaError err, char * where) {
-	fprintf(stderr, "PortAudio error at %s: %s\n", where, Pa_GetErrorText(err));
-}
-
-void pa_read_audio_input() {
-
-}
-
 
 void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples) {
     int i;
@@ -181,43 +95,277 @@ void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples) {
     }
 }
 
-void pa_play_recv_audio(void *fr, int fr_size) {
-      
-	SAMPLE stereobuf[FRAMES_PER_BLOCK * 2];
-	SAMPLE *buf;
-	if(GetAudioStreamWriteable(oStream) < FRAMES_PER_BLOCK)
-	{
-	      //fprintf(stderr, "audio_portaudio: audio output overflow\n");
-	      return;
-	}
+int pa_callback(void *inputBuffer, void *outputBuffer,
+	    unsigned long framesPerBuffer, PaTimestamp outTime, void *userData ) {
+    int totBytes = framesPerBuffer * sizeof(SAMPLE);
 
+    short virtualBuffer[FRAMES_PER_BUFFER * 2];
+
+    if(virtualMono && framesPerBuffer > FRAMES_PER_BUFFER) {
+	fprintf(stderr, "ERROR: buffer in callback is too big!\n");
+	exit(1);
+    }
+
+    if(inputBuffer) {
+	/* input overflow might happen here */
 	if(virtualMono) {
-	    mono2stereo(stereobuf, (SAMPLE *)fr, FRAMES_PER_BLOCK);
-	    buf = stereobuf;
+	  stereo2mono(virtualBuffer, inputBuffer, framesPerBuffer);
+	  RingBuffer_Write(&inRing, virtualBuffer, totBytes);
 	} else {
-	    buf = (SAMPLE *)fr;
+	  RingBuffer_Write(&inRing, inputBuffer, totBytes);
+	}
+    }
+    if(outputBuffer)
+    {  
+	int bWritten;
+	/* output underflow might happen here */
+	if(virtualMono) {
+	  bWritten = RingBuffer_Read(&outRing, virtualBuffer, totBytes);
+	  mono2stereo(outputBuffer, virtualBuffer, bWritten/2);
+	  bWritten *=2;
+	} else {
+	  bWritten = RingBuffer_Read(&outRing, outputBuffer, totBytes);
 	}
 
-	// Play the audio as decoded
-	WriteAudioStream(oStream, buf, FRAMES_PER_BLOCK);
+	/* zero underflowed space [ silence might be more golden than garbage? ] */
+	if(bWritten < totBytes)
+	    memset(outputBuffer + bWritten, 0, totBytes - bWritten);
+    }
+    return 0; 
 }
 
-void pa_send_audio(struct timeval *lastouttm, struct iaxc_call *most_recent_answer, int iEncodeType) {
-	SAMPLE samples[FRAMES_PER_BLOCK * 2]; // could be stereo
-	SAMPLE monobuf[FRAMES_PER_BLOCK];
-	SAMPLE *buf;
 
-	/* send all available complete frames */
-	while(GetAudioStreamReadable(iStream) >= (FRAMES_PER_BLOCK))
-	{
-		ReadAudioStream(iStream, samples, FRAMES_PER_BLOCK);
-		if(virtualMono) {
-		    stereo2mono(monobuf, samples, FRAMES_PER_BLOCK);
-		    buf = monobuf;
-		} else {
-		    buf = samples;
-		}
-		send_encoded_audio(most_recent_answer, buf, iEncodeType);
+/* some commentaty here:
+ * 1: MacOSX: MacOSX needs "virtual mono" and a single stream.  That's
+ * really the only choice there, and it should always work (Famous last
+ * words).
+ *
+ * 2: Unix/OSS: most cards are OK with real mono, and a single stream.
+ * Except some.  For those, a single open with real mono will succeed,
+ * but execution will fail.  Maybe others will open OK with a single
+ * stream, and real mono, but fail later?
+ *
+ * The failure mode I saw with a volunteer was that reads/writes would
+ * return -enodev (down in the portaudio code).  Bummer.
+ *
+ * Win32 works fine, in all cases, with a single stream and real mono,
+ * so far.
+ * */
+int pa_openstreams (struct iaxc_audio_driver *d ) {
+    PaError err;
+#ifndef MACOSX
+    /* first, try opening one stream for in/out, Mono */
+    /* except for MacOSX, which needs virtual stereo */
+    err = Pa_OpenStream ( &iStream, 
+	      selectedInput,  1, paInt16, NULL,  /* input info */
+	      selectedOutput, 1, paInt16, NULL,  /* output info */
+	      8000.0, 
+	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
+	      0,   /* numbuffers */  /* use default */
+	      0,   /* flags */
+	      pa_callback, 
+	      NULL /* userdata */
+      );
+      
+    if( err == paNoError ) {
+	/* if this works, set iStream, oStream to this stream */
+	oStream = iStream;
+	oneStream = 1;
+	virtualMono = 0;
+	return 0;
+    }
+#endif
+
+#ifndef LINUX
+    /* then, we try a single stream, virtual stereo.  Except on linux,
+     * see note above */
+    err = Pa_OpenStream ( &iStream, 
+	      selectedInput,  2, paInt16, NULL,  /* input info */
+	      selectedOutput, 2, paInt16, NULL,  /* output info */
+	      8000.0, 
+	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
+	      0,   /* numbuffers */  /* use default */
+	      0,   /* flags */
+	      pa_callback, 
+	      NULL /* userdata */
+      );
+    
+    if( err == paNoError ) {
+	/* if this works, set iStream, oStream to this stream */
+	oStream = iStream;
+	oneStream = 1;
+	virtualMono = 1;
+	return 0;
+    }
+#endif
+
+    /* finally, we go to the worst case.  Two opens, virtual mono */
+    oneStream = 0;
+    virtualMono = 1;
+    err = Pa_OpenStream ( &iStream, 
+	      selectedInput,  2, paInt16, NULL,  /* input info */
+	      paNoDevice, 0, paInt16, NULL,  /* output info */
+	      8000.0, 
+	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
+	      0,   /* numbuffers */  /* use default */
+	      0,   /* flags */
+	      pa_callback, 
+	      NULL /* userdata */
+      );
+    if( err != paNoError ) 
+    {
+	handle_paerror(err, "opening separate input stream");
+	return -1;
+    }
+
+    err = Pa_OpenStream ( &oStream, 
+	      paNoDevice, 0, paInt16, NULL,  /* input info */
+	      selectedOutput,  2, paInt16, NULL,  /* output info */
+	      8000.0, 
+	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
+	      0,   /* numbuffers */  /* use default */
+	      0,   /* flags */
+	      pa_callback, 
+	      NULL /* userdata */
+      );
+    if( err != paNoError ) 
+    {
+	handle_paerror(err, "opening separate output stream");
+	return -1;
+    }
+
+    return 0;
+}
+
+int pa_start (struct iaxc_audio_driver *d ) {
+    PaError err;
+
+    if(running) return 0;
+	
+    //fprintf(stderr, "starting pa\n");
+
+    if(pa_openstreams(d)) 
+      return -1;
+
+    err = Pa_StartStream(iStream); 
+    if(err != paNoError)
+	return -1;
+
+    if(!oneStream){ 
+	err = Pa_StartStream(oStream);
+	if(err != paNoError) {
+	    Pa_StopStream(iStream);
+	    return -1;
 	}
+    }
+
+    running = 1;
+    return 0;
 }
 
+int pa_stop (struct iaxc_audio_driver *d ) {
+    PaError err;
+
+    if(!running) return 0;
+
+    err = Pa_AbortStream(iStream); 
+    err = Pa_CloseStream(iStream); 
+
+    if(!oneStream){ 
+	err = Pa_AbortStream(oStream);
+	err = Pa_CloseStream(oStream);
+    }
+
+    running = 0;
+    return 0;
+}
+
+void pa_shutdown_audio() {
+    CloseAudioStream( iStream );
+    if(!oneStream) CloseAudioStream( oStream );
+}
+
+void handle_paerror(PaError err, char * where) {
+	fprintf(stderr, "PortAudio error at %s: %s\n", where, Pa_GetErrorText(err));
+}
+
+int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
+	static SAMPLE *stereoBuf = NULL;
+	static int stereoBufSiz = 0;
+	int bytestoread;
+
+	bytestoread = *nSamples * sizeof(SAMPLE);
+ 
+
+	/* we don't return partial buffers */
+	if(RingBuffer_GetReadAvailable(&inRing) < bytestoread) {
+	    *nSamples = 0;
+	    return 0;	
+	}
+
+	RingBuffer_Read(&inRing, samples, bytestoread);
+}
+
+int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
+	static SAMPLE *stereoBuf = NULL;
+	static int stereoBufSiz = 0;
+	int bytestowrite = nSamples * sizeof(SAMPLE);
+
+	RingBuffer_Write(&outRing, samples, bytestowrite);
+
+	return 0;
+}
+
+int pa_select_input (struct iaxc_audio_driver *d, int input) {
+    selectedInput = input;
+    if(running) {
+      pa_stop(d);
+      pa_start(d);
+    }
+}
+
+int pa_select_output (struct iaxc_audio_driver *d, int output) {
+    selectedOutput = output;
+    if(running) {
+      pa_stop(d);
+      pa_start(d);
+    }
+}
+
+int pa_destroy (struct iaxc_audio_driver *d ) {
+    //implementme
+    return 0;
+}
+
+/* initialize audio driver */
+int pa_initialize (struct iaxc_audio_driver *d ) {
+    PaError  err;
+
+    /* initialize portaudio */
+    if(paNoError != (err = Pa_Initialize()))
+	return err;
+
+    /* scan devices */
+    scan_devices(d);
+
+    /* setup methods */
+    d->initialize = pa_initialize;
+    d->destroy = pa_destroy;
+    d->select_input = pa_select_input;
+    d->select_output = pa_select_output;
+    d->start = pa_start;
+    d->stop = pa_stop;
+    d->output = pa_output;
+    d->input = pa_input;
+
+    /* setup private data stuff */
+    selectedInput  = Pa_GetDefaultInputDeviceID();
+    selectedOutput = Pa_GetDefaultOutputDeviceID();
+
+    RingBuffer_Init(&inRing, RBSZ, inRingBuf);
+    RingBuffer_Init(&outRing, RBSZ, outRingBuf);
+
+    running = 0;
+
+    return 0;
+}

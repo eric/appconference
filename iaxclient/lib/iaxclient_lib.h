@@ -59,7 +59,6 @@ pthread_create(&thread, NULL, func, args)
 #endif
 
 
-#define RBUFSIZE 256
 #define MAXARGS 10
 #define MAXARG 256
 #define MAX_SESSIONS 4
@@ -76,16 +75,44 @@ void iaxc_service_network(int netfd);
 void iaxc_do_levels_callback(float input, float output);
 
 
-#if 0
-/* Audio Driver Abstraction TODO */
-struct audio_driver_struct {
-	char *name;
-	int (*initialize)(struct audio_driver_struct *d);
+#define IAXC_AD_INPUT		(1<<0)
+#define IAXC_AD_OUTPUT		(1<<1)
+#define IAXC_AD_INPUT_DEFAULT	(1<<2)
+#define IAXC_AD_OUTPUT_DEFAULT	(1<<3)
 
+struct iaxc_audio_device {
+	char *name; 		/* name of the device */
+	long capabilities; 	/* flags, defined above */
+	int devID; 		/* driver-specific ID */
+};
+
+struct iaxc_audio_driver {
+	/* data */
+	char *name; 	/* driver name */
+	struct iaxc_audio_device *devices; /* list of devices */
+	int nDevices;	/* count of devices */
+	void *priv;	/* pointer to private data */
+
+	/* methods */
+	int (*initialize)(struct iaxc_audio_driver *d);
+	int (*destroy)(struct iaxc_audio_driver *d);  /* free resources */
+	int (*select_input)(struct iaxc_audio_driver *d, int devID);
+	int (*select_output)(struct iaxc_audio_driver *d, int devID);
+
+	/* 
+	 * select_ring ? 
+	 * set_input_level
+	 * set_output_level
+	 * set_latency
+	 */
+
+	int (*start)(struct iaxc_audio_driver *d);
+	int (*stop)(struct iaxc_audio_driver *d);
+	int (*output)(struct iaxc_audio_driver *d, void *samples, int nSamples);
+	int (*input)(struct iaxc_audio_driver *d, void *samples, int *nSamples);
 }; 
-typedef struct audio_driver_struct *iaxc_audio_driver;
 
-#endif
+
 
 #include "iaxclient.h"
 

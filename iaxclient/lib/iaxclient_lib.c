@@ -19,6 +19,7 @@ struct iaxc_registration {
 
 struct iaxc_registration *registrations = NULL;
 
+struct iaxc_audio_driver audio;
 
 static int iAudioType;
 static int iEncodeType;
@@ -28,7 +29,6 @@ MUTEX iaxc_lock;
 int netfd;
 int port;
 int c, i;
-char rcmd[RBUFSIZE];
 
 int iaxc_audio_output_mode = 0; // Normal
 
@@ -230,14 +230,15 @@ int iaxc_initialize(int audType, int inCalls) {
 
 	gettimeofday(&lastouttm,NULL);
 	switch (iAudioType) {
-		case AUDIO_INTERNAL:
 #ifdef USE_WIN_AUDIO
+		case AUDIO_INTERNAL:
 			if (win_initialize_audio() != 0)
 				return -1;
-#endif
 			break;
+#endif
+		default:
 		case AUDIO_INTERNAL_PA:
-			if (pa_initialize_audio() != 0)
+			if (pa_initialize(&audio))
 				return -1;
 			break;
 	}
@@ -247,16 +248,9 @@ int iaxc_initialize(int audType, int inCalls) {
 void iaxc_shutdown() {
 	MUTEXLOCK(&iaxc_lock);
 	iaxc_dump_all_calls();
-	switch (iAudioType) {
-		case AUDIO_INTERNAL:
-#ifdef USE_WIN_AUDIO
-			win_shutdown_audio();
-#endif
-			break;
-		case AUDIO_INTERNAL_PA:
-			pa_shutdown_audio();
-			break;
-	}
+
+	audio.destroy(&audio);
+
 	MUTEXUNLOCK(&iaxc_lock);
 	MUTEXDESTROY(&iaxc_lock);
 }
@@ -350,27 +344,36 @@ int service_audio()
 	if( (calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) 
 	    || (calls[selected_call].state & IAXC_CALL_STATE_COMPLETE)) 
 	{
-		switch (iAudioType) {
-			case AUDIO_INTERNAL:
-				iaxc_service_network(netfd);
-#ifdef USE_WIN_AUDIO			
-				win_process_audio_buffers(&lastouttm, &calls[selected_call], iEncodeType);		
-#endif
-				iaxc_service_network(netfd);
-				break;
-			case AUDIO_INTERNAL_PA:
-				iaxc_service_network(netfd);
-				pa_send_audio(&lastouttm, &calls[selected_call], iEncodeType);
-				break;
-			default:
-				iaxc_service_network(netfd);
-				iaxc_external_service_audio();
-				iaxc_service_network(netfd);
-				break;
+	    /* FIXME: frame size should be variable? */
+	    short buf[160];
+	    int toRead;
+
+	    // make sure audio is running
+	    if(audio.start(&audio))
+	    {
+	    	iaxc_usermsg(IAXC_ERROR, "Can't start audio");
+	    }
+
+	    for(;;) {
+		toRead = 160;
+		if(audio.input(&audio,buf,&toRead))
+		{
+		    iaxc_usermsg(IAXC_ERROR, "ERROR reading audio\n");
+		    break;
 		}
+		if(!toRead) break;  /* frame not available */
+		/* currently, pa will always give us 0 or what we asked
+		 * for samples */
+
+		send_encoded_audio(&calls[selected_call], buf, iEncodeType);
+	    }
+
 	} else {
-		static int i=0;
-		if(i++ % 50 == 0) iaxc_do_levels_callback(-99,-99);
+	    static int i=0;
+	    if(i++ % 50 == 0) iaxc_do_levels_callback(-99,-99);
+
+	    // make sure audio is stopped
+	    audio.stop(&audio);
 	}
 	return 0;
 }
@@ -405,23 +408,10 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 			return;
 		} else {  /* its an audio packet to be output to user */
 			total_consumed += cur;
-			if(iaxc_audio_output_mode != 0) continue;
-			switch (iAudioType) {
-				case AUDIO_INTERNAL:
-#ifdef USE_WIN_AUDIO
-					win_flush_audio_output_buffers();
-					win_play_recv_audio(fr, sizeof(fr));
-#else
-#endif
-					break;
 
-				case AUDIO_INTERNAL_PA:
-					pa_play_recv_audio(fr, sizeof(fr));
-					break;
-				case AUDIO_EXTERNAL:
-					// Add external audio callback here
-					break;
-			}
+			if(iaxc_audio_output_mode != 0) continue;
+
+			audio.output(&audio,fr,sizeof(fr)/2);
 		}
 	}
 }
