@@ -21,7 +21,7 @@
 
 #define LEVEL_MAX -10
 #define LEVEL_MIN -50
-#define DEFAULT_SILENCE_THRESHOLD -40
+#define DEFAULT_SILENCE_THRESHOLD 1 // positive is "auto"
 
 IMPLEMENT_APP(IAXClient) 
 

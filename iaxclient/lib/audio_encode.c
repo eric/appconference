@@ -40,22 +40,35 @@ static int do_level_callback()
     iaxc_levels_callback(vol_to_db(ilevel), vol_to_db(olevel)); 
 }
 
-static int input_postprocess(void *audio, int len)
+static int input_postprocess(void *audio, int len, void *out)
 {
     int l = len;
+    double volume;
+    static double lowest_volume = 1;
 
     if(!input_compand) {
-	char *argv[2];
-	argv[0] = strdup("0.1,0.3"); /* attack, decay */
-	argv[1] = strdup("-90,-90,-60,-60,-50,-15,0,-5"); /* transfer function */
-	st_compand_start(&input_compand, argv, 2);
+	char *argv[5];
+	argv[0] = strdup("0.04,0.3"); /* attack, decay */
+	argv[1] = strdup("-90,-90,-50,-60,-30,-10,0,-5"); /* transfer function */
+	argv[2] = strdup("0"); /* gain */
+	argv[3] = strdup("0"); /* init volume */
+	argv[4] = strdup("0.04"); /* delay */
+
+	st_compand_start(&input_compand, argv, 5);
     }
 
-    st_compand_flow(input_compand, audio, audio, &l, &l);
+    st_compand_flow(input_compand, audio, out, &l, &l);
 
     do_level_callback();
 
-    return vol_to_db(*input_compand->volume) < iaxc_silence_threshold;
+    volume = vol_to_db(*input_compand->volume);
+
+    if(volume < lowest_volume) lowest_volume = volume;
+
+    if(iaxc_silence_threshold > 0)
+	return volume < lowest_volume + 5;
+    else
+	return volume < iaxc_silence_threshold;
 }
 
 static int output_postprocess(void *audio, int len)
@@ -64,7 +77,7 @@ static int output_postprocess(void *audio, int len)
 
     if(!output_compand) {
 	char *argv[2];
-	argv[0] = strdup("0.1,0.3"); /* attack, decay */
+	argv[0] = strdup("0.05,0.1"); /* attack, decay */
 	argv[1] = strdup("-90,-90,0,0"); /* transfer function */
 	st_compand_start(&output_compand, argv, 2);
     }
@@ -80,9 +93,10 @@ int send_encoded_audio(struct peer *most_recent_answer, void *data, int iEncodeT
 {
 	gsm_frame fo;
 	int silent;
+	short processed[160];
 
 	/* currently always 20ms */
-	silent = input_postprocess(data,160);	
+	silent = input_postprocess(data,160, processed);	
 
 	if(silent) return;  /* poof! no encoding! */
 
@@ -92,7 +106,7 @@ int send_encoded_audio(struct peer *most_recent_answer, void *data, int iEncodeT
 				most_recent_answer->gsmout = gsm_create();
 
 			// encode the audio from the buffer into GSM format and send
-			gsm_encode(most_recent_answer->gsmout, (short *) ((char *) data), (void *)&fo);
+			gsm_encode(most_recent_answer->gsmout, (short *) ((char *) processed), (void *)&fo);
 			break;
 	}
 	if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, 
