@@ -163,6 +163,12 @@ void IAXFrame::ButtonHandler(wxEvent &evt)
 			   (char *)(theFrame->iaxDest->GetValue().c_str()));
 			break;
 		case 101:
+		        iaxc_dump_call();
+			iaxc_process_calls();
+			for(int i=0;i<10;i++) {
+			  iaxc_millisleep(100);
+			  iaxc_process_calls();
+			}
 			exit(0);	
 			break;
 		default:
