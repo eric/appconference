@@ -10,6 +10,9 @@
 
 #include  "wx.h"  
 
+#define LEVEL_MAX -10
+#define LEVEL_MIN -50
+
 
 IMPLEMENT_APP(IAXClient) 
 
@@ -128,12 +131,12 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 {
     dialPad = new DialPad(this, wxPoint(0,0), wxSize(100,120));
 
-    input  = new wxGauge(this, -1, 50, wxPoint(100,0), wxSize(10,120), 
+    input  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxPoint(100,0), wxSize(10,120), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("input level")); 
-    output  = new wxGauge(this, -1, 50, wxPoint(110,0), wxSize(10,120), 
+    output  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxPoint(110,0), wxSize(10,120), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("output level")); 
 
-    iaxDest = new wxTextCtrl(this, -1, wxString("guest@server"), 
+    iaxDest = new wxTextCtrl(this, -1, wxString("guest@ast1/8068"), 
 	wxPoint(0,120), wxSize(110,20) /*, wxTE_MULTILINE */);
 	
     dialButton = new wxButton(this, 100, wxString("Dial"),
@@ -194,15 +197,17 @@ bool IAXClient::OnInit()
 extern "C" {
    int levels_callback(float input, float output)
    {
-      if (input < -50)
-	inputLevel=0; 
-      else
-	inputLevel=(int)input+50; 
+      if (input < LEVEL_MIN)
+	input = LEVEL_MIN; 
+      else if (input > LEVEL_MAX)
+	input = LEVEL_MAX;
+      inputLevel = (int)input - (LEVEL_MIN); 
 
-      if (output < -50)
-	outputLevel=0; 
-      else
-	outputLevel=(int)output+50; 
+      if (output < LEVEL_MIN)
+	output = LEVEL_MIN; 
+      else if (input > LEVEL_MAX)
+	output = LEVEL_MAX;
+      outputLevel = (int)output - (LEVEL_MIN); 
 
       theFrame->input->SetValue(inputLevel); 
       theFrame->output->SetValue(outputLevel); 
