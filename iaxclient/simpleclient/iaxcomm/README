@@ -36,32 +36,32 @@ work together.
    *** You need to use the make from cygwin ***
    The make in MinGW extras is borken.
 
-2. Download MinGW-2.0.0-3.exe from www.mingw.org.
+2. Download MinGW-3.1.0-1.exe from www.mingw.org.
    Install, accepting defaults
 
-3. Download wxMSW-2.4.1-setup.zip from wxwindows.org
-   Install to the default directory, c:\wxWindows-2.4.1
+3. Download wxMSW-2.4.2-setup.zip from wxwindows.org
+   Install to the default directory, c:\wxWindows-2.4.2
 
 4. Configure the WXWIN environment variable and add cygwin/minGW paths:
    Right click "My Computer".  Click Properties.  Click "Advanced" tab
    Click "Environment Variables"
    Prepend "C:\mingw\bin;c:\cygwin\bin;" to the path
-   Create a WXWIN env variable with value "c:/wxwin-2.4.1" (Note the
+   Create a WXWIN env variable with value "c:/wxWindows-2.4.2" (Note the
    forward slash, rather than back slash.)
 
 5. Compile the wxWindows library.  The docs outline two methods.
    *** DO NOT ./confgure -- USE THE MAKEFILES DIRECTLY ***
    Start a cygwin session.
-    cd c:/wxwindows-2.4.1/src/msw
+    cd c:/wxwindows-2.4.2/src/msw
     make -f makefile.g95
 
 6. Compile the XRC support:
-    cd c:/wxwindows-2.4.1/contrib/src/xrc
+    cd c:/wxwindows-2.4.2/contrib/src/xrc
     make -f makefile.g95
     ./minimal.exe
 
 7. Compile the xrc compiler
-    cd c:/wxwindows-2.4.1/contrib/utils/wxrc
+    cd c:/wxwindows-2.4.2/contrib/utils/wxrc
     make -f makefile.g95
     cp wxrc.exe /usr/bin
 
