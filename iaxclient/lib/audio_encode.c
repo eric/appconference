@@ -98,7 +98,7 @@ static void calculate_level(short *audio, int len, double *level) {
     *level += (((double)now/32767) - *level) / 5;
 }
 
-static int input_postprocess(void *audio, int len)
+int iaxc_input_postprocess(void *audio, int len)
 {
     double volume;
     static double lowest_volume = 1;
@@ -229,7 +229,7 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int format, int sampl
 	/* update last input timestamp */
 	gettimeofday( &timeLastInput, NULL ) ;
 
-	silent = input_postprocess(data,insize);	
+	silent = iaxc_input_postprocess(data,insize);	
 
 	if(silent) { 
 	  if(!call->tx_silent) {  /* send a Comfort Noise Frame */
