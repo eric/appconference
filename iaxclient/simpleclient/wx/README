@@ -40,4 +40,61 @@ would also be helpful for people afraid of the command-line.
 
 =============================================================
 
+Building WXWindows on Win32, with MinGW/Cygwin:
+
+These were the steps taken by 
+Michael Van Donselaar <mvand@vandonselaar.org> to build wx on
+his box, and are similar to what were taken for the initial development:
+
+(Thanks to Michael for contributing these directions)
+After tearing out what little hair I have left, I've finally gotten this
+figured out.
+
+The two things that bit me were a borken make in minGW and using
+./configure to configure wxWindows.
+
+The docs in  wxWindows say there's two ways to compile: directly with
+the makefiles, or using configure.  ./configure is your friend right?
+Wrong.  Use the makefiles directly.
+
+I have verified the following for WinXP and for Win2000.  Steve, feel
+free to include these in your README.
+
+1)  Download and run setup.exe from www.cygwin.com.
+    Install the base plus Devel/make.
+    *** You need to use the make from cygwin ***
+    The make in MinGW extras is borken.
+
+2)  Download MinGW-2.0.0-3.exe from www.mingw.org.
+    Install, accepting defaults
+
+3)  Download wxMSW-2.4.1-setup.zip from wxwindows.org
+    Install to the default directory, c:\wxWindows-2.4.1
+
+4)  Configure the WXWIN environment variable and add cygwin/minGW paths:
+    Right click "My Computer".  Click Properties.  Click "Advanced" tab
+    Click "Environment Variables"
+    Prepend "C:\mingw\bin;c:\cygwin\bin;" to the path
+    Create a WXWIN env variable with value "c:/wxwin-2.4.1" (Note the
+    forward slash, rather than back slash.)
+
+5)  Compile the wxWindows library.  The docs outline two methods.
+    *** DO NOT ./confgure -- USE THE MAKEFILES DIRECTLY ***
+    Start a cygwin session. 
+    cd c:/wxwindows-2.4.1/src/msw
+    make -f makefile.g95
+
+6)  Test the wxWindows library:
+    cd c:/wxwindows-2.4.1/samples/minimal
+    make -f makefile.g95 minimal
+    ./minimal.exe
+
+7)  Install the iaxclient sources in /usr/src/iaxclient
+    cd /usr/src/iaxclient/simpleclient/wx
+    make
+    strip wx
+    ./wx.exe
+=========================================================
+
+
 
