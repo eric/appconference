@@ -2654,7 +2654,7 @@ struct iax_event *iax_get_event(int blocking)
 				fh->dcallno = htons(IAX_FLAG_RETRANS | frame->dcallno);
 				iax_xmit_frame(frame);
 				/* Schedule another retransmission */
-				printf("Scheduling retransmission %d\n", frame->retries);
+				DEBU(G "Scheduling retransmission %d\n", frame->retries);
 				iax_sched_add(NULL, frame, NULL, NULL, frame->retrytime);
 			}
 		} else if (cur->func) {
