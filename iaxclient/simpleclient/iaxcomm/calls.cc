@@ -13,7 +13,7 @@
 //----------------------------------------------------------------------------------------
 
 #if defined(__GNUG__) && ! defined(__APPLE__)
-    #pragma implementation "MyFrame.h"
+    #pragma implementation "calls.h"
 #endif
 
 //----------------------------------------------------------------------------------------
@@ -101,7 +101,10 @@ void CallList::AutoSize()
 void CallList::OnSize(wxSizeEvent &event)
 {
     event.Skip();
+#ifndef __WXGTK__
+    // XXX FIXME: for some reason not yet investigated, this crashes Linux-GTK (for SK, at least).
     AutoSize();
+#endif
 }
 
 void CallList::OnSelect(wxListEvent &event)
