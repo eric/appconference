@@ -375,7 +375,7 @@ void iaxc_refresh_registrations() {
     for(cur = registrations; cur != NULL; cur=cur->next) {
 	if(iaxc_usecdiff(&now, &cur->last) > cur->refresh ) {
 	    fprintf(stderr, "refreshing registration %s:%s@%s\n", 
-		cur->host, cur->user, cur->pass);
+		cur->user, cur->pass, cur->host);
 
 	    cur->session = iax_session_new();
 	    if(!cur->session) {
