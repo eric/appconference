@@ -2730,7 +2730,8 @@ struct iax_event *iax_get_event(int blocking)
 		      (tv.tv_usec - cur->rxcore.tv_usec) / 1000;
 
 		if(now > (next = jb_next(cur->jb))) {
-		    ret = jb_get(cur->jb,&frame,now);
+		    /* FIXME don't hardcode interpolation frame length in jb_get */
+		    ret = jb_get(cur->jb,&frame,now,20);
 		    switch(ret) {
 			case JB_OK:
 //			    if(frame.type == JB_TYPE_VOICE && next + 20 != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not %ld+20!\n", jb_next(cur->jb), next);

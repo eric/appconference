@@ -354,7 +354,7 @@ static jb_frame *_queue_get(jitterbuf *jb, long ts, int all)
 
     /*jb_warn("queue_get: ASK %ld FIRST %ld\n", ts, frame->ts); */
 
-    if(all || ts > frame->ts) {
+    if(all || ts >= frame->ts) {
 	/* remove this frame */
 	frame->prev->next = frame->next;
 	frame->next->prev = frame->prev;
@@ -470,7 +470,7 @@ int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now)
 }
 
 
-static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) 
+static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl) 
 {
     jb_frame *frame;
     long diff;
@@ -494,23 +494,23 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
     /*    jb_warn("diff = %d lms=%d last = %d now = %d\n", diff,  */
     /*	jb->info.last_voice_ms, jb->info.last_adjustment, now); */
 
-    /* move up last_voice_ts; it is now the expected voice ts */
-    jb->info.last_voice_ts += jb->info.last_voice_ms;
-
     /* let's work on non-silent case first */
     if(!jb->info.silence_begin_ts) { 
-	  /* we want to grow */
+      /* we want to grow */
       if( (diff > 0) && 
 	  /* we haven't grown in the delay length */
 	  (((jb->info.last_adjustment + JB_ADJUST_DELAY) < now) || 
 	   /* we need to grow more than the "length" we have left */
 	   (diff > queue_last(jb)  - queue_next(jb)) ) ) {
-	      jb->info.current += jb->info.last_voice_ms;
+              /* grow by interp frame len */
+	      jb->info.current += interpl;
 	      jb->info.last_adjustment = now;
               jb->info.cnt_contig_interp++;
 	      jb_dbg("G");
+              /* assume silence instead of continuing to interpolate */
               if (jb->info.max_contig_interp && jb->info.cnt_contig_interp >= jb->info.max_contig_interp)
                   jb->info.silence_begin_ts = jb->info.last_voice_ts - jb->info.current;
+              jb->info.last_voice_ts += interpl;
 	      return JB_INTERP;
       }
 
@@ -518,9 +518,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
 
       /* not a voice frame; just return it. */
       if(frame && frame->type != JB_TYPE_VOICE) {
-	/* rewind last_voice_ts, since this isn't voice */
-	jb->info.last_voice_ts -= jb->info.last_voice_ms;
-
+        /* track start of silence */
 	if(frame->type == JB_TYPE_SILENCE) {
 	  jb->info.silence_begin_ts = frame->ts;
           jb->info.cnt_contig_interp = 0;
@@ -534,10 +532,8 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
 
 
       /* voice frame is late */
-      if(frame && frame->ts + jb->info.current < jb->info.last_voice_ts - jb->info.last_voice_ms ) {
+      if(frame && frame->ts + jb->info.current < jb->info.last_voice_ts) {
 	*frameout = *frame;
-	/* rewind last_voice, since we're just dumping */
-	jb->info.last_voice_ts -= jb->info.last_voice_ms;
 	jb->info.frames_out++;
 	decrement_losspct(jb);
 	jb->info.frames_late++;
@@ -560,21 +556,21 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
       if(diff < -JB_TARGET_EXTRA && 
 		((!frame && jb->info.last_adjustment + 80 < now) || 
 		 (jb->info.last_adjustment + 500 < now))) {
-
-	/* don't increment last_ts ?? */
-	jb->info.last_voice_ts -= jb->info.last_voice_ms;
-	jb->info.current -= jb->info.last_voice_ms;
 	jb->info.last_adjustment = now;
         jb->info.cnt_contig_interp = 0;
 
 	if(frame)  {
 	  *frameout = *frame;
+          /* shrink by frame size we're throwing out */
+          jb->info.current -= frame->ms;
 	  jb->info.frames_out++;
 	  decrement_losspct(jb);
 	  jb->info.frames_dropped++;
 	  jb_dbg("s");
 	  return JB_DROP;
 	} else {
+          /* shrink by last_voice_ms */
+          jb->info.current -= jb->info.last_voice_ms;
 	  increment_losspct(jb);
 	  jb_dbg("S");
 	  return JB_NOFRAME;
@@ -607,14 +603,17 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
 	  jb->info.frames_lost++;
 	  increment_losspct(jb);
           jb->info.cnt_contig_interp++;
+          /* assume silence instead of continuing to interpolate */
           if (jb->info.max_contig_interp && jb->info.cnt_contig_interp >= jb->info.max_contig_interp)
             jb->info.silence_begin_ts = jb->info.last_voice_ts - jb->info.current;
+          jb->info.last_voice_ts += interpl;
 	  jb_dbg("L");
 	  return JB_INTERP;
       }
 
       /* normal case; return the frame, increment stuff */
       *frameout = *frame;
+      jb->info.last_voice_ts += frame->ms;
       jb->info.frames_out++;
       decrement_losspct(jb);
       jb->info.cnt_contig_interp = 0;
@@ -677,9 +676,9 @@ long jb_next(jitterbuf *jb)
     }
 }
 
-int jb_get(jitterbuf *jb, jb_frame *frameout, long now) 
+int jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl) 
 {
-    int ret = _jb_get(jb,frameout,now);
+    int ret = _jb_get(jb,frameout,now,interpl);
 #if 0
     static int lastts=0;
     int thists = ((ret == JB_OK) || (ret == JB_DROP)) ? frameout->ts : 0;

@@ -117,10 +117,10 @@ int 			jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now);
  * JB_OK:  You've got frame!
  * JB_DROP: Here's an audio frame you should just drop.  Ask me again for this time..
  * JB_NOFRAME: There's no frame scheduled for this time.
- * JB_INTERP: Please interpolate an audio frame for this time (either we need to grow, or there was a lost frame 
+ * JB_INTERP: Please interpolate an interpl-length frame for this time (either we need to grow, or there was a lost frame 
  * JB_EMPTY: The jb is empty.
  */
-int			jb_get(jitterbuf *jb, jb_frame *frame, long now);
+int			jb_get(jitterbuf *jb, jb_frame *frame, long now, long interpl);
 
 /* unconditionally get frames from jitterbuf until empty */
 int jb_getall(jitterbuf *jb, jb_frame *frameout);
