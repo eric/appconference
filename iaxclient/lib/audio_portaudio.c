@@ -33,7 +33,7 @@ static echo_can_state_t *ec;
 #endif
 
 #ifdef SPEEX_EC
-#include "libspeex/speex_echo.h"
+#include "speex/speex_echo.h"
 static SpeexEchoState *ec;
 #endif
 
