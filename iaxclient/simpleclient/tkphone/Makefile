@@ -10,6 +10,8 @@ LIBS=	../../lib/libiaxclient.a
 
 EXEEXT=
 
+USE_HOTKEY=1
+
 # glean the platform
 # We will define this as either Linux, Win32, or MacOSX
 ifneq (,$(findstring Linux,$(shell uname)))
@@ -46,6 +48,10 @@ else
 MAKE=make
 endif
 
+ifeq ($(USE_HOTKEY),1)
+CFLAGS:= $(CFLAGS) -DUSE_HOTKEY
+endif
+
 ifeq ($(OSTYPE),WIN32)
 EXEEXT=.exe
 SYSLIBS=-lwinmm -lwsock32 
@@ -58,17 +64,28 @@ SYSLIBS=-lc_r -lm
 else
 SYSLIBS=-lpthread -lm
 endif
+ifeq ($(USE_HOTKEY),1)
+CFLAGS:= $(CFLAGS) `gtk-config --cflags`
+SYSLIBS:= $(SYSLIBS) `gtk-config --libs` 
+endif
 endif
 
 ifeq ($(OSTYPE),MACOSX)
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
 SYSLIBS=-framework CoreAudio -framework AudioToolbox
+ifeq ($(USE_HOTKEY),1)
+SYSLIBS:= -framework Carbon
+endif
 endif
 
 ifeq ($(OSTYPE),SOLARIS)
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
 SYSLIBS= -lsocket -lnsl -lpthread -lrt -lresolv -lm 
 MAKE=gmake
+ifeq ($(USE_HOTKEY),1)
+CFLAGS:= $(CFLAGS) `gtk-config --cflags`
+SYSLIBS:= $(SYSLIBS) `gtk-config --libs` 
+endif
 endif
 
 PROGS= iaxcli$(EXEEXT)

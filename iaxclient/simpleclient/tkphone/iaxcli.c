@@ -53,6 +53,7 @@
 			set caller id info
 	s m <on|off>	monitor audio levels
 	s a <on|off>	monitor command results
+	s h <on|off>	monitor hotkey status (if USE_HOTKEY defined)
 	s p <level>	set playback level (% of max)
 	s r <level>	set record level (% of max)
 	s d <c>		set event delimiter to character <c> (default=' ')
@@ -70,6 +71,7 @@
 	L <input> <output>
 			report audio levels (in db).  Enabled|diabled with:
 			"set monitor on|off"
+	H 1|0		Hotkey is pressed (1) not pressed (0)
 	T <type> <message>
 			text event.
 	S <state_code> <state> <remote> <remote_name> <local> <local_context>
@@ -92,6 +94,20 @@
 
 #include "iaxclient.h"
 
+#ifdef USE_HOTKEY
+#ifdef WIN32
+#else
+#ifdef MACOSX
+#include <Carbon/Carbon.h>
+#else
+/* GTK */
+#include <gdk/gdk.h>
+
+static GdkWindow *hotkeywindow;
+#endif
+#endif
+#endif
+
 #define DELIM " \n"	/* command token delimiters */
 #define ACK   "1"	/* command succeeded */
 #define NAK   "0"	/* command failed */
@@ -112,6 +128,7 @@ static char states[256];	/* buffer to hold ascii states */
 static char tmp[256];		/* report output buffer */
 static int show_levels=0;	/* report volume levels in db */
 static int show_ack_nak=0;	/* report command success/failure */
+static int show_hotkey=0;	/* report hotkey status */
 
 void fatal_error(char *err) {
     iaxc_shutdown();
@@ -139,6 +156,31 @@ char *map_state(int state) {
 	}
     }
     return states;
+}
+
+/* get the state of a "hot key" (presently hardcoded as the control-key" 
+ * Can be used by clients to implement "push-to-talk" functionality
+ */
+int hotkeystate(void) {
+    int pressed = 0;
+#ifdef USE_HOTKEY
+#ifdef MACOSX
+    KeyMap theKeys;
+    GetKeys(theKeys);
+    // that's the Control Key (by experimentation!)
+    pressed = theKeys[1] & 0x08;
+#else
+#ifdef WIN32
+    pressed = GetAsyncKeyState(VK_CONTROL)&0x8000;
+#else /* GTK */
+    int x, y;
+    GdkModifierType modifiers;
+    gdk_window_get_pointer(hotkeywindow, &x, &y, &modifiers);
+    pressed = modifiers & GDK_CONTROL_MASK;
+#endif
+#endif
+#endif
+    return pressed;
 }
 
 /*
@@ -174,6 +216,11 @@ void event_level(double in, double out) {
 	sprintf(tmp, "L%c%.1f%c%.1f", delim, in, delim, out);
 	report(tmp);
     }
+    if(show_hotkey) {
+	sprintf(tmp, "H%c%c", delim, hotkeystate() ? '1' : '0');
+	report(tmp);
+    }
+
 }
 
 /*
@@ -285,6 +332,13 @@ int set_device(char *name, int out) {
 
 int main(int argc, char **argv) {
     char line[256];
+
+#if defined(USE_HOTKEY) && !defined(MACOSX) && !defined(WIN32)
+    // window used for getting keyboard state
+    GdkWindowAttr attr;
+    gdk_init(&argc, &argv);
+    hotkeywindow = gdk_window_new(NULL, &attr, 0);
+#endif
 
     atexit(iaxc_shutdown); /* activate the exit handler */
     if (iaxc_initialize(AUDIO_INTERNAL_PA,1)) {
@@ -428,11 +482,16 @@ int main(int argc, char **argv) {
 		break;
 		case 'm':	/* monitor voice  on/off */
 		case 'a':	/* ack/nak  on/off */
+		case 'h':	/* show hotkey state */
 		    arg = strtok(NULL, DELIM);	/* 3rd token */
 		    if (arg != NULL && strcmp(arg, "on")==0) {
 		        if (*token=='m') {
 			    fprintf(stderr, "Monitoring is ON\n");
 			    show_levels=1;
+#ifdef USE_HOTKEY
+			} else if (*token == 'h') {
+			    show_hotkey=1;
+#endif
 			} else {
 			    show_ack_nak=1;
 			}
@@ -441,6 +500,8 @@ int main(int argc, char **argv) {
 		        if (*token=='m') {
 			    fprintf(stderr, "Monitoring is OFF\n");
 			    show_levels=0;
+			} else if (*token == 'h') {
+			    show_hotkey=0;
 			} else {
 			    show_ack_nak=0;
 			}
