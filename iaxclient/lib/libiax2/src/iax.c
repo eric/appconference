@@ -2083,8 +2083,13 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 	int updatehistory = 1;
 	ts = ntohl(fh->ts);
 	/* don't run last_ts backwards; i.e. for retransmits and the like */
-	if (ts > session->last_ts) 
+	if (ts > session->last_ts &&
+	    (fh->type == AST_FRAME_IAX && 
+	     subclass != IAX_COMMAND_ACK &&
+	     subclass != IAX_COMMAND_PONG &&
+	     subclass != IAX_COMMAND_LAGRP)) {
 	    session->last_ts = ts;
+	}
 
 
 #ifdef DEBUG_SUPPORT
