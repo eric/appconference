@@ -412,7 +412,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 		    f = ast_onering_read(bufferl->ring,samples);
 		    if (f != NULL) {
     //  ast_log(LOG_NOTICE,"%d samples\n",f->samples);
-			mix_slin(databuf,(char *)&(f->data), samples);
+			mix_slin(databuf,f->data, samples);
 			res = 0;
 			ast_frfree(f);
 		    } else {
@@ -443,7 +443,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->samples = samples;
 	    fout->datalen = samples * 2;
 	    fout->offset = AST_FRIENDLY_OFFSET;
-	    fout->mallocd = 1;
+	    fout->mallocd = AST_MALLOCD_HDR | AST_MALLOCD_DATA;
 	    fout->data = databuf;
 	    fout->src = NULL;
 	    return fout;
@@ -454,7 +454,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->samples = samples;
 	    fout->datalen = samples * 2;
 	    fout->offset = AST_FRIENDLY_OFFSET;
-	    fout->mallocd = 1;
+	    fout->mallocd =  AST_MALLOCD_HDR | AST_MALLOCD_DATA;
 	    fout->data = databuf;
 	    fout->src = NULL;
 	    memset(databuf,0,samples * 2);
