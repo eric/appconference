@@ -2,6 +2,7 @@
 #include "iaxclient_lib.h"
 #include "codec_gsm.h"
 #include "codec_ulaw.h"
+#include "codec_speex.h"
 
 double iaxc_silence_threshold = -9e99;
 
@@ -117,6 +118,24 @@ static int output_postprocess(void *audio, int len)
     return 0;
 }
 
+static struct iaxc_audio_codec *create_codec(int format) {
+    switch (format) {
+	case IAXC_FORMAT_GSM:
+	  return iaxc_audio_codec_gsm_new();
+	break;
+	case IAXC_FORMAT_ULAW:
+	  return iaxc_audio_codec_ulaw_new();
+	break;
+	case IAXC_FORMAT_SPEEX:
+	  return iaxc_audio_codec_speex_new();
+	break;
+	default:
+	  /* ERROR: codec not supported */
+	  fprintf(stderr, "ERROR: Codec not supported: %d\n", format);
+	  return NULL;
+    }
+}
+
 int send_encoded_audio(struct iaxc_call *call, void *data, int iEncodeType)
 {
 	char outbuf[1024];
@@ -140,18 +159,7 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int iEncodeType)
 
 	/* create encoder if necessary */
 	if(!call->encoder) {
-	    switch (iEncodeType) {
-		case AST_FORMAT_GSM:
-		  call->encoder = iaxc_audio_codec_gsm_new();
-		break;
-		case AST_FORMAT_ULAW:
-		  call->encoder = iaxc_audio_codec_ulaw_new();
-		break;
-		default:
-		  /* ERROR: codec not supported */
-		  fprintf(stderr, "ERROR: Codec not supported: %d\n", iEncodeType);
-		  return 0;
-	    }
+	    call->encoder = create_codec(iEncodeType);
 	}
 
 	if(!call->encoder) {
@@ -200,18 +208,7 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEn
 
 	/* create encoder if necessary */
 	if(!call->decoder) {
-	    switch (iEncodeType) {
-		case AST_FORMAT_GSM:
-		  call->decoder = iaxc_audio_codec_gsm_new();
-		break;
-		case AST_FORMAT_ULAW:
-		  call->decoder = iaxc_audio_codec_ulaw_new();
-		break;
-		default:
-		  /* ERROR: codec not supported */
-		  fprintf(stderr, "ERROR: Codec not supported: %d\n", iEncodeType);
-		  return -1;
-	    }
+	    call->decoder = create_codec(iEncodeType);
 	}
 
 	if(!call->decoder) {
