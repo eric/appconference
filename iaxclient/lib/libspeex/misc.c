@@ -30,6 +30,10 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "misc.h"
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +49,11 @@ void print_vec(float *vec, int len, char *name)
    printf ("\n");
 }
 #endif
+
+#ifdef FIXED_DEBUG
+long long spx_mips=0;
+#endif
+
 
 unsigned int be_int(unsigned int i)
 {

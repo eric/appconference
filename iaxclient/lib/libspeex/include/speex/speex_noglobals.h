@@ -1,8 +1,10 @@
-/* Copyright (C) 2002 Jean-Marc Valin 
-   File: speex_jitter.h
-
-   Adaptive jitter buffer for Speex
-
+/* Copyright (C) 2004 CSIRO Australia */
+/* Copyright (C) 2002 Jean-Marc Valin*/
+/**
+  @file speex_noglobals.h
+  @brief Dynamically allocates the different modes of the codec
+*/
+/*
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
    are met:
@@ -32,43 +34,27 @@
 
 */
 
-#include "speex.h"
-#include "speex_bits.h"
+#ifndef SPEEX_NOGLOBALS_H
+#define SPEEX_NOGLOBALS_H
 
-#ifndef SPEEX_JITTER_H
-#define SPEEX_JITTER_H
+/* See README.symbian in the Speex source distribution for information
+ * on using this API */
 
-#define SPEEX_JITTER_MAX_PACKET_SIZE 2000
-#define SPEEX_JITTER_MAX_BUFFER_SIZE 20
+typedef struct SpeexMode SpeexMode;
 
-typedef struct SpeexJitter {
-   int buffer_size;
-   int pointer_timestamp;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-   SpeexBits current_packet;
-   int valid_bits;
+/** Instantiate a mode */
+const SpeexMode * speex_mode_new (int modeID);
 
-   char buf[SPEEX_JITTER_MAX_BUFFER_SIZE][SPEEX_JITTER_MAX_PACKET_SIZE];
-   int timestamp[SPEEX_JITTER_MAX_BUFFER_SIZE];
-   int len[SPEEX_JITTER_MAX_BUFFER_SIZE];
+/** Destroy a mode */
+void speex_mode_destroy (const SpeexMode * mode);
 
-   void *dec;
-   int frame_size;
-   int frame_time;
-
-   int underflow_count;
-   int drop_frame;
-   int interp_frame;
-
-} SpeexJitter;
-
-void speex_jitter_init(SpeexJitter *jitter, void *decoder, int sampling_rate);
-
-void speex_jitter_destroy(SpeexJitter *jitter);
-
-void speex_jitter_put(SpeexJitter *jitter, char *packet, int len, int time);
-
-void speex_jitter_get(SpeexJitter *jitter, short *out);
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif

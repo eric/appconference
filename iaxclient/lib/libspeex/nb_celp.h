@@ -37,14 +37,14 @@
 #define NB_CELP_H
 
 #include "modes.h"
-#include "speex_bits.h"
-#include "speex_callbacks.h"
+#include <speex/speex_bits.h>
+#include <speex/speex_callbacks.h>
 #include "vbr.h"
 #include "filters.h"
 
 /**Structure representing the full state of the narrowband encoder*/
 typedef struct EncState {
-   SpeexMode *mode;       /**< Mode corresponding to the state */
+   const SpeexMode *mode;       /**< Mode corresponding to the state */
    int    first;          /**< Is this the first frame? */
    int    frameSize;      /**< Size of frames */
    int    subframeSize;   /**< Size of sub-frames */
@@ -65,8 +65,8 @@ typedef struct EncState {
    int    lbr_48k;
 #endif
 
-   float  gamma1;         /**< Perceptual filter: A(z/gamma1) */
-   float  gamma2;         /**< Perceptual filter: A(z/gamma2) */
+   spx_word16_t  gamma1;         /**< Perceptual filter: A(z/gamma1) */
+   spx_word16_t  gamma2;         /**< Perceptual filter: A(z/gamma2) */
    float  lag_factor;     /**< Lag windowing Gaussian width */
    float  lpc_floor;      /**< Noise floor multiplier for A[0] in LPC analysis*/
    char  *stack;          /**< Pseudo-stack allocation for temporary memory */
@@ -82,7 +82,7 @@ typedef struct EncState {
    spx_word16_t *window;         /**< Temporary (Hanning) window */
    spx_sig_t *buf2;           /**< 2nd temporary buffer */
    spx_word16_t *autocorr;       /**< auto-correlation */
-   float *lagWindow;      /**< Window applied to auto-correlation */
+   spx_word16_t *lagWindow;      /**< Window applied to auto-correlation */
    spx_coef_t *lpc;            /**< LPCs for current frame */
    spx_lsp_t *lsp;            /**< LSPs for current frame */
    spx_lsp_t *qlsp;           /**< Quantized LSPs for current frame */
@@ -98,7 +98,7 @@ typedef struct EncState {
    spx_mem_t *mem_sw;         /**< Filter memory for perceptually-weighted signal */
    spx_mem_t *mem_sw_whole;   /**< Filter memory for perceptually-weighted signal (whole frame)*/
    spx_mem_t *mem_exc;        /**< Filter memory for excitation (whole frame) */
-   float *pi_gain;        /**< Gain of LPC filter at theta=pi (fe/2) */
+   spx_word32_t *pi_gain;        /**< Gain of LPC filter at theta=pi (fe/2) */
 
    VBRState *vbr;         /**< State of the VBR data */
    float  vbr_quality;    /**< Quality setting for VBR encoding */
@@ -115,14 +115,14 @@ typedef struct EncState {
    int    sampling_rate;
 
    int    encode_submode;
-   SpeexSubmode **submodes; /**< Sub-mode data */
+   const SpeexSubmode * const *submodes; /**< Sub-mode data */
    int    submodeID;      /**< Activated sub-mode */
    int    submodeSelect;  /**< Mode chosen by the user (may differ from submodeID if VAD is on) */
 } EncState;
 
 /**Structure representing the full state of the narrowband decoder*/
 typedef struct DecState {
-   SpeexMode *mode;       /**< Mode corresponding to the state */
+   const SpeexMode *mode;       /**< Mode corresponding to the state */
    int    first;          /**< Is this the first frame? */
    int    count_lost;     /**< Was the last frame lost? */
    int    frameSize;      /**< Size of frames */
@@ -139,10 +139,8 @@ typedef struct DecState {
    int    lbr_48k;
 #endif
 
-   float  last_ol_gain;   /**< Open-loop gain for previous frame */
+   spx_word16_t  last_ol_gain;   /**< Open-loop gain for previous frame */
 
-   float  gamma1;         /**< Perceptual filter: A(z/gamma1) */
-   float  gamma2;         /**< Perceptual filter: A(z/gamma2) */
    char  *stack;          /**< Pseudo-stack allocation for temporary memory */
    spx_sig_t *inBuf;          /**< Input buffer (original signal) */
    spx_sig_t *frame;          /**< Start of original frame */
@@ -154,14 +152,14 @@ typedef struct DecState {
    spx_lsp_t *interp_qlsp;    /**< Interpolated quantized LSPs */
    spx_coef_t *interp_qlpc;    /**< Interpolated quantized LPCs */
    spx_mem_t *mem_sp;         /**< Filter memory for synthesis signal */
-   float *pi_gain;        /**< Gain of LPC filter at theta=pi (fe/2) */
+   spx_word32_t *pi_gain;        /**< Gain of LPC filter at theta=pi (fe/2) */
    int    last_pitch;     /**< Pitch of last correctly decoded frame */
-   float  last_pitch_gain; /**< Pitch gain of last correctly decoded frame */
-   float  pitch_gain_buf[3];  /**< Pitch gain of last decoded frames */
+   spx_word16_t  last_pitch_gain; /**< Pitch gain of last correctly decoded frame */
+   spx_word16_t  pitch_gain_buf[3];  /**< Pitch gain of last decoded frames */
    int    pitch_gain_buf_idx; /**< Tail of the buffer */
 
    int    encode_submode;
-   SpeexSubmode **submodes; /**< Sub-mode data */
+   const SpeexSubmode * const *submodes; /**< Sub-mode data */
    int    submodeID;      /**< Activated sub-mode */
    int    lpc_enh_enabled; /**< 1 when LPC enhancer is on, 0 otherwise */
    CombFilterMem *comb_mem;
@@ -179,23 +177,23 @@ typedef struct DecState {
 } DecState;
 
 /** Initializes encoder state*/
-void *nb_encoder_init(SpeexMode *m);
+void *nb_encoder_init(const SpeexMode *m);
 
 /** De-allocates encoder state resources*/
 void nb_encoder_destroy(void *state);
 
 /** Encodes one frame*/
-int nb_encode(void *state, short *in, SpeexBits *bits);
+int nb_encode(void *state, void *in, SpeexBits *bits);
 
 
 /** Initializes decoder state*/
-void *nb_decoder_init(SpeexMode *m);
+void *nb_decoder_init(const SpeexMode *m);
 
 /** De-allocates decoder state resources*/
 void nb_decoder_destroy(void *state);
 
 /** Decodes one frame*/
-int nb_decode(void *state, SpeexBits *bits, short *out);
+int nb_decode(void *state, SpeexBits *bits, void *out);
 
 /** ioctl-like function for controlling a narrowband encoder */
 int nb_encoder_ctl(void *state, int request, void *ptr);

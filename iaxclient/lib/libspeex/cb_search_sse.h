@@ -1,9 +1,6 @@
-/* Copyright (C) 2002 Jean-Marc Valin*/
-/**
-   @file speex_stereo.h
-   @brief Describes the handling for intensity stereo
-*/
-/*
+/* Copyright (C) 2004 Jean-Marc Valin 
+   File: cb_search.c (SSE version)
+
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
    are met:
@@ -32,31 +29,52 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef STEREO_H
-#define STEREO_H
+#include <xmmintrin.h>
 
-#include "speex_bits.h"
+static inline void _spx_mm_getr_ps (__m128 U, float *__Z, float *__Y, float *__X, float *__W)
+{
+  union {
+    float __a[4];
+    __m128 __v;
+  } __u;
+  
+  __u.__v = U;
 
-/** State used for decoding (intensity) stereo information */
-typedef struct SpeexStereoState {
-   float balance;      /**< Left/right balance info */
-   float e_ratio;      /**< Ratio of energies: E(left+right)/[E(left)+E(right)]  */
-   float smooth_left;  /**< Smoothed left channel gain */
-   float smooth_right; /**< Smoothed right channel gain */
-   float reserved1;    /**< Reserved for future use */
-   float reserved2;    /**< Reserved for future use */
-} SpeexStereoState;
+  *__Z = __u.__a[0];
+  *__Y = __u.__a[1];
+  *__X = __u.__a[2];
+  *__W = __u.__a[3];
 
-/** Initialization value for a stereo state */
-#define SPEEX_STEREO_STATE_INIT {1,.5,1,1}
+}
 
-/** Transforms a stereo frame into a mono frame and stores intensity stereo info in 'bits' */
-void speex_encode_stereo(short *data, int frame_size, SpeexBits *bits);
 
-/** Transforms a mono frame into a stereo frame using intensity stereo info */
-void speex_decode_stereo(short *data, int frame_size, SpeexStereoState *stereo);
-
-/** Callback handler for intensity stereo info */
-int speex_std_stereo_request_handler(SpeexBits *bits, void *state, void *data);
-
-#endif
+static void compute_weighted_codebook(const signed char *shape_cb, const spx_sig_t *_r, float *resp, __m128 *resp2, __m128 *E, int shape_cb_size, int subvect_size, char *stack)
+{
+   int i, j, k;
+   __m128 resj, EE;
+   __m128 *r, *shape;
+   r = PUSH(stack, subvect_size, __m128);
+   shape = PUSH(stack, subvect_size, __m128);
+   for(j=0;j<subvect_size;j++)
+      r[j] = _mm_load_ps1(_r+j);
+   for (i=0;i<shape_cb_size;i+=4)
+   {
+      float *_res = resp+i*subvect_size;
+      const signed char *_shape = shape_cb+i*subvect_size;
+      EE = _mm_setzero_ps();
+      for(j=0;j<subvect_size;j++)
+      {
+         shape[j] = _mm_setr_ps(0.03125*_shape[j], 0.03125*_shape[subvect_size+j], 0.03125*_shape[2*subvect_size+j], 0.03125*_shape[3*subvect_size+j]);
+      }
+      for(j=0;j<subvect_size;j++)
+      {
+         resj = _mm_setzero_ps();
+         for (k=0;k<=j;k++)
+            resj = _mm_add_ps(resj, _mm_mul_ps(shape[k],r[j-k]));
+         _spx_mm_getr_ps(resj, _res+j, _res+subvect_size+j, _res+2*subvect_size+j, _res+3*subvect_size+j);
+         *resp2++ = resj;
+         EE = _mm_add_ps(EE, _mm_mul_ps(resj, resj));
+      }
+      E[i>>2] = EE;
+   }
+}

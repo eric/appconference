@@ -30,6 +30,13 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef SPEEX_ECHO_H
+#define SPEEX_ECHO_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct drft_lookup;
 
 typedef struct SpeexEchoState {
@@ -51,7 +58,6 @@ typedef struct SpeexEchoState {
    float *power;
    float *power_1;
    float *grad;
-   float *old_grad;
 
    struct drft_lookup *fft_lookup;
 
@@ -66,5 +72,13 @@ SpeexEchoState *speex_echo_state_init(int frame_size, int filter_length);
 void speex_echo_state_destroy(SpeexEchoState *st);
 
 /** Performs echo cancellation a frame */
-void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, float *Y);
+void speex_echo_cancel(SpeexEchoState *st, short *ref, short *echo, short *out, int *Y);
 
+/** Reset the echo canceller state */
+void speex_echo_reset(SpeexEchoState *st);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

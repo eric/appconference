@@ -30,12 +30,31 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "filters.h"
 #include "stack_alloc.h"
 #include <math.h>
 #include "misc.h"
+#include "math_approx.h"
+#include "ltp.h"
 
-void bw_lpc(float gamma, spx_coef_t *lpc_in, spx_coef_t *lpc_out, int order)
+#ifdef FIXED_POINT
+void bw_lpc(spx_word16_t gamma, const spx_coef_t *lpc_in, spx_coef_t *lpc_out, int order)
+{
+   int i;
+   spx_word16_t tmp=gamma;
+   lpc_out[0] = lpc_in[0];
+   for (i=1;i<order+1;i++)
+   {
+      lpc_out[i] = MULT16_16_P15(tmp,lpc_in[i]);
+      tmp = MULT16_16_P15(tmp, gamma);
+   }
+}
+#else
+void bw_lpc(spx_word16_t gamma, const spx_coef_t *lpc_in, spx_coef_t *lpc_out, int order)
 {
    int i;
    float tmp=1;
@@ -46,10 +65,60 @@ void bw_lpc(float gamma, spx_coef_t *lpc_in, spx_coef_t *lpc_out, int order)
    }
 }
 
+#endif
+
 
 #ifdef FIXED_POINT
 
-int normalize16(spx_sig_t *x, spx_word16_t *y, int max_scale, int len)
+/* FIXME: These functions are ugly and probably introduce too much error */
+void signal_mul(const spx_sig_t *x, spx_sig_t *y, spx_word32_t scale, int len)
+{
+   int i;
+   for (i=0;i<len;i++)
+   {
+      y[i] = SHL(MULT16_32_Q14(SHR(x[i],7),scale),7);
+   }
+}
+
+void signal_div(const spx_sig_t *x, spx_sig_t *y, spx_word32_t scale, int len)
+{
+   int i;
+   spx_word16_t scale_1;
+
+   scale = PSHR(scale, SIG_SHIFT);
+   if (scale<2)
+      scale_1 = 32767;
+   else
+      scale_1 = 32767/scale;
+   for (i=0;i<len;i++)
+   {
+      y[i] = MULT16_32_Q15(scale_1,x[i]);
+   }
+}
+
+#else
+
+void signal_mul(const spx_sig_t *x, spx_sig_t *y, spx_word32_t scale, int len)
+{
+   int i;
+   for (i=0;i<len;i++)
+      y[i] = scale*x[i];
+}
+
+void signal_div(const spx_sig_t *x, spx_sig_t *y, spx_word32_t scale, int len)
+{
+   int i;
+   float scale_1 = 1/scale;
+   for (i=0;i<len;i++)
+      y[i] = scale_1*x[i];
+}
+#endif
+
+
+
+#ifdef FIXED_POINT
+
+int normalize16(const spx_sig_t *x, spx_word16_t *y, int max_scale, int len)
 {
    int i;
    spx_sig_t max_val=1;
@@ -77,7 +146,7 @@ int normalize16(spx_sig_t *x, spx_word16_t *y, int max_scale, int len)
    return sig_shift;
 }
 
-spx_word16_t compute_rms(spx_sig_t *x, int len)
+spx_word16_t compute_rms(const spx_sig_t *x, int len)
 {
    int i;
    spx_word32_t sum=0;
@@ -115,71 +184,70 @@ spx_word16_t compute_rms(spx_sig_t *x, int len)
       sum += SHR(sum2,6);
    }
    
-   /*FIXME: remove division*/
-   return (1<<(sig_shift+3))*sqrt(1+sum/len)/(float)SIG_SCALING;
+   return SHR(SHL((spx_word32_t)spx_sqrt(1+DIV32(sum,len)),(sig_shift+3)),SIG_SHIFT);
 }
 
-#define MUL_16_32_R15(a,bh,bl) ((a)*(bh) + ((a)*(bl)>>15))
 
-
-void filter_mem2(spx_sig_t *x, spx_coef_t *num, spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
+void filter_mem2(const spx_sig_t *x, const spx_coef_t *num, const spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
 {
    int i,j;
-   int xi,yi;
+   spx_sig_t xi,yi,nyi;
 
    for (i=0;i<N;i++)
    {
       int xh,xl,yh,yl;
-      xi=x[i];
-      yi = xi + (mem[0]<<2);
+      xi=SATURATE(x[i],805306368);
+      yi = SATURATE(ADD32(xi, SHL(mem[0],2)),805306368);
+      nyi = -yi;
       xh = xi>>15; xl=xi&0x00007fff; yh = yi>>15; yl=yi&0x00007fff; 
       for (j=0;j<ord-1;j++)
       {
-         mem[j] = mem[j+1] +  MUL_16_32_R15(num[j+1],xh,xl) - MUL_16_32_R15(den[j+1],yh,yl);
+         mem[j] = MAC16_32_Q15(MAC16_32_Q15(mem[j+1], num[j+1],xi), den[j+1],nyi);
       }
-      mem[ord-1] = MUL_16_32_R15(num[ord],xh,xl) - MUL_16_32_R15(den[ord],yh,yl);
+      mem[ord-1] = SUB32(MULT16_32_Q15(num[ord],xi), MULT16_32_Q15(den[ord],yi));
       y[i] = yi;
    }
 }
 
-void iir_mem2(spx_sig_t *x, spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
+void iir_mem2(const spx_sig_t *x, const spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
 {
    int i,j;
-   int xi,yi;
+   spx_word32_t xi,yi,nyi;
 
    for (i=0;i<N;i++)
    {
       int yh,yl;
-      xi=x[i];
-      yi = xi + (mem[0]<<2);
+      xi=SATURATE(x[i],805306368);
+      yi = SATURATE(xi + (mem[0]<<2),805306368);
+      nyi = -yi;
       yh = yi>>15; yl=yi&0x00007fff; 
       for (j=0;j<ord-1;j++)
       {
-         mem[j] = mem[j+1] - MUL_16_32_R15(den[j+1],yh,yl);
+         mem[j] = MAC16_32_Q15(mem[j+1],den[j+1],nyi);
       }
-      mem[ord-1] = - MUL_16_32_R15(den[ord],yh,yl);
+      mem[ord-1] = - MULT16_32_Q15(den[ord],yi);
       y[i] = yi;
    }
 }
 
 
-void fir_mem2(spx_sig_t *x, spx_coef_t *num, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
+void fir_mem2(const spx_sig_t *x, const spx_coef_t *num, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
 {
    int i,j;
-   int xi,yi;
+   spx_word32_t xi,yi;
 
    for (i=0;i<N;i++)
    {
       int xh,xl;
-      xi=x[i];
+      xi=SATURATE(x[i],805306368);
       yi = xi + (mem[0]<<2);
       xh = xi>>15; xl=xi&0x00007fff;
       for (j=0;j<ord-1;j++)
       {
-         mem[j] = mem[j+1] +  MUL_16_32_R15(num[j+1],xh,xl);
+         mem[j] = MAC16_32_Q15(mem[j+1], num[j+1],xi);
       }
-      mem[ord-1] = MUL_16_32_R15(num[ord],xh,xl);
-      y[i] = yi;
+      mem[ord-1] = MULT16_32_Q15(num[ord],xi);
+      y[i] = SATURATE(yi,805306368);
    }
 
 }
@@ -188,11 +256,7 @@ void fir_mem2(spx_sig_t *x, spx_coef_t *num, spx_sig_t *y, int N, int ord, spx_m
 
 
 
-#ifdef _USE_SSE
-#include "filters_sse.h"
-#else
-
-spx_word16_t compute_rms(spx_sig_t *x, int len)
+spx_word16_t compute_rms(const spx_sig_t *x, int len)
 {
    int i;
    float sum=0;
@@ -203,7 +267,12 @@ spx_word16_t compute_rms(spx_sig_t *x, int len)
    return sqrt(.1+sum/len);
 }
 
-void filter_mem2(spx_sig_t *x, spx_coef_t *num, spx_coef_t *den, spx_sig_t *y, int N, int ord,  spx_mem_t *mem)
+#ifdef _USE_SSE
+#include "filters_sse.h"
+#else
+
+
+void filter_mem2(const spx_sig_t *x, const spx_coef_t *num, const spx_coef_t *den, spx_sig_t *y, int N, int ord,  spx_mem_t *mem)
 {
    int i,j;
    float xi,yi;
@@ -221,7 +290,7 @@ void filter_mem2(spx_sig_t *x, spx_coef_t *num, spx_coef_t *den, spx_sig_t *y, i
 }
 
 
-void iir_mem2(spx_sig_t *x, spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
+void iir_mem2(const spx_sig_t *x, const spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
 {
    int i,j;
    for (i=0;i<N;i++)
@@ -236,9 +305,7 @@ void iir_mem2(spx_sig_t *x, spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_m
 }
 
 
-#endif
-
-void fir_mem2(spx_sig_t *x, spx_coef_t *num, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
+void fir_mem2(const spx_sig_t *x, const spx_coef_t *num, spx_sig_t *y, int N, int ord, spx_mem_t *mem)
 {
    int i,j;
    float xi;
@@ -253,12 +320,12 @@ void fir_mem2(spx_sig_t *x, spx_coef_t *num, spx_sig_t *y, int N, int ord, spx_m
       mem[ord-1] = num[ord]*xi;
    }
 }
-
+#endif
 
 #endif
 
 
-void syn_percep_zero(spx_sig_t *xx, spx_coef_t *ak, spx_coef_t *awk1, spx_coef_t *awk2, spx_sig_t *y, int N, int ord, char *stack)
+void syn_percep_zero(const spx_sig_t *xx, const spx_coef_t *ak, const spx_coef_t *awk1, const spx_coef_t *awk2, spx_sig_t *y, int N, int ord, char *stack)
 {
    int i;
    spx_mem_t *mem = PUSH(stack,ord, spx_mem_t);
@@ -270,7 +337,7 @@ void syn_percep_zero(spx_sig_t *xx, spx_coef_t *ak, spx_coef_t *awk1, spx_coef_t
    filter_mem2(y, awk1, awk2, y, N, ord, mem);
 }
 
-void residue_percep_zero(spx_sig_t *xx, spx_coef_t *ak, spx_coef_t *awk1, spx_coef_t *awk2, spx_sig_t *y, int N, int ord, char *stack)
+void residue_percep_zero(const spx_sig_t *xx, const spx_coef_t *ak, const spx_coef_t *awk1, const spx_coef_t *awk2, spx_sig_t *y, int N, int ord, char *stack)
 {
    int i;
    spx_mem_t *mem = PUSH(stack,ord, spx_mem_t);
@@ -282,7 +349,7 @@ void residue_percep_zero(spx_sig_t *xx, spx_coef_t *ak, spx_coef_t *awk1, spx_co
    fir_mem2(y, awk2, y, N, ord, mem);
 }
 
-void qmf_decomp(short *xx, spx_word16_t *aa, spx_sig_t *y1, spx_sig_t *y2, int N, int M, spx_word16_t *mem, char *stack)
+void qmf_decomp(const spx_word16_t *xx, const spx_word16_t *aa, spx_sig_t *y1, spx_sig_t *y2, int N, int M, spx_word16_t *mem, char *stack)
 {
    int i,j,k,M2;
    spx_word16_t *a;
@@ -299,27 +366,27 @@ void qmf_decomp(short *xx, spx_word16_t *aa, spx_sig_t *y1, spx_sig_t *y2, int N
    for (i=0;i<M-1;i++)
       x[i]=mem[M-i-2];
    for (i=0;i<N;i++)
-      x[i+M-1]=PSHR(xx[i],1);
+      x[i+M-1]=SATURATE(PSHR(xx[i],1),16383);
    for (i=0,k=0;i<N;i+=2,k++)
    {
       y1[k]=0;
       y2[k]=0;
       for (j=0;j<M2;j++)
       {
-         y1[k]+=SHR(MULT16_16(a[j],(x[i+j]+x2[i-j])),1);
-         y2[k]-=SHR(MULT16_16(a[j],(x[i+j]-x2[i-j])),1);
+         y1[k]+=SHR(MULT16_16(a[j],ADD16(x[i+j],x2[i-j])),1);
+         y2[k]-=SHR(MULT16_16(a[j],SUB16(x[i+j],x2[i-j])),1);
          j++;
-         y1[k]+=SHR(MULT16_16(a[j],(x[i+j]+x2[i-j])),1);
-         y2[k]+=SHR(MULT16_16(a[j],(x[i+j]-x2[i-j])),1);
+         y1[k]+=SHR(MULT16_16(a[j],ADD16(x[i+j],x2[i-j])),1);
+         y2[k]+=SHR(MULT16_16(a[j],SUB16(x[i+j],x2[i-j])),1);
       }
    }
    for (i=0;i<M-1;i++)
-     mem[i]=PSHR(xx[N-i-1],1);
+     mem[i]=SATURATE(PSHR(xx[N-i-1],1),16383);
 }
 
 
 /* By segher */
-void fir_mem_up(spx_sig_t *x, spx_word16_t *a, spx_sig_t *y, int N, int M, spx_word32_t *mem, char *stack)
+void fir_mem_up(const spx_sig_t *x, const spx_word16_t *a, spx_sig_t *y, int N, int M, spx_word32_t *mem, char *stack)
    /* assumptions:
       all odd x[i] are zero -- well, actually they are left out of the array now
       N and M are multiples of 4 */
@@ -338,7 +405,7 @@ void fir_mem_up(spx_sig_t *x, spx_word16_t *a, spx_sig_t *y, int N, int M, spx_w
       spx_sig_t y0, y1, y2, y3;
       spx_word16_t x0;
 
-      y0 = y1 = y2 = y3 = 0.f;
+      y0 = y1 = y2 = y3 = 0;
       x0 = xx[N-4-i];
 
       for (j = 0; j < M; j += 4) {
@@ -375,12 +442,18 @@ void fir_mem_up(spx_sig_t *x, spx_word16_t *a, spx_sig_t *y, int N, int M, spx_w
 
 
 
-void comp_filter_mem_init (CombFilterMem *mem)
+void comb_filter_mem_init (CombFilterMem *mem)
 {
    mem->last_pitch=0;
    mem->last_pitch_gain[0]=mem->last_pitch_gain[1]=mem->last_pitch_gain[2]=0;
    mem->smooth_gain=1;
 }
+
+#ifdef FIXED_POINT
+#define COMB_STEP 32767
+#else
+#define COMB_STEP 1.0
+#endif
 
 void comb_filter(
 spx_sig_t *exc,          /*decoded excitation*/
@@ -389,47 +462,49 @@ spx_coef_t *ak,           /*LPC filter coefs*/
 int p,               /*LPC order*/
 int nsf,             /*sub-frame size*/
 int pitch,           /*pitch period*/
-float *pitch_gain,   /*pitch gain (3-tap)*/
-float  comb_gain,    /*gain of comb filter*/
+spx_word16_t *pitch_gain,   /*pitch gain (3-tap)*/
+spx_word16_t  comb_gain,    /*gain of comb filter*/
 CombFilterMem *mem
 )
 {
    int i;
-   float exc_energy=0, new_exc_energy=0;
+   spx_word16_t exc_energy=0, new_exc_energy=0;
    float gain;
-   float step;
-   float fact;
-   /*Compute excitation energy prior to enhancement*/
-   for (i=0;i<nsf;i++)
-      exc_energy+=((float)exc[i])*exc[i];
+   spx_word16_t step;
+   spx_word16_t fact;
 
-   /*Some gain adjustment is pitch is too high or if unvoiced*/
+   /*Compute excitation amplitude prior to enhancement*/
+   exc_energy = compute_rms(exc, nsf);
+   /*for (i=0;i<nsf;i++)
+     exc_energy+=((float)exc[i])*exc[i];*/
+
+   /*Some gain adjustment if pitch is too high or if unvoiced*/
    {
       float g=0;
-      g = .5*fabs(pitch_gain[0]+pitch_gain[1]+pitch_gain[2] +
-      mem->last_pitch_gain[0] + mem->last_pitch_gain[1] + mem->last_pitch_gain[2]);
+      g = GAIN_SCALING_1*.5*(gain_3tap_to_1tap(pitch_gain)+gain_3tap_to_1tap(mem->last_pitch_gain));
       if (g>1.3)
          comb_gain*=1.3/g;
       if (g<.5)
-         comb_gain*=2*g;
+         comb_gain*=2.*g;
    }
-   step = 1.0/nsf;
+   step = DIV32(COMB_STEP, nsf);
    fact=0;
+
    /*Apply pitch comb-filter (filter out noise between pitch harmonics)*/
    for (i=0;i<nsf;i++)
    {
-      fact += step;
+      spx_word32_t exc1, exc2;
 
-      new_exc[i] = exc[i] + comb_gain * fact * (
-                                         pitch_gain[0]*exc[i-pitch+1] +
-                                         pitch_gain[1]*exc[i-pitch] +
-                                         pitch_gain[2]*exc[i-pitch-1]
-                                         )
-      + comb_gain * (1-fact) * (
-                                         mem->last_pitch_gain[0]*exc[i-mem->last_pitch+1] +
-                                         mem->last_pitch_gain[1]*exc[i-mem->last_pitch] +
-                                         mem->last_pitch_gain[2]*exc[i-mem->last_pitch-1]
-                                         );
+      fact += step;
+      
+      exc1 = SHL(MULT16_32_Q15(SHL(pitch_gain[0],7),exc[i-pitch+1]) +
+                 MULT16_32_Q15(SHL(pitch_gain[1],7),exc[i-pitch]) +
+                 MULT16_32_Q15(SHL(pitch_gain[2],7),exc[i-pitch-1]) , 2);
+      exc2 = SHL(MULT16_32_Q15(SHL(mem->last_pitch_gain[0],7),exc[i-mem->last_pitch+1]) +
+                 MULT16_32_Q15(SHL(mem->last_pitch_gain[1],7),exc[i-mem->last_pitch]) +
+                 MULT16_32_Q15(SHL(mem->last_pitch_gain[2],7),exc[i-mem->last_pitch-1]),2);
+
+      new_exc[i] = exc[i] + MULT16_32_Q15(comb_gain,MULT16_32_Q15(fact,exc1)  + MULT16_32_Q15(SUB16(COMB_STEP,fact), exc2));
    }
 
    mem->last_pitch_gain[0] = pitch_gain[0];
@@ -437,20 +512,30 @@ CombFilterMem *mem
    mem->last_pitch_gain[2] = pitch_gain[2];
    mem->last_pitch = pitch;
 
-   /*Gain after enhancement*/
-   for (i=0;i<nsf;i++)
-      new_exc_energy+=((float)new_exc[i])*new_exc[i];
+   /*Amplitude after enhancement*/
+   new_exc_energy = compute_rms(new_exc, nsf);
 
    /*Compute scaling factor and normalize energy*/
-   gain = sqrt(exc_energy)/sqrt(.1+new_exc_energy);
+   gain = (exc_energy)/(.1+new_exc_energy);
    if (gain < .5)
       gain=.5;
-   if (gain>1)
-      gain=1;
+   if (gain>.9999)
+      gain=.9999;
 
+#ifdef FIXED_POINT
+   {
+      spx_word16_t gg = gain*32768;
+      for (i=0;i<nsf;i++)
+   {
+      mem->smooth_gain = MULT16_16_Q15(31457,mem->smooth_gain) + MULT16_16_Q15(1311,gg);
+      new_exc[i] = MULT16_32_Q15(mem->smooth_gain, new_exc[i]);
+   }
+   }
+#else
    for (i=0;i<nsf;i++)
    {
       mem->smooth_gain = .96*mem->smooth_gain + .04*gain;
       new_exc[i] *= mem->smooth_gain;
    }
+#endif
 }

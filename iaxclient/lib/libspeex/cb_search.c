@@ -29,6 +29,9 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "cb_search.h"
 #include "filters.h"
@@ -37,12 +40,51 @@
 #include "misc.h"
 #include <stdio.h>
 
+#ifdef _USE_SSE
+#include "cb_search_sse.h"
+#else
+
+static void compute_weighted_codebook(const signed char *shape_cb, const spx_sig_t *r, spx_word16_t *resp, float *resp2, spx_word32_t *E, int shape_cb_size, int subvect_size, char *stack)
+{
+   int i, j, k;
+   for (i=0;i<shape_cb_size;i++)
+   {
+      spx_word16_t *res;
+      const signed char *shape;
+
+      res = resp+i*subvect_size;
+      shape = shape_cb+i*subvect_size;
+
+      /* Compute codeword response using convolution with impulse response */
+      for(j=0;j<subvect_size;j++)
+      {
+         spx_word32_t resj=0;
+         for (k=0;k<=j;k++)
+            resj = MAC16_16_Q11(resj,shape[k],r[j-k]);
+#ifndef FIXED_POINT
+         resj *= 0.03125;
+#endif
+         res[j] = resj;
+         /*printf ("%d\n", (int)res[j]);*/
+      }
+      
+      /* Compute codeword energy */
+      E[i]=0;
+      for(j=0;j<subvect_size;j++)
+         E[i]=ADD32(E[i],MULT16_16(res[j],res[j]));
+   }
+
+}
+
+#endif
+
+
 void split_cb_search_shape_sign(
 spx_sig_t target[],			/* target vector */
 spx_coef_t ak[],			/* LPCs for this subframe */
 spx_coef_t awk1[],			/* Weighted LPCs for this subframe */
 spx_coef_t awk2[],			/* Weighted LPCs for this subframe */
-void *par,                      /* Codebook/search parameters*/
+const void *par,                      /* Codebook/search parameters*/
 int   p,                        /* number of LPC coeffs */
 int   nsf,                      /* number of samples in subframe */
 spx_sig_t *exc,
@@ -54,23 +96,28 @@ int   complexity
 {
    int i,j,k,m,n,q;
    spx_word16_t *resp;
+#ifdef _USE_SSE
+   __m128 *resp2;
+   __m128 *E;
+#else
+   spx_word16_t *resp2;
+   spx_word32_t *E;
+#endif
    spx_word16_t *t;
    spx_sig_t *e, *r2;
-   spx_word32_t *E;
    spx_word16_t *tmp;
    spx_word32_t *ndist, *odist;
    int *itmp;
    spx_word16_t **ot, **nt;
    int **nind, **oind;
    int *ind;
-   signed char *shape_cb;
+   const signed char *shape_cb;
    int shape_cb_size, subvect_size, nb_subvect;
    split_cb_params *params;
    int N=2;
    int *best_index;
    spx_word32_t *best_dist;
    int have_sign;
-
    N=complexity;
    if (N>10)
       N=10;
@@ -87,10 +134,16 @@ int   complexity
    shape_cb = params->shape_cb;
    have_sign = params->have_sign;
    resp = PUSH(stack, shape_cb_size*subvect_size, spx_word16_t);
+#ifdef _USE_SSE
+   resp2 = PUSH(stack, (shape_cb_size*subvect_size)>>2, __m128);
+   E = PUSH(stack, shape_cb_size>>2, __m128);
+#else
+   resp2 = resp;
+   E = PUSH(stack, shape_cb_size, spx_word32_t);
+#endif
    t = PUSH(stack, nsf, spx_word16_t);
    e = PUSH(stack, nsf, spx_sig_t);
    r2 = PUSH(stack, nsf, spx_sig_t);
-   E = PUSH(stack, shape_cb_size, spx_word32_t);
    ind = PUSH(stack, nb_subvect, int);
 
    tmp = PUSH(stack, 2*N*nsf, spx_word16_t);
@@ -101,7 +154,6 @@ int   complexity
       nt[i]=tmp;
       tmp += nsf;
    }
-
    best_index = PUSH(stack, N, int);
    best_dist = PUSH(stack, N, spx_word32_t);
    ndist = PUSH(stack, N, spx_word32_t);
@@ -130,31 +182,7 @@ int   complexity
      printf ("%d\n", (int)t[i]);*/
 
    /* Pre-compute codewords response and energy */
-   for (i=0;i<shape_cb_size;i++)
-   {
-      spx_word16_t *res;
-      signed char *shape;
-
-      res = resp+i*subvect_size;
-      shape = shape_cb+i*subvect_size;
-
-      /* Compute codeword response using convolution with impulse response */
-      for(j=0;j<subvect_size;j++)
-      {
-         spx_word32_t resj=0;
-         for (k=0;k<=j;k++)
-            resj += shape[k]*r[j-k];
-         resj *= 0.03125;
-         
-         res[j] = SHR(resj,6);
-         /*printf ("%d\n", (int)res[j]);*/
-      }
-      
-      /* Compute codeword energy */
-      E[i]=0;
-      for(j=0;j<subvect_size;j++)
-         E[i]+=MULT16_16(res[j],res[j]);
-   }
+   compute_weighted_codebook(shape_cb, r, resp, resp2, E, shape_cb_size, subvect_size, stack);
 
    for (j=0;j<N;j++)
       odist[j]=0;
@@ -163,7 +191,7 @@ int   complexity
    {
       /*"erase" nbest list*/
       for (j=0;j<N;j++)
-         ndist[j]=-1;
+         ndist[j]=-2;
 
       /*For all n-bests of previous subvector*/
       for (j=0;j<N;j++)
@@ -171,9 +199,9 @@ int   complexity
          spx_word16_t *x=ot[j]+subvect_size*i;
          /*Find new n-best based on previous n-best j*/
          if (have_sign)
-            vq_nbest_sign(x, resp, subvect_size, shape_cb_size, E, N, best_index, best_dist);
+            vq_nbest_sign(x, resp2, subvect_size, shape_cb_size, E, N, best_index, best_dist, stack);
          else
-            vq_nbest(x, resp, subvect_size, shape_cb_size, E, N, best_index, best_dist);
+            vq_nbest(x, resp2, subvect_size, shape_cb_size, E, N, best_index, best_dist, stack);
 
          /*For all new n-bests*/
          for (k=0;k<N;k++)
@@ -212,7 +240,7 @@ int   complexity
             for (m=i*subvect_size;m<(i+1)*subvect_size;m++)
                err += t[m]*t[m];
             /*update n-best list*/
-            if (err<ndist[N-1] || ndist[N-1]<-.5)
+            if (err<ndist[N-1] || ndist[N-1]<-1)
             {
 
                /*previous target (we don't care what happened before*/
@@ -235,18 +263,18 @@ int   complexity
 #ifdef FIXED_POINT
                   g=sign*shape_cb[rind*subvect_size+m];
                   for (n=subvect_size*(i+1);n<nsf;n++,q++)
-                     t[n] -= SHR(MULT16_16(g,r[q]),11);
+                     t[n] = SUB32(t[n],MULT16_16_Q11(g,r[q]));
 #else
                   g=sign*0.03125*shape_cb[rind*subvect_size+m];
                   for (n=subvect_size*(i+1);n<nsf;n++,q++)
-                     t[n] -= g*r[q];
+                     t[n] = SUB32(t[n],g*r[q]);
 #endif
                }
 
 
                for (m=0;m<N;m++)
                {
-                  if (err < ndist[m] || ndist[m]<-.5)
+                  if (err < ndist[m] || ndist[m]<-1)
                   {
                      for (n=N-1;n>m;n--)
                      {
@@ -332,7 +360,7 @@ int   complexity
 
 void split_cb_shape_sign_unquant(
 spx_sig_t *exc,
-void *par,                      /* non-overlapping codebook */
+const void *par,                      /* non-overlapping codebook */
 int   nsf,                      /* number of samples in subframe */
 SpeexBits *bits,
 char *stack
@@ -340,7 +368,7 @@ char *stack
 {
    int i,j;
    int *ind, *signs;
-   signed char *shape_cb;
+   const signed char *shape_cb;
    int shape_cb_size, subvect_size, nb_subvect;
    split_cb_params *params;
    int have_sign;
@@ -391,7 +419,7 @@ spx_sig_t target[],			/* target vector */
 spx_coef_t ak[],			/* LPCs for this subframe */
 spx_coef_t awk1[],			/* Weighted LPCs for this subframe */
 spx_coef_t awk2[],			/* Weighted LPCs for this subframe */
-void *par,                      /* Codebook/search parameters*/
+const void *par,                      /* Codebook/search parameters*/
 int   p,                        /* number of LPC coeffs */
 int   nsf,                      /* number of samples in subframe */
 spx_sig_t *exc,
@@ -415,7 +443,7 @@ int   complexity
 
 void noise_codebook_unquant(
 spx_sig_t *exc,
-void *par,                      /* non-overlapping codebook */
+const void *par,                      /* non-overlapping codebook */
 int   nsf,                      /* number of samples in subframe */
 SpeexBits *bits,
 char *stack

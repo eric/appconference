@@ -37,12 +37,12 @@
 #define SB_CELP_H
 
 #include "modes.h"
-#include "speex_bits.h"
+#include <speex/speex_bits.h>
 #include "nb_celp.h"
 
 /**Structure representing the full state of the sub-band encoder*/
 typedef struct SBEncState {
-   SpeexMode *mode;            /**< Pointer to the mode (containing for vtable info) */
+   const SpeexMode *mode;            /**< Pointer to the mode (containing for vtable info) */
    void *st_low;               /**< State of the low-band (narrowband) encoder */
    int    full_frame_size;     /**< Length of full-band frames*/
    int    frame_size;          /**< Length of high-band frames*/
@@ -54,8 +54,8 @@ typedef struct SBEncState {
    int    first;               /**< First frame? */
    float  lag_factor;          /**< Lag-windowing control parameter */
    float  lpc_floor;           /**< Controls LPC analysis noise floor */
-   float  gamma1;              /**< Perceptual weighting coef 1 */
-   float  gamma2;              /**< Perceptual weighting coef 2 */
+   spx_word16_t  gamma1;              /**< Perceptual weighting coef 1 */
+   spx_word16_t  gamma2;              /**< Perceptual weighting coef 2 */
 
    char  *stack;               /**< Temporary allocation stack */
    spx_sig_t *x0d, *x1d; /**< QMF filter signals*/
@@ -71,7 +71,7 @@ typedef struct SBEncState {
    spx_sig_t *sw;                  /**< Perceptually weighted signal */
    spx_sig_t *target;              /**< Weighted target signal (analysis by synthesis) */
    spx_word16_t *window;              /**< LPC analysis window */
-   float *lagWindow;           /**< Auto-correlation window */
+   spx_word16_t *lagWindow;           /**< Auto-correlation window */
    spx_word16_t *autocorr;            /**< Auto-correlation (for LPC analysis) */
    spx_coef_t *lpc;                 /**< LPC coefficients */
    spx_lsp_t *lsp;                 /**< LSP coefficients */
@@ -88,7 +88,7 @@ typedef struct SBEncState {
    spx_mem_t *mem_sp;              /**< Synthesis signal memory */
    spx_mem_t *mem_sp2;
    spx_mem_t *mem_sw;              /**< Perceptual signal memory */
-   float *pi_gain;
+   spx_word32_t *pi_gain;
 
    float  vbr_quality;         /**< Quality setting for VBR encoding */
    int    vbr_enabled;         /**< 1 for enabling VBR, 0 otherwise */
@@ -100,7 +100,7 @@ typedef struct SBEncState {
    float  relative_quality;
 
    int    encode_submode;
-   SpeexSubmode **submodes;
+   const SpeexSubmode * const *submodes;
    int    submodeID;
    int    submodeSelect;
    int    complexity;
@@ -111,7 +111,7 @@ typedef struct SBEncState {
 
 /**Structure representing the full state of the sub-band decoder*/
 typedef struct SBDecState {
-   SpeexMode *mode;            /**< Pointer to the mode (containing for vtable info) */
+   const SpeexMode *mode;            /**< Pointer to the mode (containing for vtable info) */
    void *st_low;               /**< State of the low-band (narrowband) encoder */
    int    full_frame_size;
    int    frame_size;
@@ -135,32 +135,32 @@ typedef struct SBDecState {
    spx_coef_t *interp_qlpc;
 
    spx_mem_t *mem_sp;
-   float *pi_gain;
+   spx_word32_t *pi_gain;
 
    int    encode_submode;
-   SpeexSubmode **submodes;
+   const SpeexSubmode * const *submodes;
    int    submodeID;
 } SBDecState;
 
 
 /**Initializes encoder state*/
-void *sb_encoder_init(SpeexMode *m);
+void *sb_encoder_init(const SpeexMode *m);
 
 /**De-allocates encoder state resources*/
 void sb_encoder_destroy(void *state);
 
 /**Encodes one frame*/
-int sb_encode(void *state, short *in, SpeexBits *bits);
+int sb_encode(void *state, void *in, SpeexBits *bits);
 
 
 /**Initializes decoder state*/
-void *sb_decoder_init(SpeexMode *m);
+void *sb_decoder_init(const SpeexMode *m);
 
 /**De-allocates decoder state resources*/
 void sb_decoder_destroy(void *state);
 
 /**Decodes one frame*/
-int sb_decode(void *state, SpeexBits *bits, short *out);
+int sb_decode(void *state, SpeexBits *bits, void *out);
 
 int sb_encoder_ctl(void *state, int request, void *ptr);
 

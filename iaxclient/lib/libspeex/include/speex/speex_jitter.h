@@ -1,6 +1,7 @@
 /* Copyright (C) 2002 Jean-Marc Valin 
-   File: math_approx.c
-   Various math approximation functions for Speex
+   File: speex_jitter.h
+
+   Adaptive jitter buffer for Speex
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
@@ -28,19 +29,57 @@
    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#ifndef MATH_APPROX_H
-#define MATH_APPROX_H
+#ifndef SPEEX_JITTER_H
+#define SPEEX_JITTER_H
 
-#include "misc.h"
+#include "speex.h"
+#include "speex_bits.h"
 
-#ifdef FIXED_POINT
-spx_word16_t spx_sqrt(spx_word32_t x);
-spx_word16_t spx_acos(spx_word16_t x);
-#else
-#define spx_sqrt sqrt
-#define spx_acos acos
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+#define SPEEX_JITTER_MAX_PACKET_SIZE 1500
+#define SPEEX_JITTER_MAX_BUFFER_SIZE 20
+
+#define MAX_MARGIN 12
+
+typedef struct SpeexJitter {
+   int buffer_size;
+   int pointer_timestamp;
+
+   SpeexBits current_packet;
+   int valid_bits;
+
+   char buf[SPEEX_JITTER_MAX_BUFFER_SIZE][SPEEX_JITTER_MAX_PACKET_SIZE];
+   int timestamp[SPEEX_JITTER_MAX_BUFFER_SIZE];
+   int len[SPEEX_JITTER_MAX_BUFFER_SIZE];
+
+   void *dec;
+   int frame_size;
+   int frame_time;
+   int reset_state;
+   
+   int lost_count;
+   float shortterm_margin[MAX_MARGIN];
+   float longterm_margin[MAX_MARGIN];
+   float loss_rate;
+} SpeexJitter;
+
+void speex_jitter_init(SpeexJitter *jitter, void *decoder, int sampling_rate);
+
+void speex_jitter_destroy(SpeexJitter *jitter);
+
+void speex_jitter_put(SpeexJitter *jitter, char *packet, int len, int time);
+
+void speex_jitter_get(SpeexJitter *jitter, short *out, int *current_timestamp);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif

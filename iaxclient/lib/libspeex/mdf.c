@@ -34,8 +34,12 @@
    POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "misc.h"
-#include "speex_echo.h"
+#include <speex/speex_echo.h>
 #include "smallft.h"
 #include <math.h>
 /*#include <stdio.h>*/
@@ -53,7 +57,7 @@ SpeexEchoState *speex_echo_state_init(int frame_size, int filter_length)
    N = st->window_size;
    M = st->M = (filter_length+N-1)/frame_size;
    st->cancel_count=0;
-   st->adapt_rate = .01;
+   st->adapt_rate = .01f;
 
    st->fft_lookup = (struct drft_lookup*)speex_alloc(sizeof(struct drft_lookup));
    drft_init(st->fft_lookup, N);
@@ -71,13 +75,26 @@ SpeexEchoState *speex_echo_state_init(int frame_size, int filter_length)
    st->power = (float*)speex_alloc((frame_size+1)*sizeof(float));
    st->power_1 = (float*)speex_alloc((frame_size+1)*sizeof(float));
    st->grad = (float*)speex_alloc(N*M*sizeof(float));
-   st->old_grad = (float*)speex_alloc(N*M*sizeof(float));
    
    for (i=0;i<N*M;i++)
    {
       st->W[i] = 0;
    }
    return st;
+}
+
+void speex_echo_reset(SpeexEchoState *st)
+{
+   int i, M, N;
+   st->cancel_count=0;
+   st->adapt_rate = .01f;
+   N = st->window_size;
+   M = st->M;
+   for (i=0;i<N*M;i++)
+   {
+      st->W[i] = 0;
+      st->X[i] = 0;
+   }
 }
 
 /** Destroys an echo canceller state */
@@ -98,23 +115,22 @@ void speex_echo_state_destroy(SpeexEchoState *st)
    speex_free(st->power);
    speex_free(st->power_1);
    speex_free(st->grad);
-   speex_free(st->old_grad);
 
    speex_free(st);
 }
 
-/** Performs echo cancellation a frame */
-void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, float *Yout)
+/** Performs echo cancellation on a frame */
+void speex_echo_cancel(SpeexEchoState *st, short *ref, short *echo, short *out, int *Yout)
 {
    int i,j,m;
    int N,M;
    float scale;
-   float powE=0, powY=0, powD=0;
    float spectral_dist=0;
-
+   float cos_dist=0;
+   
    N = st->window_size;
    M = st->M;
-   scale = 1.0/N;
+   scale = 1.0f/N;
    st->cancel_count++;
 
    /* Copy input data to buffer */
@@ -136,7 +152,6 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
 
    /* Convert x (echo input) to frequency domain */
    drft_forward(st->fft_lookup, &st->X[(M-1)*N]);
-
 
    /* Compute filter response Y */
    for (i=1;i<N-1;i+=2)
@@ -161,18 +176,6 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
       st->D[i]=st->d[i];
    drft_forward(st->fft_lookup, st->D);
 
-   /* Evaluate "spectral distance" between Y and D t odetect crosstalk */
-   for (i=1;i<N-1;i+=2)
-   {
-      float Sdd, Syy, Sdy;
-      Sdd = 1e4 + st->D[i]*st->D[i] + st->D[i+1]*st->D[i+1];
-      Syy = 1e4 + st->Y[i]*st->Y[i] + st->Y[i+1]*st->Y[i+1];
-      Sdy = st->Y[i]*st->D[i] + st->Y[i+1]*st->D[i+1];
-      spectral_dist += Sdy/sqrt(Sdd*Syy);
-   }
-   spectral_dist *= 2*scale;
-   /*printf ("%f\n", spectral_dist);*/
-
    /* Copy spectrum of Y to Yout for use in an echo post-filter */
    if (Yout)
    {
@@ -196,43 +199,34 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
    /* Compute error signal (echo canceller output) */
    for (i=0;i<st->frame_size;i++)
    {
-      out[i] = ref[i] - st->y[i+st->frame_size];
+      float tmp_out;
+      tmp_out = (float)ref[i] - st->y[i+st->frame_size];
+      if (tmp_out>32767)
+         tmp_out = 32767;
+      else if (tmp_out<-32768)
+         tmp_out = -32768;
+      out[i] = tmp_out;
       st->E[i] = 0;
       st->E[i+st->frame_size] = out[i];
    }
 
+   {
+      float Sry=0, Srr=0,Syy=0;
+      /*float cos_dist;*/
+      for (i=0;i<st->frame_size;i++)
+      {
+         Sry += st->y[i+st->frame_size] * ref[i];
+         Srr += (float)ref[i] * (float)ref[i];
+         Syy += st->y[i+st->frame_size]*st->y[i+st->frame_size];
+      }
+      cos_dist = Sry/(sqrt(1e8+Srr)*sqrt(1e8+Syy));
+      /*printf (" %f ", cos_dist);*/
+      spectral_dist = Sry/(1e8+Srr);
+      /*printf (" %f ", spectral_dist);*/
+   }
+   
    /* Convert error to frequency domain */
    drft_forward(st->fft_lookup, st->E);
-
-   for (i=0;i<st->frame_size;i++)
-   {
-      powD += N*ref[i]*ref[i];
-   }
-#if 0
-   for (i=1;i<N-1;i+=2)
-   {
-      float tmp;
-      tmp = st->Y[i]*st->Y[i] + st->Y[i+1]*st->Y[i+1];
-      powY += 1*tmp + 0*(st->E[i]*st->E[i] + st->E[i+1]*st->E[i+1]);
-      tmp = st->E[i]*st->E[i] + st->E[i+1]*st->E[i+1] - 4*tmp;
-      if (tmp<0)
-         tmp=0;
-      powE += tmp; 
-   }
-#else
-   for (i=3;i<N-3;i+=2)
-   {
-      float tmp;
-      tmp = .5*(st->Y[i]*st->Y[i] + st->Y[i+1]*st->Y[i+1]) + .25*
-      (st->Y[i-2]*st->Y[i-2] + st->Y[i-1]*st->Y[i-1] 
-       + st->Y[i+2]*st->Y[i+2] + st->Y[i+3]*st->Y[i+3]);
-      powY += 1*tmp + 0*(st->E[i]*st->E[i] + st->E[i+1]*st->E[i+1]);
-      tmp = st->E[i]*st->E[i] + st->E[i+1]*st->E[i+1] - .5*tmp;
-      if (tmp<0)
-         tmp=0;
-      powE += tmp; 
-   }
-#endif
 
    /* Compute input power in each frequency bin */
    {
@@ -240,9 +234,9 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
       float tmp, tmp2;
 
       if (st->cancel_count<M)
-         s = 1.0/st->cancel_count;
+         s = 1.0f/st->cancel_count;
       else
-         s = 1.0/M;
+         s = 1.0f/M;
       
       for (i=1,j=1;i<N-1;i+=2,j++)
       {
@@ -280,7 +274,7 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
       }
       
       for (i=0;i<=st->frame_size;i++)
-         st->power_1[i] = 1.0/(1e6+st->power[i]);
+         st->power_1[i] = 1.0f/(1e8f+st->power[i]);
    }
 
    /* Compute weight gradient */
@@ -309,7 +303,6 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
 
       for (i=0;i<N;i++)
       {
-         st->old_grad[j*N+i] = st->PHI[i];
          st->grad[j*N+i] = st->PHI[i];
       }
 
@@ -321,16 +314,21 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
    {
       if (st->cancel_count<8*M)
       {
-         st->adapt_rate = .5/(2+M);
+         st->adapt_rate = .3f/(2+M);
       } else {
-         st->adapt_rate = spectral_dist*(1.0/(2+M));
-         if (st->adapt_rate>.5/(2+M))
-            st->adapt_rate=.5/(2+M);
-         if (st->adapt_rate<0)
-            st->adapt_rate=0;
+         if (spectral_dist > .5 && cos_dist > .7)
+            st->adapt_rate = .4f/(2+M);
+         else if (spectral_dist > .3 && cos_dist > .5)
+            st->adapt_rate = .2f/(2+M);
+         else if (spectral_dist > .15 && cos_dist > .3)
+            st->adapt_rate = .1f/(2+M);
+         else if (cos_dist > .01)
+            st->adapt_rate = .05f/(2+M);
+         else
+            st->adapt_rate = .01f/(2+M);
       }
    } else
-      st->adapt_rate = .0;
+      st->adapt_rate = .0f;
 
    /* Update weights */
    for (i=0;i<M*N;i++)
@@ -353,6 +351,5 @@ void speex_echo_cancel(SpeexEchoState *st, float *ref, float *echo, float *out, 
 
    }
 
-   /*fprintf (stderr, "%f %f %f %f\n", st->adapt_rate, powE, powY, powD);*/
 }
 

@@ -31,9 +31,13 @@
 
 */
 
-#include "speex_header.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <speex/speex_header.h>
 #include "misc.h"
-#include "speex.h"
+#include <speex/speex.h>
 
 #ifndef NULL
 #define NULL 0
@@ -62,19 +66,19 @@ typedef struct SpeexHeader {
 } SpeexHeader;
 */
 
-void speex_init_header(SpeexHeader *header, int rate, int nb_channels, SpeexMode *m)
+void speex_init_header(SpeexHeader *header, int rate, int nb_channels, const SpeexMode *m)
 {
    int i;
    char *h="Speex   ";
    /*
    strncpy(header->speex_string, "Speex   ", 8);
-   strncpy(header->speex_version, VERSION, SPEEX_HEADER_VERSION_LENGTH-1);
+   strncpy(header->speex_version, SPEEX_VERSION, SPEEX_HEADER_VERSION_LENGTH-1);
    header->speex_version[SPEEX_HEADER_VERSION_LENGTH-1]=0;
    */
    for (i=0;i<8;i++)
       header->speex_string[i]=h[i];
-   for (i=0;i<SPEEX_HEADER_VERSION_LENGTH-1 && VERSION[i];i++)
-      header->speex_version[i]=VERSION[i];
+   for (i=0;i<SPEEX_HEADER_VERSION_LENGTH-1 && SPEEX_VERSION[i];i++)
+      header->speex_version[i]=SPEEX_VERSION[i];
    for (;i<SPEEX_HEADER_VERSION_LENGTH;i++)
       header->speex_version[i]=0;
    

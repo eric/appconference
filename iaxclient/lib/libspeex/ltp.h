@@ -30,17 +30,22 @@
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "speex_bits.h"
+#include <speex/speex_bits.h>
 #include "misc.h"
 
 typedef struct ltp_params {
-   signed char *gain_cdbk;
+   const signed char *gain_cdbk;
    int     gain_bits;
    int     pitch_bits;
 } ltp_params;
 
+#ifdef FIXED_POINT
+#define gain_3tap_to_1tap(g) (ABS(g[1]) + (g[0]>0 ? g[0] : -SHR(g[0],1)) + (g[2]>0 ? g[2] : -SHR(g[2],1)))
+#else
+#define gain_3tap_to_1tap(g) (ABS(g[1]) + (g[0]>0 ? g[0] : -.5*g[0]) + (g[2]>0 ? g[2] : -.5*g[2]))
+#endif
 
-void open_loop_nbest_pitch(spx_sig_t *sw, int start, int end, int len, int *pitch, float *gain, int N, char *stack);
+void open_loop_nbest_pitch(spx_sig_t *sw, int start, int end, int len, int *pitch, spx_word16_t *gain, int N, char *stack);
 
 
 /** Finds the best quantized 3-tap pitch predictor by analysis by synthesis */
@@ -51,10 +56,10 @@ spx_coef_t ak[],                     /* LPCs for this subframe */
 spx_coef_t awk1[],                   /* Weighted LPCs #1 for this subframe */
 spx_coef_t awk2[],                   /* Weighted LPCs #2 for this subframe */
 spx_sig_t exc[],                    /* Overlapping codebook */
-void *par,
+const void *par,
 int   start,                    /* Smallest pitch value allowed */
 int   end,                      /* Largest pitch value allowed */
-float pitch_coef,               /* Voicing (pitch) coefficient */
+spx_word16_t pitch_coef,               /* Voicing (pitch) coefficient */
 int   p,                        /* Number of LPC coeffs */
 int   nsf,                      /* Number of samples in subframe */
 SpeexBits *bits,
@@ -70,16 +75,16 @@ void pitch_unquant_3tap(
 spx_sig_t exc[],                    /* Excitation */
 int   start,                    /* Smallest pitch value allowed */
 int   end,                      /* Largest pitch value allowed */
-float pitch_coef,               /* Voicing (pitch) coefficient */
-void *par,
+spx_word16_t pitch_coef,               /* Voicing (pitch) coefficient */
+const void *par,
 int   nsf,                      /* Number of samples in subframe */
 int *pitch_val,
-float *gain_val,
+spx_word16_t *gain_val,
 SpeexBits *bits,
 char *stack,
 int lost,
 int subframe_offset,
-float last_pitch_gain,
+spx_word16_t last_pitch_gain,
 int cdbk_offset
 );
 
@@ -91,10 +96,10 @@ spx_coef_t ak[],                     /* LPCs for this subframe */
 spx_coef_t awk1[],                   /* Weighted LPCs #1 for this subframe */
 spx_coef_t awk2[],                   /* Weighted LPCs #2 for this subframe */
 spx_sig_t exc[],                    /* Excitation */
-void *par,
+const void *par,
 int   start,                    /* Smallest pitch value allowed */
 int   end,                      /* Largest pitch value allowed */
-float pitch_coef,               /* Voicing (pitch) coefficient */
+spx_word16_t pitch_coef,               /* Voicing (pitch) coefficient */
 int   p,                        /* Number of LPC coeffs */
 int   nsf,                      /* Number of samples in subframe */
 SpeexBits *bits,
@@ -110,15 +115,15 @@ void forced_pitch_unquant(
 spx_sig_t exc[],                    /* Excitation */
 int   start,                    /* Smallest pitch value allowed */
 int   end,                      /* Largest pitch value allowed */
-float pitch_coef,               /* Voicing (pitch) coefficient */
-void *par,
+spx_word16_t pitch_coef,               /* Voicing (pitch) coefficient */
+const void *par,
 int   nsf,                      /* Number of samples in subframe */
 int *pitch_val,
-float *gain_val,
+spx_word16_t *gain_val,
 SpeexBits *bits,
 char *stack,
 int lost,
 int subframe_offset,
-float last_pitch_gain,
+spx_word16_t last_pitch_gain,
 int cdbk_offset
 );

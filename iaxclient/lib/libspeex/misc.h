@@ -35,79 +35,15 @@
 #ifndef MISC_H
 #define MISC_H
 
-#ifndef VERSION
-#define VERSION "speex-1.1"
+#ifndef SPEEX_VERSION
+#define SPEEX_MAJOR_VERSION 1
+#define SPEEX_MINOR_VERSION 1
+#define SPEEX_MICRO_VERSION 6
+#define SPEEX_EXTRA_VERSION ""
+#define SPEEX_VERSION "speex-1.1.6"
 #endif
 
-#ifdef FIXED_POINT
-
-typedef signed short spx_word16_t;
-typedef signed int   spx_word32_t;
-typedef spx_word32_t spx_mem_t;
-typedef spx_word16_t spx_coef_t;
-typedef spx_word16_t spx_lsp_t;
-typedef spx_word32_t spx_sig_t;
-
-#define LPC_SCALING  8192.
-#define SIG_SCALING  16384
-#define LSP_SCALING  8192.
-
-#define LPC_SHIFT    13
-#define SIG_SHIFT    14
-
-#define PSHR(a,shift) (((a)+(1<<((shift)-1))) >> (shift))
-#define SHR(a,shift) ((a) >> (shift))
-#define SHL(a,shift) ((a) << (shift))
-
-/* result fits in 16 bits */
-#define MULT16_16_16(a,b)     (((short)(a))*(b))
-
-#define MULT16_16(a,b)     (((signed int)(a))*(b))
-#define MULT16_32_Q13(a,b) (((a)*((b)>>13)) + ((a)*((signed int)((b)&0x00001fff))>>13))
-#define MULT16_32_Q14(a,b) (((a)*((b)>>14)) + ((a)*((signed int)((b)&0x00003fff))>>14))
-#define MULT16_32_Q15(a,b) (((a)*((b)>>15)) + ((a)*((signed int)((b)&0x00007fff))>>15))
-
-#define MULT16_16_Q13(a,b) (((signed int)(a))*(b)>>13)
-#define MULT16_16_Q14(a,b) (((signed int)(a))*(b)>>14)
-#define MULT16_16_Q15(a,b) (((signed int)(a))*(b)>>15)
-
-#define MULT16_16_P14(a,b) ((8192+((signed int)(a))*(b))>>14)
-
-
-#define DIV32_16(a,b) (((signed int)(a))/(b))
-
-#else
-
-typedef float spx_mem_t;
-typedef float spx_coef_t;
-typedef float spx_lsp_t;
-typedef float spx_sig_t;
-typedef float spx_word16_t;
-typedef float spx_word32_t;
-
-#define LPC_SCALING  1.
-#define SIG_SCALING  1.
-#define LSP_SCALING  1.
-
-#define LPC_SHIFT    0
-#define SIG_SHIFT    0
-
-#define PSHR(a,shift)       (a)
-#define SHR(a,shift)       (a)
-#define SHL(a,shift)       (a)
-#define MULT16_16_16(a,b)     ((a)*(b))
-#define MULT16_16(a,b)     ((a)*(b))
-
-#define MULT16_32_Q13(a,b)     ((a)*(b))
-#define MULT16_32_Q14(a,b)     ((a)*(b))
-#define MULT16_32_Q15(a,b)     ((a)*(b))
-
-#define MULT16_16_Q13(a,b)     ((a)*(b))
-#define MULT16_16_Q14(a,b)     ((a)*(b))
-#define MULT16_16_Q15(a,b)     ((a)*(b))
-
-
-#endif
+#include "arch.h"
 
 #ifndef RELEASE
 void print_vec(float *vec, int len, char *name);

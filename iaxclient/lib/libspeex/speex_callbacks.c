@@ -32,7 +32,11 @@
 
 */
 
-#include "speex_callbacks.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <speex/speex_callbacks.h>
 #include "misc.h"
 
 int speex_inband_handler(SpeexBits *bits, SpeexCallback *callback_list, void *state)

@@ -1,4 +1,8 @@
-#include "speex_preprocess.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <speex/speex_preprocess.h>
 #include <stdio.h>
 
 #define NN 160
@@ -18,6 +22,12 @@ int main()
    speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_AGC, &i);
    f=8000;
    speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_AGC_LEVEL, &f);
+   i=0;
+   speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DEREVERB, &i);
+   f=.4;
+   speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DEREVERB_DECAY, &f);
+   f=.3;
+   speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DEREVERB_LEVEL, &f);
    while (1)
    {
       int vad;

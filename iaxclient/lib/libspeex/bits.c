@@ -32,7 +32,11 @@
 
 */
 
-#include "speex_bits.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <speex/speex_bits.h>
 #include "misc.h"
 
 /** Maximum size of the bit-stream (for fixed-size allocation) */
@@ -324,24 +328,12 @@ int speex_bits_peek(SpeexBits *bits)
 
 void speex_bits_advance(SpeexBits *bits, int n)
 {
-   int nbytes, nbits;
-
-   if ((bits->bytePtr<<3)+bits->bitPtr+n>bits->nbBits)
+    if (((bits->bytePtr<<3)+bits->bitPtr+n>bits->nbBits) || bits->overflow){
       bits->overflow=1;
-   if (bits->overflow)
       return;
-
-   nbytes = n >> 3;
-   nbits = n & 7;
-   
-   bits->bytePtr += nbytes;
-   bits->bitPtr += nbits;
-   
-   if (bits->bitPtr>7)
-   {
-      bits->bitPtr-=8;
-      bits->bytePtr++;
-   }
+    }
+   bits->bytePtr += (bits->bitPtr+n) >> 3; /*divide by 8*/
+   bits->bitPtr = (bits->bitPtr+n) & 7;    /* modulo by 8*/
 }
 
 int speex_bits_remaining(SpeexBits *bits)

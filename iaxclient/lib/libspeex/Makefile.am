@@ -1,9 +1,10 @@
-## Process this file with automake to produce Makefile.in. -*-Makefile-*-
-
-# $Id$
-
 # Disable automatic dependency tracking if using other tools than gcc and gmake
 #AUTOMAKE_OPTIONS = no-dependencies
+
+
+EXTRA_DIST=testenc.c testenc_wb.c testenc_uwb.c testdenoise.c testecho.c
+
+INCLUDES = -I$(top_srcdir)/include @OGG_CFLAGS@
 
 lib_LTLIBRARIES = libspeex.la
 
@@ -21,6 +22,7 @@ libspeex_la_SOURCES = nb_celp.c \
 	filters.c \
 	bits.c \
 	modes.c \
+	speex.c \
 	vq.c \
 	high_lsp_tables.c \
 	vbr.c \
@@ -43,16 +45,6 @@ libspeex_la_SOURCES = nb_celp.c \
 	jitter.c \
 	mdf.c
 
-
-include_HEADERS =  speex.h \
-	speex_bits.h \
-	speex_header.h \
-	speex_callbacks.h \
-	speex_stereo.h \
-	speex_preprocess.h \
-	speex_jitter.h \
-	speex_echo.h
-
 noinst_HEADERS = lsp.h \
 	nb_celp.h \
 	lpc.h \
@@ -69,21 +61,13 @@ noinst_HEADERS = lsp.h \
 	ltp_sse.h \
 	filters_sse.h \
 	math_approx.h \
-	smallft.h
-	
-	
+	smallft.h \
+	arch.h \
+	fixed_arm.h \
+	fixed_debug.h \
+	fixed_generic.h \
+	cb_search_sse.h
+
+
 libspeex_la_LDFLAGS = -version-info @SPEEX_LT_CURRENT@:@SPEEX_LT_REVISION@:@SPEEX_LT_AGE@
 
-noinst_PROGRAMS = testenc testenc_wb testenc_uwb testdenoise
-
-testenc_SOURCES = testenc.c
-testenc_LDADD = libspeex.la
-
-testenc_wb_SOURCES = testenc_wb.c
-testenc_wb_LDADD = libspeex.la
-
-testenc_uwb_SOURCES = testenc_uwb.c
-testenc_uwb_LDADD = libspeex.la
-
-testdenoise_SOURCES = testdenoise.c
-testdenoise_LDADD = libspeex.la
