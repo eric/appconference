@@ -93,6 +93,11 @@ void gettimeofday(struct timeval *tv, struct timezone *tz);
 #include "../../snom_phonecore2/include/snom_memset.h"
 #endif
 
+/* Voice TS Prediction causes libiax2 to clean up the timestamps on
+ * outgoing frames.  It works best with either continuous voice, or
+ * callers who call iax_send_cng to indicate DTX for silence */
+#define USE_VOICE_TS_PREDICTION
+
 /* Define Voice Smoothing to try to make some judgements and adjust timestamps
    on incoming packets to what they "ought to be" */
 
@@ -152,6 +157,8 @@ struct iax_session {
 	unsigned int lastvoicets;
 	/* Next predicted voice ts */
 	unsigned int nextpred;
+	/* True if the last voice we transmitted was not silence/CNG */
+	int notsilenttx;
 	/* Our last measured ping time */
 	unsigned int pingtime;
 	/* Address of peer */
@@ -436,6 +443,18 @@ static int iax_session_valid(struct iax_session *session)
 	return 0;
 }
 
+static void add_ms(struct timeval *tv, int ms) {
+  tv->tv_usec += ms * 1000;
+  if(tv->tv_usec > 1000000) {
+      tv->tv_usec -= 1000000;
+      tv->tv_sec++;
+  }
+  if(tv->tv_usec < 0) {
+      tv->tv_usec += 1000000;
+      tv->tv_sec--;
+  }
+}
+
 static int calc_timestamp(struct iax_session *session, unsigned int ts, struct ast_frame *f)
 {
 	int ms;
@@ -475,16 +494,33 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 
 	if(voice) {
 #ifdef USE_VOICE_TS_PREDICTION
-		if(abs(ms - session->nextpred) <= 240) {
+		/* If we haven't most recently sent silence, and we're
+		 * close in time, use predicted time */
+		if(session->notsilenttx && abs(ms - session->nextpred) <= 240) {
+		    /* Adjust our txcore, keeping voice and non-voice
+		     * synchronized */
+		    add_ms(&session->offset, (int)(ms - session->nextpred)/10);
+		    
 		    if(!session->nextpred)		
 			session->nextpred = f->samples; 
 		    ms = session->nextpred; 
-		} else
-		    session->nextpred = ms;
+		} else {
+		    /* in this case, just use the actual time, since
+		     * we're either way off (shouldn't happen), or we're
+		     * ending a silent period -- and seed the next predicted
+		     * time.  Also, round ms to the next multiple of
+		     * frame size (so our silent periods are multiples
+		     * of frame size too) */
+		    int diff = ms % (f->samples / 8);
+		    if(diff)
+			ms += f->samples/8 - diff;
+		    session->nextpred = ms; 
+		}
 #else
 		if(ms <= session->lastsent)
 			ms = session->lastsent + 3;
 #endif
+		session->notsilenttx = 1;
 	} else {
 		/* On a dataframe, use last value + 3 (to accomodate jitter buffer shrinking) 
 		   if appropriate unless it's a genuine frame */
@@ -1164,6 +1200,7 @@ int iax_send_voice(struct iax_session *session, int format, char *data, int data
 
 int iax_send_cng(struct iax_session *session, int level, char *data, int datalen)
 {    
+	session->notsilenttx = 0;
 	return send_command(session, AST_FRAME_CNG, level, 0, data, datalen, -1);
 }
 
