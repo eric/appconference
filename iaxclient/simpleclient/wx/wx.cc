@@ -24,7 +24,6 @@
 #define LEVEL_MIN -50
 #define DEFAULT_SILENCE_THRESHOLD 1 // positive is "auto"
 
-#define TRY_GUILOCK
 
 class IAXClient : public wxApp
 {
@@ -44,7 +43,7 @@ IMPLEMENT_APP(IAXClient)
 
 // forward decls for callbacks
 extern "C" {
-     int iaxc_callback(iaxc_event e);
+     static int iaxc_callback(iaxc_event e);
      int doTestCall(int ac, char **av);
 }
 
@@ -77,9 +76,8 @@ enum
     ID_REGISTER,
 
     ID_CALLS = 400,
-
-    CALLBACK_STATUS = 1000,
-    CALLBACK_LEVELS,
+    
+    IAXCLIENT_EVENT = 500,
 
     ID_MAX
 };
@@ -101,7 +99,7 @@ class IAXCalls : public wxListCtrl
     public:
       IAXCalls(wxWindow *parent, int nCalls);
       void IAXCalls::OnSelect(wxListEvent &evt);
-      int IAXCalls::OnStateCallback(struct iaxc_ev_call_state c);
+      int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c);
       inline void IAXCalls::AutoSize() {
 	for(int i=0;i<nCalls;i++)
 	  SetColumnWidth(i,wxLIST_AUTOSIZE);
@@ -118,10 +116,10 @@ BEGIN_EVENT_TABLE(IAXCalls, wxListCtrl)
 END_EVENT_TABLE()
 
 IAXCalls::IAXCalls(wxWindow *parent, int inCalls) 
-  : nCalls(inCalls),
-    wxListCtrl(parent, ID_CALLS, 
+  : wxListCtrl(parent, ID_CALLS, 
       wxDefaultPosition, wxDefaultSize, wxLC_REPORT|wxLC_SINGLE_SEL, 
-      wxDefaultValidator, _T("calls"))
+      wxDefaultValidator, _T("calls")), 
+    nCalls(inCalls)
 {
   // initialze IAXCalls control    
   long i;
@@ -138,7 +136,7 @@ IAXCalls::IAXCalls(wxWindow *parent, int inCalls)
 
   Hide();
   for(i=0;i<nCalls;i++) {
-      long tmp = InsertItem(i,wxString::Format("%d", i+1), 0);
+      InsertItem(i,wxString::Format("%ld", i+1), 0);
       // XXX ??? SetItemData(tmp,i);
       SetItem(i, 2, _T("No call"));
   }
@@ -146,16 +144,15 @@ IAXCalls::IAXCalls(wxWindow *parent, int inCalls)
   AutoSize();
 }
 
-int IAXCalls::OnStateCallback(struct iaxc_ev_call_state c)
+int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
 {
-  if (!wxThread::IsMain()) wxMutexGuiEnter();
 
     fprintf(stderr, "Updating state for item %d state=%x\n", c.callNo, c.state);
   
 
     // first, handle inactive calls
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
-	fprintf(stderr, "state for item %d is free\n", c.callNo);
+	//fprintf(stderr, "state for item %d is free\n", c.callNo);
 	SetItem(c.callNo, 2, _T("No call") );
 	SetItem(c.callNo, 1, _T("") );
     } else {
@@ -189,11 +186,10 @@ int IAXCalls::OnStateCallback(struct iaxc_ev_call_state c)
     if((c.state & IAXC_CALL_STATE_SELECTED) &&
 	!(GetItemState(c.callNo,wxLIST_STATE_SELECTED|wxLIST_STATE_SELECTED))) 
     {
-	fprintf(stderr, "setting call %d to selected\n", c.callNo);
+	//fprintf(stderr, "setting call %d to selected\n", c.callNo);
 	SetItemState(c.callNo,wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
     }
     AutoSize();
-  if (!wxThread::IsMain()) wxMutexGuiLeave();
 
     return 0;
 }
@@ -221,6 +217,11 @@ public:
     void IAXFrame::OnNotify(void);
     void IAXFrame::OnRegisterMenu(wxCommandEvent &evt);
 
+    // Handlers for library-initiated events
+    void IAXFrame::HandleEvent(wxCommandEvent &evt);
+    int IAXFrame::HandleIAXEvent(iaxc_event *e);
+    int IAXFrame::HandleStatusEvent(char *msg);
+    int IAXFrame::HandleLevelEvent(float input, float output);
 
     bool IAXFrame::GetPTTState();
     void IAXFrame::CheckPTT();
@@ -238,12 +239,6 @@ public:
     bool pttState; // is the PTT button pressed?
     bool silenceMode;  // are we in silence suppression mode?
 
-#ifndef TRY_GUILOCK
-    // values set by callbacks
-    int	      inputLevel;
-    int	      outputLevel;
-    wxString  statusString;
-#endif
 
 protected:
     DECLARE_EVENT_TABLE()
@@ -257,27 +252,6 @@ static IAXFrame *theFrame;
 
 void IAXFrame::OnNotify()
 {
-#ifndef TRY_GUILOCK
-    static wxString lastStatus;
-    static int lastInputLevel = 0;
-    static int lastOutputLevel = 0;
-
-    if(statusString != lastStatus) {
-      SetStatusText(statusString);
-      lastStatus = statusString;
-    }
-
-    if(lastInputLevel != inputLevel) {
-      input->SetValue(inputLevel); 
-      lastInputLevel = inputLevel;
-    }
-
-    if(lastOutputLevel != outputLevel) {
-      output->SetValue(outputLevel); 
-      lastOutputLevel = outputLevel;
-    }
-#endif
-
     if(pttMode) CheckPTT(); 
 }
 
@@ -297,13 +271,6 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
     pttMode = false;
-#ifndef TRY_GUILOCK
-    inputLevel = 0;
-    outputLevel = 0;
-    statusString = _T("Welcome to IAXClient");
-#endif
-
-
 
     /* add status bar first; otherwise, sizer doesn't take it into
      * account */
@@ -377,6 +344,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     if(wxGetApp().optNumCalls > 1) {
       int nCalls = wxGetApp().optNumCalls;
 
+      // XXX need to fix sizes better.
       topsizer->Add(calls = new IAXCalls(this, nCalls), 1, wxEXPAND);
     }
 
@@ -493,6 +461,7 @@ void IAXFrame::OnQuit(wxEvent &evt)
 }
 
 void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
+
 	wxTextEntryDialog dialog(this,
 	    _T("Register with a remote asterisk server"),
 	    _T("Format is user:password@hostname"),
@@ -553,6 +522,73 @@ void IAXFrame::OnSilenceChange(wxCommandEvent &evt)
 }
 
 
+int IAXFrame::HandleStatusEvent(char *msg)
+{
+    theFrame->SetStatusText(msg);
+  return 1;
+}
+
+int IAXFrame::HandleLevelEvent(float input, float output)
+{
+  int inputLevel, outputLevel;
+
+  if (input < LEVEL_MIN)
+    input = LEVEL_MIN; 
+  else if (input > LEVEL_MAX)
+    input = LEVEL_MAX;
+  inputLevel = (int)input - (LEVEL_MIN); 
+
+  if (output < LEVEL_MIN)
+    output = LEVEL_MIN; 
+  else if (input > LEVEL_MAX)
+    output = LEVEL_MAX;
+  outputLevel = (int)output - (LEVEL_MIN); 
+
+  static int lastInputLevel = 0;
+  static int lastOutputLevel = 0;
+
+
+    if(lastInputLevel != inputLevel) {
+      theFrame->input->SetValue(inputLevel); 
+      lastInputLevel = inputLevel;
+    }
+
+    if(lastOutputLevel != outputLevel) {
+      theFrame->output->SetValue(outputLevel); 
+      lastOutputLevel = outputLevel;
+    }
+
+ return 1;
+}
+
+
+int IAXFrame::HandleIAXEvent(iaxc_event *e)
+{
+    int ret = 0;
+    switch(e->type) {
+	case IAXC_EVENT_LEVELS:
+	    ret = HandleLevelEvent(e->ev.levels.input, e->ev.levels.output);
+	    break;
+	case IAXC_EVENT_TEXT:
+	    ret = HandleStatusEvent(e->ev.text.message);
+	    break;
+	case IAXC_EVENT_STATE:
+	    ret = theFrame->calls->HandleStateEvent(e->ev.call);
+	    break;
+	default:
+	    break;  // not handled
+    }
+    return ret;
+}
+
+void IAXFrame::HandleEvent(wxCommandEvent &evt)
+{
+    iaxc_event *e = (iaxc_event *)evt.GetClientData();
+    //fprintf(stderr, "In HandleEvent\n");
+    HandleIAXEvent(e);
+    free (e);
+}
+
 
 BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_BUTTON(0,IAXFrame::OnDTMF)
@@ -570,13 +606,14 @@ BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_BUTTON(ID_DIAL,IAXFrame::OnDial)
 	EVT_BUTTON(ID_HANG,IAXFrame::OnHangup)
 
-	EVT_MENU(ID_QUIT,IAXFrame::OnQuit)
 	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
 	EVT_MENU(ID_SILENCE,IAXFrame::OnSilenceChange)
 	EVT_MENU(ID_REGISTER,IAXFrame::OnRegisterMenu)
-      
+	EVT_MENU(ID_QUIT,IAXFrame::OnQuit)
 
+	EVT_MENU(IAXCLIENT_EVENT, IAXFrame::HandleEvent)
 END_EVENT_TABLE()
+
 
 IAXFrame::~IAXFrame()
 {
@@ -632,7 +669,6 @@ bool IAXClient::OnInit()
 	theFrame->Show(TRUE); 
 	SetTopWindow(theFrame); 
    
-	// just one call for now!	
         iaxc_initialize(AUDIO_INTERNAL_PA, wxGetApp().optNumCalls);
 
         iaxc_set_encode_format(IAXC_FORMAT_GSM);
@@ -665,74 +701,34 @@ extern "C" {
     *
     * So, this isn't ideal, but it works, until I can figure out a better way
     */
-   int status_callback(char *msg)
-   {
-#ifdef TRY_GUILOCK
-      static wxString lastStatus;
-      if(lastStatus == msg) return 1;
 
+   // handle events via posting.
+#ifdef USE_GUILOCK 
+   static int iaxc_callback(iaxc_event e)
+   {
+      int ret;
       if (!wxThread::IsMain()) wxMutexGuiEnter();
-      theFrame->SetStatusText(msg);
-      lastStatus = msg;
+	ret = theFrame->HandleIAXEvent(&e);
       if (!wxThread::IsMain()) wxMutexGuiLeave();
+      return ret;
+   }
 #else
-      theFrame->statusString = wxString(msg);
-#endif
+   static int iaxc_callback(iaxc_event e)
+   {
+      iaxc_event *copy;
+      wxCommandEvent evt(wxEVT_COMMAND_MENU_SELECTED, IAXCLIENT_EVENT);
+
+      copy = (iaxc_event *)malloc(sizeof(iaxc_event));
+      memcpy(copy,&e,sizeof(iaxc_event));
+
+      evt.SetClientData(copy);
+
+      //fprintf(stderr, "Posting Event\n");
+      wxPostEvent(theFrame, evt);
+
+      // pretend we handle all events.
       return 1;
    }
-
-   int levels_callback(float input, float output)
-   {
-      int inputLevel, outputLevel;
-
-      if (input < LEVEL_MIN)
-	input = LEVEL_MIN; 
-      else if (input > LEVEL_MAX)
-	input = LEVEL_MAX;
-      inputLevel = (int)input - (LEVEL_MIN); 
-
-      if (output < LEVEL_MIN)
-	output = LEVEL_MIN; 
-      else if (input > LEVEL_MAX)
-	output = LEVEL_MAX;
-      outputLevel = (int)output - (LEVEL_MIN); 
-
-#ifdef TRY_GUILOCK
-      static int lastInputLevel = 0;
-      static int lastOutputLevel = 0;
-
-      if (!wxThread::IsMain()) wxMutexGuiEnter();
-
-	if(lastInputLevel != inputLevel) {
-	  theFrame->input->SetValue(inputLevel); 
-	  lastInputLevel = inputLevel;
-	}
-
-	if(lastOutputLevel != outputLevel) {
-	  theFrame->output->SetValue(outputLevel); 
-	  lastOutputLevel = outputLevel;
-	}
-
-      if (!wxThread::IsMain()) wxMutexGuiLeave();
-#else
-      theFrame->inputLevel = (int)input - (LEVEL_MIN); 
-      theFrame->outputLevel = (int)output - (LEVEL_MIN); 
 #endif
-     return 1;
-   }
 
-
-   int iaxc_callback(iaxc_event e)
-   {
-	switch(e.type) {
-	    case IAXC_EVENT_LEVELS:
-		return levels_callback(e.ev.levels.input, e.ev.levels.output);
-	    case IAXC_EVENT_TEXT:
-		return status_callback(e.ev.text.message);
-	    case IAXC_EVENT_STATE:
-		return theFrame->calls->OnStateCallback(e.ev.call);
-	    default:
-		return 0;  // not handled
-	}
-   }
 }

@@ -251,6 +251,7 @@ int iaxc_initialize(int audType, int inCalls) {
 }
 
 void iaxc_shutdown() {
+	MUTEXLOCK(&iaxc_lock);
 	switch (iAudioType) {
 		case AUDIO_INTERNAL:
 #ifdef USE_WIN_AUDIO
@@ -261,6 +262,7 @@ void iaxc_shutdown() {
 			pa_shutdown_audio();
 			break;
 	}
+	MUTEXUNLOCK(&iaxc_lock);
 	MUTEXDESTROY(&iaxc_lock);
 }
 
@@ -337,9 +339,12 @@ int iaxc_stop_processing_thread()
     if(procThreadQuitFlag >= 0)
     {
 	procThreadQuitFlag = 1;
-	THREADJOIN(procThread);
+	// It will die eventually on it's own?
+	// causes deadlock with wx GUI on MSW.. XXX FixME?
+	//THREADJOIN(procThread);
     }
     procThreadQuitFlag = -1;
+    return 0;
 }
 
 
