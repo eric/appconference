@@ -454,6 +454,7 @@ static int send_audio(struct ast_conference *conference, struct ast_conf_member 
 	cf = read_audio(conference,member,ms*8);
 	if (cf != NULL) {
 	    if (member->smoother != NULL) {
+		struct ast_frame *f;
 	        // note on free with smoother:  smoother might keep and then return the frame
 	        // you give it here, as an "optimization" frame.  Otherwise, it will return a
 	        // frame with static data, which doesn't need to be freed.  So, to avoid
@@ -462,14 +463,13 @@ static int send_audio(struct ast_conference *conference, struct ast_conf_member 
 	        // it. (at that point, we're guaranteed to have gotten it out, if it was an opt
 	        // frame).
 		ast_smoother_feed(member->smoother,cf);
-		while (cf = ast_smoother_read(member->smoother)) {
-		    ast_write(member->chan,cf);
+		while (f = ast_smoother_read(member->smoother)) {
+		    ast_write(member->chan,f);
 		}
-		if (cf != NULL) ast_frfree(cf);
 	    } else {
 		ast_write(member->chan,cf);
-		ast_frfree(cf);
 	    }
+	    ast_frfree(cf);
 	    return 0;
 	} else {
 	    /* kaboom */
