@@ -2671,7 +2671,7 @@ struct iax_event *iax_get_event(int blocking)
 		    ret = jb_get(cur->jb,&frame,now);
 		    switch(ret) {
 			case JB_OK:
-			    if(frame.type == JB_TYPE_VOICE && next + 20 != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not %ld+20!\n", jb_next(cur->jb), next);
+//			    if(frame.type == JB_TYPE_VOICE && next + 20 != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not %ld+20!\n", jb_next(cur->jb), next);
 			    event = frame.data;
 			    event = handle_event(event);
 			    if (event) {
@@ -2679,7 +2679,7 @@ struct iax_event *iax_get_event(int blocking)
 			    }
 			break;
 			case JB_INTERP:
-			    if(next + 20 != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not %ld+20!\n", jb_next(cur->jb), next);
+//			    if(next + 20 != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not %ld+20!\n", jb_next(cur->jb), next);
 			    /* create an interpolation frame */
 			    //fprintf(stderr, "Making Interpolation frame\n");
 			    event = (struct iax_event *)malloc(sizeof(struct iax_event));
@@ -2695,7 +2695,7 @@ struct iax_event *iax_get_event(int blocking)
 			    }
 			break;
 			case JB_DROP:
-			    if(next != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not next %ld!\n", jb_next(cur->jb), next);
+//			    if(next != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not next %ld!\n", jb_next(cur->jb), next);
 			    iax_event_free(frame.data);
 			break;
 			case JB_NOFRAME:
