@@ -732,7 +732,7 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 	//
 	
 	mmr = mixerOpen( 
-		( LPHMIXER )( &mixer->hInputMixer ), 
+		( LPHMIXER )( &mixer->hOutputMixer ), 
 		hWaveOut, 0, 0,
 		MIXER_OBJECTF_HWAVEOUT 
 	) ;
