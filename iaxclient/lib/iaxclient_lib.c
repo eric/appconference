@@ -16,15 +16,14 @@ int c, i;
 char rcmd[RBUFSIZE];
 
 int iaxc_audio_output_mode = 0; // Normal
-static int answered_call;
-static struct iax_session *newcall;
 
-static struct peer *most_recent_answer=NULL;
-static struct peer *peers;
+static int selected_call; // XXX to be protected by mutex?
+static struct iaxc_call* calls;
+static int nCalls;	// number of calls for this library session
 
 struct timeval lastouttm;
 
-static struct peer * find_peer(struct iax_session *session);
+static struct iaxc_call * find_call(struct iax_session *session);
 static void do_iax_event();
 
 static THREAD procThread;
@@ -33,12 +32,7 @@ static THREADID procThreadID;
 /* QuitFlag: 0: Running 1: Should Quit, -1: Not Running */
 static int procThreadQuitFlag = -1;
 
-
-iaxc_levels_callback_t iaxc_levels_callback = NULL;
-
-void iaxc_set_levels_callback(iaxc_levels_callback_t func) {
-    iaxc_levels_callback = func;
-}
+iaxc_event_callback_t iaxc_event_callback = NULL;
 
 void iaxc_set_silence_threshold(double thr) {
     iaxc_silence_threshold = thr;
@@ -56,52 +50,140 @@ long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
 }
 
 
+void iaxc_set_event_callback(iaxc_event_callback_t func) {
+    iaxc_event_callback = func;
+}
+
 // Messaging functions
 static void default_message_callback(char *message) {
   fprintf(stderr, "IAXCLIENT: ");
   fprintf(stderr, message);
   fprintf(stderr, "\n");
 }
-iaxc_message_callback_t iaxc_error_callback = default_message_callback;
-iaxc_message_callback_t iaxc_status_callback = default_message_callback;
 
-void iaxc_set_error_callback(iaxc_message_callback_t func) {
-    iaxc_error_callback = func;
+// Post Events back to clients
+void iaxc_post_event(iaxc_event e) {
+    if(iaxc_event_callback)
+    {
+	int rv;
+	rv = iaxc_event_callback(e);
+	if(rv < 0) 
+	  default_message_callback("IAXCLIENT: BIG PROBLEM, event callback returned failure!");
+	// > 0 means processed
+	if(rv > 0) return;
+
+	// else, fall through to "defaults"
+    }
+
+    switch(e.type)
+    {
+	case IAXC_EVENT_TEXT:
+	    default_message_callback(e.ev.text.message);
+	// others we just ignore too
+	return;
+    }
 }
 
-void iaxc_set_status_callback(iaxc_message_callback_t func) {
-    iaxc_status_callback = func;
-}
 
-#define IAXC_ERROR  1
-#define IAXC_STATUS 2
+#define IAXC_ERROR  IAXC_TEXT_TYPE_ERROR
+#define IAXC_STATUS IAXC_TEXT_TYPE_STATUS
+#define IAXC_NOTICE IAXC_TEXT_TYPE_NOTICE
 
 static iaxc_usermsg(int type, const char *fmt, ...)
 {
     va_list args;
-    char buf[256];
+    iaxc_event e;
+
+    e.type=IAXC_EVENT_TEXT;
+    e.ev.text.type=type;
 
     va_start(args, fmt);
 #ifdef WIN32
-    _vsnprintf(buf, 250, fmt, args);
+    _vsnprintf(e.ev.text.message, IAXC_EVENT_BUFSIZ, fmt, args);
 #else
-    vsnprintf(buf, 250, fmt, args);
+    vsnprintf(e.ev.text.message, IAXC_EVENT_BUFSIZ, fmt, args);
 #endif
     va_end(args);
 
-    if(type == IAXC_ERROR)
-	iaxc_error_callback(buf);
-    else
-	iaxc_status_callback(buf);
+    iaxc_post_event(e);
 }
 
 
+void iaxc_do_levels_callback(float input, float output)
+{
+    iaxc_event e;
+    e.type = IAXC_EVENT_LEVELS;
+    e.ev.levels.input = input;
+    e.ev.levels.output = output;
+    iaxc_post_event(e);
+}
+
+void iaxc_do_state_callback(int callNo)
+{  
+      iaxc_event e;   
+      e.type = IAXC_EVENT_STATE;
+      e.ev.call.callNo = callNo;
+      e.ev.call.state = calls[callNo].state;
+      strncpy(e.ev.call.remote, calls[callNo].remote, IAXC_EVENT_BUFSIZ);
+      iaxc_post_event(e);
+}
+
+static int iaxc_next_free_call()  {
+	int i;
+	for(i=0;i<nCalls;i++) 
+	    if(calls[i].session==NULL) 
+		return i;
+	
+	return -1;
+}
+
+static int iaxc_clear_call(int toDump)
+{
+      if(selected_call == toDump) iaxc_select_call(-1);
+
+      // XXX libiax should handle cleanup, I think..
+      calls[toDump].session = NULL;
+      calls[toDump].state = IAXC_CALL_STATE_FREE;
+      iaxc_do_state_callback(toDump);
+}
+
+/* select a call.  -1 == no call */
+/* XXX Locking??  Start/stop audio?? */
+int iaxc_select_call(int callNo) {
+	if(callNo < -1 || callNo >= nCalls) {
+		iaxc_usermsg(IAXC_ERROR, "Error: tried to select out_of_range call %d", callNo);
+		return -1;
+	}
+
+	if(!calls[callNo].session) {
+		iaxc_usermsg(IAXC_ERROR, "Error: tried to select inactive call", callNo);
+		return -1;
+	}
+   
+	if(selected_call >= 0) {	
+	  calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+	  iaxc_do_state_callback(selected_call);
+	}
+
+	calls[callNo].state |= IAXC_CALL_STATE_SELECTED;
+
+	selected_call = callNo;
+
+	iaxc_do_state_callback(selected_call);
+}
+	  
+/* external API accessor */
+int iaxc_selected_call() {
+	return selected_call;
+}
 
 // Parameters:
 // audType - Define whether audio is handled by library or externally
-int iaxc_initialize(int audType) {
-	/* get time of day in milliseconds, offset by tick count (see our
-	   gettimeofday() implementation) */
+int iaxc_initialize(int audType, int inCalls) {
+	int i;
+
+	/* os-specific initializations: init gettimeofday fake stuff in
+	 * Win32, etc) */
 	os_init();
 
 	if ( (port = iax_init(0) < 0)) {
@@ -110,16 +192,26 @@ int iaxc_initialize(int audType) {
 	}
 	netfd = iax_get_fd();
 
+	nCalls = inCalls;
+	/* initialize calls */
+	if(nCalls == 0) nCalls = 1; /* 0 == Default? */
+
+	/* calloc zeroes for us */
+	calls = calloc(sizeof(struct iaxc_call), nCalls);
+	if(!calls)
+	{
+		iaxc_usermsg(IAXC_ERROR, "Fatal error: can't allocate memory");
+		return -1;
+	}
 	iAudioType = audType;
-	answered_call=0;
-	newcall=0;
+	selected_call = -1;
+
 	gettimeofday(&lastouttm,NULL);
 	switch (iAudioType) {
 		case AUDIO_INTERNAL:
-#ifdef WIN32
+#ifdef USE_WIN_AUDIO
 			if (win_initialize_audio() != 0)
 				return -1;
-#else
 #endif
 			break;
 		case AUDIO_INTERNAL_PA:
@@ -133,9 +225,8 @@ int iaxc_initialize(int audType) {
 void iaxc_shutdown() {
 	switch (iAudioType) {
 		case AUDIO_INTERNAL:
-#ifdef WIN32
+#ifdef USE_WIN_AUDIO
 			win_shutdown_audio();
-#else
 #endif
 			break;
 		case AUDIO_INTERNAL_PA:
@@ -153,7 +244,7 @@ void iaxc_set_encode_format(int fmt)
 
 void iaxc_process_calls(void) {
 
-#ifdef WIN32	
+#ifdef USE_WIN_AUDIO	
 		win_flush_audio_output_buffers();
 		if (iAudioType == AUDIO_INTERNAL) {
 			win_prepare_audio_buffers();
@@ -195,37 +286,24 @@ int iaxc_stop_processing_thread()
     procThreadQuitFlag = -1;
 }
 
-void start_call_processing() {
-	if (!answered_call) {
-		while(1) {
-			iaxc_service_network(netfd);
-			if (answered_call)
-				break;
-		}
-	}
-#ifdef WIN32
-	_beginthread(iaxc_process_calls, 0, NULL);
-#else
-#endif
-}
 
 int service_audio()
 {
 	/* do audio input stuff for buffers that have received data from audio in device already. Must
 		do them in serial number order (the order in which they were originally queued). */
-	if(answered_call) /* send audio only if call answered */
+	if(selected_call >= 0) /* send audio only if call answered */
 	{
 		switch (iAudioType) {
 			case AUDIO_INTERNAL:
 				iaxc_service_network(netfd);
-#ifdef WIN32			
-				win_process_audio_buffers(&lastouttm, most_recent_answer, iEncodeType);		
+#ifdef USE_WIN_AUDIO			
+				win_process_audio_buffers(&lastouttm, &calls[selected_call], iEncodeType);		
 #endif
 				iaxc_service_network(netfd);
 				break;
 			case AUDIO_INTERNAL_PA:
 				iaxc_service_network(netfd);
-				pa_send_audio(&lastouttm, most_recent_answer, iEncodeType);
+				pa_send_audio(&lastouttm, &calls[selected_call], iEncodeType);
 				break;
 			default:
 				iaxc_service_network(netfd);
@@ -235,25 +313,33 @@ int service_audio()
 		}
 	} else {
 		static int i=0;
-		if((i++ % 50 == 0) && iaxc_levels_callback) iaxc_levels_callback(-99,-99);
+		if(i++ % 50 == 0) iaxc_do_levels_callback(-99,-99);
 	}
 	return 0;
 }
 
 
-void handle_audio_event(struct iax_event *e, struct peer *p) {
+void handle_audio_event(struct iax_event *e, int callNo) {
 	int total_consumed = 0;
 	int cur;
 	short fr[160];
+	struct iaxc_call *call;
+
+	call = &calls[callNo];
+
+	if(callNo != selected_call) {
+	    /* drop audio for unselected call? */
+	    return;
+	}
 
 #ifdef IAXC_IAX2
 	while(total_consumed < e->datalen) {
-		cur = decode_audio(p, fr,
+		cur = decode_audio(call, fr,
 		    e->data,e->datalen-total_consumed,
 		    iEncodeType);
 #else
 	while(total_consumed < e->event.voice.datalen) {
-		cur = decode_audio(p, fr,
+		cur = decode_audio(call, fr,
 		    e->event.voice.data,e->event.voice.datalen-total_consumed,
 		    iEncodeType);
 #endif
@@ -265,7 +351,7 @@ void handle_audio_event(struct iax_event *e, struct peer *p) {
 			if(iaxc_audio_output_mode != 0) continue;
 			switch (iAudioType) {
 				case AUDIO_INTERNAL:
-#ifdef WIN32
+#ifdef USE_WIN_AUDIO
 					win_flush_audio_output_buffers();
 					win_play_recv_audio(fr, sizeof(fr));
 #else
@@ -283,7 +369,7 @@ void handle_audio_event(struct iax_event *e, struct peer *p) {
 	}
 }
 
-void iaxc_handle_network_event(struct iax_event *e, struct peer *p)
+void iaxc_handle_network_event(struct iax_event *e, int callNo)
 {
 //	int len,n;
 //	WHOUT *wh,*wh1;
@@ -295,37 +381,34 @@ void iaxc_handle_network_event(struct iax_event *e, struct peer *p)
 		case IAX_EVENT_HANGUP:
 #ifndef IAXC_IAX2  /* IAX2 barfs from this.  Should we do this or not? */
 			
-			iax_hangup(most_recent_answer->session, "Byeee!");
+			iax_hangup(calls[callNo].session, "Byeee!");
 #endif
 			iaxc_usermsg(IAXC_STATUS, "Call disconnected by remote");
-			free(most_recent_answer);
-			most_recent_answer = 0;
-			answered_call = 0;
-			peers = 0;
-			newcall = 0;
+			// XXX does the session go away now?
+			iaxc_clear_call(callNo);
 			
 			break;
 
 		case IAX_EVENT_REJECT:
-			iaxc_usermsg(IAXC_STATUS, "Authentication rejected by remote");
+			iaxc_usermsg(IAXC_STATUS, "Call rejected by remote");
+			iaxc_clear_call(callNo);
 			break;
 		case IAX_EVENT_ACCEPT:
-			iaxc_usermsg(IAXC_STATUS,"RING RING");
+			calls[callNo].state |= IAXC_CALL_STATE_COMPLETE;	
+			iaxc_do_state_callback(callNo);
+			iaxc_usermsg(IAXC_STATUS,"Call %d ringing", callNo);
 //			issue_prompt(f);
 			break;
 		case IAX_EVENT_ANSWER:
-			iaxc_answer_call();
+			iaxc_answer_call(callNo);
  			break;
 		case IAX_EVENT_VOICE:
-			handle_audio_event(e, p);
-			break;
-//				default :
-					//fprintf(f, "Don't know how to handle that format %d\n", e->event.voice.format);
+			handle_audio_event(e, callNo);
 			break;
 		case IAX_EVENT_RINGA:
 			break;
 		default:
-			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d", e->etype);
+			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
 			break;
 	}
 }
@@ -333,81 +416,80 @@ void iaxc_handle_network_event(struct iax_event *e, struct peer *p)
 
 void iaxc_call(char *num)
 {
-	struct peer *peer;
+	int callNo;
+	struct iax_session *newsession;
 
-	if(!newcall)
-		newcall = iax_session_new();
-	else {
-		iaxc_usermsg(IAXC_STATUS, "Call already in progress");
+	callNo = iaxc_next_free_call();
+	if(callNo < 0) {
+		iaxc_usermsg(IAXC_STATUS, "No free call appearances");
 		return;
 	}
 
-	if ( !(peer = malloc(sizeof(struct peer)))) {
-		iaxc_usermsg(IAXC_ERROR, "Warning: Unable to allocate memory!");
+	newsession = iax_session_new();
+	if(!newsession) {
+		iaxc_usermsg(IAXC_ERROR, "Can't make new session");
 		return;
 	}
 
-	peer->time = time(0);
-	peer->session = newcall;
-	peer->gsmin = 0;
-	peer->gsmout = 0;
+	calls[callNo].session = newsession;
 
-	peer->next = peers;
-	peers = peer;
+	/* XXX ??? */
+	calls[callNo].gsmin = 0;
+	calls[callNo].gsmout = 0;
 
-	most_recent_answer = peer;
+	strncpy(calls[callNo].remote,num,IAXC_EVENT_BUFSIZ);
+	calls[callNo].state = IAXC_CALL_STATE_ACTIVE | IAXC_CALL_STATE_OUTGOING;
+
 
 #ifdef IAXC_IAX2
-	iax_call(peer->session, "7001234567", "IAXClient User", num, NULL, 0);
+	iax_call(calls[callNo].session, "7001234567", "IAXClient User", num, NULL, 0);
 #else
-	iax_call(peer->session, "7001234567", num, NULL, 10);
+	iax_call(calls[callNo].session, "7001234567", num, NULL, 10);
 #endif
+
+	// does state stuff
+	iaxc_select_call(callNo);
 }
 
-void iaxc_answer_call(void) 
+void iaxc_answer_call(int callNo) 
 {
-	if(most_recent_answer)
-		iax_answer(most_recent_answer->session);
-	iaxc_usermsg(IAXC_STATUS,"Connected");
-	answered_call = 1;
+	iax_answer(calls[selected_call].session);
 }
 
 void iaxc_dump_call(void)
 {
-	if(most_recent_answer)
+	int toDump = selected_call;
+	if(toDump < 0)
 	{
-		iax_hangup(most_recent_answer->session,"");
-		free(most_recent_answer);
+		iaxc_usermsg(IAXC_ERROR, "Error: tried to dump but no call selected");
+		return;
 	}
-	iaxc_usermsg(IAXC_STATUS, "Hanging up");
-	answered_call = 0;
-	most_recent_answer = 0;
-	answered_call = 0;
-	peers = 0;
-	newcall = 0;
+	      
+	iax_hangup(calls[selected_call].session,"Dumped Call");
+	iaxc_usermsg(IAXC_STATUS, "Hanging up call %d", toDump);
+	iaxc_clear_call(toDump);
 }
 
 void iaxc_reject_call(void)
 {
-	iax_reject(most_recent_answer->session, "Call rejected manually.");
-	most_recent_answer = 0;
+	// XXX should take callNo?
+	iax_reject(calls[selected_call].session, "Call rejected manually.");
+	iaxc_clear_call(selected_call);
 }
 
 void iaxc_send_dtmf(char digit)
 {
-	if(most_recent_answer)
-		iax_send_dtmf(most_recent_answer->session,digit);
+	if(selected_call >= 0)
+		iax_send_dtmf(calls[selected_call].session,digit);
 }
 
-static struct peer *find_peer(struct iax_session *session)
+static int iaxc_find_call_by_session(struct iax_session *session)
 {
-	struct peer *cur = peers;
-	while(cur) {
-		if (cur->session == session)
-			return cur;
-		cur = cur->next;
-	}
-	return NULL;
+	int i;
+	for(i=0;i<nCalls;i++)
+		if (calls[i].session == session)
+			return i;
+	return -1;
 }
 
 /* handle all network requests, and a pending scheduled event, if any */
@@ -438,74 +520,66 @@ void iaxc_service_network(int netfd)
 }
 
 static void do_iax_event() {
-	int sessions = 0;
 	struct iax_event *e = 0;
-	struct peer *peer;
+	int callNo;
 
 	while ( (e = iax_get_event(0))) {
-		peer = find_peer(e->session);
-		if(peer) {
-			iaxc_handle_network_event(e, peer);
+		callNo = iaxc_find_call_by_session(e->session);
+		if(callNo >= 0) {
+			iaxc_handle_network_event(e, callNo);
 			iax_event_free(e);
 		} else {
 			if(e->etype != IAX_EVENT_CONNECT) {
 				iaxc_usermsg(IAXC_STATUS, "Huh? This is an event for a non-existant session?");
 			}
-			sessions++;
+			
+			callNo = iaxc_next_free_call();
 
-			if(sessions >= MAX_SESSIONS) {
-				iaxc_usermsg(IAXC_STATUS, "Missed a call... too many sessions open.");
-			}
-
-#ifndef IAXC_IAX2
-			if(e->event.connect.callerid && e->event.connect.dnid)
-				iaxc_usermsg(IAXC_STATUS, "Call from '%s' for '%s'", e->event.connect.callerid, 
-				e->event.connect.dnid);
-			else if(e->event.connect.dnid) {
-				iaxc_usermsg(IAXC_STATUS, "Call from '%s'", e->event.connect.dnid);
-			} else if(e->event.connect.callerid) {
-				iaxc_usermsg(IAXC_STATUS, "Call from '%s'", e->event.connect.callerid);
-			} else 
-#endif
-				iaxc_usermsg(IAXC_STATUS, "Call from");
-
-			iaxc_usermsg(IAXC_STATUS, " (%s)", inet_ntoa(iax_get_peer_addr(e->session).sin_addr));
-
-			if(most_recent_answer) {
-				iaxc_usermsg(IAXC_STATUS, "Incoming call ignored, there's already a call waiting for answer... \
-please accept or reject first");
+			if(callNo < 0) {
+				iaxc_usermsg(IAXC_STATUS, "Incoming Call, but no appearances");
+				// XXX Reject this call!, or just ignore?
 				iax_reject(e->session, "Too many calls, we're busy!");
-			} else {
-				if ( !(peer = malloc(sizeof(struct peer)))) {
-					iaxc_usermsg(IAXC_STATUS, "Warning: Unable to allocate memory!");
-					return;
-				}
-
-				peer->time = time(0);
-				peer->session = e->session;
-				peer->gsmin = 0;
-				peer->gsmout = 0;
-
-				peer->next = peers;
-				peers = peer;
-
-				iax_accept(peer->session);
-				iax_ring_announce(peer->session);
-				most_recent_answer = peer;
-				iaxc_usermsg(IAXC_STATUS, "Incoming call!");
 			}
+
+#ifndef IAXC_IAX2			  
+			if(e->event.connect.dnid)
+			    strncpy(calls[callNo].local,e->event.connect.dnid,
+				IAXC_EVENT_BUFSIZ);
+			else
+			    strncpy(calls[callNo].local,"unknown",
+				IAXC_EVENT_BUFSIZ);
+
+			if(e->event.connect.callerid)
+			    strncpy(calls[callNo].remote,
+				e->event.connect.callerid, IAXC_EVENT_BUFSIZ);
+			else
+			    strncpy(calls[callNo].remote,
+				"unknown", IAXC_EVENT_BUFSIZ);
+#else
+			// XXX TODO
+#endif
+			iaxc_usermsg(IAXC_STATUS, "Call from (%s)", calls[callNo].remote);
+
+			calls[callNo].gsmin = 0;
+			calls[callNo].gsmout = 0;
+			calls[callNo].session = e->session;
+			calls[callNo].state = IAXC_CALL_STATE_ACTIVE;
+
+
+			// should we even accept?  or, we accept, but
+			// don't necessarily answer..
+			iax_accept(calls[callNo].session);
+			iax_ring_announce(calls[callNo].session);
+
+			// should we select this call?
+			iaxc_select_call(callNo);
+			iaxc_usermsg(IAXC_STATUS, "Incoming call on line %d", callNo);
 			iax_event_free(e);
-//			issue_prompt(f);
 		}
 	}
 }
 
-int iaxc_was_call_answered()
-{
-	return answered_call;
-}
-
-void iaxc_external_audio_event(struct iax_event *e, struct peer *p)
+void iaxc_external_audio_event(struct iax_event *e, struct iaxc_call *call)
 {
 	// To be coded in the future
 	return;

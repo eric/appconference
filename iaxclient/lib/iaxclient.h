@@ -42,8 +42,22 @@ extern "C" {
 #define IAXC_FORMAT_H263         (1 << 19)       /* H.263 Video */
 
 
-#if 0
-/* not yet implemented */
+
+#define IAXC_EVENT_TEXT			1
+#define IAXC_EVENT_LEVELS		2
+#define IAXC_EVENT_STATE		3
+
+#define IAXC_CALL_STATE_FREE 		0
+#define IAXC_CALL_STATE_ACTIVE 		(1<<1)
+#define IAXC_CALL_STATE_OUTGOING 	(1<<2)
+#define IAXC_CALL_STATE_COMPLETE 	(1<<3)
+#define IAXC_CALL_STATE_SELECTED 	(1<<4)
+
+#define IAXC_TEXT_TYPE_STATUS		1
+#define IAXC_TEXT_TYPE_NOTICE		2
+#define IAXC_TEXT_TYPE_ERROR		3
+
+
 
 #define IAXC_EVENT_BUFSIZ	256
 struct iaxc_ev_levels {
@@ -52,28 +66,30 @@ struct iaxc_ev_levels {
 };
 
 struct iaxc_ev_text {
+	int type;
 	char message[IAXC_EVENT_BUFSIZ];
 };
 
-struct iaxc_ev_call {
-	char callerid[IAXC_EVENT_BUFSIZ];
-}
+struct iaxc_ev_call_state {
+	int callNo;
+	int state;
+	char remote[IAXC_EVENT_BUFSIZ];
+	char local[IAXC_EVENT_BUFSIZ];
+};
 
 typedef struct iaxc_event_struct {
 	int type;
 	union {
-		struct iaxc_ev_levels 	levels;
-		struct iaxc_ev_text 	text;
-		struct iaxc_ev_call 	call;
-	} event;
-	struct iaxc_event_struct *next;
+		struct iaxc_ev_levels 		levels;
+		struct iaxc_ev_text 		text;
+		struct iaxc_ev_call_state 	call;
+	} ev;
 } iaxc_event;
 
 typedef int (*iaxc_event_callback_t)(iaxc_event e);
-void iaxc_set_event_callback(iaxc_message_callback_t func);
-#endif
+void iaxc_set_event_callback(iaxc_event_callback_t func);
 
-int iaxc_initialize(int audType);
+int iaxc_initialize(int audType, int nCalls);
 void iaxc_shutdown();
 void iaxc_set_encode_format(int fmt);
 void iaxc_process_calls();
@@ -81,7 +97,7 @@ int iaxc_service_audio();
 int iaxc_start_processing_thread();
 int iaxc_stop_processing_thread();
 void iaxc_call(char *num);
-void iaxc_answer_call(void); 
+void iaxc_answer_call(int callNo); 
 void iaxc_dump_call(void);
 void iaxc_reject_call(void);
 void iaxc_send_dtmf(char digit);
@@ -89,14 +105,7 @@ int iaxc_was_call_answered();
 void iaxc_millisleep(long ms);
 void iaxc_set_silence_threshold(double thr);
 void iaxc_set_audio_output(int mode);
-
-typedef int (*iaxc_levels_callback_t)(float input, float output);
-void iaxc_set_levels_callback(iaxc_levels_callback_t func);
-
-typedef void (*iaxc_message_callback_t)(char *);
-void iaxc_set_status_callback(iaxc_message_callback_t func);
-void iaxc_set_error_callback(iaxc_message_callback_t func);
-
+int iaxc_select_call(int callNo);
 
 #ifdef __cplusplus
 }

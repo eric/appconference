@@ -68,35 +68,50 @@ pthread_create(&thread, NULL, func, args)
 #include "iax-client.h" // LibIAX functions
 #include "gsm.h"
 
-struct peer {
-	int time;
+
+long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
+void iaxc_handle_network_event(struct iax_event *e, int callNo);
+void iaxc_service_network(int netfd);
+void iaxc_do_levels_callback(float input, float output);
+
+
+#if 0
+/* Audio Driver Abstraction TODO */
+struct audio_driver_struct {
+	char *name;
+	int (*initialize)(struct audio_driver_struct *d);
+
+}; 
+typedef struct audio_driver_struct *iaxc_audio_driver;
+
+#endif
+
+#include "iaxclient.h"
+
+
+struct iaxc_call {
+	/* to be replaced with codec-structures, with codec-private data  */
 	gsm gsmin;
 	gsm gsmout;
 
+	/* the "state" of this call */
+	int state;
+	char remote[IAXC_EVENT_BUFSIZ];
+	char local[IAXC_EVENT_BUFSIZ];
+
 	struct iax_session *session;
-	struct peer *next;
 };
 
-long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
-void iaxc_handle_network_event(struct iax_event *e, struct peer *p);
-void iaxc_service_network(int netfd);
-
-
-
-#include "iaxclient.h"
 #include "audio_encode.h"
 #include "audio_portaudio.h"
 
-#ifdef WIN32
+#ifdef USE_WIN_AUDIO
 #include "audio_win32.h"
 #endif
 
-
 extern double iaxc_silence_threshold;
 extern int iaxc_audio_output_mode;
-extern iaxc_levels_callback_t iaxc_levels_callback;
-extern iaxc_message_callback_t iaxc_error_callback;
-extern iaxc_message_callback_t iaxc_status_callback;
+extern iaxc_event_callback_t iaxc_event_callback;
 
 /* external audio functions */
 void iaxc_external_service_audio();

@@ -21,7 +21,55 @@
 
 #include "iaxclient_lib.h"
 
-PABLIO_Stream *stream;
+
+static PABLIO_Stream *stream;
+static const PaDeviceInfo **inputDevices;
+static const PaDeviceInfo **outputDevices;
+static int nInputDevices;
+static int nOutputDevices;
+
+/* scan devices and stash pointers to dev structures. 
+ *  But, these structures only remain valid while Pa is initialized,
+ *  which, with pablio, is only while it's running!
+ *  Also, storing these things in two separate arrays loses the actual
+ *  PaDeviceID's associated with devices (since their index in these
+ *  input/output arrays isn't the same as their index in the combined
+ *  array */
+static int pa_scan_devices() {
+    int nDevices; 
+    int i;
+
+    /* we may be called multiple times */
+    if(inputDevices){ 
+	free(inputDevices);
+	inputDevices=NULL;
+    }
+
+    if(outputDevices){ 
+	free(outputDevices);
+	outputDevices=NULL;
+    }
+
+    nInputDevices = nOutputDevices = 0;
+
+    nDevices = Pa_CountDevices();
+
+    /* allocate in/out arrays big enough for all devices */
+    inputDevices = malloc(nDevices * sizeof(PaDeviceInfo *));
+    outputDevices = malloc(nDevices * sizeof(PaDeviceInfo *));
+
+    for(i=0;i<nDevices;i++)
+    {
+	const PaDeviceInfo *d;	
+	d=Pa_GetDeviceInfo(i);
+
+	if(d->maxInputChannels > 0)
+	  inputDevices[nInputDevices++] = d;
+
+	if(d->maxOutputChannels > 0)
+	  outputDevices[nOutputDevices++] = d;
+    }
+}
 
 int pa_initialize_audio() {
     PaError  err;
@@ -59,7 +107,7 @@ void pa_play_recv_audio(void *fr, int fr_size) {
 	WriteAudioStream(stream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);
 }
 
-void pa_send_audio(struct timeval *lastouttm, struct peer *most_recent_answer, int iEncodeType) {
+void pa_send_audio(struct timeval *lastouttm, struct iaxc_call *most_recent_answer, int iEncodeType) {
 	SAMPLE samples[SAMPLES_PER_FRAME * FRAMES_PER_BLOCK];
 
 	/* send all available complete frames */

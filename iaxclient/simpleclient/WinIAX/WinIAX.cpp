@@ -14,6 +14,7 @@
 #define LEVEL_MIN -50
 #define TIMER_PROCESS_CALLS 1001
 
+int iaxc_callback(iaxc_event e);
 
 int APIENTRY WinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
@@ -176,12 +177,12 @@ BOOL OnInitDialog()
 //	TMessageBox("OnInitDialog");
 	double silence_threshold = -99;
 
-	iaxc_initialize(AUDIO_INTERNAL_PA);
+	iaxc_initialize(AUDIO_INTERNAL_PA,1);
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 	iaxc_set_silence_threshold(silence_threshold);
-	iaxc_set_error_callback(status_callback);
 
-	iaxc_set_levels_callback(levels_callback);
+	iaxc_set_event_callback(iaxc_callback);
+
 	iaxc_start_processing_thread();
 	PostMessage(GetDlgItem(m_hwndMainDlg,IDC_PROG_OUTPUT),PBM_SETRANGE,0,LEVEL_MIN-LEVEL_MAX);
 	PostMessage(GetDlgItem(m_hwndMainDlg,IDC_PROG_INPUT),PBM_SETRANGE,0,LEVEL_MIN-LEVEL_MAX);
@@ -218,9 +219,10 @@ void OnBnHangup()
 {
 	iaxc_dump_call();
 }
-void status_callback(char *msg)
+int status_callback(char *msg)
 {
 	SetDlgItemText(m_hwndMainDlg,IDC_ST_STATUS,msg);
+	return 1
 }
 
 int levels_callback(float input, float output)
@@ -248,8 +250,23 @@ int levels_callback(float input, float output)
 //	Set
 //	theFrame->input->SetValue(inputLevel); 
 //	theFrame->output->SetValue(outputLevel);
-	return 0;
+	return 1;
 }
+
+int iaxc_callback(iaxc_event e)
+{
+    switch(e.type) {
+        case IAXC_EVENT_LEVELS:
+            return levels_callback(e.ev.levels.input, e.ev.levels.output);
+        case IAXC_EVENT_TEXT:
+            return status_callback(e.ev.text.message);
+//        case IAXC_EVENT_STATE:
+//            return state_callback(e.ev.call);
+        default:
+            return 0;  // not handled
+    }
+}
+
 
 void SendDTMF(char num)
 {

@@ -33,6 +33,7 @@ class IAXClient : public wxApp
 
 		  bool optNoDialPad;
 		  wxString optDestination;
+		  long optNumCalls;
 };
 
 DECLARE_APP(IAXClient)
@@ -41,8 +42,7 @@ IMPLEMENT_APP(IAXClient)
 
 // forward decls for callbacks
 extern "C" {
-     void status_callback(char *msg);
-     int levels_callback(float input, float output);
+     int iaxc_callback(iaxc_event e);
      int doTestCall(int ac, char **av);
 }
 
@@ -73,6 +73,8 @@ enum
     ID_MUTE,
     ID_SILENCE,
 
+    ID_CALLBOX = 400,
+
     CALLBACK_STATUS = 1000,
     CALLBACK_LEVELS,
 
@@ -91,7 +93,6 @@ class IAXTimer : public wxTimer
 };
 
 
-
 class IAXFrame : public wxFrame
 {
 public: 
@@ -105,7 +106,9 @@ public:
     void IAXFrame::OnQuit(wxEvent &evt);
     void IAXFrame::OnPTTChange(wxCommandEvent &evt);
     void IAXFrame::OnSilenceChange(wxCommandEvent &evt);
+    void IAXFrame::OnCallBoxSelect(wxCommandEvent &evt);
     void IAXFrame::OnNotify(void);
+
 
     bool IAXFrame::GetPTTState();
     void IAXFrame::CheckPTT();
@@ -116,6 +119,8 @@ public:
     IAXTimer *timer;
     wxTextCtrl *iaxDest;
     wxStaticText *muteState;
+
+    wxRadioBox *callBox;
 
     bool pttMode;  // are we in PTT mode?
     bool pttState; // is the PTT button pressed?
@@ -248,6 +253,24 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     }
 
     topsizer->Add(row1sizer,1,wxEXPAND);
+
+    // Add call appearances
+    if(wxGetApp().optNumCalls > 1) {
+      int i;
+      int nCalls = wxGetApp().optNumCalls;
+      wxString *labels = new wxString[nCalls];
+
+      for(i=0;i<nCalls;i++)
+	  labels[i] = wxString::Format("%d: No Call", i);
+    
+      callBox = new wxRadioBox(aPanel, ID_CALLBOX, _T("Calls"), 
+	  wxDefaultPosition, wxDefaultSize, 
+	  nCalls,  labels, 
+	  1, wxRA_SPECIFY_COLS);
+
+	  topsizer->Add(callBox, 1, wxEXPAND);
+	
+    }
 
     /* Destination */
     topsizer->Add(iaxDest = new wxTextCtrl(aPanel, -1, _T("guest@ast1/8068"), 
@@ -392,6 +415,12 @@ void IAXFrame::OnSilenceChange(wxCommandEvent &evt)
 	}
 }
 
+void IAXFrame::OnCallBoxSelect(wxCommandEvent &evt) {
+	int selected = evt.GetSelection();
+	iaxc_select_call(selected);
+}
+
+
 BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_BUTTON(0,IAXFrame::OnDTMF)
 	EVT_BUTTON(1,IAXFrame::OnDTMF)
@@ -411,6 +440,8 @@ BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_MENU(ID_QUIT,IAXFrame::OnQuit)
 	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
 	EVT_MENU(ID_SILENCE,IAXFrame::OnSilenceChange)
+      
+	EVT_RADIOBOX(ID_CALLBOX, IAXFrame::OnCallBoxSelect)
 
 END_EVENT_TABLE()
 
@@ -431,6 +462,8 @@ void IAXClient::OnInitCmdLine(wxCmdLineParser& p)
 {
      // declare our CmdLine options and stuff.
      p.AddSwitch(_T("d"),_T("disable-dialpad"),_T("Disable Dial Pad"));
+     p.AddOption(_T("n"),_T("calls"),_T("number of call appearances"),
+	 wxCMD_LINE_VAL_NUMBER,wxCMD_LINE_PARAM_OPTIONAL);
      p.AddParam(_T("destination"),wxCMD_LINE_VAL_STRING,wxCMD_LINE_PARAM_OPTIONAL);
 
 }
@@ -440,6 +473,9 @@ bool IAXClient::OnCmdLineParsed(wxCmdLineParser& p)
     if(p.Found(_T("d"))) { 
 	optNoDialPad = true;
 	//fprintf(stderr, "-d option found\n");
+    }
+    if(p.Found(_T("n"), &optNumCalls)) {
+	//fprintf(stderr, "got nCalls (%d)", optNumCalls);
     }
     if(p.GetParamCount() >= 1) {
 	optDestination=p.GetParam(0);
@@ -452,6 +488,7 @@ bool IAXClient::OnCmdLineParsed(wxCmdLineParser& p)
 bool IAXClient::OnInit() 
 { 
 	optNoDialPad = false;
+	optNumCalls = 4;
 
 	if(!wxApp::OnInit())
 	  return false;
@@ -461,14 +498,13 @@ bool IAXClient::OnInit()
 
 	theFrame->Show(TRUE); 
 	SetTopWindow(theFrame); 
-    
-        iaxc_initialize(AUDIO_INTERNAL_PA);
+   
+	// just one call for now!	
+        iaxc_initialize(AUDIO_INTERNAL_PA, wxGetApp().optNumCalls);
 
         iaxc_set_encode_format(IAXC_FORMAT_GSM);
         iaxc_set_silence_threshold(-99);
-	iaxc_set_levels_callback(levels_callback);
-	iaxc_set_error_callback(status_callback);
-	iaxc_set_status_callback(status_callback);
+	iaxc_set_event_callback(iaxc_callback);
 
         iaxc_start_processing_thread();
 
@@ -496,11 +532,11 @@ extern "C" {
     *
     * So, this isn't ideal, but it works, until I can figure out a better way
     */
-   void status_callback(char *msg)
+   int status_callback(char *msg)
    {
 #ifdef TRY_GUILOCK
       static wxString lastStatus;
-      if(lastStatus == msg) return;
+      if(lastStatus == msg) return 1;
 
       if (!wxThread::IsMain()) wxMutexGuiEnter();
       theFrame->SetStatusText(msg);
@@ -509,7 +545,7 @@ extern "C" {
 #else
       theFrame->statusString = wxString(msg);
 #endif
-
+      return 1;
    }
 
    int levels_callback(float input, float output)
@@ -549,6 +585,59 @@ extern "C" {
       theFrame->inputLevel = (int)input - (LEVEL_MIN); 
       theFrame->outputLevel = (int)output - (LEVEL_MIN); 
 #endif
-     return 0;
+     return 1;
+   }
+
+   int state_callback(struct iaxc_ev_call_state c)
+   {
+	wxString label;
+
+	label += wxString::Format("%d: ", c.callNo);
+
+	if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
+	    label += _T("No Call");
+	} else {
+	    if(c.state & IAXC_CALL_STATE_COMPLETE)
+	      if(c.state & IAXC_CALL_STATE_OUTGOING)
+		label += _T("O");
+	      else 
+		label += _T("I");
+	    else
+	      if(c.state & IAXC_CALL_STATE_OUTGOING)
+		label += _T("o");
+	      else 
+		label += _T("i");
+
+	    label += wxString::Format(" %s", c.remote); 
+	}
+
+      if (!wxThread::IsMain()) wxMutexGuiEnter();
+#ifdef __WXMSW__  
+	// XXX figure out why MSW has this problem figuring out which method
+        // to call...
+	theFrame->callBox->wxRadioBoxBase::SetLabel(c.callNo, label);
+#else
+	theFrame->callBox->SetLabel(c.callNo, label);
+#endif
+	if((c.state & IAXC_CALL_STATE_SELECTED) &&
+	    (theFrame->callBox->GetSelection() != c.callNo))
+	    theFrame->callBox->SetSelection(c.callNo);
+      if (!wxThread::IsMain()) wxMutexGuiLeave();
+
+	return 0;
+   }
+
+   int iaxc_callback(iaxc_event e)
+   {
+	switch(e.type) {
+	    case IAXC_EVENT_LEVELS:
+		return levels_callback(e.ev.levels.input, e.ev.levels.output);
+	    case IAXC_EVENT_TEXT:
+		return status_callback(e.ev.text.message);
+	    case IAXC_EVENT_STATE:
+		return state_callback(e.ev.call);
+	    default:
+		return 0;  // not handled
+	}
    }
 }

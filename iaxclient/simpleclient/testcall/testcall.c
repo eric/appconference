@@ -23,6 +23,7 @@
 #include "iaxclient.h"
 
 static int answered_call;
+int do_levels = 0;
 
 /* routine called at exit to shutdown audio I/O and close nicely.
 NOTE: If all this isnt done, the system doesnt not handle this
@@ -40,8 +41,23 @@ void mysleep(void)
 }
 
 int levels_callback(float input, float output) {
-    fprintf(stderr, "IN: %f OUT: %f\n", input, output);
+    if(do_levels) fprintf(stderr, "IN: %f OUT: %f\n", input, output);
 }
+
+int iaxc_callback(iaxc_event e)
+{
+    switch(e.type) {
+        case IAXC_EVENT_LEVELS:
+            return levels_callback(e.ev.levels.input, e.ev.levels.output);
+        case IAXC_EVENT_TEXT:
+            return 0; // don't handle
+        case IAXC_EVENT_STATE:
+            return 0;
+        default:
+            return 0;  // not handled
+    }
+}
+
 
 void usage()
 { 
@@ -55,7 +71,6 @@ int main(int argc, char **argv)
 	char c;
 	int i;
 	char *dest = "guest@10.23.1.31/9999";
-	int do_levels = 0;
 	double silence_threshold = -99;
 
 
@@ -90,12 +105,12 @@ int main(int argc, char **argv)
 	/* activate the exit handler */
 	atexit(killem);
 	
-	iaxc_initialize(AUDIO_INTERNAL_PA);
+	iaxc_initialize(AUDIO_INTERNAL_PA,1);
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 	iaxc_set_silence_threshold(silence_threshold);
 
 	if(do_levels)
-	  iaxc_set_levels_callback(levels_callback); 
+	  iaxc_set_event_callback(iaxc_callback); 
 
 
 	fprintf(f, "\n\

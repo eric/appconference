@@ -20,8 +20,6 @@ static int do_level_callback()
 
     double ilevel, olevel;
 
-    if(!iaxc_levels_callback) return;
-
     gettimeofday(&now,NULL); 
     if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000) return;
 
@@ -37,7 +35,7 @@ static int do_level_callback()
     else
 	olevel = 0.0;
 
-    iaxc_levels_callback(vol_to_db(ilevel), vol_to_db(olevel)); 
+    iaxc_do_levels_callback(vol_to_db(ilevel), vol_to_db(olevel)); 
 }
 
 static int input_postprocess(void *audio, int len, void *out)
@@ -81,7 +79,7 @@ static int input_postprocess(void *audio, int len, void *out)
 
 static int output_postprocess(void *audio, int len)
 {
-    int l = len;
+    unsigned long l = len;
 
     if(!output_compand) {
 	char *argv[2];
@@ -97,7 +95,7 @@ static int output_postprocess(void *audio, int len)
     return 0;
 }
 
-int send_encoded_audio(struct peer *most_recent_answer, void *data, int iEncodeType)
+int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEncodeType)
 {
 	gsm_frame fo;
 	int silent;
@@ -129,7 +127,7 @@ int send_encoded_audio(struct peer *most_recent_answer, void *data, int iEncodeT
 /* decode encoded audio; return the number of bytes decoded 
  * negative indicates error 
  * XXX out MUST be 160 bytes */
-int decode_audio(struct peer *p, void *out, void *data, int len, int iEncodeType)
+int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEncodeType)
 {
 	int ret;
 	int datalen;
@@ -145,10 +143,10 @@ int decode_audio(struct peer *p, void *out, void *data, int len, int iEncodeType
 			fprintf(stderr, "Weird gsm frame, not a multiple of 33.\n");
 			return -1;
 		}
-		if (!p->gsmin)
-		    p->gsmin = gsm_create();
+		if (!call->gsmin)
+		    call->gsmin = gsm_create();
 
-		if(gsm_decode(p->gsmin, data, out))
+		if(gsm_decode(call->gsmin, data, out))
 		    return -1;
 		output_postprocess(out, 160);	
 		return 33;

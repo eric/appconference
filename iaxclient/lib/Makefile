@@ -35,7 +35,6 @@ OBJS=\
 	iaxclient_lib.o 
 
 OBJS_WIN32=\
-	audio_win32.o \
 	winfuncs.o \
 	portaudio/pa_win_wmme/pa_win_wmme.o
 
