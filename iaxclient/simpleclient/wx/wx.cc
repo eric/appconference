@@ -100,11 +100,9 @@ class IAXCalls : public wxListCtrl
       IAXCalls(wxWindow *parent, int nCalls);
       void IAXCalls::OnSelect(wxListEvent &evt);
       int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c);
-      inline void IAXCalls::AutoSize() {
-	for(int i=0;i<nCalls;i++)
-	  SetColumnWidth(i,wxLIST_AUTOSIZE);
-      }
-
+      void IAXCalls::OnSize(wxSizeEvent& evt);
+      void IAXCalls::AutoSize(); 
+      int IAXCalls::GetTotalHeight();
       int nCalls;
 
 protected:
@@ -113,6 +111,7 @@ protected:
 
 BEGIN_EVENT_TABLE(IAXCalls, wxListCtrl)
 	EVT_LIST_ITEM_SELECTED(ID_CALLS, IAXCalls::OnSelect)
+	EVT_SIZE(IAXCalls::OnSize)
 END_EVENT_TABLE()
 
 IAXCalls::IAXCalls(wxWindow *parent, int inCalls) 
@@ -144,11 +143,47 @@ IAXCalls::IAXCalls(wxWindow *parent, int inCalls)
   AutoSize();
 }
 
+int IAXCalls::GetTotalHeight() {
+    // Return height to be what we need
+#if 0  
+    // this doesn't work when called very early; the main area size
+  // isn't set yet.  So, we'll just guess, and see how this work on
+  // platforms.
+    int x,y, y2;
+    ((wxScrolledWindow *)m_mainWin)->GetVirtualSize(&x, &y);
+    y2 = ((wxWindow *)m_headerWin)->GetSize().y;
+    fprintf(stderr, "GetTotalHeight: y=%d, y2=%d\n", y, y2);
+    return y+y2;
+#endif
+    // GTK actual: 19*nCalls + 23
+    return 20*nCalls + 25 + 15;  
+}
+
+void IAXCalls::AutoSize() {
+    // Set column widths.
+    int width = 0;
+
+    // first columns are auto-sized
+    for(int i=0;i<=1;i++) {
+      SetColumnWidth(i,wxLIST_AUTOSIZE);
+      width+=GetColumnWidth(i);
+    }
+
+    // last column is at least the remainder in width.
+    // minus some padding
+    int min=GetClientSize().x - width - 5;
+    SetColumnWidth(2,wxLIST_AUTOSIZE);
+    if(GetColumnWidth(2) < min)
+      SetColumnWidth(2,min);
+}
+
+void IAXCalls::OnSize(wxSizeEvent& evt) {
+    AutoSize();
+    wxListCtrl::OnSize(evt);
+}
+
 int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
 {
-
-    fprintf(stderr, "Updating state for item %d state=%x\n", c.callNo, c.state);
-  
 
     // first, handle inactive calls
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
@@ -196,7 +231,6 @@ int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
 
 void IAXCalls::OnSelect(wxListEvent &evt) {
 	int selected = evt.m_itemIndex; //GetSelection();
-	fprintf(stderr, "User Selected item %d\n", selected);
 	iaxc_select_call(selected);
 }
 
@@ -345,7 +379,8 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
       int nCalls = wxGetApp().optNumCalls;
 
       // XXX need to fix sizes better.
-      topsizer->Add(calls = new IAXCalls(this, nCalls), 1, wxEXPAND);
+      topsizer->Add(calls = new IAXCalls(aPanel, nCalls), 0, wxEXPAND);
+      topsizer->SetItemMinSize(calls, -1, calls->GetTotalHeight()+5);
     }
 
 
@@ -379,6 +414,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     panelSizer->Add(aPanel,1,wxEXPAND);
     SetSizer(panelSizer);	
     panelSizer->SetSizeHints(this);
+
 
 #ifdef __WXGTK__
     // window used for getting keyboard state
@@ -483,7 +519,7 @@ void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
 	    strncpy( pass , tok.GetNextToken().c_str(), 256);
 	    strncpy( host , tok.GetNextToken().c_str(), 256);
 
-	    fprintf(stderr, "Registering user %s pass %s host %s\n", 
+	    //fprintf(stderr, "Registering user %s pass %s host %s\n", 
 		    user, pass, host);
 	    iaxc_register(user, pass, host);
 	}
