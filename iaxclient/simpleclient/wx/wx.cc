@@ -65,6 +65,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 {
     wxBoxSizer *panelSizer = new wxBoxSizer(wxVERTICAL);
     wxPanel *aPanel = new wxPanel(this);
+    wxButton *dialButton;
 
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *row1sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -103,12 +104,14 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
     /* main control buttons */    
-    row3sizer->Add(new wxButton(aPanel, 101, wxString("Dial"),
+    row3sizer->Add(dialButton = new wxButton(aPanel, 101, wxString("Dial"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
     row3sizer->Add(new wxButton(aPanel, 102, wxString("Hang Up"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
+    /* make dial the default button */
+    dialButton->SetDefault();
 #if 0
     row3sizer->Add(quitButton = new wxButton(aPanel, 100, wxString("Quit"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
