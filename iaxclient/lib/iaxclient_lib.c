@@ -967,7 +967,11 @@ int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *inp
 }
 
 int iaxc_audio_devices_set(int input, int output, int ring) {
-    return audio.select_devices(&audio, input, output, ring);
+    int ret = 0;
+    MUTEXLOCK(&iaxc_lock);
+    ret = audio.select_devices(&audio, input, output, ring);
+    MUTEXUNLOCK(&iaxc_lock);
+    return ret;
 }
 
 double iaxc_input_level_get() {

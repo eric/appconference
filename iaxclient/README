@@ -90,6 +90,8 @@ Shawn Lawrence <shawn.lawrence@terracecomm.com>
 Faizan "Tili" Naqvi <faizan@tilizone.com> [Win32 VC++ build/client]
 Scott Lambert <lambert@lambertfam.org> [FreeBSD build changes]
 Michael Van Donselaar <mvand@vandonselaar.org> [Win32/MinGW build directions, UI changes ]
+Steven Sokol <ssokol@sokol-associates.com> [ Debugging, Blind Transfer ]
+
 
 
 In addition to including libiax, IAXCLIENT is also based in part on code
@@ -152,9 +154,5 @@ the same as for the library itself.
 
 See README files in the other sample clients for directions for building
 these.
-
-
-
-
 
 
