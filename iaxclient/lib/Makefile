@@ -36,8 +36,6 @@ OBJS=\
 	audio_encode.o \
 	audio_portaudio.o \
 	audio_file.o \
-	sox/compand.o \
-	sox/soxcompat.o \
 	iaxclient_lib.o 
 
 OBJS_WIN32=\

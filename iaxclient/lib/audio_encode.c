@@ -1,10 +1,9 @@
 
 #include "iaxclient_lib.h"
-#include "sox/sox.h"
 
 double iaxc_silence_threshold = -9e99;
-static compand_t input_compand = NULL;
-static compand_t output_compand = NULL;
+
+static double input_level = 0, output_level = 0;
 
 static SpeexPreprocessState *st = NULL;
 int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE;
@@ -21,24 +20,13 @@ static int do_level_callback()
     static struct timeval last = {0,0};
     struct timeval now;
 
-    double ilevel, olevel;
 
     gettimeofday(&now,NULL); 
     if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000) return;
 
     last = now;
 
-    if(input_compand)
-	ilevel = *input_compand->volume;
-    else
-	ilevel = 0.0;
-
-    if(output_compand)
-	olevel = *output_compand->volume;
-    else
-	olevel = 0.0;
-
-    iaxc_do_levels_callback(vol_to_db(ilevel), vol_to_db(olevel)); 
+    iaxc_do_levels_callback(vol_to_db(input_level), vol_to_db(output_level)); 
 }
 
 
@@ -56,8 +44,20 @@ void iaxc_set_speex_filters()
     speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_DENOISE, &i);
 }
 
+static void calculate_level(short *audio, int len, double *level) {
+    short now = 0;
+    double nowd;
+    int i;
 
-static int input_postprocess(void *audio, int len, void *out)
+    for(i=0;i<len;i++)
+      if(abs(audio[i]) > now) now = abs(audio[i]); 
+
+    nowd = now/32767; 
+
+    *level += (((double)now/32767) - *level) / 5;
+}
+
+static int input_postprocess(void *audio, int len)
 {
     unsigned long ilen,olen;
     double volume;
@@ -70,17 +70,7 @@ static int input_postprocess(void *audio, int len, void *out)
 	iaxc_set_speex_filters();
     }
 
-
-    if(!input_compand) {
-	char *argv[5];
-	/* just use the compander for the volume meters AGC is handled by speex now * */
-	argv[0] = strdup("0.05,0.1"); /* attack, decay */
-	argv[1] = strdup("-90,-90,0,0"); /* transfer function */
-	st_compand_start(&input_compand, argv, 2);
-    }
-
-    ilen=olen=len;
-    st_compand_flow(input_compand, audio, out, &ilen, &olen);
+    calculate_level(audio, len, &input_level);
 
     /* only preprocess if we're interested in VAD, AGC, or DENOISE */
     if((iaxc_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) || iaxc_silence_threshold > 0)
@@ -90,11 +80,11 @@ static int input_postprocess(void *audio, int len, void *out)
     /* this is ugly.  Basically just don't get volume level if speex thought
      * we were silent.  just set it to 0 in that case */
     if(iaxc_silence_threshold > 0 && silent)
-	*input_compand->volume = 0;
+	input_level = 0;
 
     do_level_callback();
 
-    volume = vol_to_db(*input_compand->volume);
+    volume = vol_to_db(input_level);
 
     if(volume < lowest_volume) lowest_volume = volume;
 
@@ -106,16 +96,8 @@ static int input_postprocess(void *audio, int len, void *out)
 
 static int output_postprocess(void *audio, int len)
 {
-    unsigned long l = len;
 
-    if(!output_compand) {
-	char *argv[2];
-	argv[0] = strdup("0.05,0.1"); /* attack, decay */
-	argv[1] = strdup("-90,-90,0,0"); /* transfer function */
-	st_compand_start(&output_compand, argv, 2);
-    }
-
-    st_compand_flow(output_compand, audio, audio, &l, &l);
+    calculate_level(audio, len, &output_level);
 
     do_level_callback();
 
@@ -126,10 +108,9 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
 {
 	gsm_frame fo;
 	int silent;
-	short processed[160];
 
 	/* currently always 20ms */
-	silent = input_postprocess(data,160, processed);	
+	silent = input_postprocess(data,160);	
 
 	if(silent) return;  /* poof! no encoding! */
 
@@ -139,7 +120,7 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
 				most_recent_answer->gsmout = gsm_create();
 
 			// encode the audio from the buffer into GSM format and send
-			gsm_encode(most_recent_answer->gsmout, (short *) ((char *) processed), (void *)&fo);
+			gsm_encode(most_recent_answer->gsmout, (short *) data, (void *)&fo);
 			break;
 	}
 	if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, 

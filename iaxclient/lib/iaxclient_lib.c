@@ -377,7 +377,7 @@ THREADFUNCDECL(iaxc_processor)
     THREADFUNCRET(ret);
     while(1) { 
 	iaxc_process_calls();
-	iaxc_millisleep(10);	
+	iaxc_millisleep(5);	
 	if(procThreadQuitFlag)
 	  break;
     }
