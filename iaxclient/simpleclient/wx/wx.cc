@@ -178,8 +178,8 @@ void IAXCalls::AutoSize() {
 }
 
 void IAXCalls::OnSize(wxSizeEvent& evt) {
+    evt.Skip();
     AutoSize();
-    wxListCtrl::OnSize(evt);
 }
 
 int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
