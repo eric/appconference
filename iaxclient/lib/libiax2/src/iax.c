@@ -2513,3 +2513,21 @@ int iax_get_fd(void)
 	   things, or can add it to a network add sort of gtk_input_add for example */
 	return netfd;
 }
+
+int iax_quelch_moh(struct iax_session *session, int MOH)
+{
+	
+	struct iax_ie_data ied;			//IE Data Structure (Stuff To Send)
+	memset(&ied, 0, sizeof(ied));	
+	
+	// You can't quelch the quelched
+	if (session->quelch == 1)
+		return -1;
+		
+	if (MOH)
+		iax_ie_append_int(&ied, IAX_IE_MUSICONHOLD, 1);
+	else
+		iax_ie_append_int(&ied, IAX_IE_MUSICONHOLD, 0);
+		
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos, -1);		
+}

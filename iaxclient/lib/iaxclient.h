@@ -120,6 +120,8 @@ void iaxc_set_audio_output(int mode);
 int iaxc_select_call(int callNo);
 int iaxc_first_free_call();
 int iaxc_selected_call();
+int iaxc_quelch(int callNo, int MOH);
+int iaxc_unquelch(int call);
 
 #define IAXC_AD_INPUT           (1<<0)
 #define IAXC_AD_OUTPUT          (1<<1)

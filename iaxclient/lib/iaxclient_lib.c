@@ -1002,3 +1002,17 @@ int iaxc_play_sound(struct iaxc_sound *s, int ring) {
 int iaxc_stop_sound(int id) {
     return audio.stop_sound(id);
 }
+
+int iaxc_quelch(int callNo, int MOH)
+{
+	struct iax_session *session = calls[callNo].session;
+	if (!session)
+		return -1;
+
+	return iax_quelch_moh(session, MOH);
+}
+
+int iaxc_unquelch(int call)
+{
+	return iax_unquelch(calls[call].session);
+}

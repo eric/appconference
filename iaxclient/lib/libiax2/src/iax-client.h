@@ -149,6 +149,7 @@ extern int iax_dialplan_request(struct iax_session *session, char *number);	/* R
 extern int iax_quelch(struct iax_session *session);
 extern int iax_unquelch(struct iax_session * session);
 extern int iax_transfer(struct iax_session *session, char *number);  
+extern int iax_quelch_moh(struct iax_session *session, int MOH);
 
 extern void iax_destroy(struct iax_session  * session);
 
