@@ -1010,6 +1010,15 @@ static void complete_transfer(struct iax_session *session, int peercallno, int x
 	memset(&session->rxcore, 0, sizeof(session->rxcore));
 	memset(&session->offset, 0, sizeof(session->offset));
 	memset(&session->history, 0, sizeof(session->history));
+#ifdef NEWJB
+	{ /* Reset jitterbuffer */
+	    jb_frame frame;
+	    while(jb_getall(session->jb,&frame) == JB_OK) 
+		iax_event_free(frame.data);
+	
+	    jb_reset(session->jb);
+	}
+#endif
 	session->jitterbuffer = 0;
 	session->jitter = 0;
 	session->lag = 0;

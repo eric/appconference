@@ -23,11 +23,17 @@
 //#define jb_dbg(...)  fprintf(stderr, __VA_ARGS__)
 #define jb_dbg(...)  
 
-#ifdef USE_SPEEX_JB
-#define LATE_BINS 4
-#endif
-
 static void jb_warninfo(jitterbuf *jb);
+
+
+int jb_reset(jitterbuf *jb) {
+    memset(jb,0,sizeof(jitterbuf));
+
+    /* initialize length */
+    jb->info.current = jb->info.target = 100; 
+    jb->info.silence = 1; 
+    jb->info.last_voice_ms = 20;
+}
 
 jitterbuf * jb_new() {
     jitterbuf *jb;
@@ -36,21 +42,7 @@ jitterbuf * jb_new() {
     jb = malloc(sizeof(jitterbuf));
     if(!jb) return NULL;
 
-
-    memset(jb,0,sizeof(jitterbuf));
-
-#ifdef USE_SPEEX_JB
-    /* XXX - fixme */
-    jb->frame_time = 20;
-    jb->buffer_size = 4;
-    jb->pointer_timestamp = -jb->frame_time * jb->buffer_size;
-#endif
-
-
-    /* initialize length */
-    jb->info.current = jb->info.target = 100; 
-    jb->info.silence = 1; 
-    jb->info.last_voice_ms = 20;
+    jb_reset(jb);
 
     jb_dbg("jb_new() = %x\n", jb);
     return jb;
@@ -371,48 +363,8 @@ static void jb_adjust(jitterbuf *jb, int now) {
 #endif
 }
 
-#ifdef USE_SPEEX_JB
-static int jb_put_speex(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
-    int arrival_margin;
-    /* reset state */
-    /* cleanup old (unnecessary?) */
-    /*Find an empty slot in the buffer*/
-
-    jb->info.frames_in++;
-
-    /* Copy packet in buffer */
-    queue_put(jb,data,type,ms,ts);
-
-    /* Adjust the buffer size depending on network conditions */
-    arrival_margin = (ts - jb->pointer_timestamp - jb->pointer_adjustment - jb->frame_time);
-    if (arrival_margin >= -LATE_BINS*jb->frame_time)
-    {
-	int int_margin;
-	int i;
-	for (i=0;i<MAX_MARGIN;i++)
-	{
-	   jb->shortterm_margin[i] *= .98;
-	   jb->longterm_margin[i] *= .995;
-	}
-	int_margin = (arrival_margin + LATE_BINS*jb->frame_time)/jb->frame_time;
-	if (int_margin>MAX_MARGIN-1)
-	   int_margin = MAX_MARGIN-1;
-	if (int_margin>=0)
-	{
-	   jb->shortterm_margin[int_margin] += .02;
-	   jb->longterm_margin[int_margin] += .005;
-	}
-    }
-    return JB_OK;
-}
-#endif
-
 
 int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
-#ifdef USE_SPEEX_JB
-    return jb_put_speex(jb,data,type,ms,ts,now);
-#else
-
     long adj;
 
     jb_dbg("jb_put(%x,%x,%ld,%ld,%ld)\n", jb, data, ms, ts, now);
@@ -429,7 +381,6 @@ int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
 
     jb_dbginfo(jb);
     return JB_OK;
-#endif
 }
 
 /* this is the adjustment to be applied to the next outgoing frame timestamp */
@@ -439,162 +390,8 @@ static long jb_getadjustment(jitterbuf *jb) {
   return 0;
 }
 
-#ifdef USE_SPEEX_JB
-static int jb_get_speex(jitterbuf *jb, jb_frame *frameout, long now) {
-    jb_frame *frame;
-    int i;
-    int ret;
-    float late_ratio_short;
-    float late_ratio_long;
-    float ontime_ratio_short;
-    float ontime_ratio_long;
-    float early_ratio_short;
-    float early_ratio_long;
 
-    /* Initial calculations */
-    late_ratio_short = 0;
-    late_ratio_long = 0;
-    for (i=0;i<LATE_BINS;i++)
-    {
-      late_ratio_short += jb->shortterm_margin[i];
-      late_ratio_long += jb->longterm_margin[i];
-    }
-    ontime_ratio_short = jb->shortterm_margin[LATE_BINS];
-    ontime_ratio_long = jb->longterm_margin[LATE_BINS];
-    early_ratio_short = early_ratio_long = 0;
-    for (i=LATE_BINS+1;i<MAX_MARGIN;i++)
-    {
-      early_ratio_short += jb->shortterm_margin[i];
-      early_ratio_long += jb->longterm_margin[i];
-    }
-
-
-    /* Debug.. */
-    if (1&&jb->pointer_timestamp%2000==0)
-    {
-      jb_warn("\n");
-      jb_warninfo(jb);
-      jb_warn("%f %f %f %f %f %f\n", early_ratio_short, early_ratio_long, ontime_ratio_short, ontime_ratio_long, late_ratio_short, late_ratio_long);
-      /*fprintf (stderr, "%f %f\n", early_ratio_short + ontime_ratio_short + late_ratio_short, early_ratio_long + ontime_ratio_long + late_ratio_long);*/
-    }
-
-
-    /* Interpolation -- Growing */
-      /* if we want to grow */
-//    if ( (late_ratio_short > .1 || late_ratio_long > .03) &&
-    if ( (late_ratio_short > .05 || late_ratio_long > .01) &&
-      /* and the growing wouldn't make the next frame late */
-      !(jb->frames && jb->frames->ts < jb->pointer_timestamp + jb->pointer_adjustment))
-    {
-      jb->shortterm_margin[MAX_MARGIN-1] += jb->shortterm_margin[MAX_MARGIN-2];
-      jb->longterm_margin[MAX_MARGIN-1] += jb->longterm_margin[MAX_MARGIN-2];
-      for (i=MAX_MARGIN-2;i>=0;i--)
-      {
-	 jb->shortterm_margin[i+1] = jb->shortterm_margin[i];
-	 jb->longterm_margin[i+1] = jb->longterm_margin[i];
-      }
-      jb->shortterm_margin[0] = 0;
-      jb->longterm_margin[0] = 0;
-
-      /*fprintf (stderr, "interpolate frame\n");*/
-      /* speex_decode_int(jb->dec, NULL, out); */
-      /* STATS: we're interpolating because we're growing */
-      jb->pointer_adjustment -= jb->frame_time;
-      jb_warn("G");
-      return JB_INTERP;
-    }
-
-    /* Increment timestamp */
-    jb->pointer_timestamp += jb->frame_time;
-
-    frame = queue_get(jb,jb->pointer_timestamp);
-
-    if(frame) {
-      *frameout = *frame;
-      if(frame->type != JB_TYPE_VOICE) {
-	  /* return non-voice frame if it came before the next expected
-	   * voice frame */
-	  /* rewind pointer_timestamp */
-	  jb->pointer_timestamp -= jb->frame_time;
-	  jb_warn("o");
-	  jb->info.frames_out++;
-	  return JB_OK;
-      } else if(frame->ts < jb->pointer_timestamp - jb->frame_time) {
-	/* late frame */
-	jb->pointer_timestamp -= jb->frame_time;
-	jb_warn("l");
-	jb->info.frames_out++;
-	jb->info.frames_late++;
-	jb->info.frames_lost--;
-	return JB_DROP;
-      }
-    }
-
-
-
-    //if (late_ratio_short + ontime_ratio_short < .005 && late_ratio_long + ontime_ratio_long < .01 && early_ratio_short > .8)
-    if (late_ratio_short + ontime_ratio_short < .001 && late_ratio_long + ontime_ratio_long < .003 && early_ratio_short > .8)
-    {
-      jb->shortterm_margin[0] += jb->shortterm_margin[1];
-      jb->longterm_margin[0] += jb->longterm_margin[1];
-      for (i=1;i<MAX_MARGIN-1;i++)
-      {
-	 jb->shortterm_margin[i] = jb->shortterm_margin[i+1];
-	 jb->longterm_margin[i] = jb->longterm_margin[i+1];
-      }
-      jb->shortterm_margin[MAX_MARGIN-1] = 0;
-      jb->longterm_margin[MAX_MARGIN-1] = 0;
-      /*fprintf (stderr, "drop frame\n");*/
-
-      /* Speex incremented the pointer here, but isn't it already
-       * incremented above? */
-      //jb->pointer_timestamp += jb->frame_time; 
-      //jb->pointer_adjustment += jb->frame_time;
-      jb->pointer_adjustment += jb->frame_time;
-
-      if(!frame) {
-	    jb_warn("Sl");
-	    jb->info.frames_lost++;
-	    return JB_NOFRAME; /* we lost it, but wanted to drop anyhow. How convenient */
-      }
-
-      *frameout = *frame;
-
-      jb_warn("S");
-      jb->info.frames_dropped++;
-      return JB_DROP;
-
-    }
-
-    /* Send zeros while we fill in the buffer */
-    if (jb->pointer_timestamp<0)
-    {
-      jb_warn("F");
-      /* STATS: silence to begin?? */
-      return JB_NOFRAME;
-    }
-
-
-    if (!frame)
-    {
-      /* TODO: we lose a bit of semantics here with lost_count and residual speex-bits
-	    and the reset after 25 lost.. */
-      jb->info.frames_lost++;
-      jb->loss_rate = .999*jb->loss_rate + .001;
-
-      jb_warn("L");
-      return JB_INTERP;
-    }
-
-    *frameout = *frame;
-    jb->loss_rate = .999*jb->loss_rate;
-    jb->info.frames_out++;
-    jb_warn("v");
-    return JB_OK;
-}
-#endif
-
-static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
+static int jb_get_(jitterbuf *jb, jb_frame *frameout, long now) {
     jb_frame *frame;
     long diff;
 
@@ -746,11 +543,6 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 }
 
 long jb_next(jitterbuf *jb) {
-#ifdef USE_SPEEX_JB
-    if(jb->frames && jb->frames->ts < jb->pointer_timestamp + jb->pointer_adjustment)
-       return jb->frames->ts - jb->pointer_adjustment;
-    return jb->pointer_timestamp - jb->pointer_adjustment;;
-#else
     if(jb->info.silence) {
       long next = queue_next(jb);
       if(next > 0) return next + jb->info.current;
@@ -758,15 +550,10 @@ long jb_next(jitterbuf *jb) {
     } else {
       return jb->info.last_voice_ts + jb->info.last_voice_ms;
     }
-#endif
 }
 
 int jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
-#ifdef USE_SPEEX_JB
-    int ret = jb_get_speex(jb,frameout,now);
-#else
     int ret = jb_get_sk(jb,frameout,now);
-#endif
     static int lastts=0;
     int thists = ((ret == JB_OK) || (ret == JB_DROP)) ? frameout->ts : 0;
 //    jb_warn("jb_get(%x,%x,%ld) = %d (%d)\n", jb, frameout, now, ret, thists);
@@ -800,4 +587,5 @@ int jb_getinfo(jitterbuf *jb, jb_info *stats) {
 int jb_setinfo(jitterbuf *jb, jb_info *settings) {
   return JB_OK;
 }
+
 

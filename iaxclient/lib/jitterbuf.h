@@ -14,9 +14,6 @@
 #ifndef _JITTERBUF_H_
 #define _JITTERBUF_H_
 
-/* #define USE_SPEEX_JB */
-/* #undef USE_SPEEX_JB */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -79,19 +76,6 @@ typedef struct jitterbuf {
 
 	jb_frame *frames; 		/* queued frames */
 	jb_frame *free; 		/* free frames (avoid malloc?) */
-
-#ifdef USE_SPEEX_JB
-#define MAX_MARGIN 12
-	int buffer_size;
-	int pointer_timestamp;
-	int pointer_adjustment;
-	int reset_state;
-	int frame_time;
-
-	float shortterm_margin[MAX_MARGIN];
-	float longterm_margin[MAX_MARGIN];
-	float loss_rate;
-#endif
 } jitterbuf;
 
 
@@ -100,6 +84,11 @@ jitterbuf *		jb_new();
 
 /* destroy jitterbuf */
 void			jb_destroy(jitterbuf *jb);
+
+/* reset jitterbuf */
+/* NOTE:  The jitterbuffer should be empty before you call this, otherwise
+ * you will leak queued frames, and some internal structures */
+int			jb_reset(jitterbuf *jb);
 
 /* queue a frame data=frame data, timings (in ms): ms=length of frame (for voice), ts=ts (sender's time) 
  * now=now (in receiver's time)*/
