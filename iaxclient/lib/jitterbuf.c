@@ -120,8 +120,9 @@ static void history_put(jitterbuf *jb, long ts, long now) {
 	if(jb->hist_shortcur > 2) {
 	    qsort(jb->hist_short,jb->hist_shortcur,sizeof(long),longcmp);
 	    /* intentionally drop PCT from max */
-	    jb->hist_longmax[0] = jb->hist_short[jb->hist_shortcur-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
+	    jb->hist_longmax[0] = jb->hist_short[jb->hist_shortcur-1-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
 	    jb->hist_longmin[0] = jb->hist_short[0];
+	    if(jb->hist_longmax[0] < jb->hist_longmin[0]) fprintf(stderr, "ERROR!!!!!!!!");
 	    jb_warn("history: rotating, short-term was %ld %ld (%ld)\n", 
 		jb->hist_longmax[0], jb->hist_longmin[0], 
 		jb->hist_longmax[0]-jb->hist_longmin[0]);
@@ -280,10 +281,12 @@ static void jb_dbginfo(jitterbuf *jb) {
 	jb_warn("jb info: Loss PCT = %ld%%, Late PCT = %ld%%\n",
 	    jb->info.frames_lost * 100/(jb->info.frames_in + jb->info.frames_lost), 
 	    jb->info.frames_late * 100/jb->info.frames_in);
-	jb_warn("jb info: queue %d -> %d.  last_ts %d last_ms %d\n",
+	jb_warn("jb info: queue %d -> %d.  last_ts %d (queue len: %d) last_ms %d\n",
 	    queue_next(jb), 
 	    queue_last(jb),
-	    jb->info.last_voice_ts, jb->info.last_voice_ms);
+	    jb->info.last_voice_ts, 
+	    queue_last(jb) - queue_next(jb),
+	    jb->info.last_voice_ms);
 }
 
 static void jb_chkqueue(jitterbuf *jb) {
@@ -594,7 +597,7 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 
 
     /* target */
-    jb->info.target = jb->info.jitter + jb->info.min + 3*jb->info.last_voice_ms; 
+    jb->info.target = jb->info.jitter + jb->info.min + jb->info.last_voice_ms; 
 	//now - jb->info.last_voice_ts;
 
     diff = jb->info.target - jb->info.current;
