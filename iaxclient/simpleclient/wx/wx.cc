@@ -519,8 +519,7 @@ void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
 	    strncpy( pass , tok.GetNextToken().c_str(), 256);
 	    strncpy( host , tok.GetNextToken().c_str(), 256);
 
-	    //fprintf(stderr, "Registering user %s pass %s host %s\n", 
-		    user, pass, host);
+	    //fprintf(stderr, "Registering user %s pass %s host %s\n", user, pass, host);
 	    iaxc_register(user, pass, host);
 	}
 }
