@@ -81,6 +81,7 @@ struct iaxc_ev_text {
 struct iaxc_ev_call_state {
 	int callNo;
 	int state;
+	int format;
 	char remote[IAXC_EVENT_BUFSIZ];
 	char remote_name[IAXC_EVENT_BUFSIZ];
 	char local[IAXC_EVENT_BUFSIZ];

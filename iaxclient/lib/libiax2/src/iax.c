@@ -835,7 +835,10 @@ static int send_command_final(struct iax_session *i, char type, int command, uns
 	/* It is assumed that the callno has already been locked */
 	iax_predestroy(i);
 #endif	
-	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 1, 0);
+	int r;
+	r = __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 1, 0);
+	if (r >= 0) destroy_session(i);
+	return r;
 }
 
 static int send_command_immediate(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno)

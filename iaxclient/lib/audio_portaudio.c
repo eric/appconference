@@ -426,8 +426,9 @@ int pa_aux_callback(void *inputBuffer, void *outputBuffer,
  * */
 int pa_openstreams (struct iaxc_audio_driver *d ) {
     PaError err;
-    
-#ifndef MACOSX
+
+#if 0
+//#ifndef MACOSX
     /* first, try opening one stream for in/out, Mono */
     /* except for MacOSX, which needs virtual stereo */
     err = Pa_OpenStream ( &iStream, 

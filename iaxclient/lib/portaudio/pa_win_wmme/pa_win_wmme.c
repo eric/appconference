@@ -96,7 +96,7 @@
  #define PA_MAX_MSEC_PER_HOST_BUFFER  (100) /* Do not exceed unless user buffer exceeds */
  #define PA_MIN_NUM_HOST_BUFFERS      (3)
  #define PA_MAX_NUM_HOST_BUFFERS      (16)  /* OK to exceed if necessary */
- #define PA_WIN_9X_LATENCY            (200)
+ #define PA_WIN_9X_LATENCY            (67)
 #endif
 #define MIN_TIMEOUT_MSEC                 (1000)
 

@@ -163,6 +163,7 @@ void iaxc_do_state_callback(int callNo)
       e.type = IAXC_EVENT_STATE;
       e.ev.call.callNo = callNo;
       e.ev.call.state = calls[callNo].state;
+      e.ev.call.format = calls[callNo].format;
       strncpy(e.ev.call.remote,        calls[callNo].remote,        IAXC_EVENT_BUFSIZ);
       strncpy(e.ev.call.remote_name,   calls[callNo].remote_name,   IAXC_EVENT_BUFSIZ);
       strncpy(e.ev.call.local,         calls[callNo].local,         IAXC_EVENT_BUFSIZ);
@@ -184,6 +185,7 @@ static void iaxc_clear_call(int toDump)
 {
       // XXX libiax should handle cleanup, I think..
       calls[toDump].state = IAXC_CALL_STATE_FREE;
+      calls[toDump].format = 0;
       calls[toDump].session = NULL;
       iaxc_do_state_callback(toDump);
 }
