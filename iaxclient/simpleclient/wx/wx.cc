@@ -228,7 +228,7 @@ bool IAXFrame::GetPTTState()
     //fprintf(stderr, "%p %p %p %p\n", theKeys[0], theKeys[1], theKeys[2], theKeys[3]);
 #else
 #ifdef __WXMSW__
-    pressed = GetAsyncKeyState(VK_CONTROL)|0x8000;
+    pressed = GetAsyncKeyState(VK_CONTROL)&0x8000;
 #else
     int x, y;
     GdkModifierType modifiers;

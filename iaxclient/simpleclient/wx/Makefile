@@ -35,12 +35,14 @@ ifeq ($(OSTYPE),WIN32)
 PROG=wx.exe
 TARGET=wx.exe
 CFLAGS:= $(CFLAGS) -I$(WXWIN)/include -I$(WXWIN)/lib/mswd -fno-rtti -fno-exceptions -fno-pcc-struct-return -fstrict-aliasing -Wall -D__WXMSW__ -D__GNUWIN32__ -DWINVER=0x400 -D__WIN95__ -DSTRICT -D__WXDEBUG__
-SYSLIBS=-Wl,--subsystem,windows -mwindows -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib
+WINSYSFLAGS=-Wl,--subsystem,windows -mwindows
+#WINSYSFLAGS=
+SYSLIBS=$(WINSYSFLAGS) -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib
 endif
 
 ifeq ($(OSTYPE),LINUX)
 PROG=wx
-TARGET=wx.exe
+TARGET=wx
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags` `gtk-config --cflags`
 SYSLIBS=-lpthread -lm `wx-config --static --libs`
 endif
