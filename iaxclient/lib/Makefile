@@ -7,7 +7,6 @@ SPEEX_EC=1
 MEC2_EC=0
 
 USE_NEWJB=1
-USE_SPANDSP_PLC=0
 
 CFLAGS= -I. -Igsm/inc \
 	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \
@@ -50,6 +49,7 @@ OBJS=\
 	portaudio/pa_common/pa_lib.o \
 	portaudio/pablio/pablio.o \
 	portaudio/pablio/ringbuffer.o \
+	spandsp/plc.o \
 	audio_encode.o \
 	audio_portaudio.o \
 	audio_file.o \
@@ -130,16 +130,10 @@ OBJS:= $(OBJS) $(OBJS_ILBC) codec_ilbc.o
 CFLAGS:= $(CFLAGS) -DCODEC_ILBC
 endif
 
-ifeq ($(USE_SPANDSP_PLC),1)
-OBJS:= $(OBJS) $(OBJS_ILBC) spandsp/plc.o
-CFLAGS:= $(CFLAGS) -DUSE_SPANDSP_PLC -Ispandsp
-endif
-
 OBJS_WIN32=\
 	winfuncs.o \
 	portmixer/px_win_wmme/px_win_wmme.o \
 	portaudio/pa_win_wmme/pa_win_wmme.o
-
 
 OBJS_LINUX=\
 	unixfuncs.o \

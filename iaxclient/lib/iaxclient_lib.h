@@ -27,7 +27,7 @@
 #endif
 
 #include <stdio.h>
-
+#include "spandsp/plc.h"
 
 
 
@@ -194,31 +194,5 @@ extern void * post_event_handle;
 extern int post_event_id;
 
 
-#ifdef USE_SPANDSP_PLC
-#include "spandsp/plc.h"
-#else
-	/* simple PLC, until we can include SPANDSP 
-	 * Must call with len < BUFSIZ, or crash! 
-	 */
-#define SIMPLEPLC_BUFSIZ 320
-typedef struct {
-	short buffer[SIMPLEPLC_BUFSIZ];	
-} plc_state_t;
-
-#define plc_init(p) ((plc_state_t *)(memset(p,0,sizeof(p))))
-#define plc_rx(p,samp,len) \
-		do { \
-			memcpy((p)->buffer,samp,len); \
-		} while(0)
-			
-#define plc_fillin(p,samp,len) \
-		do { \
-			int i; \
-			memcpy(samp,(p)->buffer,len); \
-			for(i=0;i<len;i++) { \
-				(p)->buffer[i] *= 0.9; \
-			}\
-		} while(0)
-#endif
 
 #endif

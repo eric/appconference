@@ -97,6 +97,7 @@ Michael Van Donselaar <mvand@vandonselaar.org> [Win32/MinGW build directions, UI
 Steven Sokol <ssokol@sokol-associates.com> [ Debugging, Blind Transfer ]
 Stephan Kauss <Stephan@kauss.org> [ 32-bit alignment for IAX2 ]
 Stephen Uhler <suhler@sun.com> [Solaris build, tkiaxphone]
+Steve Underwood <steveu@coppice.org> [PLC implementation from spandsp]
 
 
 
