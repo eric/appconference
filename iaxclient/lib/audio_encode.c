@@ -83,7 +83,7 @@ static int input_postprocess(void *audio, int len, void *out)
 /* this is ugly.  Basically just don't get volume level if speex thought
  * we were silent.  just set it to 0 in that case */
 #ifdef SPEEX_PREPROCESS
-    if(!silent)
+    if(iaxc_silence_threshold <= 0 || !silent)
 #endif
     st_compand_flow(input_compand, audio, out, &ilen, &olen);
 
