@@ -42,7 +42,11 @@ public:
                    wxWindowID id = -1,
                    const wxPoint &pos = wxDefaultPosition,
                    const wxSize &size = wxDefaultSize,
+#ifdef __WXMSW__		   
                    long style = wxLC_REPORT|wxLC_SINGLE_SEL|wxLC_HRULES);
+#else
+                   long style = wxLC_REPORT|wxLC_HRULES);
+#endif
                    
     void            OnSize( wxSizeEvent &event);
     void            AutoSize();
