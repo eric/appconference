@@ -85,6 +85,8 @@ Steve Kann <stevek@stevek.com>
 Shawn Lawrence <shawn.lawrence@terracecomm.com>
 Faizan "Tili" Naqvi <faizan@tilizone.com> [Win32 VC++ build/client]
 Scott Lambert <lambert@lambertfam.org> [FreeBSD build changes]
+Michael Van Donselaar <mvand@vandonselaar.org> [Win32/MinGW build directions, UI changes ]
+
 
 In addition to including libiax, IAXCLIENT is also based in part on code
 included in test clients within libiax itself.
