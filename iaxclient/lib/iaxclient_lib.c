@@ -88,7 +88,7 @@ EXPORT void iaxc_set_filters(int filters) {
 }
 
 
-EXPORT long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
+long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
       long secs = timeA->tv_sec - timeB->tv_sec;
       long usecs = secs * 1000000;
       usecs += (timeA->tv_usec - timeB->tv_usec);

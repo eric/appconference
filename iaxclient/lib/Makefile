@@ -276,8 +276,9 @@ $(MSLIB): $(OBJS)
 	ar rs $(MSLIB) $(OBJS) 
 
 
-shared: CFLAGS := $(CFLAGS) -fPIC -DBUILDING_DLL
-shared: clean libiaxclient.a
+shared: CFLAGS := $(CFLAGS) $(DYNCFLAGS)
+#shared: clean libiaxclient.a
+shared: libiaxclient.a
 	$(CC) -shared -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS)
 
 

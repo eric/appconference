@@ -193,7 +193,7 @@ static struct iaxc_audio_codec *create_codec(int format) {
     }
 }
 
-void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity) {
+EXPORT void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity) {
   speex_settings.decode_enhance = decode_enhance;
   speex_settings.quality = quality;
   speex_settings.bitrate = bitrate;

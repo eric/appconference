@@ -45,7 +45,7 @@ void os_init(void)
 }
 
 /* yes, it could have just been a #define, but that makes linking trickier */
-void iaxc_millisleep(long ms)
+EXPORT void iaxc_millisleep(long ms)
 {
 	Sleep(ms);
 }
