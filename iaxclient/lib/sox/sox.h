@@ -137,3 +137,11 @@ int st_resample_drain(resample_t *rH, st_sample_t *obuf, st_size_t *osamp);
 int st_resample_stop(resample_t *rH);
 
 
+int st_compand_getopts(compand_t l, int n, char **argv); 
+int st_compand_start(compand_t *lH, char **opts, int nopts);
+int st_compand_flow(compand_t l, st_sample_t *ibuf, st_sample_t *obuf, 
+                     st_size_t *isamp, st_size_t *osamp);
+int st_compand_drain(compand_t l, st_sample_t *obuf, st_size_t *osamp);
+int st_compand_stop(compand_t l);
+
+
