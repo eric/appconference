@@ -20,6 +20,7 @@
  */
 
 #include "iaxclient_lib.h"
+#include "portmixer/px_common/portmixer.h"
 
 #ifdef USE_MEC2
 #include "mec3.h"
@@ -40,6 +41,7 @@ static SpeexEchoState *ec;
 
 
 static PortAudioStream *iStream, *oStream;
+static PxMixer *iMixer, *oMixer;
 
 static selectedInput, selectedOutput, selectedRing;
 
@@ -485,6 +487,8 @@ int pa_start (struct iaxc_audio_driver *d ) {
     PaError err;
 
     if(running) return 0;
+
+    iMixer = oMixer = NULL;
 	
     //fprintf(stderr, "starting pa\n");
 
@@ -495,8 +499,11 @@ int pa_start (struct iaxc_audio_driver *d ) {
     if(err != paNoError)
 	return -1;
 
+    iMixer = Px_OpenMixer(iStream, 0);
+
     if(!oneStream){ 
 	err = Pa_StartStream(oStream);
+	oMixer = Px_OpenMixer(oStream, 0);
 	if(err != paNoError) {
 	    Pa_StopStream(iStream);
 	    return -1;
@@ -513,10 +520,13 @@ int pa_stop (struct iaxc_audio_driver *d ) {
     if(!running) return 0;
     if(sounds) return 0;
 
+    Px_CloseMixer(iMixer);
     err = Pa_AbortStream(iStream); 
     err = Pa_CloseStream(iStream); 
 
+
     if(!oneStream){ 
+	Px_CloseMixer(oMixer);
 	err = Pa_AbortStream(oStream);
 	err = Pa_CloseStream(oStream);
     }
@@ -587,22 +597,40 @@ int pa_destroy (struct iaxc_audio_driver *d ) {
 
 double pa_input_level_get(struct iaxc_audio_driver *d){
     if(!running) return -1;
-    return Pa_GetInputLevel(iStream);
+    //fprintf(stderr, "getting input level %f\n", Px_GetInputVolume(iMixer));
+    return Px_GetInputVolume(iMixer);
 }
 
 double pa_output_level_get(struct iaxc_audio_driver *d){
+    PxMixer *mix;
     if(!running) return -1;
-    return Pa_GetOutputLevel(oStream);
+
+    if(oneStream)
+      mix = iMixer;
+    else
+      mix = oMixer;
+
+    return Px_GetPCMOutputVolume(mix);
 }
 
 int pa_input_level_set(struct iaxc_audio_driver *d, double level){
     if(!running) return -1;
-    return Pa_SetInputLevel(iStream, level);
+    fprintf(stderr, "setting input level to %f\n", level);
+    Px_SetInputVolume(iMixer, level);
+    return 0;
 }
 
 int pa_output_level_set(struct iaxc_audio_driver *d, double level){
+    PxMixer *mix;
     if(!running) return -1;
-    return Pa_SetOutputLevel(oStream, level);
+
+    if(oneStream)
+      mix = iMixer;
+    else
+      mix = oMixer;
+
+    Px_SetPCMOutputVolume(mix, level);
+    return 0;
 }
 
 

@@ -7,7 +7,7 @@ SPAN_EC=0
 SPEEX_EC=1
 MEC2_EC=0
 
-CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
+CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common
 
 CFLAGS:= $(CFLAGS) -g
 
@@ -42,16 +42,19 @@ OBJS=\
 
 OBJS_WIN32=\
 	winfuncs.o \
+	portmixer/px_win_wmme/px_win_wmme.o \
 	portaudio/pa_win_wmme/pa_win_wmme.o
 
 
 OBJS_LINUX=\
 	unixfuncs.o \
+	portmixer/px_unix_oss/px_unix_oss.o \
 	portaudio/pa_unix_oss/pa_unix_oss.o \
 	portaudio/pa_unix_oss/pa_unix.o 
 
 OBJS_MACOSX=\
 	unixfuncs.o \
+	portmixer/px_mac_core/px_mac_core.o \
 	portaudio/pa_common/pa_convert.o \
 	portaudio/pa_mac_core/pa_mac_core.o 
 
