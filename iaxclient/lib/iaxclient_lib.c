@@ -1211,11 +1211,19 @@ EXPORT int iaxc_output_level_set(double level) {
 }
 
 EXPORT int iaxc_play_sound(struct iaxc_sound *s, int ring) {
-    return audio.play_sound(s,ring);
+    int ret = 0;
+    get_iaxc_lock();
+    ret = audio.play_sound(s,ring);
+    put_iaxc_lock();
+    return ret;
 }
 
 EXPORT int iaxc_stop_sound(int id) {
-    return audio.stop_sound(id);
+    int ret = 0;
+    get_iaxc_lock();
+    ret = audio.stop_sound(id);
+    put_iaxc_lock();
+    return ret;
 }
 
 EXPORT int iaxc_quelch(int callNo, int MOH)
