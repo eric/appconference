@@ -1,3 +1,6 @@
+#ifndef _AUDIO_PORTAUDIO_H
+#define _AUDIO_PORTAUDIO_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "pablio.h"
@@ -27,10 +30,11 @@ typedef float SAMPLE;
 typedef short SAMPLE;
 #endif
 
-int pa_initialize_audio();
-void pa_shutdown_audio();
+int pa_initialize();
+void pa_shutdown();
 void handle_paerror(PaError err, char *where);
 void pa_read_audio_input();
 void pa_play_recv_audio(void *fr, int fr_size);
 void pa_send_audio(struct timeval *outtm, struct iaxc_call *most_recent_answer, int iEncodeType);
 
+#endif

@@ -46,6 +46,7 @@ static int nCalls;	// number of calls for this library session
 struct timeval lastouttm;
 
 static void do_iax_event();
+static int service_audio();
 
 static THREAD procThread;
 #ifdef WIN32
@@ -496,7 +497,7 @@ int iaxc_stop_processing_thread()
 }
 
 
-int service_audio()
+static int service_audio()
 {
 	// we do this here to avoid looking at calls[-1]
 	if(selected_call < 0) {

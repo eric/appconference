@@ -674,7 +674,7 @@ int pa_stop (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-void pa_shutdown_audio() {
+void pa_shutdown() {
     CloseAudioStream( iStream );
     if(!oneStream) CloseAudioStream( oStream );
     if(auxStream) CloseAudioStream( aStream );

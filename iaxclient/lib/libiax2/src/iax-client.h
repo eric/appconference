@@ -148,6 +148,7 @@ extern int iax_send_cng(struct iax_session *session, int level, char *data, int 
 extern int iax_send_image(struct iax_session *session, int format, char *data, int datalen);
 extern int iax_send_url(struct iax_session *session, char *url, int link);
 extern int iax_send_text(struct iax_session *session, char *text);
+extern int iax_send_ping(struct iax_session *session);
 extern int iax_load_complete(struct iax_session *session);
 extern int iax_reject(struct iax_session *session, char *reason);
 extern int iax_busy(struct iax_session *session);
