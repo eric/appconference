@@ -172,9 +172,15 @@ interface is the switch in audio_encode.c:create_codec
 
 ILBC
 
+Lots of people are enamored with iLBC lately, so I put this together for
+them.  Personally, I prefer speex, because it seems to sound just as
+good, but has no license restrictions.  With proper compilation options
+(i.e. use it's SSE optimizations), it can be made even faster than the
+iLBC reference.
+
 There is glue to build iaxclient with iLBC available in the source, but
 the source to iLBC itself is _not_ included.  This is primarily because
-of licensing issues.
+of the licensing issues.
 
 I'm not a lawyer, but it appears that iLBC's license would make it
 impossible to build iaxclient and link it with a GPL front-end, meaning
@@ -188,6 +194,10 @@ directory under lib named iLBC, and drop the iLBC reference sources into
 it, then change CODEC_ILBC=0 to CODEC_ILBC=1 in the Makefile, and away
 you go.
 
+The source presently is set up for the draft-5 version.
 
+The iLBC license and software can be found here 
+http://www.ilbcfreeware.org/software.html
+(sources are also in asterisk).  
 
 
