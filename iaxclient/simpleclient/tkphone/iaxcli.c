@@ -42,8 +42,13 @@
 			active,outgoing,ringing,complete,selected
 	r <usr> <pass> <server> 
 			register with a server
+
 	g r		return audio record level (% of max)
 	g p		return audio play level (% of max)
+	g i		list audio input devices
+	g o		list audio output devices
+	g f		get current filters (bitmask as defined in iaxclient.h)
+
 	s i <number> <name>
 			set caller id info
 	s m <on|off>	monitor audio levels
@@ -52,6 +57,11 @@
 	s r <level>	set record level (% of max)
 	s d <c>		set event delimiter to character <c> (default=' ')
 	s t <n>		set silence threshold (not implemented)
+	s i <devno>	set current input device to devno
+	s o <devno>	set current output device to devno
+	s f <filters>	set audio filters (as defined in iaxclient.h)
+
+
 	# ??		call transfer (not implemented)
    Status is returned by reading stdin.  tokens in the return value are
    delimited with "set delim X".  X defaults to "\t".
@@ -387,6 +397,11 @@ int main(int argc, char **argv) {
 		case 'o':	/* audio output devices */
 		    report(report_devices(*token=='i'));
 		break;
+		case 'f':
+		    sprintf(tmp, "?%c%d", delim,
+				iaxc_get_filters());	
+		    report(tmp);
+		break;
 		default:
 		    nak();
 		break;
@@ -464,6 +479,15 @@ int main(int argc, char **argv) {
 		    } else {
                         nak();
                     }
+		break;
+		case 'f':
+		    arg = strtok(NULL, "\n");	/* 3rd token */
+		    if (arg != NULL && (value=atoi(arg))>=0) {
+			ack();
+			iaxc_set_filters(value);
+		    } else {
+			nak();
+		    }
 		break;
 		default:
 		    nak();
