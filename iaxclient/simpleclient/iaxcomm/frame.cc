@@ -223,7 +223,7 @@ MyFrame::MyFrame(wxWindow *parent)
     wxImage::AddHandler(new wxPNGHandler);
     wxFileSystem::AddHandler(new wxZipFSHandler);
     help = new wxHtmlHelpController;
-    help->AddBook(wxFileName("iaxcomm.htb"));
+    help->AddBook(wxFileName(_T("iaxcomm.htb")));
 }
 
 void MyFrame::RePanel(wxString Name)

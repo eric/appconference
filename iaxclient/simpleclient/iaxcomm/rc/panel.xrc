@@ -932,7 +932,7 @@
             <object class="wxGridSizer">
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP1">
-                  <bitmap>bitmaps\KP1.bmp</bitmap>
+                  <bitmap>bitmaps/KP1.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -940,7 +940,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP2">
-                  <bitmap>bitmaps\KP2.bmp</bitmap>
+                  <bitmap>bitmaps/KP2.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -948,7 +948,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP3">
-                  <bitmap>bitmaps\KP3.bmp</bitmap>
+                  <bitmap>bitmaps/KP3.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -956,7 +956,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP4">
-                  <bitmap>bitmaps\KP4.bmp</bitmap>
+                  <bitmap>bitmaps/KP4.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -964,7 +964,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP5">
-                  <bitmap>bitmaps\KP5.bmp</bitmap>
+                  <bitmap>bitmaps/KP5.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -972,7 +972,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP6">
-                  <bitmap>bitmaps\KP6.bmp</bitmap>
+                  <bitmap>bitmaps/KP6.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -980,7 +980,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP7">
-                  <bitmap>bitmaps\KP7.bmp</bitmap>
+                  <bitmap>bitmaps/KP7.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -988,7 +988,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP8">
-                  <bitmap>bitmaps\KP8.bmp</bitmap>
+                  <bitmap>bitmaps/KP8.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -996,7 +996,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP9">
-                  <bitmap>bitmaps\KP9.bmp</bitmap>
+                  <bitmap>bitmaps/KP9.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -1004,7 +1004,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KPSTAR">
-                  <bitmap>bitmaps\KPSTAR.bmp</bitmap>
+                  <bitmap>bitmaps/KPSTAR.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -1012,7 +1012,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KP0">
-                  <bitmap>bitmaps\KP0.bmp</bitmap>
+                  <bitmap>bitmaps/KP0.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
@@ -1020,7 +1020,7 @@
               </object>
               <object class="sizeritem">
                 <object class="wxBitmapButton" name="KPPOUND">
-                  <bitmap>bitmaps\KPPOUND.bmp</bitmap>
+                  <bitmap>bitmaps/KPPOUND.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
