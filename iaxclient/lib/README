@@ -1,0 +1,96 @@
+
+=======================================================================
+LICENSES
+
+
+The iaxclient library itself, is provided under the terms of the LGPL:
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+The iaxclient library may also include, when compiled, works distributed
+under other licenses.  See those directories and source files for
+specifics.  These include:
+
+    libiax: 		(c) 199 Mark Spencer under the LGPL.
+    gsm encoder:	Copyright 1992, 1993, 1994 by Jutta Degener 
+			and Carsten Bormann, Technische Universitaet Berlin
+			(free license, terms in gsm/copyright)
+    portaudio:		Copyright (c) 1999-2000 Ross Bencina and Phil Burk
+			Modified BSD style license, in portaudio/LICENSE.txt
+
+    resample: 		(not currently used) Copyright 1991 Lance Norskog 
+			And Sundry Contributors, free license in resample.c
+
+=======================================================================
+BUILDING THE LIBRARY:
+
+Linux: type "make" using standard gnu make/gcc
+MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
+Win32: type "make" using Cygwin/MinGW (see below)
+
+
+Cygwin/MinGW:
+The Win32 build has been tested using the Cygwin Environment, and the
+MinGW port of the GCC compiler suite.  
+
+See http://www.mingw.org/mingwfaq.shtml#faq-usingwithcygwin for the
+MinGW FAQ entry on using MinGW with Cygwin.
+
+It should probably also work if you use the MSYS environment and the
+MinGW compiler, but we'd need to change some detection code in the
+environment in order to detect the "uname" string returned by the MSYS
+uname command, or otherwise figure out the platform.
+
+=======================================================================
+LIBRARY ORGANIZATION/DESIGN/CODING CONVENTION NOTES
+
+The iaxclient library is designed to be a small, simple library that
+encapsulates all that you need in order to make IAX protocol telephony
+programs.
+
+It is designed to be portable, such that it can run on at least Linux,
+Windows, and MacOSX platforms.
+
+It should include all component libraries needed for IAX, audio,
+network, encoding, etc, but not GUI code of any kind.
+
+All exported symbols should be prefixed with "iaxc_", to avoid namespace
+collisions/pollution in programs using this library.
+
+The header file "iaxclient.h" should contain those declarations needed
+by client programs, but not rely on other headers (i.e. those from
+included libraries).  The "iaxclient-lib.h" header file is the main
+header file for the library's internal declarations.
+
+
+=======================================================================
+
+SAMPLE CLIENTS
+
+The "testcall" sample program, provided in the simpleclient/testcall
+directory (above this "lib" directory) is a simple client program which
+should also be portable.  
+
+The Makefile for "testcall" will automatically build or update the
+library when it it built, and the requirements for building testcall are
+the same as for the library itself.
+
+
+
+
+
+
+
+
