@@ -13,6 +13,7 @@
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
+ *
  */
 
 #ifndef _APP_CONF_MEMBER_H
@@ -23,8 +24,7 @@
 //
 
 #include "app_conference.h"
-#include "conference.h"
-#include "frame.h"
+#include "common.h"
 
 //
 // struct declarations
@@ -42,6 +42,9 @@ struct ast_conf_member
 	char* flags ;	// raw member-type flags
 	char type ;		// L = ListenOnly, M = Moderator, S = Standard (Listen/Talk)
 	char* id ;		// member id
+
+	// determine by flags and channel name	
+	char connection_type ; // T = telephone, X = iaxclient, S = sip
 	
 	// vad voice probability thresholds
 	float vad_prob_start ;
@@ -51,15 +54,23 @@ struct ast_conf_member
 	short ready_for_outgoing ;
 	
 	// input frame queue
-	struct conf_frame* inFrames ;
-	struct conf_frame* inFramesTail ;	
-	int inFramesCount ;
-	
+	conf_frame* inFrames ;
+	conf_frame* inFramesTail ;	
+	unsigned int inFramesCount ;
+
+	// frames needed by conference_exec
+	unsigned int inFramesNeeded ;
+
+	// used when caching last frame
+	conf_frame* inFramesLast ;
+	unsigned int inFramesRepeatLast ;
+	unsigned short okayToCacheLast ;
+		
 	// output frame queue
-	struct conf_frame* outFrames ;
-	struct conf_frame* outFramesTail ;	
-	int outFramesCount ;
-	
+	conf_frame* outFrames ;
+	conf_frame* outFramesTail ;	
+	unsigned int outFramesCount ;
+		
 	// time we last dropped a frame
 	struct timeval last_in_dropped ;
 	struct timeval last_out_dropped ;
@@ -88,6 +99,7 @@ struct ast_conf_member
 
 	// start time
 	struct timeval time_entered ;
+	struct timeval lastsent_timeval ;
 		
 	// flag indicating we should remove this member
 	short remove_flag ;
@@ -128,13 +140,24 @@ struct ast_conf_member* create_member( struct ast_channel* chan, const char* dat
 struct ast_conf_member* delete_member( struct ast_conf_member* member ) ;
 
 // incoming queue
-int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr ) ;
-struct conf_frame* get_incoming_frame( struct ast_conf_member* member ) ;
+int queue_incoming_frame( struct ast_conf_member* member, const struct ast_frame* fr ) ;
+conf_frame* get_incoming_frame( struct ast_conf_member* member ) ;
 
 // outgoing queue
-int queue_outgoing_frame( struct ast_conf_member* member, struct ast_frame* fr ) ;
-struct conf_frame* get_outgoing_frame( struct ast_conf_member* member ) ;
+int queue_outgoing_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
+conf_frame* get_outgoing_frame( struct ast_conf_member* member ) ;
 
 void send_state_change_notifications( struct ast_conf_member* member ) ;
+
+//
+// meta-info accessors functions
+//
+
+short memberIsPhoneClient( struct ast_conf_member* member ) ;
+short memberIsIaxClient( struct ast_conf_member* member ) ;
+short memberIsSIPClient( struct ast_conf_member* member ) ;
+
+short memberIsModerator( struct ast_conf_member* member ) ;
+short memberIsListener( struct ast_conf_member* member ) ;
 
 #endif

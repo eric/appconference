@@ -13,6 +13,7 @@
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
+ *
  */
 
 #include "member.h"
@@ -30,12 +31,12 @@ int member_exec( struct ast_channel* chan, void* data )
 	struct ast_conf_member *member ;
 
 	struct ast_frame *f ; // frame received from ast_read()
-	struct conf_frame *cf ; // frame read from the output queue
+	conf_frame* cf ; // frame read from the output queue
 
 	int left = 0 ;
 	int res;
 	
-	ast_log( AST_CONF_DEBUG, "begin processing member thread, channel => %s\n", chan->name ) ;
+	ast_log( AST_CONF_DEBUG, "[ $Revision$ ] begin processing member thread, channel => %s\n", chan->name ) ;
 	
 	// 
 	// If the call has not yet been answered, answer the call
@@ -120,7 +121,7 @@ int member_exec( struct ast_channel* chan, void* data )
 	// frequency of frames sent
 	int fs_count = 0 ;
 	long fs_diff = 0 ;
-	float fs_frequency = 0.0 ;
+	float fs_rate = 0.0 ;
 
 	struct timeval fs_base, fs_curr ;
 	gettimeofday( &fs_base, NULL ) ;
@@ -160,12 +161,6 @@ int member_exec( struct ast_channel* chan, void* data )
 	struct timeval base, curr ;
 	gettimeofday( &base, NULL ) ;
 
-	// number of frames we need to process to keep up
-	int step = 0 ;
-
-	// number of additional frames we should trying sending
-	int step_supplement = 0 ;
-
 	// number of frames to ignore speex_preprocess()
 	int ignore_speex_count = 0 ;
 
@@ -174,13 +169,8 @@ int member_exec( struct ast_channel* chan, void* data )
 
 	// tell conference_exec we're ready for frames
 	member->ready_for_outgoing = 1 ;
-
 	while ( 42 == 42 )
 	{
-		//-----------------//
-		// INCOMING FRAMES //
-		//-----------------//
-		
 		// make sure we have a channel to process
 		if ( chan == NULL )
 		{
@@ -188,6 +178,10 @@ int member_exec( struct ast_channel* chan, void* data )
 			break ;
 		}
 
+		//-----------------//
+		// INCOMING FRAMES //
+		//-----------------//
+		
 		// wait for an event on this channel
 		left = ast_waitfor( chan, AST_CONF_WAITFOR_LATENCY ) ;
 
@@ -217,7 +211,7 @@ int member_exec( struct ast_channel* chan, void* data )
 			if ( f == NULL ) 
 			{
 				ast_log( LOG_NOTICE, "unable to read from channel, channel => %s\n", chan->name ) ;
-				break ;  
+				break ;
 			}
 
 			if ( member->type == 'L' )
@@ -254,7 +248,13 @@ int member_exec( struct ast_channel* chan, void* data )
 				)
 				{
 					// send the frame to the preprocessor
+#if 1
+					int spx_ret;
+					TIMELOG(spx_ret = speex_preprocess( member->dsp, f->data, NULL ), 3, "speex_preprocess"); 
+					if ( spx_ret == 0 )
+#else
 					if ( speex_preprocess( member->dsp, f->data, NULL ) == 0 )
+#endif
 					{
 						//
 						// we ignore the preprocessor's outcome if we've seen voice frames 
@@ -292,7 +292,7 @@ int member_exec( struct ast_channel* chan, void* data )
 //						member->channel_name, member->frames_in, tv.tv_sec, tv.tv_usec ) ;
 				} 
 				else 
-				{
+				{				
 					// queue a non-silent frame for mixing
 
 //					ast_log( AST_CONF_DEBUG, "RECEIVED VOICE FRAME, channel => %s, frames_in => %ld, s => %ld, ms => %ld\n", 
@@ -306,14 +306,15 @@ int member_exec( struct ast_channel* chan, void* data )
 					// thread can mix them before sending
 					//
 							
-					struct ast_frame* af = ast_frdup( f ) ;
+//					struct ast_frame* af = ast_frdup( f ) ;
 					
-					if ( queue_incoming_frame( member, af ) != 0 )
+//					if ( queue_incoming_frame( member, af ) != 0 )
+					if ( queue_incoming_frame( member, f ) != 0 )
 					{
 						// free the duplicated frame, if we can't queue it
 						// ast_log( LOG_NOTICE, "dropped incoming frame, channel => %s\n", chan->name ) ;
-						ast_frfree( af ) ;
-						af = NULL ;
+						// ast_frfree( af ) ;
+						// af = NULL ;
 					}
 					else
 					{
@@ -344,8 +345,8 @@ int member_exec( struct ast_channel* chan, void* data )
 					fr_frequency = ( float )( fr_diff ) / ( float )( fr_count ) ;
 		
 					if ( 
-						( fr_frequency <= ( float )( AST_CONF_SAMPLE_FREQUENCY - AST_CONF_FREQUENCY_WARNING ) )
-						|| ( fr_frequency >= ( float )( AST_CONF_SAMPLE_FREQUENCY + AST_CONF_FREQUENCY_WARNING ) )
+						( fr_frequency <= ( float )( AST_CONF_FRAME_INTERVAL - AST_CONF_INTERVAL_WARNING ) )
+						|| ( fr_frequency >= ( float )( AST_CONF_FRAME_INTERVAL + AST_CONF_INTERVAL_WARNING ) )
 					)
 					{
 						ast_log( 
@@ -356,7 +357,7 @@ int member_exec( struct ast_channel* chan, void* data )
 					}
 
 					// reset values 
-					copy_timeval( &fr_base, &fr_curr ) ;
+					fr_base = fr_curr ;
 					fr_count = 0 ;
 				}
 			}
@@ -374,6 +375,12 @@ int member_exec( struct ast_channel* chan, void* data )
 				// break out of the while ( 42 == 42 )
 				break ;
 			}
+			else
+			{
+				// undesirables
+				ast_frfree( f ) ;
+				f = NULL ;
+			}
 		}
 		
 		//-----------------//
@@ -382,103 +389,59 @@ int member_exec( struct ast_channel* chan, void* data )
 
 		// update the current timestamps
 		gettimeofday( &curr, NULL ) ;
-		
-		// determine number of frames we need to send to keep up ( as an int, please ) 
-		step = ( int )( floor( (double)( usecdiff( &curr, &base ) / AST_CONF_SAMPLE_FREQUENCY ) ) ) ;
 
-		if ( step > 0 )
-		{
-			if ( step > AST_CONF_OUTGOING_FRAMES_WARN )
-			{
-				ast_log( 
-					LOG_WARNING, 
-					"long delay waiting for frame, channel => %s, step => %d, diff => %ld, left => %d\n", 
-					member->channel_name, step, usecdiff( &curr, &base ), left
-				) ;
-			}
 
-			// adjust the base timestamp to account for 'step' number of frames
-			add_milliseconds( &base, ( AST_CONF_SAMPLE_FREQUENCY * step ) ) ;
-				
-			// !!! TESTING !!!
-//			ast_log( AST_CONF_DEBUG, "channel => %s, step => %d, step_supplement => %d, frame => %ld\n", 
-//				member->channel_name, step, step_supplement, ( curr.tv_usec / 20000 ) ) ;
-
-			//
-			// account for frames we couldn't get in past runs
-			// ( this may help us clear out the outgoing frame queue )
-			//
-			if ( step_supplement >= 1 )
-			{
-				// ast_log( 
-				//	AST_CONF_DEBUG, 
-				//	"step => %d, step_supplement => %d, outgoing => %d, incoming => %d\n", 
-				//	step, step_supplement, member->outFramesCount, member->inFramesCount
-				// ) ;
-	
-				// increment step by the number of frames we were unable 
-				// to get from the outgoing queue last time around
-				step += step_supplement ; 
-			
-				// reset frame count ( since we've added it to step )
-				step_supplement = 0 ;
-			}
-
-			// acquire member mutex
+		for(;;)
+		{	
+			// acquire member mutex and grab a frame.
 			ast_mutex_lock( &member->lock ) ;
+			cf = get_outgoing_frame( member ) ;
+			ast_mutex_unlock( &member->lock ) ;
 
-//			ast_log( AST_CONF_DEBUG, "begin sending outgoing frames\n" ) ;
-
-			// make sure we only get as many frames as needed at this time
-			while ( step > 0 )
-			{	
-				//
-				// try to send a queued frame, but
-				// if no queued frame was found, 
-				// send an empty frames
-				//
-				if ( ( cf = get_outgoing_frame( member ) ) != NULL )
-				{					
-					// send the voice frame
-					if ( ast_write( member->chan, cf->fr ) == 0 )
-					{
-						// struct timeval tv ;
-						// gettimeofday( &tv, NULL ) ;
-						// ast_log( AST_CONF_DEBUG, "SENT VOICE FRAME, channel => %s, frames_out => %ld, s => %ld, ms => %ld\n", 
-						//	member->channel_name, member->frames_out, tv.tv_sec, tv.tv_usec ) ;
-					}
-					else
-					{
-						// log 'dropped' outgoing frame
-						ast_log( LOG_ERROR, "unable to write voice frame to channel, channel => %s\n", member->channel_name ) ;
-
-						// accounting: count dropped outoging frames
-						member->frames_out_dropped++ ;
-					}
-
-					// clean up frame
-					delete_conf_frame( cf ) ;
-
-					// decrement the number of frames 
-					// we need to send to keep up
-					--step ;					
-				}
-				else
-				{
-//					ast_log( 
-//						LOG_WARNING, 
-//						"unable to get frame from outgoing queue, channel => %s, step => %d, outgoing => %d, incoming => %d\n", 
-//						member->channel_name, step, member->outFramesCount, member->inFramesCount 
-//					) ;
-
-					// save the number of frames we were supposed to send,
-					// but were unable to retrieve from outgoing queue
-					step_supplement = step ;
-	
-					// and don't bother trying to send more right now
-					break ;
-				}
+			// if there's no frames exit the loop.
+			if(!cf) break;
+			
+			
+			// !!! TESTING !!!
+			if ( 	
+				cf->fr->delivery.tv_sec < member->lastsent_timeval.tv_sec 
+				|| ( 
+					cf->fr->delivery.tv_sec == member->lastsent_timeval.tv_sec 
+					&& cf->fr->delivery.tv_usec <= member->lastsent_timeval.tv_usec 
+				)
+			)
+			{
+				ast_log( LOG_WARNING, "queued frame timestamped in the past, %ld.%ld <= %ld.%ld\n",
+					cf->fr->delivery.tv_sec, cf->fr->delivery.tv_usec, 
+					member->lastsent_timeval.tv_sec, member->lastsent_timeval.tv_usec ) ;
 			}
+			member->lastsent_timeval = cf->fr->delivery ;
+
+
+#if 1
+			TIMELOG( ast_write( member->chan, cf->fr ), 10, "member: ast_write");
+#else
+			// send the voice frame
+			if ( ast_write( member->chan, cf->fr ) == 0 )
+			{
+				// struct timeval tv ;
+				// gettimeofday( &tv, NULL ) ;
+				// ast_log( AST_CONF_DEBUG, "SENT VOICE FRAME, channel => %s, frames_out => %ld, s => %ld, ms => %ld\n", 
+				//	member->channel_name, member->frames_out, tv.tv_sec, tv.tv_usec ) ;
+			}
+			else
+			{
+				// log 'dropped' outgoing frame
+				ast_log( LOG_ERROR, "unable to write voice frame to channel, channel => %s\n", member->channel_name ) ;
+
+				// accounting: count dropped outgoing frames
+				member->frames_out_dropped++ ;
+			}
+#endif
+
+
+			// clean up frame
+			delete_conf_frame( cf ) ;
 
 			//
 			// check frequency of sent frames
@@ -488,32 +451,29 @@ int member_exec( struct ast_channel* chan, void* data )
 			{
 				// update current timestamp	
 				gettimeofday( &fs_curr, NULL ) ;
-
+	
 				// compute timestamp difference
 				fs_diff = usecdiff( &fs_curr, &fs_base ) ;
 	
 				// compute sampling frequency
-				fs_frequency = ( float )( fs_diff ) / ( float )( fs_count ) ;
+				fs_rate = ( float )( fs_diff ) / ( float )( fs_count ) ;
 	
 				if ( 
-					( fs_frequency <= ( float )( AST_CONF_SAMPLE_FREQUENCY - AST_CONF_FREQUENCY_WARNING ) )
-					|| ( fs_frequency >= ( float )( AST_CONF_SAMPLE_FREQUENCY + AST_CONF_FREQUENCY_WARNING ) )
+					( fs_rate <= ( float )( AST_CONF_FRAME_INTERVAL - AST_CONF_INTERVAL_WARNING ) )
+					|| ( fs_rate >= ( float )( AST_CONF_FRAME_INTERVAL + AST_CONF_INTERVAL_WARNING ) )
 				)
 				{
 					ast_log( 
 						LOG_WARNING, 
-						"sent frames frequency variation, channel => %s, fs_count => %d, fs_diff => %ld, fs_frequency => %2.2f\n",
-						member->channel_name, fs_count, fs_diff, fs_frequency 
+						"sent frames frequency variation, channel => %s, fs_count => %d, fs_diff => %ld, fs_rate => %2.2f ( ms/fr )\n",
+						member->channel_name, fs_count, fs_diff, fs_rate 
 					) ;
 				}
 	
 				// reset values 
-				copy_timeval( &fs_base, &fs_curr ) ;
+				fs_base = fs_curr ;
 				fs_count = 0 ;
-			}
-
-			// release member mutex
-			ast_mutex_unlock( &member->lock ) ;
+			}			
 		}
 
 		// back to process incoming frames
@@ -535,19 +495,34 @@ int member_exec( struct ast_channel* chan, void* data )
 	if ( member != NULL ) member->remove_flag = 1 ;
 
 //	gettimeofday( &end, NULL ) ;
-//	int expected_frames = ( int )( floor( (double)( usecdiff( &end, &start ) / AST_CONF_SAMPLE_FREQUENCY ) ) ) ;
+//	int expected_frames = ( int )( floor( (double)( usecdiff( &end, &start ) / AST_CONF_FRAME_INTERVAL ) ) ) ;
 //	ast_log( AST_CONF_DEBUG, "expected_frames => %d\n", expected_frames ) ;
 
-	return 0 ;
+	return -1 ;
 }
 
 //
 // manange member functions
 //
 
-// struct ast_conf_member* create_member( struct ast_channel *chan, const char* flags, int priority ) 
 struct ast_conf_member* create_member( struct ast_channel *chan, const char* data ) 
 {
+	//
+	// check input
+	//
+	
+	if ( chan == NULL )
+	{
+		ast_log( LOG_ERROR, "unable to create member with null channel\n" ) ;
+		return NULL ;
+	}
+	
+	if ( chan->name == NULL )
+	{
+		ast_log( LOG_ERROR, "unable to create member with null channel name\n" ) ;
+		return NULL ;
+	}
+	
 	//
 	// allocate memory for new conference member
 	//
@@ -599,7 +574,9 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	}
 	else
 	{
-		member->flags = NULL ;
+		// make member->flags something 
+		member->flags = malloc( sizeof( char ) ) ;
+		memset( member->flags, 0x0, sizeof( char ) ) ;
 	}
 	
 	// parse the priority
@@ -648,6 +625,9 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->inFrames = NULL ;
 	member->inFramesTail = NULL ;
 	member->inFramesCount = 0 ;
+
+	member->inFramesRepeatLast = 0 ;
+	member->inFramesLast = NULL ; 
 
 	// outgoing frame queue
 	member->outFrames = NULL ;
@@ -700,7 +680,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	
 	// temp pointer to flags string
 	char* flags = member->flags ;
-	
+
 	for ( int i = 0 ; i < strlen( flags ) ; ++i )
 	{
 		// allowed flags are M, L, S, V, D, A
@@ -781,6 +761,23 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 #endif
 
 	//
+	// set connection type
+	//
+
+	if ( via_telephone == 1 )
+	{
+		member->connection_type = 'T' ;
+	}
+	else if ( strncmp( member->channel_name, "SIP", 3 ) == 0 )
+	{
+		member->connection_type = 'S' ;
+	}
+	else // default to iax
+	{
+		member->connection_type = 'X' ;
+	}
+
+	//
 	// read, write, and translation options
 	//
 
@@ -792,6 +789,8 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// translation paths ( ast_translator_build_path() returns null if formats match )
 	member->to_slinear = ast_translator_build_path( AST_FORMAT_SLINEAR, member->read_format ) ;
 	member->from_slinear = ast_translator_build_path( member->write_format, AST_FORMAT_SLINEAR ) ;
+	
+	ast_log( AST_CONF_DEBUG, "AST_FORMAT_SLINEAR => %d\n", AST_FORMAT_SLINEAR ) ;
 	
 	// index for converted_frames array
 	switch ( member->write_format )
@@ -843,6 +842,12 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 
 struct ast_conf_member* delete_member( struct ast_conf_member* member ) 
 {
+	// !!! NO RETURN TEST !!!
+	// do { sleep(1) ; } while (1) ;
+
+	// !!! CRASH TEST !!!
+	// *((int *)0) = 0;
+
 	if ( member == NULL )
 	{
 		ast_log( LOG_WARNING, "unable to the delete null member\n" ) ;
@@ -850,11 +855,27 @@ struct ast_conf_member* delete_member( struct ast_conf_member* member )
 	}
 	
 	//
+	// clean up member flags
+	//
+	
+	if ( member->flags != NULL )
+	{
+		// !!! DEBUGING !!!	
+		ast_log( AST_CONF_DEBUG, "freeing member flags, name => %s\n", 
+			member->channel_name ) ;
+		free( member->flags ) ;
+	}
+	
+	//
 	// delete the members frames
 	//
 
-	struct conf_frame* cf ;
-	
+	conf_frame* cf ;
+
+	// !!! DEBUGING !!!	
+	ast_log( AST_CONF_DEBUG, "deleting member input frames, name => %s\n", 
+		member->channel_name ) ;
+
 	// incoming frames
 	cf = member->inFrames ;
 	
@@ -863,6 +884,10 @@ struct ast_conf_member* delete_member( struct ast_conf_member* member )
 		cf = delete_conf_frame( cf ) ;
 	}
 	
+	// !!! DEBUGING !!!	
+	ast_log( AST_CONF_DEBUG, "deleting member output frames, name => %s\n", 
+		member->channel_name ) ;
+
 	// outgoing frames
 	cf = member->outFrames ;
 	
@@ -873,8 +898,17 @@ struct ast_conf_member* delete_member( struct ast_conf_member* member )
 
 #if ( SILDET == 2 )
 	if ( member->dsp != NULL )
+	{
+		// !!! DEBUGING !!!	
+		ast_log( AST_CONF_DEBUG, "destroying member preprocessor, name => %s\n", 
+			member->channel_name ) ;
 		speex_preprocess_state_destroy( member->dsp ) ;
+	}
 #endif
+
+	// !!! DEBUGING !!!	
+	ast_log( AST_CONF_DEBUG, "freeing member translator paths, name => %s\n", 
+		member->channel_name ) ;
 
 	// free the mixing translators
 	ast_translator_free_path( member->to_slinear ) ;
@@ -884,9 +918,16 @@ struct ast_conf_member* delete_member( struct ast_conf_member* member )
 	// member so we can return it
 	struct ast_conf_member* nm = member->next ;
 	
+	// !!! DEBUGING !!!	
+	ast_log( AST_CONF_DEBUG, "freeing member channel name, name => %s\n", 
+		member->channel_name ) ;
+
 	// free the member's copy for the channel name
 	free( member->channel_name ) ;
 	
+	// !!! DEBUGING !!!	
+	ast_log( AST_CONF_DEBUG, "freeing member\n" ) ;
+
 	// free the member's memory
 	free( member ) ;
 	member = NULL ;
@@ -898,7 +939,7 @@ struct ast_conf_member* delete_member( struct ast_conf_member* member )
 // incoming frame functions
 //
 
-struct conf_frame* get_incoming_frame( struct ast_conf_member *member )
+conf_frame* get_incoming_frame( struct ast_conf_member *member )
 {
 	//
 	// sanity checks
@@ -910,17 +951,64 @@ struct conf_frame* get_incoming_frame( struct ast_conf_member *member )
 		return NULL ;
 	}
  
-	if ( member->inFramesCount <= AST_CONF_MIN_QUEUE ) 
+ 	//
+ 	// repeat last frame a couple times to smooth transition
+ 	//
+ 	
+#ifdef AST_CONF_CACHE_LAST_FRAME
+	if ( member->inFramesCount == 0 )
 	{
-	 	// no frames are available in the queue
-		return NULL ;
+		// nothing to do if there's no cached frame
+		if ( member->inFramesLast == NULL )
+			return NULL ;
+
+		// turn off 'okay to cache' flag
+		member->okayToCacheLast = 0 ;
+
+		if ( member->inFramesRepeatLast >= AST_CONF_CACHE_LAST_FRAME )
+		{
+			// alreay used this frame AST_CONF_CACHE_LAST_FRAME times
+		
+			// reset repeat count
+			member->inFramesRepeatLast = 0 ;
+			
+			// clear the cached frame
+			delete_conf_frame( member->inFramesLast ) ;
+			member->inFramesLast = NULL ;
+			
+			// return null
+			return NULL ;
+		}
+		else
+		{			 
+			ast_log( AST_CONF_DEBUG, "repeating cached frame, channel => %s, inFramesRepeatLast => %d\n",
+				member->channel_name, member->inFramesRepeatLast ) ;
+		
+			// increment counter
+			member->inFramesRepeatLast++ ;
+			
+			// return a copy of the cached frame
+			return copy_conf_frame( member->inFramesLast ) ;
+		}		
 	}
+	else if ( member->okayToCacheLast == 0 && member->inFramesCount >= 3 ) 
+	{
+		ast_log( AST_CONF_DEBUG, "enabling cached frame, channel => %s, incoming => %d, outgoing => %d\n",
+			member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+	
+		// turn on 'okay to cache' flag
+		member->okayToCacheLast = 1 ;
+	}
+#else
+	if ( member->inFramesCount == 0 )
+		return NULL ;
+#endif // AST_CONF_CACHE_LAST_FRAME
 
 	//
 	// return the next frame in the queue
 	//
 	
-	struct conf_frame *cfr = NULL ;
+	conf_frame* cfr = NULL ;
 
 	// get first frame in line
 	cfr = member->inFramesTail ;
@@ -949,10 +1037,32 @@ struct conf_frame* get_incoming_frame( struct ast_conf_member *member )
 	// decriment frame count
 	member->inFramesCount-- ;
 	
+#ifdef AST_CONF_CACHE_LAST_FRAME
+	// copy frame if queue is now empty
+	if ( 
+		member->inFramesCount == 0 
+		&& member->okayToCacheLast == 1 
+	)
+	{
+		// reset repeat count
+		member->inFramesRepeatLast = 0 ;
+
+		// clear cached frame
+		if ( member->inFramesLast != NULL )
+		{
+			delete_conf_frame( member->inFramesLast ) ;
+			member->inFramesLast = NULL ;
+		}
+		
+		// cache new frame  
+		member->inFramesLast = copy_conf_frame( cfr ) ;
+	}
+#endif // AST_CONF_CACHE_LAST_FRAME
+	
 	return cfr ;
 }
 
-int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr ) 
+int queue_incoming_frame( struct ast_conf_member* member, const struct ast_frame* fr ) 
 {
 	//
 	// sanity checks
@@ -974,29 +1084,55 @@ int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr )
 
 	//
 	// drop a frame if we've filled half the buffer
+	// ( no more than once per AST_CONF_QUEUE_DROP_TIME_LIMIT ms )
 	//
 
-	if ( member->inFramesCount > AST_CONF_QUEUE_DROP_THRESHOLD ) 
+	if ( member->inFramesCount > member->inFramesNeeded )
 	{
-		struct timeval curr ;
-		gettimeofday( &curr, NULL ) ;
-		
-		long diff = usecdiff( &curr, &member->last_in_dropped ) ;
-		
-		if ( diff >= AST_CONF_QUEUE_DROP_TIME_LIMIT )
+		if ( member->inFramesCount > AST_CONF_QUEUE_DROP_THRESHOLD ) 
 		{
+			struct timeval curr ;
+			gettimeofday( &curr, NULL ) ;
+
+			// time since last dropped frame			
+			long diff = usecdiff( &curr, &member->last_in_dropped ) ;
+
+			// number of milliseconds which must pass between frame drops
+			// ( 15 frames => -100ms, 10 frames => 400ms, 5 frames => 900ms, 0 frames => 1400ms, etc. )
+			long time_limit = 1000 - ( ( member->inFramesCount - AST_CONF_QUEUE_DROP_THRESHOLD ) * 100 ) ;
+			
+			if ( diff >= time_limit )
+			{
+				// count sequential drops
+				member->sequential_drops++ ;
+	
+				ast_log( 
+					AST_CONF_DEBUG,
+					"dropping frame from input buffer, channel => %s, incoming => %d, outgoing => %d\n",
+					member->channel_name, member->inFramesCount, member->outFramesCount
+				) ;
+				
+				// accounting: count dropped incoming frames
+				member->frames_in_dropped++ ;
+	
+				// reset frames since dropped
+				member->since_dropped = 0 ;
+	
+				// delete the frame
+				delete_conf_frame( get_incoming_frame( member ) ) ;
+				
+				gettimeofday( &member->last_in_dropped, NULL ) ;
+			}
+			else
+			{
 /*
-			ast_log( 
-				AST_CONF_DEBUG,
-				"dropping frame from buffer, channel => %s, incoming => %d, outgoing => %d\n",
-				member->channel_name, member->inFramesCount, member->outFramesCount
-			) ;
+				ast_log( 
+					AST_CONF_DEBUG,
+					"input buffer larger than drop threshold, channel => %s, incoming => %d, outgoing => %d\n",
+					member->channel_name, member->inFramesCount, member->outFramesCount
+				) ;
 */
-			
-			// delete the frame
-			delete_conf_frame( get_incoming_frame( member ) ) ;
-			
-			gettimeofday( &member->last_in_dropped, NULL ) ;
+			}
 		}
 	}
 
@@ -1010,12 +1146,6 @@ int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr )
 		// count sequential drops
 		member->sequential_drops++ ;
 	
-//		ast_log( 
-//			AST_CONF_DEBUG, 
-//			"unable to queue incoming frame, channel => %s, total => %ld, sequential => %d, since_last => %ld\n" 
-//			member->channel_name, member->frames_in_dropped, member->sequential_drops, member->since_dropped
-//		) ;
-
 		ast_log( 
 			AST_CONF_DEBUG,
 			"unable to queue incoming frame, channel => %s, incoming => %d, outgoing => %d\n",
@@ -1042,7 +1172,7 @@ int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr )
 	//
 	
 	// ( member->inFrames may be null at this point )
-	struct conf_frame *cfr = create_conf_frame( member, member->inFrames ) ;
+	conf_frame* cfr = create_conf_frame( member, member->inFrames, fr ) ;
 	
 	if ( cfr == NULL ) 
 	{
@@ -1051,7 +1181,7 @@ int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr )
 	}
 	
 	// copy frame data pointer to conf frame
-	cfr->fr = fr ;
+	// cfr->fr = fr ;
 
 	//
 	// add new frame to speaking members incoming frame queue
@@ -1081,7 +1211,7 @@ int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr )
 // outgoing frame functions
 //
 
-struct conf_frame* get_outgoing_frame( struct ast_conf_member *member )
+conf_frame* get_outgoing_frame( struct ast_conf_member *member )
 {
 	if ( member == NULL )
 	{
@@ -1089,7 +1219,7 @@ struct conf_frame* get_outgoing_frame( struct ast_conf_member *member )
 		return NULL ;
 	}
 
-	struct conf_frame *cfr ;
+	conf_frame* cfr ;
 
 	// ast_log( AST_CONF_DEBUG, "getting member frames, count => %d\n", member->outFramesCount ) ;
  
@@ -1127,7 +1257,7 @@ struct conf_frame* get_outgoing_frame( struct ast_conf_member *member )
 	return NULL ;
 }
 
-int queue_outgoing_frame( struct ast_conf_member* member, struct ast_frame* fr ) 
+int queue_outgoing_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) 
 {
 	// check on frame
 	if ( fr == NULL ) 
@@ -1146,6 +1276,7 @@ int queue_outgoing_frame( struct ast_conf_member* member, struct ast_frame* fr )
 	// accounting: count the number of outgoing frames for this member
 	member->frames_out++ ;	
 	
+/*
 	//
 	// drop a frame if we've filled half the buffer
 	//
@@ -1159,13 +1290,14 @@ int queue_outgoing_frame( struct ast_conf_member* member, struct ast_frame* fr )
 		
 		if ( diff >= AST_CONF_QUEUE_DROP_TIME_LIMIT )
 		{
-/*
 			ast_log( 
 				AST_CONF_DEBUG,
-				"dropping frame from buffer, channel => %s, incoming => %d, outgoing => %d\n",
+				"dropping frame from output buffer, channel => %s, incoming => %d, outgoing => %d\n",
 				member->channel_name, member->inFramesCount, member->outFramesCount
 			) ;
-*/
+
+			// accounting: count dropped outgoing frames
+			member->frames_out_dropped++ ;
 
 			// delete the frame
 			delete_conf_frame( get_outgoing_frame( member ) ) ;
@@ -1173,19 +1305,14 @@ int queue_outgoing_frame( struct ast_conf_member* member, struct ast_frame* fr )
 			gettimeofday( &member->last_out_dropped, NULL ) ;
 		}
 	}
-	
+*/
+
 	//
 	// we have to drop frames, so we'll drop new frames
 	// because it's easier ( and doesn't matter much anyway ).
 	//
 	if ( member->outFramesCount >= AST_CONF_MAX_QUEUE ) 
 	{
-//		ast_log( 
-//			AST_CONF_DEBUG, 
-//			"unable to queue outgoing frame, channel => %s, total => %ld\n", 
-//			member->channel_name, member->frames_out_dropped 
-//		) ;
-
 		ast_log( 
 			AST_CONF_DEBUG,
 			"unable to queue outgoing frame, channel => %s, incoming => %d, outgoing => %d\n",
@@ -1202,7 +1329,7 @@ int queue_outgoing_frame( struct ast_conf_member* member, struct ast_frame* fr )
 	// create new conf frame from passed data frame
 	//
 	
-	struct conf_frame *cfr = create_conf_frame( member, member->outFrames ) ;
+	conf_frame* cfr = create_conf_frame( member, member->outFrames, fr ) ;
 	
 	if ( cfr == NULL ) 
 	{
@@ -1213,9 +1340,9 @@ int queue_outgoing_frame( struct ast_conf_member* member, struct ast_frame* fr )
 
 		return -1 ;
 	}
-	
-	// copy frame data to conf frame
-	cfr->fr = fr ;
+
+	// set delivery timestamp
+	cfr->fr->delivery = delivery ;
 
 	//
 	// add new frame to speaking members incoming frame queue
@@ -1281,6 +1408,50 @@ void send_state_change_notifications( struct ast_conf_member* member )
 	}
 	
 	return ;
+}
+
+//
+// meta-info accessors functions
+//
+
+short memberIsPhoneClient( struct ast_conf_member* member )
+{
+	if ( member == NULL ) 
+		return 0 ;
+		
+	return ( member->connection_type == 'T' ) ? 1 : 0 ;
+}
+
+short memberIsIaxClient( struct ast_conf_member* member )
+{
+	if ( member == NULL ) 
+		return 0 ;
+		
+	return ( member->connection_type == 'X' ) ? 1 : 0 ;
+}
+
+short memberIsSIPClient( struct ast_conf_member* member )
+{
+	if ( member == NULL ) 
+		return 0 ;
+		
+	return ( member->connection_type == 'S' ) ? 1 : 0 ;
+}
+
+short memberIsModerator( struct ast_conf_member* member )
+{
+	if ( member == NULL ) 
+		return 0 ;
+		
+	return ( member->type == 'M' ) ? 1 : 0 ;
+}
+
+short memberIsListener( struct ast_conf_member* member )
+{
+	if ( member == NULL ) 
+		return 0 ;
+		
+	return ( member->type == 'L' ) ? 1 : 0 ;
 }
 
 

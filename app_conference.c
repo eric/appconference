@@ -13,9 +13,11 @@
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
+ *
  */
 
 #include "app_conference.h"
+#include "common.h"
 
 /*
 
@@ -43,14 +45,6 @@ static char *descrip = "  Conference():  returns 0\n"
 "if the user exits with the '#' key, or -1 if the user hangs up.\n" ;
 
 //
-// external function declarations
-//
-
-// from member.c and conference.c, respectively
-extern int member_exec( struct ast_channel* chan, void* data ) ;
-extern void init_conference( void ) ;
-
-//
 // functions defined in asterisk/module.h
 //
 
@@ -60,14 +54,25 @@ LOCAL_USER_DECL;
 int unload_module( void )
 {
 	ast_log( LOG_NOTICE, "unloading app_conference module\n" ) ;
+
 	STANDARD_HANGUP_LOCALUSERS ; // defined in asterisk/module.h
+
+	// register conference cli functions
+	unregister_conference_cli() ;
+
 	return ast_unregister_application( app ) ;
 }
 
 int load_module( void )
 {
 	ast_log( LOG_NOTICE, "loading app_conference module [ $Revision$ ]\n" ) ;
+
+	// intialize conference
 	init_conference() ;
+
+	// register conference cli functions
+	register_conference_cli() ;
+
 	return ast_register_application( app, app_conference_main, synopsis, descrip ) ;
 }
 
@@ -137,13 +142,5 @@ void add_milliseconds( struct timeval* tv, long ms )
 	// increment the seconds field
 	tv->tv_sec += s ;
 
-	return ;
-}
-
-// now returns milliseconds
-void copy_timeval( struct timeval* target, struct timeval* source )
-{
-	target->tv_sec = source->tv_sec ;
-	target->tv_usec = source->tv_usec ;
 	return ;
 }

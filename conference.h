@@ -13,6 +13,7 @@
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
+ *
  */
 
 #ifndef _APP_CONF_CONFERENCE_H
@@ -23,12 +24,35 @@
 //
 
 #include "app_conference.h"
-#include "member.h"
-#include "frame.h"
+#include "common.h"
 
 //
 // struct declarations
 //
+
+typedef struct ast_conference_stats
+{
+	// conference name ( copied for ease of use )
+	char name[128] ; 
+
+	// type of connection
+	unsigned short phone ;
+	unsigned short iaxclient ;
+	unsigned short sip ;
+	
+	// type of users
+	unsigned short moderators ;
+	unsigned short listeners ;
+	
+	// accounting data
+	unsigned long frames_in ;
+	unsigned long frames_out ;
+	unsigned long frames_mixed ;
+
+	struct timeval time_entered ; 
+
+} ast_conference_stats ;
+
 
 struct ast_conference 
 {
@@ -48,15 +72,17 @@ struct ast_conference
 	// pointer to next conference in single-linked list
 	struct ast_conference* next ;
 	
-	// accounting data
-	long frames_in ;
-	long frames_out ;
-	long frames_mixed ;
-	
-	struct timeval time_entered ; 
-
 	// pointer to translation paths
 	struct ast_trans_pvt* from_slinear_paths[ AC_SUPPORTED_FORMATS ] ;
+	
+	// conference stats
+	ast_conference_stats stats ;
+	
+	// keep track of current delivery time
+	struct timeval delivery_time ;
+
+	// 1 => on, 0 => off
+	short debug_flag ;	
 } ;
 
 //
@@ -67,18 +93,25 @@ struct ast_conference* start_conference( struct ast_conf_member* member ) ;
 
 void conference_exec( struct ast_conference* conf ) ;
 
-struct ast_conference* find_conf( char* name ) ;
+struct ast_conference* find_conf( const char* name ) ;
 struct ast_conference* create_conf( char* name, struct ast_conf_member* member ) ;
 void remove_conf( struct ast_conference* conf ) ;
 
-int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_member* member, struct conf_frame* frame ) ;
-int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, struct conf_frame* frame ) ;
+int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
+int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_silent_frame( struct ast_conference* conf, struct ast_conf_member* member ) ;
 
 void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
+int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
 
 // called by app_confernce.c:load_module()
 void init_conference( void ) ;
+
+int get_conference_count( void ) ;
+int get_conference_stats( ast_conference_stats* stats, int requested ) ;
+int get_conference_stats_by_name( ast_conference_stats* stats, const char* name ) ;
+
+int set_conference_debugging( const char* name, int state ) ;
 
 #endif

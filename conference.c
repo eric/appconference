@@ -13,6 +13,7 @@
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
+ *
  */
 
 #include "conference.h"
@@ -30,6 +31,8 @@ static ast_mutex_t conflist_lock = AST_MUTEX_INITIALIZER ;
 // mutex for synchronizing calls to start_conference() and remove_conf()
 static ast_mutex_t start_stop_conf_lock = AST_MUTEX_INITIALIZER ;
 
+static int conference_count = 0 ;
+
 //
 // main conference function
 //
@@ -44,7 +47,7 @@ void conference_exec( struct ast_conference *conf )
 	int speaker_count ;
 	int listener_count ;
 	
-	ast_log( AST_CONF_DEBUG, "entered conference_exec, name => %s\n", conf->name ) ;
+	ast_log( AST_CONF_DEBUG, "[ $Revision$ ] entered conference_exec, name => %s\n", conf->name ) ;
 	
 	// timer timestamps
 	struct timeval base, curr, notify ;
@@ -54,9 +57,6 @@ void conference_exec( struct ast_conference *conf )
 	// holds differences of curr and base
 	long time_diff = 0 ;
 	
-	// number of frames we need to process to keep up
-	int step = 0 ;
-
 	//
 	// variables for checking thread frequency
 	//
@@ -78,33 +78,26 @@ void conference_exec( struct ast_conference *conf )
 		// update the current timestamp
 		gettimeofday( &curr, NULL ) ;
 
-		//
-		// determine if it's time to process new frames
-		// ( skip time comparison if we're behind a step )
-		//
-		if ( step <= 0 )
+		// calculate difference in timestamps
+		time_diff = usecdiff( &curr, &base ) ;
+
+		// long sleep warning
+		if ( time_diff > AST_CONF_CONFERENCE_SLEEP * 2 )
 		{
-			// calculate difference in timestamps
-			time_diff = usecdiff( &curr, &base ) ;
-
-			// determine number of frames we should have processed since last time through
-			// ( use floor, since we only want interger values >= 1 )
-			step = ( int )( floor( (double)( time_diff / AST_CONF_SAMPLE_FREQUENCY ) ) ) ;
-
-			// if the number of frames is not postive, sleep for a bit
-			if ( step <= 0 )
-			{
-				// convert constant to microseconds for usleep()
-				usleep( AST_CONF_CONFERENCE_SLEEP * 1000 ) ;
-				continue ;
-			}
-						
-			// adjust the timer base
-			add_milliseconds( &base, ( AST_CONF_SAMPLE_FREQUENCY * step ) ) ;
+			ast_log( AST_CONF_DEBUG, "long scheduling delay, time_diff => %ld, AST_CONF_FRAME_INTERVAL => %d\n",
+				time_diff, AST_CONF_FRAME_INTERVAL ) ;
 		}
-	
-		// decrement step to mark reading of frame
-		--step ;
+
+		// sleep if not enough time has passed
+		if ( time_diff < AST_CONF_FRAME_INTERVAL )
+		{
+			// convert constant to microseconds for usleep()
+			TIMELOG(usleep( AST_CONF_CONFERENCE_SLEEP * 1000 ), AST_CONF_CONFERENCE_SLEEP * 2, "overslept") ;
+			continue ;
+		}
+						
+		// adjust the timer base ( it will be used later to timestamp outgoing frames )
+		add_milliseconds( &base, AST_CONF_FRAME_INTERVAL ) ;
 		
 		//
 		// check thread frequency
@@ -122,8 +115,8 @@ void conference_exec( struct ast_conference *conf )
 			tf_frequency = ( float )( tf_diff ) / ( float )( tf_count ) ;
 
 			if ( 
-				( tf_frequency <= ( float )( AST_CONF_SAMPLE_FREQUENCY - 1 ) )
-				|| ( tf_frequency >= ( float )( AST_CONF_SAMPLE_FREQUENCY + 1 ) )
+				( tf_frequency <= ( float )( AST_CONF_FRAME_INTERVAL - 1 ) )
+				|| ( tf_frequency >= ( float )( AST_CONF_FRAME_INTERVAL + 1 ) )
 			)
 			{
 				ast_log( 
@@ -134,7 +127,7 @@ void conference_exec( struct ast_conference *conf )
 			}
 
 			// reset values 
-			copy_timeval( &tf_base, &tf_curr ) ;
+			tf_base = tf_curr ;
 			tf_count = 0 ;
 		}
 
@@ -146,7 +139,10 @@ void conference_exec( struct ast_conference *conf )
 		//	conf->name, step, ( base.tv_usec / 20000 ) ) ;
 
 		// acquire conference mutex
-		ast_mutex_lock( &conf->lock ) ;
+		TIMELOG(ast_mutex_lock( &conf->lock ),1,"conf thread conf lock");
+
+		// save the current delivery time
+		conf->delivery_time = base ;
 
 		//
 		// loop through the list of members 
@@ -169,7 +165,7 @@ void conference_exec( struct ast_conference *conf )
 		while ( member != NULL )
 		{
 			// acquire member mutex
-			ast_mutex_lock( &member->lock ) ;
+			TIMELOG(ast_mutex_lock( &member->lock ),1,"conf thread member lock") ;
 
 			// check for dead members
 			if ( member->remove_flag == 1 ) 
@@ -189,6 +185,19 @@ void conference_exec( struct ast_conference *conf )
 			}
 			else
 			{
+				// tell member the number of frames we're going to need ( used to help dropping algorithm )
+				member->inFramesNeeded = ( time_diff / AST_CONF_FRAME_INTERVAL ) - 1 ;
+								
+// !!! TESTING !!!
+if ( 
+	conf->debug_flag == 1 
+	&& member->inFramesNeeded > 0 
+)
+{
+	ast_log( AST_CONF_DEBUG, "channel => %s, inFramesNeeded => %d, inFramesCount => %d\n", 
+		member->channel_name, member->inFramesNeeded, member->inFramesCount ) ;
+}
+
 				// non-listener member should have frames,
 				// unless silence detection dropped them
 				cfr = get_incoming_frame( member ) ;
@@ -200,6 +209,18 @@ void conference_exec( struct ast_conference *conf )
 				// this member is listen-only, or has not spoken
 				// ast_log( AST_CONF_DEBUG, "silent member, channel => %s\n", member->channel_name ) ;
 				
+// !!! TESTING !!!
+if ( member->speaking_state == 1 )
+{
+	ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
+		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+}
+if ( conf->debug_flag == 1 )
+{
+	ast_log( AST_CONF_DEBUG, "member is silent, channel => %s, incoming => %d, outgoing => %d\n",
+		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+}
+
 				// mark member as silent
 				member->speaking_state = 0 ;
 				
@@ -209,6 +230,18 @@ void conference_exec( struct ast_conference *conf )
 			else if ( cfr->fr == NULL )
 			{
 				ast_log( AST_CONF_DEBUG, "got incoming conf_frame with null ast_frame\n" ) ;
+
+// !!! TESTING !!!
+if ( member->speaking_state == 1 )
+{
+	ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
+		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+}
+if ( conf->debug_flag == 1 )
+{
+	ast_log( AST_CONF_DEBUG, "member is silent, channel => %s, incoming => %d, outgoing => %d\n",
+		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+}
 
 				// mark member as silent
 				member->speaking_state = 0 ;
@@ -231,6 +264,18 @@ void conference_exec( struct ast_conference *conf )
 
 				// point the list at the new frame
 				spoken_frames = cfr ;
+				
+// !!! TESTING !!!
+if ( member->speaking_state == 0 )
+{
+	ast_log( AST_CONF_DEBUG, "member has started speaking, channel => %s, incoming => %d, outgoing => %d\n",
+		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+}
+if ( conf->debug_flag == 1 )
+{
+	ast_log( AST_CONF_DEBUG, "member is speaking, channel => %s, incoming => %d, outgoing => %d\n",
+		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+}
 				
 				// mark member as speaker
 				member->speaking_state = 1 ;
@@ -270,11 +315,19 @@ void conference_exec( struct ast_conference *conf )
 
 		// accounting: if there are frames, count them as one incoming frame
 		if ( send_frames != NULL )
-			conf->frames_in++ ;
+		{
+			// set delivery timestamp 
+			// set_conf_frame_delivery( send_frames, base ) ;
+
+			// ast_log( AST_CONF_DEBUG, "base => %ld.%ld %d\n", base.tv_sec, base.tv_usec, ( int )( base.tv_usec / 1000 ) ) ;
+
+			conf->stats.frames_in++ ;
+		}
 			
 		//-----------------//
 		// OUTGOING FRAMES //
 		//-----------------//
+
 
 		//
 		// queue send frames
@@ -314,9 +367,9 @@ void conference_exec( struct ast_conference *conf )
 		{		
 			// accouting: count all frames and mixed frames
 			if ( send_frames->member == NULL )
-				conf->frames_out++ ;
+				conf->stats.frames_out++ ;
 			else
-				conf->frames_mixed++ ;
+				conf->stats.frames_mixed++ ;
 			
 			// delete the frame
 			send_frames = delete_conf_frame( send_frames ) ;
@@ -417,7 +470,7 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 }
 
 
-struct ast_conference* find_conf( char* name ) 
+struct ast_conference* find_conf( const char* name ) 
 {	
 	// no conferences exist
 	if ( conflist == NULL ) 
@@ -481,16 +534,17 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	conf->membercount = 0 ;
 	conf->conference_thread = -1 ;
 
-	// account data
-	conf->frames_in = 0 ;
-	conf->frames_out = 0 ;
-	conf->frames_mixed = 0 ;
+	conf->debug_flag = 0 ;
+
+	// zero stats
+	memset(	&conf->stats, 0x0, sizeof( ast_conference_stats ) ) ;
 	
 	// record start time
-	gettimeofday( &conf->time_entered, NULL ) ;
+	gettimeofday( &conf->stats.time_entered, NULL ) ;
 
 	// copy name to conference
 	strncpy( (char*)&(conf->name), name, sizeof(conf->name) - 1 ) ;
+	strncpy( (char*)&(conf->stats.name), name, sizeof(conf->name) - 1 ) ;
 	
 	// initialize mutexes
 	ast_mutex_init( &conf->lock ) ;
@@ -512,9 +566,6 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 
 	conf->next = conflist ;
 	conflist = conf ;
-
-	// release mutex
-	ast_mutex_unlock( &conflist_lock ) ;
 
 	ast_log( AST_CONF_DEBUG, "added new conference to conflist, name => %s\n", name ) ;
 
@@ -548,6 +599,13 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 		free( conf ) ;
 		conf = NULL ;
 	}
+
+	// count new conference 
+	if ( conf != NULL )
+		++conference_count ;
+
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
 
 	return conf ;
 }
@@ -603,11 +661,11 @@ void remove_conf( struct ast_conference *conf )
 			gettimeofday( &time_exited, NULL ) ;
 			
 			// total time converted to seconds
-			long tt = ( usecdiff( &time_exited, &conf_current->time_entered ) / 1000 ) ;
+			long tt = ( usecdiff( &time_exited, &conf_current->stats.time_entered ) / 1000 ) ;
 	
 			// report accounting information
 			ast_log( LOG_NOTICE, "conference accounting, fi => %ld, fo => %ld, fm => %ld, tt => %ld\n",
-				conf_current->frames_in, conf_current->frames_out, conf_current->frames_mixed, tt ) ;
+				conf_current->stats.frames_in, conf_current->stats.frames_out, conf_current->stats.frames_mixed, tt ) ;
 
 			ast_log( AST_CONF_DEBUG, "removed conference, name => %s\n", conf_current->name ) ;
 
@@ -626,6 +684,9 @@ void remove_conf( struct ast_conference *conf )
 		conf_current = conf_current->next ;
 	}
 	
+	// count new conference 
+	--conference_count ;
+
 	// release mutex
 	ast_mutex_unlock( &conflist_lock ) ;
 	
@@ -653,8 +714,8 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 	member->next = conf->memberlist ; // next is now list
 	conf->memberlist = member ; // member is now at head of list
 
-	// increment member count
-	conf->membercount++ ;
+	// update conference stats
+	count_member( member, conf, 1 ) ;
 
 	ast_log( AST_CONF_DEBUG, "member added to conference, name => %s\n", conf->name ) ;
 	
@@ -663,7 +724,6 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 
 	return ;
 }
-
 
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) 
 {
@@ -724,11 +784,11 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			else 
 				member_temp->next = member->next ;
 
+			// update conference stats
+			count = count_member( member, conf, 0 ) ;
+
 			// delete the member
 			delete_member( member ) ;
-
-			conf->membercount-- ;
-			count = conf->membercount ; // so we can return the new count
 			
 			ast_log( AST_CONF_DEBUG, "removed member from conference, name => %s, remaining => %d\n", conf->name, conf->membercount ) ;
 			
@@ -746,6 +806,47 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 	return count ;
 }
 
+int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member )
+{
+	if ( member == NULL || conf == NULL )
+	{
+		ast_log( LOG_WARNING, "unable to count member\n" ) ;
+		return -1 ;
+	}
+
+	short delta = ( add_member == 1 ) ? 1 : -1 ;
+
+	// member type
+	if ( memberIsModerator( member ) == 1 )
+	{
+		conf->stats.moderators += delta ;
+	}
+	else 
+	{
+		// count non-moderators as listeners
+		conf->stats.listeners += delta ;
+	}
+
+	// connection type
+	if ( memberIsPhoneClient( member ) == 1 )
+	{
+		conf->stats.phone += delta ;
+	}
+	else if ( memberIsIaxClient( member ) == 1 )
+	{
+		conf->stats.iaxclient += delta ;
+	}
+	else if ( memberIsSIPClient( member ) == 1 )
+	{
+		conf->stats.sip += delta ;
+	}
+	
+	// increment member count
+	conf->membercount += delta ;
+
+	return conf->membercount ;
+}
+
 //
 // queue incoming frame functions
 //
@@ -753,7 +854,7 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 int queue_frame_for_speaker( 
 	struct ast_conference* conf, 
 	struct ast_conf_member* member, 
-	struct conf_frame* frame
+	conf_frame* frame
 )
 {
 	//
@@ -762,13 +863,13 @@ int queue_frame_for_speaker(
 	
 	if ( conf == NULL )
 	{
-		ast_log( LOG_WARNING, "unable to queue listener frame with null conference\n" ) ;
+		ast_log( LOG_WARNING, "unable to queue speaker frame with null conference\n" ) ;
 		return -1 ;
 	}
 	
 	if ( member == NULL )
 	{
-		ast_log( LOG_WARNING, "unable to queue listener frame with null member\n" ) ;
+		ast_log( LOG_WARNING, "unable to queue speaker frame with null member\n" ) ;
 		return -1 ;
 	}
 	
@@ -784,41 +885,47 @@ int queue_frame_for_speaker(
 		if ( frame->member != member )
 			continue ;
 
-		// acquire member lock
-		ast_mutex_lock( &member->lock ) ;
-		
-		// copy the frame before converting it
-		qf = ast_frdup( frame->fr ) ;
-
-		if ( qf == NULL )
+		if ( frame->fr == NULL )
 		{
-			ast_log( LOG_WARNING, "unable to dupicate frame\n" ) ;
+			ast_log( LOG_WARNING, "unable to queue speaker frame with null data\n" ) ;
 			continue ;
 		}
 
-		// convert frame, if necessary
+		//
+		// convert and queue frame
+		//
+		
+		// short-cut pointer to the ast_frame
+		qf = frame->fr ;
+
+		// acquire member lock
+		TIMELOG(ast_mutex_lock( &member->lock ),1,"queue_frame_for_speaker: memberlock") ;
+	
 		if ( qf->subclass == member->write_format )
 		{
-			// frame is already in correct format
+			// frame is already in correct format, so just queue it
+			queue_outgoing_frame( member, qf, conf->delivery_time ) ;
 		}
 		else
 		{
+			//
 			// convert frame to member's write format
-			qf = convert_frame_from_slinear( member->from_slinear, qf ) ;
-		}
-		
-		if ( qf != NULL )
-		{
-			if ( queue_outgoing_frame( member, qf ) != 0 )
+			// ( calling ast_frdup() to make sure the translator's copy sticks around )
+			//
+			qf = convert_frame_from_slinear( member->from_slinear, ast_frdup( qf ) ) ;
+
+			if ( qf != NULL )
 			{
-				// free the frame, if we can't queue it
+				// queue frame
+				queue_outgoing_frame( member, qf, conf->delivery_time ) ;
+				
+				// free frame ( the translator's copy )
 				ast_frfree( qf ) ;
-				qf = NULL ;
 			}
-		}
-		else
-		{
-			ast_log( LOG_WARNING, "unable to translate outgoing speaker frame, channel => %s\n", member->channel_name ) ;
+			else
+			{
+				ast_log( LOG_WARNING, "unable to translate outgoing speaker frame, channel => %s\n", member->channel_name ) ;
+			}
 		}
 
 		// release member lock
@@ -841,7 +948,7 @@ int queue_frame_for_speaker(
 int queue_frame_for_listener( 
 	struct ast_conference* conf, 
 	struct ast_conf_member* member, 
-	struct conf_frame* frame
+	conf_frame* frame
 )
 {
 	//
@@ -880,7 +987,7 @@ int queue_frame_for_listener(
 		}
 
 		// acquire member lock
-		ast_mutex_lock( &member->lock ) ;
+		TIMELOG(ast_mutex_lock( &member->lock ),1,"queue_frame_for_listener") ;
 
 		// first, try for a pre-converted frame
 		qf = frame->converted[ member->write_format_index ] ;
@@ -909,9 +1016,9 @@ int queue_frame_for_listener(
 		{
 			// duplicate the frame before queue'ing it
 			// ( since this member doesn't own this _shared_ frame )
-			qf = ast_frdup( qf ) ;
+			// qf = ast_frdup( qf ) ;
 			
-			if ( queue_outgoing_frame( member, qf ) != 0 )
+			if ( queue_outgoing_frame( member, qf, conf->delivery_time ) != 0 )
 			{
 				// free the new frame if it couldn't be queue'd
 				ast_frfree( qf ) ;
@@ -967,7 +1074,7 @@ int queue_silent_frame(
 	// initialize static variables
 	//
 
-	static struct conf_frame* silent_frame = NULL ;
+	static conf_frame* silent_frame = NULL ;
 	static struct ast_frame* qf = NULL ;
 
 	if ( silent_frame == NULL )
@@ -980,7 +1087,7 @@ int queue_silent_frame(
 	}	
 
 	// acquire member lock
-	ast_mutex_lock( &member->lock ) ;
+	TIMELOG(ast_mutex_lock( &member->lock ),1,"queue_silent_frame") ;
 
 	// get the appropriate silent frame
 	qf = silent_frame->converted[ member->write_format_index ] ;
@@ -1027,16 +1134,7 @@ int queue_silent_frame(
 	//
 	if ( qf != NULL )
 	{
-		// dup the frame befoe queue'ing it
-		// ( we dup the frame because member_exec() will free it )
-		qf = ast_frdup( qf ) ;
-	
-		if ( queue_outgoing_frame( member, qf ) != 0 )
-		{
-			// free the frame, if we can't queue it						
-			ast_frfree( qf ) ;
-			qf = NULL ;
-		}
+		queue_outgoing_frame( member, qf, conf->delivery_time ) ;
 	}
 	else
 	{
@@ -1048,3 +1146,132 @@ int queue_silent_frame(
 
 	return 0 ;
 }
+
+//
+// get conference stats
+//
+
+//
+// returns: -1 => error, 0 => debugging off, 1 => debugging on
+// state: on => 1, off => 0, toggle => -1
+//
+int set_conference_debugging( const char* name, int state )
+{
+	if ( name == NULL )
+		return -1 ;
+
+	// acquire mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	struct ast_conference *conf = conflist ;
+	int new_state = -1 ;
+	
+	// loop through conf list
+	while ( conf != NULL ) 
+	{
+		if ( strncasecmp( (const char*)&(conf->name), name, 80 ) == 0 )
+		{
+			// lock conference
+			// ast_mutex_lock( &(conf->lock) ) ;
+
+			// toggle or set the state
+			if ( state == -1 )
+				conf->debug_flag = ( conf->debug_flag == 0 ) ? 1 : 0 ;
+			else
+				conf->debug_flag = ( state == 0 ) ? 0 : 1 ;
+
+			new_state = conf->debug_flag ;
+
+			// unlock conference
+			// ast_mutex_unlock( &(conf->lock) ) ;
+
+			break ;
+		}
+	
+		conf = conf->next ;
+	}
+
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return new_state ;
+}
+
+int get_conference_count( void ) 
+{
+	return conference_count ;
+}
+
+int get_conference_stats( ast_conference_stats* stats, int requested )
+{	
+	// no conferences exist
+	if ( conflist == NULL ) 
+	{
+		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialize\n" ) ;
+		return 0 ;
+	}
+	
+	// acquire mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	// compare the number of requested to the number of available conferences
+	requested = ( get_conference_count() < requested ) ? get_conference_count() : requested ;
+
+	//
+	// loop through conf list
+	//
+
+	struct ast_conference* conf = conflist ;
+	int count = 0 ;
+	
+	while ( count <= requested && conf != NULL ) 
+	{
+		// copy stats struct to array
+		stats[ count ] = conf->stats ; 
+		
+		conf = conf->next ;
+		++count ;
+	}
+
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return count ;
+}
+
+int get_conference_stats_by_name( ast_conference_stats* stats, const char* name )
+{	
+	// no conferences exist
+	if ( conflist == NULL ) 
+	{
+		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", name ) ;
+		return 0 ;
+	}
+	
+	// make sure stats is null
+	stats = NULL ;
+	
+	// acquire mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	struct ast_conference *conf = conflist ;
+	
+	// loop through conf list
+	while ( conf != NULL ) 
+	{
+		if ( strncasecmp( (const char*)&(conf->name), name, 80 ) == 0 )
+		{
+			// copy stats for found conference
+			*stats = conf->stats ;
+			break ;
+		}
+	
+		conf = conf->next ;
+	}
+
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return ( stats == NULL ) ? 0 : 1 ;
+}
+

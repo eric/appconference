@@ -39,6 +39,16 @@
 #define max(a,b) ((a) > (b) ? (a) : (b))
 #define min(a,b) ((a) < (b) ? (a) : (b))
 
+/* use single-precision math funcs.  (1.3% perf improvement). */
+#if 1
+#define exp(a)	  expf(a)
+#define sqrt(a)	  sqrtf(a)
+#define floor(a)  floorf(a)
+#define log(a)	  logf(a)
+#endif
+
+
+
 #ifndef M_PI
 #define M_PI 3.14159263
 #endif
@@ -618,6 +628,160 @@ static void update_noise_prob(SpeexPreprocessState *st)
 
 }
 
+inline void ephraim_malah(SpeexPreprocessState *st, int N, float Pframe)
+{
+   int i;   
+
+   /* defactor loop for i=1,1 < i < N-1, and i= N-1 cases */ 
+   /* i=1 case */
+   {
+      float MM;
+      float theta;
+      float prior_ratio;
+      float p, q;
+      float zeta1;
+      float P1;
+                                                                                
+      prior_ratio = st->prior[1]/(1.0001+st->prior[1]);
+      theta = (1+st->post[1])*prior_ratio;
+
+      zeta1 = st->zeta[1];
+
+      if (zeta1<ZMIN)
+         P1 = 0;
+      else if (zeta1>ZMAX)
+         P1 = 1;
+      else
+         P1 = LOG_MIN_MAX_1 * log(ZMIN_1*zeta1);
+                                                                                
+      /*P1 = log(zeta1/ZMIN)/log(ZMAX/ZMIN);*/
+                                                                                
+      /* FIXME: add global prop (P2) */
+      q = 1-Pframe*P1;
+      if (q>.95)
+         q=.95;
+      p=1/(1 + (q/(1-q))*(1+st->prior[1])*exp(-theta));
+                                                                                
+      /* Optimal estimator for loudness domain */
+      MM = hypergeom_gain(theta);
+                                                                                
+      st->gain[1] = prior_ratio * MM;
+      /*Put some (very arbitraty) limit on the gain*/
+      if (st->gain[1]>2)
+      {
+         st->gain[1]=2;
+      }
+                                                                                
+      if (st->denoise_enabled)
+      {
+         st->gain2[1]=p*p*st->gain[1];
+      } else {
+         st->gain2[1]=1;
+      }
+   }
+
+   for (i=2;i<(N-1);i++)
+   {
+      float MM;
+      float theta;
+      float prior_ratio;
+      float p, q;
+      float zeta1;
+      float P1;
+      
+    
+      zeta1 = .25*st->zeta[i-1] + .5*st->zeta[i] + .25*st->zeta[i+1];
+
+      prior_ratio = st->prior[i]/(1.0001+st->prior[i]);
+      theta = (1+st->post[i])*prior_ratio;
+
+                                                                                
+
+      if (zeta1<ZMIN)
+         P1 = 0;
+      else if (zeta1>ZMAX)
+         P1 = 1;
+      else
+         P1 = LOG_MIN_MAX_1 * log(ZMIN_1*zeta1);
+                                                                                
+      /*P1 = log(zeta1/ZMIN)/log(ZMAX/ZMIN);*/
+
+                                                                                
+      /* FIXME: add global prop (P2) */
+      q = 1-Pframe*P1;
+      if (q>.95)
+         q=.95;
+      p=1/(1 + (q/(1-q))*(1+st->prior[i])*exp(-theta));
+                                                                                
+      /* Optimal estimator for loudness domain */
+      MM = hypergeom_gain(theta);
+                                                                                
+      st->gain[i] = prior_ratio * MM;
+      /*Put some (very arbitraty) limit on the gain*/
+      if (st->gain[i]>2)
+      {
+         st->gain[i]=2;
+      }
+                                                                                
+      if (st->denoise_enabled)
+      {
+         st->gain2[i]=p*p*st->gain[i];
+      } else {
+         st->gain2[i]=1;
+      }
+   }
+
+   /* i = N-1 case */
+   {
+      float MM;
+      float theta;
+      float prior_ratio;
+      float p, q;
+      float zeta1;
+      float P1;
+                                                                                
+      prior_ratio = st->prior[N-1]/(1.0001+st->prior[N-1]);
+      theta = (1+st->post[N-1])*prior_ratio;
+                                                                                
+      zeta1 = st->zeta[N-1];
+
+      if (zeta1<ZMIN)
+         P1 = 0;
+      else if (zeta1>ZMAX)
+         P1 = 1;
+      else
+         P1 = LOG_MIN_MAX_1 * log(ZMIN_1*zeta1);
+                                                                                
+      /*P1 = log(zeta1/ZMIN)/log(ZMAX/ZMIN);*/
+                                                                                
+      /* FIXME: add global prop (P2) */
+      q = 1-Pframe*P1;
+      if (q>.95)
+         q=.95;
+      p=1/(1 + (q/(1-q))*(1+st->prior[N-1])*exp(-theta));
+                                                                                
+      /* Optimal estimator for loudness domain */
+      MM = hypergeom_gain(theta);
+                                                                                
+      st->gain[N-1] = prior_ratio * MM;
+      /*Put some (very arbitraty) limit on the gain*/
+      if (st->gain[N-1]>2)
+      {
+         st->gain[N-1]=2;
+      }
+                                                                                
+      if (st->denoise_enabled)
+      {
+         st->gain2[N-1]=p*p*st->gain[N-1];
+      } else {
+         st->gain2[N-1]=1;
+      }
+   }
+   st->gain2[0]=st->gain[0]=0;
+   st->gain2[N-1]=st->gain[N-1]=0;
+}
+
+
 int speex_preprocess(SpeexPreprocessState *st, short *x, float *echo)
 {
    int i;
@@ -798,65 +962,7 @@ int speex_preprocess(SpeexPreprocessState *st, short *x, float *echo)
 
    /*fprintf (stderr, "%f\n", Pframe);*/
    /* Compute gain according to the Ephraim-Malah algorithm */
-   for (i=1;i<N;i++)
-   {
-      float MM;
-      float theta;
-      float prior_ratio;
-      float p, q;
-      float zeta1;
-      float P1;
-
-      prior_ratio = st->prior[i]/(1.0001+st->prior[i]);
-      theta = (1+st->post[i])*prior_ratio;
-
-      if (i==1 || i==N-1)
-         zeta1 = st->zeta[i];
-      else
-         zeta1 = .25*st->zeta[i-1] + .5*st->zeta[i] + .25*st->zeta[i+1];
-      if (zeta1<ZMIN)
-         P1 = 0;
-      else if (zeta1>ZMAX)
-         P1 = 1;
-      else
-         P1 = LOG_MIN_MAX_1 * log(ZMIN_1*zeta1);
-  
-      /*P1 = log(zeta1/ZMIN)/log(ZMAX/ZMIN);*/
-      
-      /* FIXME: add global prop (P2) */
-      q = 1-Pframe*P1;
-      if (q>.95)
-         q=.95;
-      p=1/(1 + (q/(1-q))*(1+st->prior[i])*exp(-theta));
-      
-
-#if 0
-      /* log-spectral magnitude estimator */
-      if (theta<6)
-         MM = 0.74082*pow(theta+1,.61)/sqrt(.0001+theta);
-      else
-         MM=1;
-#else
-      /* Optimal estimator for loudness domain */
-      MM = hypergeom_gain(theta);
-#endif
-
-      st->gain[i] = prior_ratio * MM;
-      /*Put some (very arbitraty) limit on the gain*/
-      if (st->gain[i]>2)
-      {
-         st->gain[i]=2;
-      }
-
-      if (st->denoise_enabled)
-      {
-         st->gain2[i]=p*p*st->gain[i];
-      } else {
-         st->gain2[i]=1;
-      }
-   }
-   st->gain2[0]=st->gain[0]=0;
-   st->gain2[N-1]=st->gain[N-1]=0;
+   ephraim_malah(st,N,Pframe);
 
    if (st->agc_enabled)
       speex_compute_agc(st, mean_prior);
@@ -875,51 +981,54 @@ int speex_preprocess(SpeexPreprocessState *st, short *x, float *echo)
 #endif
 #endif
 
-   /* Apply computed gain */
-   for (i=1;i<N;i++)
-   {
-      st->frame[2*i-1] *= st->gain2[i];
-      st->frame[2*i] *= st->gain2[i];
+   /* PERF: 14% when only vad is enabled [7.0 vs 8.2 sec] */
+   if(st->agc_enabled || st->denoise_enabled) {
+     /* Apply computed gain */
+     for (i=1;i<N;i++)
+     {
+	st->frame[2*i-1] *= st->gain2[i];
+	st->frame[2*i] *= st->gain2[i];
+     }
+
+     /* Get rid of the DC and very low frequencies */
+     st->frame[0]=0;
+     st->frame[1]=0;
+     st->frame[2]=0;
+     /* Nyquist frequency is mostly useless too */
+     st->frame[2*N-1]=0;
+
+     /* Inverse FFT with 1/N scaling */
+     drft_backward(st->fft_lookup, st->frame);
+
+     for (i=0;i<2*N;i++)
+	st->frame[i] *= scale;
+
+     {
+	float max_sample=0;
+	for (i=0;i<2*N;i++)
+	   if (fabs(st->frame[i])>max_sample)
+	      max_sample = fabs(st->frame[i]);
+	if (max_sample>28000)
+	{
+	   float damp = 28000./max_sample;
+	   for (i=0;i<2*N;i++)
+	      st->frame[i] *= damp;
+	}
+     }
+
+     for (i=0;i<2*N;i++)
+	st->frame[i] *= st->window[i];
+
+     /* Perform overlap and add */
+     for (i=0;i<N3;i++)
+	x[i] = st->outbuf[i] + st->frame[i];
+     for (i=0;i<N4;i++)
+	x[N3+i] = st->frame[N3+i];
+     
+     /* Update outbuf */
+     for (i=0;i<N3;i++)
+	st->outbuf[i] = st->frame[st->frame_size+i];
    }
-
-   /* Get rid of the DC and very low frequencies */
-   st->frame[0]=0;
-   st->frame[1]=0;
-   st->frame[2]=0;
-   /* Nyquist frequency is mostly useless too */
-   st->frame[2*N-1]=0;
-
-   /* Inverse FFT with 1/N scaling */
-   drft_backward(st->fft_lookup, st->frame);
-
-   for (i=0;i<2*N;i++)
-      st->frame[i] *= scale;
-
-   {
-      float max_sample=0;
-      for (i=0;i<2*N;i++)
-         if (fabs(st->frame[i])>max_sample)
-            max_sample = fabs(st->frame[i]);
-      if (max_sample>28000)
-      {
-         float damp = 28000./max_sample;
-         for (i=0;i<2*N;i++)
-            st->frame[i] *= damp;
-      }
-   }
-
-   for (i=0;i<2*N;i++)
-      st->frame[i] *= st->window[i];
-
-   /* Perform overlap and add */
-   for (i=0;i<N3;i++)
-      x[i] = st->outbuf[i] + st->frame[i];
-   for (i=0;i<N4;i++)
-      x[N3+i] = st->frame[N3+i];
-   
-   /* Update outbuf */
-   for (i=0;i<N3;i++)
-      st->outbuf[i] = st->frame[st->frame_size+i];
 
    /* Save old power spectrum */
    for (i=1;i<N;i++)
