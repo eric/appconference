@@ -11,7 +11,7 @@
 #include "iaxclient_lib.h"
 
 struct state {
-    INTERPOLATE_DECLS;
+    plc_state_t plc;
 };
 
 static inline short int alawdecode (unsigned char alaw)
@@ -87,20 +87,15 @@ static inline unsigned char alawencode (short int linear)
 static int decode ( struct iaxc_audio_codec *c, 
     int *inlen, char *in, int *outlen, short *out ) {
     struct state *state = c->decstate;
-    int i;
+    short *orig_out = out;
     short sample;
 
     if(*inlen == 0) {
-        for(i=0;i<INTERPOLATE_BUFSIZ;i++) {
-
-            INTERPOLATE_GET(state, sample);
-
-            *(out++) = sample;
-            (*outlen)--;
-
-            if((*outlen < 0)) break;
-        }
-        return 0;
+	int interp_len = 160;
+	if(*outlen < interp_len) interp_len = *outlen;
+	plc_fillin(&state->plc,out,interp_len);
+	*outlen -= interp_len;
+	return 0;
     }
 
 
@@ -108,8 +103,8 @@ static int decode ( struct iaxc_audio_codec *c,
 	sample = alawdecode((unsigned char)*(in++));
 	*(out++) = sample;
 	(*inlen)--; (*outlen)--;
-	INTERPOLATE_PUT(state,sample);
     }
+    plc_rx(&state->plc,orig_out,out-orig_out);
 
     return 0;
 }
@@ -146,6 +141,7 @@ struct iaxc_audio_codec *iaxc_audio_codec_alaw_new() {
 
   /* decoder state, used for interpolation */
   c->decstate = calloc(sizeof(struct state),1);
+  plc_init(&((struct state *)c->decstate)->plc);
 
   return c;
 }

@@ -194,26 +194,31 @@ extern void * post_event_handle;
 extern int post_event_id;
 
 
-/* Common decode PLC code */
-/* requires DECLS in a structure */
-#define INTERPOLATE_BUFSIZ 160
-#define INTERPOLATE_DECLS \
-	    short interp_buf[INTERPOLATE_BUFSIZ]; \
-	    int interp_bufptr
+#ifdef USE_SPANDSP_PLC
+#include "spandsp/plc.h"
+#else
+	/* simple PLC, until we can include SPANDSP 
+	 * Must call with len < BUFSIZ, or crash! 
+	 */
+#define SIMPLEPLC_BUFSIZ 320
+typedef struct {
+	short buffer[SIMPLEPLC_BUFSIZ];	
+} plc_state_t;
 
-#define INTERPOLATE_GET(state, sample) \
-	do { \
-		sample = state->interp_buf[state->interp_bufptr]; \
-		state->interp_buf[state->interp_bufptr++] = sample * 0.9; \
-		if(state->interp_bufptr >= INTERPOLATE_BUFSIZ) state->interp_bufptr = 0; \
-	} while(0)
-
-#define INTERPOLATE_PUT(state, sample) \
-	do { \
-		state->interp_buf[state->interp_bufptr++] = sample; \
-		if(state->interp_bufptr >= INTERPOLATE_BUFSIZ) state->interp_bufptr = 0; \
-	} while(0)
-
-
+#define plc_init(p) ((plc_state_t *)(memset(p,0,sizeof(p))))
+#define plc_rx(p,samp,len) \
+		do { \
+			memcpy((p)->buffer,samp,len); \
+		} while(0)
+			
+#define plc_fillin(p,samp,len) \
+		do { \
+			int i; \
+			memcpy(samp,(p)->buffer,len); \
+			for(i=0;i<len;i++) { \
+				(p)->buffer[i] *= 0.9; \
+			}\
+		} while(0)
 #endif
 
+#endif

@@ -14,7 +14,7 @@
 
 struct state {
     gsm gsmstate;
-    INTERPOLATE_DECLS;
+    plc_state_t plc;
 };
 
 
@@ -33,21 +33,14 @@ static void destroy ( struct iaxc_audio_codec *c) {
 
 static int decode ( struct iaxc_audio_codec *c, 
     int *inlen, char *in, int *outlen, short *out ) {
-
     struct state * decstate = (struct state *) c->decstate;
-    int i;
-    short sample;
 
     /* use generic interpolation */
     if(*inlen == 0) {
-        for(i=0;i<INTERPOLATE_BUFSIZ;i++) {
-            INTERPOLATE_GET(decstate, sample);
-
-            *(out++) = sample;
-            (*outlen)--;
-
-            if((*outlen < 0)) break;
-        }
+        int interp_len = 160;
+        if(*outlen < interp_len) interp_len = *outlen;
+        plc_fillin(&decstate->plc,out,interp_len);
+        *outlen -= interp_len;
         return 0;
     }
 
@@ -65,10 +58,7 @@ static int decode ( struct iaxc_audio_codec *c,
     }
 
     /* push decoded data to interpolation buffer */
-    for(i=0;i<160;i++) {
-	sample = out[i];
-	INTERPOLATE_PUT(decstate, sample);
-    }
+    plc_rx(&decstate->plc,out,160);
 
     /* we used 33 bytes of input, and 160 bytes of output */
     *inlen -= 33; 

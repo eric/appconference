@@ -7,13 +7,14 @@ SPEEX_EC=1
 MEC2_EC=0
 
 USE_NEWJB=1
+USE_SPANDSP_PLC=0
 
 CFLAGS= -I. -Igsm/inc \
 	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \
 	-Ilibspeex/include
 
 #CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
-CFLAGS:= $(CFLAGS) -g -O2
+CFLAGS:= $(CFLAGS) -g -O2 
 
 ifeq ($(SPEEX_PREPROCESS),1)
 CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
@@ -127,6 +128,11 @@ OBJS:= $(OBJS) $(OBJS_LIBSPEEX)
 ifeq ($(CODEC_ILBC),1)
 OBJS:= $(OBJS) $(OBJS_ILBC) codec_ilbc.o
 CFLAGS:= $(CFLAGS) -DCODEC_ILBC
+endif
+
+ifeq ($(USE_SPANDSP_PLC),1)
+OBJS:= $(OBJS) $(OBJS_ILBC) spandsp/plc.o
+CFLAGS:= $(CFLAGS) -DUSE_SPANDSP_PLC -Ispandsp
 endif
 
 OBJS_WIN32=\
