@@ -750,6 +750,7 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 	int samples;
 	int bufsize = sizeof(fr)/sizeof(short);
 	struct iaxc_call *call;
+       int mainbuf_delta;
 
         if(callNo < 0)
             return;
@@ -764,7 +765,8 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 	samples = bufsize;
 
 	do {
-		cur = decode_audio(call, fr + (bufsize - samples),
+               mainbuf_delta = bufsize - samples;
+               cur = decode_audio(call, fr,
 		    e->data+total_consumed,e->datalen-total_consumed,
 		    call->format, &samples);
 
@@ -776,7 +778,7 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 		total_consumed += cur;
 		if(iaxc_audio_output_mode != 0) 
 		    continue;
-		audio.output(&audio,fr,bufsize-samples);
+               audio.output(&audio,fr,bufsize - samples - mainbuf_delta);
 	} while(total_consumed < e->datalen);
 }
 
