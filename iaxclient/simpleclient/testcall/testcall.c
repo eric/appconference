@@ -23,6 +23,7 @@
 #include "iaxclient.h"
 
 static int answered_call;
+static char *output_filename = NULL;
 int do_levels = 0;
 
 /* routine called at exit to shutdown audio I/O and close nicely.
@@ -105,6 +106,11 @@ int main(int argc, char **argv)
 		  if(i+1 >= argc) usage();
 		  silence_threshold = atof(argv[++i]);
 		  break;
+		case 'f':
+		  if(i+1 >= argc) usage();
+		  output_filename = argv[++i];
+		  break;
+
 		default:
 		  usage();
 	      }
@@ -121,8 +127,16 @@ int main(int argc, char **argv)
 	/* activate the exit handler */
 	atexit(killem);
 	
-	if(iaxc_initialize(AUDIO_INTERNAL_PA,1))
+	if(output_filename) {
+	  FILE *outfile;
+	  if(iaxc_initialize(AUDIO_INTERNAL_FILE,1))
 	    fatal_error("cannot initialize iaxclient!");
+	  outfile = fopen(output_filename,"w");
+	  file_set_files(NULL, outfile);
+	} else {
+	  if(iaxc_initialize(AUDIO_INTERNAL_PA,1))
+	    fatal_error("cannot initialize iaxclient!");
+	}
 
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 	iaxc_set_silence_threshold(silence_threshold);
