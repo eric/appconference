@@ -181,7 +181,7 @@ IAXFrame::~IAXFrame()
 
 bool IAXClient::OnInit() 
 { 
-	theFrame = new IAXFrame("IAXTest", 0,0,120,300);
+	theFrame = new IAXFrame("IAXTest", 0,0,130,220);
 	theFrame->CreateStatusBar(); 
 	theFrame->SetStatusText("Hello World"); 
 
