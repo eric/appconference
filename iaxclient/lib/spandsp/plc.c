@@ -50,6 +50,15 @@
 
 #define ms_to_samples(t)            (((t)*SAMPLE_RATE)/1000)
 
+static inline int16_t fsaturate(double damp)
+{
+    if (damp > 32767.0)
+	return  INT16_MAX;
+    if (damp < -32768.0)
+	return  INT16_MIN;
+    return lrint(damp);
+}
+
 static void save_history(plc_state_t *s, int16_t *buf, int len)
 {
     if (len >= PLC_HISTORY_LEN)
