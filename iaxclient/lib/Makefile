@@ -3,6 +3,7 @@
 IAXVER=2
 
 SPEEX_PREPROCESS=1
+SPAN_EC=0
 
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
 
@@ -117,6 +118,11 @@ endif
 ifeq ($(SPEEX_PREPROCESS),1)
 OBJS:= $(OBJS) libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
 CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
+endif
+
+ifeq ($(SPAN_EC),1)
+OBJS:= $(OBJS) ec/echo.o
+CFLAGS:= $(CFLAGS) -DSPAN_EC=1
 endif
 
 

@@ -26,6 +26,11 @@
 static echo_can_state_t *ec;
 #endif
 
+#ifdef SPAN_EC
+#include "ec/echo.h"
+static echo_can_state_t *ec;
+#endif
+
 static PortAudioStream *iStream, *oStream;
 
 static selectedInput, selectedOutput, selectedRing;
@@ -264,7 +269,7 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	/* input overflow might happen here */
 	if(virtualMono) {
 	  stereo2mono(virtualInBuffer, inputBuffer, framesPerBuffer);
-#ifdef USE_MEC2
+#if defined(USE_MEC2) || defined(SPAN_EC)
 	  {   /* Echo Can, for virtualMono */
 	      int i;
 	      for(i=0;i<framesPerBuffer;i++) 
@@ -273,7 +278,7 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 #endif
 	  RingBuffer_Write(&inRing, virtualInBuffer, totBytes);
 	} else {
-#ifdef USE_MEC2
+#if defined(USE_MEC2) || defined(SPAN_EC)
 	  {   /* Echo Can, for mono */
 	      int i;
 	      for(i=0;i<framesPerBuffer;i++) 
@@ -555,8 +560,8 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     RingBuffer_Init(&inRing, RBSZ, inRingBuf);
     RingBuffer_Init(&outRing, RBSZ, outRingBuf);
 
-#ifdef USE_MEC2
-    ec = echo_can_create(256, 0);
+#if defined(USE_MEC2) || defined(SPAN_EC)
+    ec = echo_can_create(2048, 0);
 #endif
 
     running = 0;
