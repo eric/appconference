@@ -198,10 +198,10 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int format, int sampl
 
 /* decode encoded audio; return the number of bytes decoded 
  * negative indicates error */
-int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int format, int samples)
+int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int format, int *samples)
 {
 	int insize = len;
-	int outsize = samples;
+	int outsize = *samples;
       
 	/* update last output timestamp */
 	gettimeofday( &timeLastOutput, NULL ) ;
@@ -235,8 +235,9 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int for
 		  return -1;
 	}
 
-	output_postprocess(out, samples-outsize);	
+	output_postprocess(out, *samples-outsize);	
 
+	*samples = outsize;
 	return len-insize;
 }
 
