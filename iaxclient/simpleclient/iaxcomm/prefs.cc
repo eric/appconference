@@ -120,7 +120,7 @@ END_EVENT_TABLE()
 
 PrefsDialog::PrefsDialog(wxWindow* parent)
 {    
-    wxConfig *config = new wxConfig("iaxComm");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
     long      dummy;
     bool      bCont;
     wxString  str;
@@ -183,7 +183,7 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     ApplyCodecs    = XRCCTRL(*this, "ApplyCodecs",    wxButton);
     CancelCodecs   = XRCCTRL(*this, "CancelCodecs",   wxButton);
 
-    config->SetPath("/Prefs");
+    config->SetPath(_T("/Prefs"));
 
     RingTone->SetValue(wxGetApp().IncomingRingName);
     RingBack->SetValue(wxGetApp().RingBackToneName);
@@ -192,24 +192,24 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     Name->SetValue(wxGetApp().Name);
     Number->SetValue(wxGetApp().Number);
 
-    UseSkin->Append("default");
-    UseSkin->Append("compact");
-    UseSkin->Append("logo");
-    UseSkin->Append("micro");
-    UseSkin->SetValue(config->Read("UseSkin", "default"));
+    UseSkin->Append(_T("default"));
+    UseSkin->Append(_T("compact"));
+    UseSkin->Append(_T("logo"));
+    UseSkin->Append(_T("micro"));
+    UseSkin->SetValue(config->Read(_T("UseSkin"), _T("default")));
 
-    config->SetPath("/Accounts");
+    config->SetPath(_T("/Accounts"));
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         DefaultAccount->Append(str);
         bCont = config->GetNextGroup(str, dummy);
     }
-    dummy = DefaultAccount->FindString(config->Read("/Prefs/DefaultAccount", ""));
+    dummy = DefaultAccount->FindString(config->Read(_T("/Prefs/DefaultAccount"), _T("")));
     if(dummy <= 0)
         dummy = 0;
     DefaultAccount->SetSelection(dummy);
 
-    IntercomPass->SetValue(config->Read("/Prefs/IntercomPass", ""));
+    IntercomPass->SetValue(config->Read(_T("/Prefs/IntercomPass"), _T("")));
     nCalls->SetValue(wxGetApp().nCalls);
 
     AGC->SetValue(wxGetApp().theFrame->AGC);
@@ -276,15 +276,15 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
 
     SaveAudio->Disable();
     ApplyAudio->Disable();
-    CancelAudio->SetLabel("Done");
+    CancelAudio->SetLabel(_T("Done"));
 
     SaveCallerID->Disable();
     ApplyCallerID->Disable();
-    CancelCallerID->SetLabel("Done");
+    CancelCallerID->SetLabel(_T("Done"));
 
     SaveMisc->Disable();
     ApplyMisc->Disable();
-    CancelMisc->SetLabel("Done");
+    CancelMisc->SetLabel(_T("Done"));
 }
 
 //----------------------------------------------------------------------------------------
@@ -318,7 +318,7 @@ void PrefsDialog::OnBrowse(wxCommandEvent &event)
     wxString dirHome;
     wxGetHomeDir(&dirHome);
 
-    wxFileDialog where(NULL, _("Raw sound file"), dirHome, "", "*.*", wxOPEN );
+    wxFileDialog where(NULL, _("Raw sound file"), dirHome, _T(""), _T("*.*"), wxOPEN );
     where.ShowModal();
 
     if(event.GetId() == XRCID("BrowseRingBack"))
@@ -334,18 +334,18 @@ void PrefsDialog::OnBrowse(wxCommandEvent &event)
 
 void SetCallerID(wxString name, wxString number)
 {
-    iaxc_set_callerid((char *)name.c_str(),
-                      (char *)number.c_str());
+    iaxc_set_callerid((char *) name.c_str(),
+                      (char *) number.c_str());
 }
 
 void PrefsDialog::OnSaveAudio(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/Prefs");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
+    config->SetPath(_T("/Prefs"));
 
-    config->Write("RingTone",   RingTone->GetValue());
-    config->Write("RingBack",   RingBack->GetValue());
-    config->Write("Intercom",   Intercom->GetValue());
+    config->Write(_T("RingTone"),   RingTone->GetValue());
+    config->Write(_T("RingBack"),   RingBack->GetValue());
+    config->Write(_T("Intercom"),   Intercom->GetValue());
 
     delete config;
     SaveAudio->Disable();
@@ -363,16 +363,16 @@ void PrefsDialog::OnApplyAudio(wxCommandEvent &event)
     wxGetApp().IntercomTone.LoadTone(Intercom->GetValue(),  1);
 
     ApplyAudio->Disable();
-    CancelAudio->SetLabel("Done");
+    CancelAudio->SetLabel(_T("Done"));
 }
 
 void PrefsDialog::OnSaveCallerID(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/Prefs");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
+    config->SetPath(_T("/Prefs"));
 
-    config->Write("Name",           Name->GetValue());
-    config->Write("Number",         Number->GetValue());
+    config->Write(_T("Name"),       Name->GetValue());
+    config->Write(_T("Number"),     Number->GetValue());
 
     delete config;
     SaveCallerID->Disable();
@@ -386,18 +386,18 @@ void PrefsDialog::OnApplyCallerID(wxCommandEvent &event)
     SetCallerID(wxGetApp().Name, wxGetApp().Number);
 
     ApplyCallerID->Disable();
-    CancelCallerID->SetLabel("Done");
+    CancelCallerID->SetLabel(_T("Done"));
 }
 
 void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/Prefs");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
+    config->SetPath(_T("/Prefs"));
 
-    config->Write("UseSkin",        UseSkin->GetValue());
-    config->Write("DefaultAccount", DefaultAccount->GetStringSelection());
-    config->Write("IntercomPass",   IntercomPass->GetValue());
-    config->Write("nCalls",         nCalls->GetValue());
+    config->Write(_T("UseSkin"),        UseSkin->GetValue());
+    config->Write(_T("DefaultAccount"), DefaultAccount->GetStringSelection());
+    config->Write(_T("IntercomPass"),   IntercomPass->GetValue());
+    config->Write(_T("nCalls"),         nCalls->GetValue());
 
     delete config;
     SaveMisc->Disable();
@@ -417,19 +417,19 @@ void PrefsDialog::OnApplyMisc(wxCommandEvent &event)
     wxGetApp().theFrame->RePanel(UseSkin->GetValue());
 
     ApplyMisc->Disable();
-    CancelMisc->SetLabel("Done");
+    CancelMisc->SetLabel(_T("Done"));
 }
 
 void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/Prefs");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
+    config->SetPath(_T("/Prefs"));
 
-    config->Write("AGC",            AGC->GetValue());
-    config->Write("AAGC",           AAGC->GetValue());
-    config->Write("CN",             CN->GetValue());
-    config->Write("NoiseReduce",    NoiseReduce->GetValue());
-    config->Write("EchoCancel",     EchoCancel->GetValue());
+    config->Write(_T("AGC"),            AGC->GetValue());
+    config->Write(_T("AAGC"),           AAGC->GetValue());
+    config->Write(_T("CN"),             CN->GetValue());
+    config->Write(_T("NoiseReduce"),    NoiseReduce->GetValue());
+    config->Write(_T("EchoCancel"),     EchoCancel->GetValue());
 
     delete config;
     SaveFilters->Disable();
@@ -447,7 +447,7 @@ void PrefsDialog::OnApplyFilters(wxCommandEvent &event)
     wxGetApp().theFrame->ApplyFilters();
 
     ApplyFilters->Disable();
-    CancelFilters->SetLabel("Done");
+    CancelFilters->SetLabel(_T("Done"));
 }
 
 void PrefsDialog::OnCodecPrefer(wxCommandEvent &event)
@@ -490,7 +490,7 @@ void PrefsDialog::OnCodecAllow(wxCommandEvent &event)
 
     ApplyCodecs->Enable();
     SaveCodecs->Enable();
-    CancelCodecs->SetLabel("Cancel");
+    CancelCodecs->SetLabel(_T("Cancel"));
 }
 
 void PrefsDialog::OnSpeexTune(wxCommandEvent &event)
@@ -518,25 +518,25 @@ void PrefsDialog::OnSpeexTune(wxCommandEvent &event)
 
 void PrefsDialog::OnSaveCodecs(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/Codecs");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
+    config->SetPath(_T("/Codecs"));
 
-    config->Write("AllowuLaw",       AllowuLaw->GetValue());
-    config->Write("AllowaLaw",       AllowaLaw->GetValue());
-    config->Write("AllowGSM",        AllowGSM->GetValue());
-    config->Write("AllowSpeex",      AllowSpeex->GetValue());
-    config->Write("AllowiLBC",       AllowiLBC->GetValue());
-    config->Write("Preferred",       LocalPreferredBitmap);
+    config->Write(_T("AllowuLaw"),       AllowuLaw->GetValue());
+    config->Write(_T("AllowaLaw"),       AllowaLaw->GetValue());
+    config->Write(_T("AllowGSM"),        AllowGSM->GetValue());
+    config->Write(_T("AllowSpeex"),      AllowSpeex->GetValue());
+    config->Write(_T("AllowiLBC"),       AllowiLBC->GetValue());
+    config->Write(_T("Preferred"),       LocalPreferredBitmap);
     
-    config->SetPath("/Codecs/SpeexTune");
+    config->SetPath(_T("/Codecs/SpeexTune"));
     
-    config->Write("SPXTune",         SPXTune->GetValue());
-    config->Write("SPXEnhance",      SPXEnhance->GetValue());
-    config->Write("SPXQuality",      SPXQuality->GetValue());
-    config->Write("SPXBitrate",      SPXBitrate->GetValue());
-    config->Write("SPXABR",          SPXABR->GetValue());
-    config->Write("SPXVBR",          SPXVBR->GetValue());
-    config->Write("SPXComplexity",   SPXComplexity->GetValue());
+    config->Write(_T("SPXTune"),         SPXTune->GetValue());
+    config->Write(_T("SPXEnhance"),      SPXEnhance->GetValue());
+    config->Write(_T("SPXQuality"),      SPXQuality->GetValue());
+    config->Write(_T("SPXBitrate"),      SPXBitrate->GetValue());
+    config->Write(_T("SPXABR"),          SPXABR->GetValue());
+    config->Write(_T("SPXVBR"),          SPXVBR->GetValue());
+    config->Write(_T("SPXComplexity"),   SPXComplexity->GetValue());
 
 
     delete config;
@@ -565,33 +565,33 @@ void PrefsDialog::OnApplyCodecs(wxCommandEvent &event)
     wxGetApp().theFrame->ApplyCodecs();
 
     ApplyCodecs->Disable();
-    CancelCodecs->SetLabel("Done");
+    CancelCodecs->SetLabel(_T("Done"));
 }
 
 void PrefsDialog::OnAudioDirty(wxCommandEvent &event)
 {
     ApplyAudio->Enable();
     SaveAudio->Enable();
-    CancelAudio->SetLabel("Cancel");
+    CancelAudio->SetLabel(_T("Cancel"));
 }
 
 void PrefsDialog::OnCallerIDDirty(wxCommandEvent &event)
 {
     ApplyCallerID->Enable();
     SaveCallerID->Enable();
-    CancelCallerID->SetLabel("Cancel");
+    CancelCallerID->SetLabel(_T("Cancel"));
 }
 
 void PrefsDialog::OnMiscDirty(wxCommandEvent &event)
 {
     ApplyMisc->Enable();
     SaveMisc->Enable();
-    CancelMisc->SetLabel("Cancel");
+    CancelMisc->SetLabel(_T("Cancel"));
 }
 
 void PrefsDialog::OnFiltersDirty(wxCommandEvent &event)
 {
     ApplyFilters->Enable();
     SaveFilters->Enable();
-    CancelFilters->SetLabel("Cancel");
+    CancelFilters->SetLabel(_T("Cancel"));
 }

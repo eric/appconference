@@ -117,9 +117,9 @@ END_EVENT_TABLE()
 // Public methods
 //----------------------------------------------------------------------------------------
 
-MyFrame::MyFrame( wxWindow *parent )
+MyFrame::MyFrame(wxWindow *parent)
 {
-    wxConfig   *config = new wxConfig("iaxComm");
+    wxConfig   *config = new wxConfig(_T("iaxComm"));
     wxMenuBar  *aMenuBar;
     wxString    Name;
     MyTimer    *timer;
@@ -133,7 +133,7 @@ MyFrame::MyFrame( wxWindow *parent )
     // However, the current approach has source code that can be recycled
     // in case code to moves to having an invisible frame as the top level window.
 
-    wxXmlResource::Get()->LoadFrame( this, parent, "MyFrame" );
+    wxXmlResource::Get()->LoadFrame(this, parent, _T("MyFrame"));
 
     //----Set the icon------------------------------------------------------------------
 #ifdef __WXMSW__   
@@ -141,7 +141,7 @@ MyFrame::MyFrame( wxWindow *parent )
 #endif
 
     //----Add the menu------------------------------------------------------------------
-    aMenuBar =  wxXmlResource::Get()->LoadMenuBar( "main_menubar" );
+    aMenuBar =  wxXmlResource::Get()->LoadMenuBar(_T("main_menubar"));
     SetMenuBar( aMenuBar);
 
     //----Add the statusbar-------------------------------------------------------------
@@ -150,59 +150,59 @@ MyFrame::MyFrame( wxWindow *parent )
     SetStatusWidths(2, widths);
 
     //----Set some preferences ---------------------------------------------------------
-    config->SetPath("/Prefs");
+    config->SetPath(_T("/Prefs"));
 
-    RingOnSpeaker = config->Read("RingOnSpeaker", 0l);
-    AGC           = config->Read("AGC", 0l);
-    AAGC          = config->Read("AAGC", 1l);
-    CN            = config->Read("CN", 1l);
-    NoiseReduce   = config->Read("NoiseReduce", 1l);
-    EchoCancel    = config->Read("EchoCancel", 0l);
+    RingOnSpeaker = config->Read(_T("RingOnSpeaker"), 0l);
+    AGC           = config->Read(_T("AGC"), 0l);
+    AAGC          = config->Read(_T("AAGC"), 1l);
+    CN            = config->Read(_T("CN"), 1l);
+    NoiseReduce   = config->Read(_T("NoiseReduce"), 1l);
+    EchoCancel    = config->Read(_T("EchoCancel"), 0l);
 
     config->SetPath("/Codecs");
 
-    AllowuLawVal    = config->Read("AllowuLaw",  0l);
-    AllowaLawVal    = config->Read("AllowaLaw",  0l);
-    AllowGSMVal     = config->Read("AllowGSM",   1l);
-    AllowSpeexVal   = config->Read("AllowSpeex", 0l);
-    AllowiLBCVal    = config->Read("AllowiLBC",  0l);
-    PreferredBitmap = config->Read("Preferred",  IAXC_FORMAT_GSM);
+    AllowuLawVal    = config->Read(_T("AllowuLaw"),  0l);
+    AllowaLawVal    = config->Read(_T("AllowaLaw"),  0l);
+    AllowGSMVal     = config->Read(_T("AllowGSM"),   1l);
+    AllowSpeexVal   = config->Read(_T("AllowSpeex"), 0l);
+    AllowiLBCVal    = config->Read(_T("AllowiLBC"),  0l);
+    PreferredBitmap = config->Read(_T("Preferred"),  IAXC_FORMAT_GSM);
 
-    config->SetPath("/Codecs/SpeexTune");
+    config->SetPath(_T("/Codecs/SpeexTune"));
 
-    SPXTuneVal      = config->Read("SPXTune",        0l);
-    SPXEnhanceVal   = config->Read("SPXEnhance",     1l);
-    SPXQualityVal   = config->Read("SPXQuality",    -1l);
-    SPXBitrateVal   = config->Read("SPXBitrate",     9l);
-    SPXABRVal       = config->Read("SPXABR",         0l);
-    SPXVBRVal       = config->Read("SPXVBR",         0l);
-    SPXComplexityVal= config->Read("SPXComplexity",  3l);
+    SPXTuneVal      = config->Read(_T("SPXTune"),        0l);
+    SPXEnhanceVal   = config->Read(_T("SPXEnhance"),     1l);
+    SPXQualityVal   = config->Read(_T("SPXQuality"),    -1l);
+    SPXBitrateVal   = config->Read(_T("SPXBitrate"),     9l);
+    SPXABRVal       = config->Read(_T("SPXABR"),         0l);
+    SPXVBRVal       = config->Read(_T("SPXVBR"),         0l);
+    SPXComplexityVal= config->Read(_T("SPXComplexity"),  3l);
 
     config->SetPath("/Prefs");
 
     //----Add the panel-----------------------------------------------------------------
-    Name = config->Read("UseSkin", "default");
+    Name = config->Read(_T("UseSkin"), _T("default"));
     AddPanel(this, Name);
 
     pttMode = false;
 
-    wxGetApp().InputDevice     = config->Read("Input Device", "");
-    wxGetApp().OutputDevice    = config->Read("Output Device", "");
-    wxGetApp().SpkInputDevice  = config->Read("Speaker Input Device",  
+    wxGetApp().InputDevice     = config->Read(_T("Input Device"), _T(""));
+    wxGetApp().OutputDevice    = config->Read(_T("Output Device"), _T(""));
+    wxGetApp().SpkInputDevice  = config->Read(_T("Speaker Input Device"),
                                               wxGetApp().InputDevice);
-    wxGetApp().SpkOutputDevice = config->Read("Speaker Output Device", 
+    wxGetApp().SpkOutputDevice = config->Read(_T("Speaker Output Device"), 
                                               wxGetApp().OutputDevice);
-    wxGetApp().RingDevice      = config->Read("Ring Device", "");
+    wxGetApp().RingDevice      = config->Read(_T("Ring Device"), _T(""));
 
     ApplyFilters();
     ApplyCodecs();
     UsingSpeaker = false;
 
     if(OutputSlider != NULL)
-        OutputSlider->SetValue(config->Read("OutputLevel", 70));
+        OutputSlider->SetValue(config->Read(_T("OutputLevel"), 70));
 
     if(InputSlider != NULL)
-        InputSlider->SetValue(config->Read("InputLevel", 70));
+        InputSlider->SetValue(config->Read(_T("InputLevel"), 70));
 
 #ifdef __WXGTK__
     // window used for getting keyboard state
@@ -254,7 +254,7 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
     if(Calls == NULL)
         wxFatalError(_("Can't Load CallList in frame.cc"));
 
-    wxXmlResource::Get()->AttachUnknownControl("Calls", Calls);
+    wxXmlResource::Get()->AttachUnknownControl(_T("Calls"), Calls);
 
     ShowDirectoryControls();
 
@@ -336,7 +336,7 @@ MyFrame::~MyFrame()
 
 void MyFrame::ShowDirectoryControls()
 {
-    wxConfig   *config = new wxConfig("iaxComm");
+    wxConfig   *config = new wxConfig(_T("iaxComm"));
     wxButton   *ot;
     wxString    OTName;
     wxString    DialString;
@@ -348,7 +348,7 @@ void MyFrame::ShowDirectoryControls()
     //----Add Accounts-------------------------------------------------------------------
     if(Account != NULL) {
         Account->Clear();
-        config->SetPath("/Accounts");
+        config->SetPath(_T("/Accounts"));
         bCont = config->GetFirstGroup(Name, dummy);
         while ( bCont ) {
             Account->Append(Name);
@@ -359,20 +359,20 @@ void MyFrame::ShowDirectoryControls()
     }
 
     //----Load up One Touch Keys--------------------------------------------------------
-    config->SetPath("/OT");
+    config->SetPath(_T("/OT"));
     bCont = config->GetFirstGroup(OTName, dummy);
     while ( bCont ) {
         ot = XRCCTRL(*aPanel, OTName, wxButton);
         if(ot != NULL) {
-            Name = OTName + "/Name";
-            Label = config->Read(Name, "");
+            Name = OTName + _T("/Name");
+            Label = config->Read(Name, _T(""));
             if(!Label.IsEmpty()) {
                 ot->SetLabel(Label);
             } else {
-                ot->SetLabel("OT" + OTName);
+                ot->SetLabel(_T("OT") + OTName);
             }
-            DialString = OTName + "/Extension";
-            Label = config->Read(DialString, "");
+            DialString = OTName + _T("/Extension");
+            Label = config->Read(DialString, _T(""));
             if(!Label.IsEmpty()) {
                 ot->SetToolTip(Label);
             }
@@ -381,7 +381,7 @@ void MyFrame::ShowDirectoryControls()
     }
 
     //----Load up Extension ComboBox----------------------------------------------------
-    config->SetPath("/PhoneBook");
+    config->SetPath(_T("/PhoneBook"));
     bCont = config->GetFirstGroup(Name, dummy);
     while ( bCont ) {
         Extension->Append(Name);
@@ -649,7 +649,7 @@ void MyFrame::OnDirectory(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnOneTouch(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig("iaxComm");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
     wxString  Message;
     int       OTNo;
     wxString  PathName;
@@ -657,17 +657,17 @@ void MyFrame::OnOneTouch(wxCommandEvent &event)
 
     OTNo = event.GetId() - XRCID("0");
 
-    PathName.Printf("/OT/%d", OTNo);
+    PathName.Printf(_T("/OT/%d"), OTNo);
     config->SetPath(PathName);
-    DialString = config->Read("Extension", "");
+    DialString = config->Read(_T("Extension"), _T(""));
 
     if(DialString.IsEmpty())
         return;
 
     // A DialString in quotes means look up name in phone book
-    if(DialString.StartsWith("\"")) {
+    if(DialString.StartsWith(_T("\""))) {
         DialString = DialString.Mid(1, DialString.Len() -2);
-        DialString = config->Read("/PhoneBook/" + DialString + "/Extension", "");
+        DialString = config->Read(_T("/PhoneBook/") + DialString + _T("/Extension"), _T(""));
     }
     Dial(DialString);
 }
@@ -679,7 +679,7 @@ void MyFrame::OnKeyPad(wxCommandEvent &event)
     int       OTNo;
 
     OTNo  = event.GetId() - XRCID("KP0");
-    digit = '0' + (char)OTNo;
+    digit = '0' + (char) OTNo;
 
     if(OTNo == 10)
         digit = '*';
@@ -690,26 +690,26 @@ void MyFrame::OnKeyPad(wxCommandEvent &event)
     iaxc_send_dtmf(digit);
 
     wxString SM;
-    SM.Printf("DTMF %c", digit); 
+    SM.Printf(_T("DTMF %c"), digit); 
     SetStatusText(SM); 
 
-    Extension->SetValue(Extension->GetValue()+digit);
+    Extension->SetValue(Extension->GetValue() + digit);
 }
 
 void MyFrame::OnDialDirect(wxCommandEvent &event)
 {
     wxString  DialString;
     wxString  Value       = Extension->GetValue();
-    wxConfig *config      = new wxConfig("iaxComm");
+    wxConfig *config      = new wxConfig(_T("iaxComm"));
 
-    DialString = config->Read("/PhoneBook/" + Value + "/Extension", "");
+    DialString = config->Read(_T("/PhoneBook/") + Value + _T("/Extension"), _T(""));
 
     if(DialString.IsEmpty()) {
         Dial(Value);
     } else {
         Dial(DialString);
     }
-    Extension->SetValue("");
+    Extension->SetValue(_T(""));
 }
 
 void MyFrame::OnTransfer(wxCommandEvent &event)
@@ -719,7 +719,7 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
     char     ext[256];
     wxString Title;
 
-    Title.Printf("Transfer Call %d", selected);
+    Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
                              _T("Target Extension:"),
                              Title,

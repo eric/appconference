@@ -70,13 +70,13 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
                     const wxSize& size, long style)
                   : wxListCtrl( parent, id, pos, size, style)
 {
-    wxConfig   *config = new wxConfig("iaxComm");
+    wxConfig   *config = new wxConfig(_T("iaxComm"));
     long        i;
     wxListItem  item;
 
     m_parent = parent;
 
-    config->SetPath("/Prefs");
+    config->SetPath(_T("/Prefs"));
 
     // Column Headings
     InsertColumn( 0, _(""),       wxLIST_FORMAT_CENTER, (20));
@@ -91,7 +91,7 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
     SetFont(font);
 
     for(i=0;i<nCalls;i++) {
-        InsertItem(i,wxString::Format("%ld", i+1), 0);
+        InsertItem(i,wxString::Format(_T("%ld"), i + 1), 0);
         SetItem(i, 2, _T(""));
         item.m_itemId=i;
         item.m_mask = 0;
@@ -144,7 +144,7 @@ void CallList::OnRClick(wxListEvent &event)
     char     ext[256];
     wxString Title;
 
-    Title.Printf("Transfer Call %d", selected);
+    Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
                              _T("Target Extension:"),
                              Title,
@@ -177,7 +177,7 @@ wxString CallList::GetCodec(struct iaxc_ev_call_state c)
 
 int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     wxString   str;
     long       dummy;
     bool       bCont;
@@ -191,12 +191,12 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     int i;
     int nCalls = wxGetApp().nCalls;
     for(i=0; i<nCalls; i++)
-        SetItem(i, 1, _T("") );
+        SetItem(i, 1, _T(""));
 
     // first, handle inactive calls
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
-        SetItem(c.callNo, 2, _T("") );
-        SetItem(c.callNo, 1, _T("") );
+        SetItem(c.callNo, 2, _T(""));
+        SetItem(c.callNo, 1, _T(""));
         wxGetApp().RingbackTone.Stop();
         wxGetApp().IncomingRing.Stop();
         wxGetApp().CallerIDRing.Stop();
@@ -212,18 +212,18 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         wxString Remote;
         
 
-        RemoteName.Printf("%s", c.remote_name);
+        RemoteName.Printf(_T("%s"), c.remote_name);
         Info  = RemoteName.AfterLast('@');	// Hide username:password
         Info  = Info.BeforeFirst('/');          // Remove extension in outbound call
         					// (it will be duplicated in <>)
 
-        Remote.Printf("%s", c.remote);
+        Remote.Printf(_T("%s"), c.remote);
         if(!Remote.IsEmpty())			// Additional info in Remote
-            Info += " <" + Remote + ">";
+            Info += _T(" <") + Remote + _T(">");
 
         Codec = GetCodec(c);			// Negotiated codec
         if(!Codec.IsEmpty())
-            Info += " ["+ GetCodec(c) + "]";	// Indicate Negotiated codec
+            Info += _T(" [") + GetCodec(c) + _T("]");	// Indicate Negotiated codec
 
         SetItem(c.callNo, 2, Info );
 
@@ -232,31 +232,31 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 
         if(outgoing) {
             if(ringing) {
-                SetItem(c.callNo, 1, _T("ring out") );
+                SetItem(c.callNo, 1, _T("ring out"));
                 wxGetApp().RingbackTone.Start(0);
             } else {
                 if(complete) {
                     // I really need to clean up this spaghetti code
                     if(selected)
-                        SetItem(c.callNo, 1, _T("ACTIVE") );
+                        SetItem(c.callNo, 1, _T("ACTIVE"));
                     else
                         if(c.callNo == selectedcall)
-                            SetItem(c.callNo, 1, _T("") );
+                            SetItem(c.callNo, 1, _T(""));
                         else
-                            SetItem(c.callNo, 1, _T("ACTIVE") );
+                            SetItem(c.callNo, 1, _T("ACTIVE"));
 
                     wxGetApp().RingbackTone.Stop();
                 } else {
                     // not accepted yet..
-                    SetItem(c.callNo, 1, _T("---") );
+                    SetItem(c.callNo, 1, _T("---"));
                 }
             }
         } else {
             if(ringing) {
-                SetItem(c.callNo, 1, _T("ring in") );
+                SetItem(c.callNo, 1, _T("ring in"));
 
                 // Look for the caller in our phonebook
-                config->SetPath("/PhoneBook");
+                config->SetPath(_T("/PhoneBook"));
                 bCont = config->GetFirstGroup(str, dummy);
                 while ( bCont ) {
                     if(str.IsSameAs(c.remote_name))
@@ -266,16 +266,16 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 
                 if(!str.IsSameAs(c.remote_name)) {
                     // Add to phone book if not there already
-                    str.Printf("%s/Extension", c.remote_name);
+                    str.Printf(_T("%s/Extension"), c.remote_name);
                     config->Write(str, c.remote);
                 } else {
                     // Since they're in the phone book, look for ringtone
-                    str.Printf("%s/RingTone", c.remote_name);
-                    wxGetApp().CallerIDRingName = config->Read(str, "");
+                    str.Printf(_T("%s/RingTone"), c.remote_name);
+                    wxGetApp().CallerIDRingName = config->Read(str, _T(""));
                 }
 
                 if(strcmp(c.local_context, "intercom") == 0) {
-                    if(config->Read("/Prefs/IntercomPass","s").IsSameAs(c.local)) {
+                    if(config->Read(_T("/Prefs/IntercomPass"), _T("s")).IsSameAs(c.local)) {
                         wxGetApp().IntercomTone.Start(1);
                         iaxc_millisleep(1000);
                         iaxc_unquelch(c.callNo);
@@ -298,10 +298,10 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 wxGetApp().IncomingRing.Stop();
                 wxGetApp().CallerIDRing.Stop();
                 if(complete) {
-                    SetItem(c.callNo, 1, _T("ACTIVE") );
+                    SetItem(c.callNo, 1, _T("ACTIVE"));
                 } else { 
                     // not accepted yet..  shouldn't happen!
-                    SetItem(c.callNo, 1, _T("???") );
+                    SetItem(c.callNo, 1, _T("???"));
                 }
             }
         } 

@@ -48,33 +48,33 @@
 #include "main.h"
 #include "wx/tokenzr.h"
 
-void DialEntry( wxString& EntryName )
+void DialEntry(wxString& EntryName)
 {
     wxString Msg;
     wxString FQIN;
 
-    wxConfig *config = new wxConfig("iaxComm");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
     wxString  val;
     wxString  KeyPath;
 
 
-    KeyPath = "/Entries/" + EntryName;
+    KeyPath = _T("/Entries/") + EntryName;
     config->SetPath(KeyPath);
 
     if(!config->Exists(KeyPath)) {
-        EntryName << " unknown";
+        EntryName << _T(" unknown");
         wxMessageBox(KeyPath, EntryName);
         return;
     }
-    wxString AccountName = config->Read("Account",   "");
-    wxString Extension   = config->Read("Extension", "s");
+    wxString AccountName = config->Read(_T("Account"), _T(""));
+    wxString Extension   = config->Read(_T("Extension"), _T("s"));
 
-    Dial(AccountName + "/" + Extension);
+    Dial(AccountName + _T("/") + Extension);
 }
 
 void Dial( wxString DialStr )
 {
-    wxConfig *config = new wxConfig("iaxComm");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
     wxString  FQIN;
 
     wxString  AccountInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
@@ -89,7 +89,7 @@ void Dial( wxString DialStr )
         // Dialstr has no "/" and no default server: add default extension
         if(AccountInfo.IsEmpty()) {
             AccountInfo = Extension;
-            Extension  = "s";
+            Extension  = _T("s");
         }
     }
 
@@ -101,10 +101,10 @@ void Dial( wxString DialStr )
 
 
     if(RegInfo.IsEmpty()) {
-        config->SetPath("/Accounts/" + Host);
-        Host     = config->Read("Host",     Host);
-        Username = config->Read("Username", "");
-        Password = config->Read("Password", "");
+        config->SetPath(_T("/Accounts/") + Host);
+        Host     = config->Read(_T("Host"), Host);
+        Username = config->Read(_T("Username"), _T(""));
+        Password = config->Read(_T("Password"), _T(""));
     }
 
     FQIN.Printf("%s:%s@%s/%s", Username.c_str(),

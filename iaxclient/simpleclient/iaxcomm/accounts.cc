@@ -52,9 +52,9 @@
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
 BEGIN_EVENT_TABLE(AccountsDialog, wxDialog)
-    EVT_BUTTON(XRCID("AddAccountList"),          AccountsDialog::OnAddAccountList)
-    EVT_BUTTON(XRCID("EditAccountList"),         AccountsDialog::OnAddAccountList)
-    EVT_BUTTON(XRCID("RemoveAccountList"),       AccountsDialog::OnRemoveAccountList)
+    EVT_BUTTON(XRCID(_T("AddAccountList")),      AccountsDialog::OnAddAccountList)
+    EVT_BUTTON(XRCID(_T("EditAccountList")),     AccountsDialog::OnAddAccountList)
+    EVT_BUTTON(XRCID(_T("RemoveAccountList")),   AccountsDialog::OnRemoveAccountList)
 END_EVENT_TABLE()
 
 //----------------------------------------------------------------------------------------
@@ -77,7 +77,7 @@ AccountsDialog::AccountsDialog( wxWindow* parent )
 
 void AccountsDialog::Show( void )
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     wxString   str;
     long       dummy;
     bool       bCont;
@@ -85,16 +85,16 @@ void AccountsDialog::Show( void )
     long       i;
 
     //----Populate AccountList listctrl--------------------------------------------------
-    config->SetPath("/Accounts");
+    config->SetPath(_T("/Accounts"));
     AccountList->DeleteAllItems();
     i = 0;
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         AccountList->InsertItem(i, str);
         AccountList->SetItem(i, 1, config->Read(AccountList->GetItemText(i) +
-                                                "/Host" ,""));
+                                                _T("/Host"), _T("")));
         AccountList->SetItem(i, 2, config->Read(AccountList->GetItemText(i) +
-                                                "/Username" ,""));
+                                                _T("/Username"), _T("")));
         bCont = config->GetNextGroup(str, dummy);
         i++;
     }
@@ -115,7 +115,7 @@ END_EVENT_TABLE()
 
 AddAccountDialog::AddAccountDialog( wxWindow* parent, wxString Selection )
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddAccount"));
 
     //----Reach in for our controls-----------------------------------------------------
@@ -129,11 +129,11 @@ AddAccountDialog::AddAccountDialog( wxWindow* parent, wxString Selection )
     if(!Selection.IsEmpty()) {
         SetTitle(_("Edit " + Selection));
         AccountName->SetValue(Selection);
-        config->SetPath("/Accounts/" + Selection);
-        HostName->SetValue(config->Read("Host" ,""));
-        UserName->SetValue(config->Read("Username" ,""));
-        Password->SetValue(config->Read("Password" ,""));
-        Confirm->SetValue(config->Read("Password" ,""));
+        config->SetPath(_T("/Accounts/") + Selection);
+        HostName->SetValue(config->Read(_T("Host"), _T("")));
+        UserName->SetValue(config->Read(_T("Username"), _T("")));
+        Password->SetValue(config->Read(_T("Password"), _T("")));
+        Confirm->SetValue(config->Read(_T("Password"), _T("")));
     }
 }
 
@@ -159,7 +159,7 @@ void AccountsDialog::OnAddAccountList(wxCommandEvent &event)
 
 void AccountsDialog::OnRemoveAccountList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     long       sel = -1;
     int        isOK;
 
@@ -177,7 +177,7 @@ void AccountsDialog::OnRemoveAccountList(wxCommandEvent &event)
 
 void AddAccountDialog::OnAdd(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
 
     if(!Password->GetValue().IsSameAs(Confirm->GetValue())) {
         wxMessageBox(_("Try Again"),
@@ -185,10 +185,10 @@ void AddAccountDialog::OnAdd(wxCommandEvent &event)
                        wxICON_INFORMATION);
         return;
     }
-    config->SetPath("/Accounts/" + AccountName->GetValue());
-    config->Write("Host",     HostName->GetValue());
-    config->Write("Username", UserName->GetValue());
-    config->Write("Password", Password->GetValue());
+    config->SetPath(_T("/Accounts/") + AccountName->GetValue());
+    config->Write(_T("Host"),     HostName->GetValue());
+    config->Write(_T("Username"), UserName->GetValue());
+    config->Write(_T("Password"), Password->GetValue());
     delete config;
 
     if(wxGetApp().DefaultAccount.IsEmpty()) {
@@ -203,10 +203,10 @@ void AddAccountDialog::OnAdd(wxCommandEvent &event)
     wxStrcpy(host, HostName->GetValue());
     iaxc_register(user, pass, host);
 
-    AccountName->SetValue("");
-    HostName->SetValue("");
-    UserName->SetValue("");
-    HostName->SetValue("");
-    Confirm->SetValue("");
+    AccountName->SetValue(_T(""));
+    HostName->SetValue(_T(""));
+    UserName->SetValue(_T(""));
+    HostName->SetValue(_T(""));
+    Confirm->SetValue(_T(""));
 }
 

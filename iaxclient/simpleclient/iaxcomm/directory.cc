@@ -93,7 +93,7 @@ DirectoryDialog::DirectoryDialog( wxWindow* parent )
 
 void DirectoryDialog::Show( void )
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     wxString   str;
     long       dummy;
     bool       bCont;
@@ -101,14 +101,14 @@ void DirectoryDialog::Show( void )
     long       i;
 
     //----Populate OTList listctrl--------------------------------------------------
-    config->SetPath("/OT");
+    config->SetPath(_T("/OT"));
     i = 0;
     OTList->DeleteAllItems();
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         OTList->InsertItem(i, str);
-        OTList->SetItem(i, 1, config->Read(OTList->GetItemText(i) + "/Name" ,""));
-        OTList->SetItem(i, 2, config->Read(OTList->GetItemText(i) + "/Extension" ,""));
+        OTList->SetItem(i, 1, config->Read(OTList->GetItemText(i) + _T("/Name"), _T("")));
+        OTList->SetItem(i, 2, config->Read(OTList->GetItemText(i) + _T("/Extension"), _T("")));
         bCont = config->GetNextGroup(str, dummy);
         i++;
     }
@@ -121,7 +121,7 @@ void DirectoryDialog::Show( void )
     if(OTList->GetColumnWidth(2) < 100)        OTList->SetColumnWidth(2,  100);
 
     //----Populate PhoneList listctrl--------------------------------------------------
-    config->SetPath("/PhoneBook");
+    config->SetPath(_T("/PhoneBook"));;
     PhoneList->DeleteAllItems();
     i=0;
     bCont = config->GetFirstGroup(str, dummy);
@@ -131,8 +131,8 @@ void DirectoryDialog::Show( void )
 
         PhoneList->InsertItem(i, str);
 
-        ExtensionItem = config->Read(PhoneList->GetItemText(i) + "/Extension" ,"");
-        RingToneItem  = config->Read(PhoneList->GetItemText(i) + "/RingTone"  ,"");
+        ExtensionItem = config->Read(PhoneList->GetItemText(i) + _T("/Extension"), _T(""));
+        RingToneItem  = config->Read(PhoneList->GetItemText(i) + _T("/RingTone"),_T(""));
 
         wxString ShortTone = RingToneItem.AfterLast(wxFILE_SEP_PATH);
 
@@ -160,7 +160,7 @@ END_EVENT_TABLE()
 
 AddOTListDialog::AddOTListDialog( wxWindow* parent, wxString Selection )
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddOT"));
 
     //----Reach in for our controls-----------------------------------------------------
@@ -171,9 +171,9 @@ AddOTListDialog::AddOTListDialog( wxWindow* parent, wxString Selection )
     if(!Selection.IsEmpty()) {
         SetTitle(_("Edit " + Selection));
         OTNo->SetValue(Selection);
-        config->SetPath("/OT/" + Selection);
-        Name->SetValue(config->Read("Name" ,""));
-        Extension->SetValue(config->Read("Extension" ,""));
+        config->SetPath(_T("/OT/") + Selection);
+        Name->SetValue(config->Read(_T("Name"), _T("")));
+        Extension->SetValue(config->Read(_T("Extension"), _T("")));
     }
 }
 
@@ -188,7 +188,7 @@ END_EVENT_TABLE()
 
 AddPhoneListDialog::AddPhoneListDialog( wxWindow* parent, wxString Selection )
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddPhoneList"));
 
     //----Reach in for our controls-----------------------------------------------------
@@ -199,9 +199,9 @@ AddPhoneListDialog::AddPhoneListDialog( wxWindow* parent, wxString Selection )
     if(!Selection.IsEmpty()) {
         SetTitle(_("Edit " + Selection));
         Name->SetValue(Selection);
-        config->SetPath("/PhoneBook/" + Selection);
-        Extension->SetValue(config->Read("Extension" ,""));
-        RingTone->SetValue(config->Read("RingTone" ,""));
+        config->SetPath(_T("/PhoneBook/") + Selection);
+        Extension->SetValue(config->Read(_T("Extension"), _T("")));
+        RingTone->SetValue(config->Read(_T("RingTone"), _T("")));
     }
 }
 
@@ -244,19 +244,19 @@ void DirectoryDialog::OnAddPhoneList(wxCommandEvent &event)
 
 void DirectoryDialog::OnDialOTList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     long       sel = -1;
     wxString   DialString;
 
     sel=OTList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED);
     if(sel >= 0) {
-        DialString = config->Read("/OT/" + OTList->GetItemText(sel) +
-                                  "/Extension", "");
+        DialString = config->Read(_T("/OT/") + OTList->GetItemText(sel) + _T("/Extension"),
+                                  _T(""));
 
         // A DialString in quotes means look up name in phone book
-        if(DialString.StartsWith("\"")) {
+        if(DialString.StartsWith(_T("\""))) {
             DialString = DialString.Mid(1, DialString.Len() -2);
-            DialString = config->Read("/PhoneBook/" + DialString + "/Extension", "");
+            DialString = config->Read(_T("/PhoneBook/") + DialString + _T("/Extension"), _T(""));
         }
         Dial(DialString);
         Close(TRUE);
@@ -265,14 +265,14 @@ void DirectoryDialog::OnDialOTList(wxCommandEvent &event)
 
 void DirectoryDialog::OnDialPhoneList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     long       sel = -1;
     wxString   DialString;
 
     sel=PhoneList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED);
     if(sel >= 0) {
-        DialString = config->Read("/PhoneBook/" + PhoneList->GetItemText(sel) +
-                                  "/Extension", "");
+        DialString = config->Read(_T("/PhoneBook/") + PhoneList->GetItemText(sel) + _T("/Extension"),
+                                  _T(""));
         Dial(DialString);
         Close(TRUE);
     }
@@ -282,15 +282,15 @@ void DirectoryDialog::OnDialPhoneList(wxCommandEvent &event)
 
 void DirectoryDialog::OnRemoveOTList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     long       sel = -1;
     int        isOK;
 
     if((sel=OTList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0) {
-        isOK = wxMessageBox("Really remove One Touch " + OTList->GetItemText(sel) + "?",
-                            "Remove from One Touch List", wxOK|wxCANCEL|wxCENTRE);
+        isOK = wxMessageBox(_T("Really remove One Touch ") + OTList->GetItemText(sel) + _T("?"),
+                            _T("Remove from One Touch List"), wxOK|wxCANCEL|wxCENTRE);
         if(isOK == wxOK) {
-            config->DeleteGroup("/OT/"+OTList->GetItemText(sel));
+            config->DeleteGroup(_T("/OT/") + OTList->GetItemText(sel));
             OTList->DeleteItem(sel);
         }
     }
@@ -300,7 +300,7 @@ void DirectoryDialog::OnRemoveOTList(wxCommandEvent &event)
 
 void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     long       sel = -1;
     int        isOK;
 
@@ -308,7 +308,7 @@ void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
         isOK = wxMessageBox("Really remove " + PhoneList->GetItemText(sel) + "?",
                             "Remove from Phone Book", wxOK|wxCANCEL|wxCENTRE);
         if(isOK == wxOK) {
-            config->DeleteGroup("/PhoneBook/"+PhoneList->GetItemText(sel));
+            config->DeleteGroup(_T("/PhoneBook/") + PhoneList->GetItemText(sel));
             PhoneList->DeleteItem(sel);
         }
     }
@@ -319,33 +319,33 @@ void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
 
 void AddOTListDialog::OnAdd(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
     wxString   Path;
 
-    Path.Printf("/OT/%d", OTNo->GetValue());
+    Path.Printf(_T("/OT/%d"), OTNo->GetValue());
     config->SetPath(Path);
-    config->Write("Name",      Name->GetValue());
-    config->Write("Extension", Extension->GetValue());
+    config->Write(_T("Name"),      Name->GetValue());
+    config->Write(_T("Extension"), Extension->GetValue());
     delete config;
 
-    Name->SetValue("");
-    Extension->SetValue("");
+    Name->SetValue(_T(""));
+    Extension->SetValue(_T(""));
 }
 
 //----------------------------------------------------------------------------------------
 
 void AddPhoneListDialog::OnAdd(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
 
-    config->SetPath("/PhoneBook/" + Name->GetValue());
-    config->Write("Extension", Extension->GetValue());
-    config->Write("RingTone",  RingTone->GetValue());
+    config->SetPath(_T("/PhoneBook/") + Name->GetValue());
+    config->Write(_T("Extension"), Extension->GetValue());
+    config->Write(_T("RingTone"),  RingTone->GetValue());
     delete config;
 
-    Name->SetValue("");
-    Extension->SetValue("");
-    RingTone->SetValue("");
+    Name->SetValue(_T(""));
+    Extension->SetValue(_T(""));
+    RingTone->SetValue(_T(""));
 }
 
 void AddPhoneListDialog::OnPreviewRingTone(wxCommandEvent &event)
@@ -361,7 +361,7 @@ void AddPhoneListDialog::OnBrowse(wxCommandEvent &event)
     wxString dirHome;
     wxGetHomeDir(&dirHome);
 
-    wxFileDialog where(NULL, _("Raw sound file"), dirHome, "", "*.*", wxOPEN );
+    wxFileDialog where(NULL, _("Raw sound file"), dirHome, _T(""), _T("*.*"), wxOPEN );
     where.ShowModal();
 
     RingTone->SetValue(where.GetPath());

@@ -82,7 +82,7 @@ IMPLEMENT_APP( theApp )
 
 bool theApp::OnInit()
 {
-    wxConfig *config = new wxConfig("iaxComm");
+    wxConfig *config = new wxConfig(_T("iaxComm"));
 
     wxString str;
     wxString reginfo;
@@ -106,7 +106,7 @@ bool theApp::OnInit()
     }
 #endif
 
-    config->SetPath("/Prefs");
+    config->SetPath(_T("/Prefs"));
 
     // Load up the XML Resource handler, to be able to load XML resources..
 
@@ -114,12 +114,12 @@ bool theApp::OnInit()
 
     // Load up enough XML resources to construct a main frame
 
-    load_xrc_resource( "frame.xrc" );
-    load_xrc_resource( "menubar.xrc" );
-    load_xrc_resource( "panel.xrc" );
-    load_xrc_resource( "prefs.xrc" );
-    load_xrc_resource( "directory.xrc" );
-    load_xrc_resource( "devices.xrc" );
+    load_xrc_resource(_T("frame.xrc"));
+    load_xrc_resource(_T("menubar.xrc"));
+    load_xrc_resource(_T("panel.xrc"));
+    load_xrc_resource(_T("prefs.xrc"));
+    load_xrc_resource(_T("directory.xrc"));
+    load_xrc_resource(_T("devices.xrc"));
 
     extern void InitXmlResource();
     InitXmlResource();
@@ -129,12 +129,12 @@ bool theApp::OnInit()
     IntercomTone.Init( 440, 960,  6000,  6000,  1);
 
     // Read in some config info
-    nCalls           = config->Read("nCalls", 2);
-    DefaultAccount   = config->Read("DefaultAccount", "");
+    nCalls           = config->Read(_T("nCalls"), 2);
+    DefaultAccount   = config->Read(_T("DefaultAccount"), _T(""));
 
-    IncomingRingName = config->Read("RingTone", "");
-    RingBackToneName = config->Read("RingBack", "");
-    IntercomToneName = config->Read("Intercom", "");
+    IncomingRingName = config->Read(_T("RingTone"), _T(""));
+    RingBackToneName = config->Read(_T("RingBack"), _T(""));
+    IntercomToneName = config->Read(_T("Intercom"), _T(""));
 
     IncomingRing.LoadTone(IncomingRingName, 10);
     RingbackTone.LoadTone(RingBackToneName, 10);
@@ -147,7 +147,7 @@ bool theApp::OnInit()
         wxString Path;
 
         Path = config->GetPath();
-        config->SetPath("/Accounts");
+        config->SetPath(_T("/Accounts"));
         bCont = config->GetFirstGroup(Name, dummy);
         while ( bCont ) {
             DefaultAccount = Name;
@@ -174,12 +174,12 @@ bool theApp::OnInit()
     if(DefaultAccount.IsEmpty()) {
         // If we never did find a default account, must be a new install
 
-        AddAccountDialog dialog(theFrame, "");
+        AddAccountDialog dialog(theFrame, _T(""));
 
-        dialog.SetTitle("Welcome to iaxComm!");
+        dialog.SetTitle(_T("Welcome to iaxComm!"));
       #ifdef PROVIDER
-        dialog.AccountName->SetValue("asterisk");
-        dialog.HostName->SetValue("asterisk");
+        dialog.AccountName->SetValue(_T("asterisk"));
+        dialog.HostName->SetValue(_T("asterisk"));
       #endif
 
         dialog.ShowModal();
@@ -209,12 +209,12 @@ bool theApp::OnInit()
     iaxc_start_processing_thread();
 
     // Callerid from wxConfig
-    Name   = config->Read("Name", "IaxComm User");
-    Number = config->Read("Number",  "700000000");
+    Name   = config->Read(_T("Name"), _T("IaxComm User"));
+    Number = config->Read(_T("Number"),  _T("700000000"));
     SetCallerID(Name, Number);
 
     // Register from wxConfig
-    config->SetPath("/Accounts");
+    config->SetPath(_T("/Accounts"));
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
         RegisterByName(str);
@@ -233,7 +233,7 @@ bool theApp::OnInit()
 
 void theApp::RegisterByName(wxString RegName)
 {
-    wxConfig    *config = new wxConfig("iaxComm");
+    wxConfig    *config = new wxConfig(_T("iaxComm"));
     wxChar      KeyPath[256];
     wxListItem  item;
 
@@ -245,21 +245,21 @@ void theApp::RegisterByName(wxString RegName)
 
     if(tok.CountTokens() == 3) {
 
-        strncpy( user , tok.GetNextToken().c_str(), 256);
-        strncpy( pass , tok.GetNextToken().c_str(), 256);
-        strncpy( host , tok.GetNextToken().c_str(), 256);
+        strncpy(user, tok.GetNextToken().c_str(), 256);
+        strncpy(pass, tok.GetNextToken().c_str(), 256);
+        strncpy(host, tok.GetNextToken().c_str(), 256);
     } else {
         // Check if it's a Speed Dial
-        wxStrcpy(KeyPath,     "/Accounts/");
-        wxStrcat(KeyPath,     RegName);
+        wxStrcpy(KeyPath, _T("/Accounts/"));
+        wxStrcat(KeyPath, RegName);
         config->SetPath(KeyPath);
         if(!config->Exists(KeyPath)) {
-            theFrame->SetStatusText("Register format error");
+            theFrame->SetStatusText(_T("Register format error"));
             return;
         }
-        wxStrcpy(user, config->Read("Username", ""));
-        wxStrcpy(pass, config->Read("Password", ""));
-        wxStrcpy(host, config->Read("Host", ""));
+        wxStrcpy(user, config->Read(_T("Username"), _T("")));
+        wxStrcpy(pass, config->Read(_T("Password"), _T("")));
+        wxStrcpy(host, config->Read(_T("Host"), _T("")));
     }
     iaxc_register(user, pass, host);
 }
@@ -279,9 +279,9 @@ int theApp::OnExit(void)
 
 void theApp::load_xrc_resource( const wxString& xrc_filename )
 {
-    wxConfig        *config = new wxConfig("iaxComm");
+    wxConfig        *config = new wxConfig(_T("iaxComm"));
     wxString         xrc_fullname;
-    static wxString  xrc_subdirectory = "";
+    static wxString  xrc_subdirectory = _T("");
 
 #ifdef __WXMAC__
     if(xrc_subdirectory.IsEmpty()) {
@@ -305,8 +305,8 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
     }
 
     // Next, check where config points
-    if(config->Exists("/Prefs/XRCDirectory")) {
-        xrc_fullname = config->Read("/Prefs/XRCDirectory", "") + wxFILE_SEP_PATH + xrc_filename;
+    if(config->Exists(_T("/Prefs/XRCDirectory"))) {
+        xrc_fullname = config->Read(_T("/Prefs/XRCDirectory"), _T("")) + wxFILE_SEP_PATH + xrc_filename;
         if ( ::wxFileExists( xrc_fullname ) ) {
             wxXmlResource::Get()->Load( xrc_fullname );
             return;
@@ -314,7 +314,7 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
     }
 
     // Third, check in cwd
-    xrc_fullname = wxGetCwd() + wxFILE_SEP_PATH + "rc" + wxFILE_SEP_PATH + xrc_filename;
+    xrc_fullname = wxGetCwd() + wxFILE_SEP_PATH + _T("rc") + wxFILE_SEP_PATH + xrc_filename;
     if ( ::wxFileExists( xrc_fullname ) ) {
         wxXmlResource::Get()->Load( xrc_fullname );
         return;
