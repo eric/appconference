@@ -53,6 +53,7 @@ CFLAGS:= $(CFLAGS) -DUSE_HOTKEY
 endif
 
 ifeq ($(OSTYPE),WIN32)
+CFLAGS:= $(CFLAGS) -DWIN32
 EXEEXT=.exe
 SYSLIBS=-lwinmm -lwsock32 
 endif
@@ -71,10 +72,10 @@ endif
 endif
 
 ifeq ($(OSTYPE),MACOSX)
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
+CFLAGS:= $(CFLAGS) -DMACOSX -DPOSIXSLEEP
 SYSLIBS=-framework CoreAudio -framework AudioToolbox
 ifeq ($(USE_HOTKEY),1)
-SYSLIBS:= -framework Carbon
+SYSLIBS:= $(SYSLIBS) -framework Carbon
 endif
 endif
 
