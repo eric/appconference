@@ -296,7 +296,7 @@ error:
 PaError OpenAudioStream( PABLIO_Stream **rwblPtr, double sampleRate,
                          PaSampleFormat format, long flags )
 {
-	return OpenAudioStreamByID(rwblPtr, samplerate, format, flags,
+	return OpenAudioStreamByID(rwblPtr, sampleRate, format, flags,
 		Pa_GetDefaultInputDeviceID(), 	
 		Pa_GetDefaultOutputDeviceID());
 }
