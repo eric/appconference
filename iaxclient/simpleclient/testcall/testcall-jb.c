@@ -22,6 +22,7 @@
 
 #include "iaxclient.h"
 
+#define NETSTATS
 #define JITTERMAKER
 
 #ifdef JITTERMAKER
@@ -171,7 +172,7 @@ int jm_recvfrom(int s, void *buf, size_t len, int flags, struct sockaddr *from, 
 	}
 
 	/* JM_BUCKET_PCT of the time, put in a bucket, and try to remove from a bucket */
-	if( 0 && (100.0*rand()/(RAND_MAX+1.0)) < jm_buckpct ) {
+	if( 1 && (100.0*rand()/(RAND_MAX+1.0)) < jm_buckpct ) {
 	    int i,j;
 	    unsigned earlytm;
 
@@ -272,7 +273,55 @@ void mysleep(void)
 }
 
 int levels_callback(float input, float output) {
+    static int i;
+#ifdef notdefNETSTATS    
+    if(i%25 == 0)
+	fprintf(stderr, "RTT\tRJIT\tRLOSP\tRLOSC\tRPKTS\tRDEL\tLJIT\tLLOSP\tLLOSC\tLPKTS\tLDEL\n");
+    if(i++ % 5 == 0) {
+	unsigned int info[10];
+	iaxc_get_netstats(iaxc_selected_call(),info,10);
+	fprintf(stderr, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t\n",
+	    info[0], info[1], info[2]>>24, info[2] & 0xffffff, info[3], info[4],
+	    info[5], info[6]>>24, info[6] & 0xffffff, info[7], info[8]);
+    }
+
+#endif
     if(do_levels) fprintf(stderr, "IN: %f OUT: %f\n", input, output);
+    return 0;
+}
+
+int netstat_callback(struct iaxc_ev_netstats n) {
+    static int i;
+    if(i++%25 == 0)
+	fprintf(stderr, "RTT\t"
+	    "Rjit\tRlos%\tRlosC\tRpkts\tRdel\tRdrop\tRooo\t"
+	    "Ljit\tLlos%\tLlosC\tLpkts\tLdel\tLdrop\tLooo\n"
+	    );
+
+    fprintf(stderr, "%d\t"
+	  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+	  "%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+
+	    n.rtt,
+
+	    n.remote.jitter,
+	    n.remote.losspct,
+	    n.remote.losscnt,
+	    n.remote.packets,
+	    n.remote.delay,
+	    n.remote.dropped,
+	    n.remote.ooo,
+
+	    n.local.jitter,
+	    n.local.losspct,
+	    n.local.losscnt,
+	    n.local.packets,
+	    n.local.delay,
+	    n.local.dropped,
+	    n.local.ooo
+    );
+
+    return 0;
 }
 
 int iaxc_callback(iaxc_event e)
@@ -280,6 +329,8 @@ int iaxc_callback(iaxc_event e)
     switch(e.type) {
         case IAXC_EVENT_LEVELS:
             return levels_callback(e.ev.levels.input, e.ev.levels.output);
+        case IAXC_EVENT_NETSTAT:
+            return netstat_callback(e.ev.netstats);
         case IAXC_EVENT_TEXT:
             return 0; // don't handle
         case IAXC_EVENT_STATE:
@@ -377,8 +428,7 @@ int main(int argc, char **argv)
 
 	list_devices();
 
-	if(do_levels)
-	  iaxc_set_event_callback(iaxc_callback); 
+	iaxc_set_event_callback(iaxc_callback); 
 
 
 	fprintf(f, "\n\
@@ -414,8 +464,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "setting jm_droppct to %d\n", jm_droppct);
 	      break;
 	      case '6': case '7': case '8': case '9': case '0':
-		jm_jitter = 250 * (c - '6');
-		fprintf(stderr, "setting jm_jitter to %d\n", jm_jitter);
+		jm_buckpct = 15 * (c - '6');
+		fprintf(stderr, "setting jm_buckpct to %d\n", jm_buckpct);
 	      break;
 	      case '#': case '*':
 		printf ("sending %c\n", c);

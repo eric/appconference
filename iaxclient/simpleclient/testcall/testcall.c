@@ -48,6 +48,41 @@ void mysleep(void)
 
 int levels_callback(float input, float output) {
     if(do_levels) fprintf(stderr, "IN: %f OUT: %f\n", input, output);
+    return 0;
+}
+
+int netstat_callback(struct iaxc_ev_netstats n) {
+    static int i;
+    if(i++%25 == 0)
+	fprintf(stderr, "RTT\t"
+	    "Rjit\tRlos%\tRlosC\tRpkts\tRdel\tRdrop\tRooo\t"
+	    "Ljit\tLlos%\tLlosC\tLpkts\tLdel\tLdrop\tLooo\n"
+	    );
+
+    fprintf(stderr, "%d\t"
+	  "%d\t%d\t%d\t%d\t%d\t%d\t%d\t"
+	  "%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+
+	    n.rtt,
+
+	    n.remote.jitter,
+	    n.remote.losspct,
+	    n.remote.losscnt,
+	    n.remote.packets,
+	    n.remote.delay,
+	    n.remote.dropped,
+	    n.remote.ooo,
+
+	    n.local.jitter,
+	    n.local.losspct,
+	    n.local.losscnt,
+	    n.local.packets,
+	    n.local.delay,
+	    n.local.dropped,
+	    n.local.ooo
+    );
+
+    return 0;
 }
 
 int iaxc_callback(iaxc_event e)
@@ -55,6 +90,8 @@ int iaxc_callback(iaxc_event e)
     switch(e.type) {
         case IAXC_EVENT_LEVELS:
             return levels_callback(e.ev.levels.input, e.ev.levels.output);
+        case IAXC_EVENT_NETSTAT:
+            return netstat_callback(e.ev.netstats);
         case IAXC_EVENT_TEXT:
             return 0; // don't handle
         case IAXC_EVENT_STATE:
@@ -139,11 +176,12 @@ int main(int argc, char **argv)
 	}
 
 	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
+	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ILBC|IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
 	iaxc_set_silence_threshold(silence_threshold);
 
 	list_devices();
 
-	if(do_levels)
+	//if(do_levels)
 	  iaxc_set_event_callback(iaxc_callback); 
 
 
