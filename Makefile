@@ -34,7 +34,7 @@ LIBS=-ldl -lpthread -lm
 CC=gcc
 INSTALL=install
 
-SHAREDOS=app_conference.so
+SHAREDOS=app_conference.so app_onering.so
 
 CFLAGS+=-Wno-missing-prototypes -Wno-missing-declarations
 
@@ -49,6 +49,9 @@ clean:
 
 app_conference.so : app_conference.o onering.o
 	$(CC) -shared -Xlinker -x -o $@ app_conference.o onering.o
+
+app_onering.so : app_onering.o onering.o
+	$(CC) -shared -Xlinker -x -o $@ app_onering.o onering.o
 
 onering:
 	$(CC) -o onering onering.c

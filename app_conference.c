@@ -373,7 +373,7 @@ void mix_slin(char *dst, char *src, int samples) {
     int i=0,val=0;
 //    printf("mixing\n");
     for (i=0;i<samples;i++) {
-	val =  ((short *)dst)[i] + ((short *)src)[i];
+	val = ((short *)dst)[i] + ((short *)src)[i];
 	if(val > 0x7fff) {
 	    ((short *)dst)[i] = 0x7fff;
 	    continue;
@@ -443,7 +443,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->samples = samples;
 	    fout->datalen = samples * 2;
 	    fout->offset = AST_FRIENDLY_OFFSET;
-	    fout->mallocd = 0;
+	    fout->mallocd = 1;
 	    fout->data = databuf;
 	    fout->src = NULL;
 	    return fout;
@@ -454,7 +454,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->samples = samples;
 	    fout->datalen = samples * 2;
 	    fout->offset = AST_FRIENDLY_OFFSET;
-	    fout->mallocd = 0;
+	    fout->mallocd = 1;
 	    fout->data = databuf;
 	    fout->src = NULL;
 	    memset(databuf,0,samples * 2);
@@ -469,19 +469,19 @@ static int send_audio(struct ast_conference *conference, struct ast_conf_member 
 	if (cf != NULL) {
 	    if (member->smoother != NULL) {
 		ast_smoother_feed(member->smoother,cf);
-		if (cf->data) {
+/*		if (cf->data) {
     		    free(cf->data);
 		}
-		free(cf);
+		free(cf); */
 		while (cf = ast_smoother_read(member->smoother)) {
 		    ast_write(member->chan,cf);
 		}
 	    } else {
 		ast_write(member->chan,cf);
-		if (cf->data) {
+/*		if (cf->data) {
     		    free(cf->data);
 		}
-		free(cf);
+		free(cf); */
 	    }
 	    return 0;
 	} else {
@@ -606,7 +606,9 @@ static int conference_exec(struct ast_channel *chan, void *data)
 			if (member->type != 'L') {
 			    write_audio(f,conference,member);
 			}
+		if (member->priority == 3) {
 		//	ast_log(LOG_NOTICE,"wrote %d ms into conference, rest = %d\n",f->samples/8,rest);
+		}
 		    }
 #ifdef CONF_HANDLE_DTMF
 		     else if (f->frametype == AST_FRAME_DTMF) {
@@ -623,6 +625,8 @@ static int conference_exec(struct ast_channel *chan, void *data)
 //		    dms += (time3.tv_sec * 1000 + time3.tv_usec / 1000) - (time2.tv_sec * 1000 + time2.tv_usec / 1000);
 //		    dus += (time3.tv_sec * 1000000 + time3.tv_usec) - (time2.tv_sec * 1000000 + time2.tv_usec);
 		//    ast_log(LOG_NOTICE,"mod = %d\n",(time3.tv_usec - time2.tv_usec));
+		} else if (rest < 0) {
+		    break;
 		}
 
 		urest = dus % 1000;
