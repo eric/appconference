@@ -264,7 +264,7 @@ int st_compand_flow(compand_t l, st_sample_t *ibuf, st_sample_t *obuf,
   int len =  (*isamp > *osamp) ? *osamp : *isamp;
   int filechans = ST_CHANNELS;
   int idone,odone;
-  int64_t checkbuf; //if st_sample_t of type int32_t
+  long checkbuf; //if st_sample_t of type int32_t
 
   for (idone = 0,odone = 0; idone < len; ibuf += filechans) {
     int chan;
