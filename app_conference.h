@@ -24,6 +24,8 @@
 /* output audio frames must be at least 20 ms long */
 #define AST_CONF_MIN_MS 20
 
+#define AST_CONF_BUFFER_SIZE 8192
+
 struct ast_conf_audiobuffer {
     /* lock */
     pthread_mutex_t lock;
@@ -31,7 +33,11 @@ struct ast_conf_audiobuffer {
     /* channel */
     struct ast_channel *chan;
 
-    struct ast_onering *ring;
+//    struct ast_onering *ring;
+
+    struct RingBuffer ring;
+    
+    char bufdata[AST_CONF_BUFFER_SIZE];
 
     int ringfails;
         
