@@ -498,7 +498,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
     err = Pa_OpenStream ( &iStream, 
 	      selectedInput,  1, paInt16, NULL,  /* input info */
 	      selectedOutput, 1, paInt16, NULL,  /* output info */
-	      8000.0, 
+	      sample_rate, 
 	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
 	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
 	      0,   /* flags */
