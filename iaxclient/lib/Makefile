@@ -134,7 +134,7 @@ OBJS_LINUX=\
 	portaudio/pa_unix_oss/pa_unix.o 
 
 OBJS_SOLARIS=\
-	libiax2/src/align.c \
+	libiax2/src/align.o \
 	unixfuncs.o \
 	portmixer/px_solaris/px_solaris.o \
 	portaudio/pa_unix_oss/pa_unix_solaris.o \
