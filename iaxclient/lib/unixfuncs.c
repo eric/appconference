@@ -11,7 +11,7 @@ void os_init(void)
 {
 }
 
-void os_millisleep(long ms)
+void iaxc_millisleep(long ms)
 {
 	struct timespec req;
 

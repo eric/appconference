@@ -27,7 +27,6 @@
 
 /* os-dependent macros, etc */
 #ifdef WIN32
-#define os_millisleep(x) Sleep(x)
 #define THREAD HANDLE
 #define THREADID unsigned
 #define THREADCREATE(func, args, thread, id) \
@@ -43,7 +42,6 @@
 #define MUTEXDESTROY(m) DeleteCriticalSection(m)
 
 #else
-void os_millisleep(long ms);
 #define THREAD pthread_t
 #define THREADID unsigned /* unused for Posix Threads */
 #define THREADCREATE(func, args, thread, id) \
