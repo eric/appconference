@@ -112,6 +112,7 @@ struct iaxc_call {
 extern double iaxc_silence_threshold;
 extern int iaxc_audio_output_mode;
 extern iaxc_event_callback_t iaxc_event_callback;
+extern MUTEX iaxc_lock;
 
 /* external audio functions */
 void iaxc_external_service_audio();

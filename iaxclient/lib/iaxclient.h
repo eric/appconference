@@ -50,8 +50,9 @@ extern "C" {
 #define IAXC_CALL_STATE_FREE 		0
 #define IAXC_CALL_STATE_ACTIVE 		(1<<1)
 #define IAXC_CALL_STATE_OUTGOING 	(1<<2)
-#define IAXC_CALL_STATE_COMPLETE 	(1<<3)
-#define IAXC_CALL_STATE_SELECTED 	(1<<4)
+#define IAXC_CALL_STATE_RINGING 	(1<<3)
+#define IAXC_CALL_STATE_COMPLETE 	(1<<4)
+#define IAXC_CALL_STATE_SELECTED 	(1<<5)
 
 #define IAXC_TEXT_TYPE_STATUS		1
 #define IAXC_TEXT_TYPE_NOTICE		2
@@ -97,6 +98,7 @@ int iaxc_service_audio();
 int iaxc_start_processing_thread();
 int iaxc_stop_processing_thread();
 void iaxc_call(char *num);
+void iaxc_register(char *user, char *pass, char *host);
 void iaxc_answer_call(int callNo); 
 void iaxc_dump_call(void);
 void iaxc_reject_call(void);

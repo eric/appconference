@@ -6,9 +6,24 @@
 #include <varargs.h>
 #endif
 
+struct iaxc_registration {
+    struct iax_session *session;
+    int firstpass;
+    struct timeval last;
+    char host[256];
+    char user[256];
+    char pass[256];
+    long   refresh;
+    struct iaxc_registration *next;
+};
+
+struct iaxc_registration *registrations = NULL;
+
 
 static int iAudioType;
 static int iEncodeType;
+
+MUTEX iaxc_lock;
 
 int netfd;
 int port;
@@ -23,7 +38,6 @@ static int nCalls;	// number of calls for this library session
 
 struct timeval lastouttm;
 
-static struct iaxc_call * find_call(struct iax_session *session);
 static void do_iax_event();
 
 static THREAD procThread;
@@ -162,15 +176,26 @@ int iaxc_select_call(int callNo) {
 	}
    
 	if(selected_call >= 0) {	
-	  calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
-	  iaxc_do_state_callback(selected_call);
+	    calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+	    iaxc_do_state_callback(selected_call);
 	}
-
-	calls[callNo].state |= IAXC_CALL_STATE_SELECTED;
 
 	selected_call = callNo;
 
-	iaxc_do_state_callback(selected_call);
+	if(callNo >= 0) {
+	    calls[callNo].state |= IAXC_CALL_STATE_SELECTED;
+
+
+	    // if it's an incoming call, and ringing, answer it.
+	    if( !(calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) && 
+		 (calls[selected_call].state & IAXC_CALL_STATE_RINGING)) {
+		iaxc_answer_call(selected_call);
+	    } else {
+	    // otherwise just update state (answer does this for us)
+	      iaxc_do_state_callback(selected_call);
+	    }
+	    // should do callback to say all are unselected...
+	}
 }
 	  
 /* external API accessor */
@@ -186,6 +211,8 @@ int iaxc_initialize(int audType, int inCalls) {
 	/* os-specific initializations: init gettimeofday fake stuff in
 	 * Win32, etc) */
 	os_init();
+
+	MUTEXINIT(&iaxc_lock);
 
 	if ( (port = iax_init(0) < 0)) {
 		iaxc_usermsg(IAXC_ERROR, "Fatal error: failed to initialize iax with port %d", port);
@@ -234,6 +261,7 @@ void iaxc_shutdown() {
 			pa_shutdown_audio();
 			break;
 	}
+	MUTEXDESTROY(&iaxc_lock);
 }
 
 
@@ -243,16 +271,43 @@ void iaxc_set_encode_format(int fmt)
 	iax_set_formats(fmt);
 }
 
+void iaxc_refresh_registrations() {
+    struct iaxc_registration *cur;
+    struct timeval now;
+
+    gettimeofday(&now,NULL);
+
+    for(cur = registrations; cur != NULL; cur=cur->next) {
+	if(iaxc_usecdiff(&now, &cur->last) > cur->refresh ) {
+	    fprintf(stderr, "refreshing registration %s:%s@%s\n", 
+		cur->host, cur->user, cur->pass, 300);
+
+	    cur->session = iax_session_new();
+	    if(!cur->session) {
+		    iaxc_usermsg(IAXC_ERROR, "Can't make new registration session");
+		    return;
+	    }
+
+	    iax_register(cur->session, cur->host, cur->user, cur->pass, 300);
+	    cur->last = now;
+	}
+    }
+}
+
 void iaxc_process_calls(void) {
 
 #ifdef USE_WIN_AUDIO	
-		win_flush_audio_output_buffers();
-		if (iAudioType == AUDIO_INTERNAL) {
-			win_prepare_audio_buffers();
-		}
+    win_flush_audio_output_buffers();
+    if (iAudioType == AUDIO_INTERNAL) {
+	    win_prepare_audio_buffers();
+    }
 #endif
-		iaxc_service_network(netfd);
-		service_audio();
+    MUTEXLOCK(&iaxc_lock);
+    iaxc_service_network(netfd);
+    service_audio();
+    iaxc_refresh_registrations();
+
+    MUTEXUNLOCK(&iaxc_lock);
 }
 
 THREADFUNCDECL(iaxc_processor)
@@ -395,13 +450,18 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			iaxc_clear_call(callNo);
 			break;
 		case IAX_EVENT_ACCEPT:
-			calls[callNo].state |= IAXC_CALL_STATE_COMPLETE;	
+			calls[callNo].state |= IAXC_CALL_STATE_RINGING;	
 			iaxc_do_state_callback(callNo);
 			iaxc_usermsg(IAXC_STATUS,"Call %d ringing", callNo);
 //			issue_prompt(f);
 			break;
 		case IAX_EVENT_ANSWER:
-			iaxc_answer_call(callNo);
+			calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;	
+			calls[callNo].state |= IAXC_CALL_STATE_COMPLETE;	
+			iaxc_do_state_callback(callNo);
+			iaxc_usermsg(IAXC_STATUS,"Call %d answered", callNo);
+			//iaxc_answer_call(callNo);
+			// notify the user?
  			break;
 		case IAX_EVENT_VOICE:
 			handle_audio_event(e, callNo);
@@ -414,6 +474,39 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 	}
 }
 
+void iaxc_register(char *user, char *pass, char *host)
+{
+	struct iaxc_registration *newreg;
+
+	newreg = malloc(sizeof (struct iaxc_registration));
+	if(!newreg) {
+		iaxc_usermsg(IAXC_ERROR, "Can't make new registration");
+		return;
+	}
+
+	newreg->session = iax_session_new();
+	if(!newreg->session) {
+		iaxc_usermsg(IAXC_ERROR, "Can't make new registration session");
+		return;
+	}
+
+	gettimeofday(&newreg->last,NULL);
+	newreg->refresh = 60*1000*1000;  // 60 seconds, in usecs
+
+	strncpy(newreg->host, host, 256);
+	strncpy(newreg->user, user, 256);
+	strncpy(newreg->pass, pass, 256);
+
+	// so we notify the user.
+	newreg->firstpass = 1;
+
+	// send out the initial registration timeout 300 seconds
+	iax_register(newreg->session, host, user, pass, 300);
+
+	// add it to the list;
+	newreg->next = registrations;
+	registrations = newreg;
+}
 
 void iaxc_call(char *num)
 {
@@ -454,34 +547,42 @@ void iaxc_call(char *num)
 
 void iaxc_answer_call(int callNo) 
 {
-	iax_answer(calls[selected_call].session);
+	fprintf(stderr, "iaxc answering call %d\n", callNo);
+	calls[callNo].state |= IAXC_CALL_STATE_COMPLETE;
+	calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;
+	iax_answer(calls[callNo].session);
+	iaxc_do_state_callback(callNo);
 }
 
 void iaxc_dump_call(void)
 {
 	int toDump = selected_call;
-	if(toDump < 0)
-	{
-		iaxc_usermsg(IAXC_ERROR, "Error: tried to dump but no call selected");
-		return;
+	MUTEXLOCK(&iaxc_lock);
+	if(toDump < 0) {
+	    iaxc_usermsg(IAXC_ERROR, "Error: tried to dump but no call selected");
+	} else {
+	    iax_hangup(calls[selected_call].session,"Dumped Call");
+	    iaxc_usermsg(IAXC_STATUS, "Hanging up call %d", toDump);
+	    iaxc_clear_call(toDump);
 	}
-	      
-	iax_hangup(calls[selected_call].session,"Dumped Call");
-	iaxc_usermsg(IAXC_STATUS, "Hanging up call %d", toDump);
-	iaxc_clear_call(toDump);
+	MUTEXUNLOCK(&iaxc_lock);
 }
 
 void iaxc_reject_call(void)
 {
+	MUTEXLOCK(&iaxc_lock);
 	// XXX should take callNo?
 	iax_reject(calls[selected_call].session, "Call rejected manually.");
 	iaxc_clear_call(selected_call);
+	MUTEXUNLOCK(&iaxc_lock);
 }
 
 void iaxc_send_dtmf(char digit)
 {
+	MUTEXLOCK(&iaxc_lock);
 	if(selected_call >= 0)
 		iax_send_dtmf(calls[selected_call].session,digit);
+	MUTEXUNLOCK(&iaxc_lock);
 }
 
 static int iaxc_find_call_by_session(struct iax_session *session)
@@ -520,19 +621,69 @@ void iaxc_service_network(int netfd)
 		do_iax_event(); /* do pending event if any */
 }
 
+static void iaxc_handle_regreply(struct iax_event *e) {
+  struct iaxc_registration *cur;
+  // find the registration session
+
+    for(cur = registrations; cur != NULL; cur=cur->next) 
+	if(cur->session == e->session) break;
+
+    if(!cur) {
+	iaxc_usermsg(IAXC_ERROR, "Unexpected registration reply");
+	return;
+    }
+
+    if(cur->firstpass) {
+	cur->firstpass = 0;
+      
+#ifdef IAXC_IAX2
+	if(e->etype == IAX_EVENT_REGACK ) {
+	    iaxc_usermsg(IAXC_STATUS, "Registration accepted");
+	} else if(e->etype == IAX_EVENT_REGREJ ) {
+	    iaxc_usermsg(IAXC_STATUS, "Registration rejected");
+	}
+#else // IAX1
+
+	if(e->event.regreply.status == IAX_REG_SUCCESS)
+	    iaxc_usermsg(IAXC_STATUS, "Registration accepted");
+	else if(e->event.regreply.status == IAX_REG_REJECT)
+	    iaxc_usermsg(IAXC_STATUS, "Registration rejected");
+	    // XXX should remove from registrations list?
+	else if(e->event.regreply.status == IAX_REG_TIMEOUT)
+	    iaxc_usermsg(IAXC_STATUS, "Registration timed out");
+	else
+	    iaxc_usermsg(IAXC_ERROR, "Unknown registration event");
+#endif
+    }
+
+    // XXX I think the session is no longer valid.. at least, that's
+    // what miniphone does, and re-using the session doesn't seem to
+    // work!
+    cur->session = NULL;
+}
+
+
 static void do_iax_event() {
 	struct iax_event *e = 0;
 	int callNo;
+	struct iax_session *session;
 
 	while ( (e = iax_get_event(0))) {
+		// first, see if this is an event for one of our calls.
 		callNo = iaxc_find_call_by_session(e->session);
 		if(callNo >= 0) {
 			iaxc_handle_network_event(e, callNo);
-			iax_event_free(e);
-		} else {
-			if(e->etype != IAX_EVENT_CONNECT) {
-				iaxc_usermsg(IAXC_STATUS, "Huh? This is an event for a non-existant session?");
-			}
+		} else if 
+#ifndef IAXC_IAX2
+		( e->etype == IAX_EVENT_REGREP )
+#else 
+		((e->etype == IAX_EVENT_REGACK ) || (e->etype == IAX_EVENT_REGREJ ))
+#endif
+		{ 
+		    iaxc_handle_regreply(e);
+		} else if(e->etype == IAX_EVENT_REGREQ ) {
+			iaxc_usermsg(IAXC_ERROR, "Registration requested by someone, but we don't understand!");
+		} else  if(e->etype == IAX_EVENT_CONNECT) {
 			
 			callNo = iaxc_next_free_call();
 
@@ -540,6 +691,7 @@ static void do_iax_event() {
 				iaxc_usermsg(IAXC_STATUS, "Incoming Call, but no appearances");
 				// XXX Reject this call!, or just ignore?
 				iax_reject(e->session, "Too many calls, we're busy!");
+				goto bail;
 			}
 
 #ifndef IAXC_IAX2			  
@@ -576,7 +728,7 @@ static void do_iax_event() {
 			calls[callNo].gsmin = 0;
 			calls[callNo].gsmout = 0;
 			calls[callNo].session = e->session;
-			calls[callNo].state = IAXC_CALL_STATE_ACTIVE;
+			calls[callNo].state = IAXC_CALL_STATE_ACTIVE|IAXC_CALL_STATE_RINGING;
 
 
 			// should we even accept?  or, we accept, but
@@ -584,11 +736,15 @@ static void do_iax_event() {
 			iax_accept(calls[callNo].session);
 			iax_ring_announce(calls[callNo].session);
 
-			// should we select this call?
-			iaxc_select_call(callNo);
+			iaxc_do_state_callback(callNo);
+
 			iaxc_usermsg(IAXC_STATUS, "Incoming call on line %d", callNo);
-			iax_event_free(e);
+
+		} else {
+			iaxc_usermsg(IAXC_STATUS, "Event (type %d) for a non-existant session.  Dropping", e->etype);
 		}
+bail:
+		iax_event_free(e);
 	}
 }
 

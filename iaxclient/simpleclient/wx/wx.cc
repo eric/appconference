@@ -6,6 +6,8 @@
 #endif 
 
 #include "wx/cmdline.h"
+#include "wx/listctrl.h"
+#include "wx/tokenzr.h"
 #include "iaxclient.h"
 
 
@@ -72,8 +74,9 @@ enum
     ID_PTT = 300,
     ID_MUTE,
     ID_SILENCE,
+    ID_REGISTER,
 
-    ID_CALLBOX = 400,
+    ID_CALLS = 400,
 
     CALLBACK_STATUS = 1000,
     CALLBACK_LEVELS,
@@ -93,6 +96,115 @@ class IAXTimer : public wxTimer
 };
 
 
+class IAXCalls : public wxListCtrl
+{
+    public:
+      IAXCalls(wxWindow *parent, int nCalls);
+      void IAXCalls::OnSelect(wxListEvent &evt);
+      int IAXCalls::OnStateCallback(struct iaxc_ev_call_state c);
+      inline void IAXCalls::AutoSize() {
+	for(int i=0;i<nCalls;i++)
+	  SetColumnWidth(i,wxLIST_AUTOSIZE);
+      }
+
+      int nCalls;
+
+protected:
+    DECLARE_EVENT_TABLE()
+};
+
+BEGIN_EVENT_TABLE(IAXCalls, wxListCtrl)
+	EVT_LIST_ITEM_SELECTED(ID_CALLS, IAXCalls::OnSelect)
+END_EVENT_TABLE()
+
+IAXCalls::IAXCalls(wxWindow *parent, int inCalls) 
+  : nCalls(inCalls),
+    wxListCtrl(parent, ID_CALLS, 
+      wxDefaultPosition, wxDefaultSize, wxLC_REPORT|wxLC_SINGLE_SEL, 
+      wxDefaultValidator, _T("calls"))
+{
+  // initialze IAXCalls control    
+  long i;
+
+  wxListItem item;
+  item.m_mask = wxLIST_MASK_TEXT | wxLIST_MASK_IMAGE;
+  item.m_image = -1;
+  item.m_text = _T("Call");
+  InsertColumn(0, item);
+  item.m_text = _T("State");
+  InsertColumn(1, item);
+  item.m_text = _T("Remote");
+  InsertColumn(2, item);
+
+  Hide();
+  for(i=0;i<nCalls;i++) {
+      long tmp = InsertItem(i,wxString::Format("%d", i+1), 0);
+      // XXX ??? SetItemData(tmp,i);
+      SetItem(i, 2, _T("No call"));
+  }
+  Show();
+  AutoSize();
+}
+
+int IAXCalls::OnStateCallback(struct iaxc_ev_call_state c)
+{
+  if (!wxThread::IsMain()) wxMutexGuiEnter();
+
+    fprintf(stderr, "Updating state for item %d state=%x\n", c.callNo, c.state);
+  
+
+    // first, handle inactive calls
+    if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
+	fprintf(stderr, "state for item %d is free\n", c.callNo);
+	SetItem(c.callNo, 2, _T("No call") );
+	SetItem(c.callNo, 1, _T("") );
+    } else {
+	// set remote 
+	SetItem(c.callNo, 2, c.remote );
+
+	bool outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
+	bool ringing = c.state & IAXC_CALL_STATE_RINGING;
+	bool complete = c.state & IAXC_CALL_STATE_COMPLETE;
+
+	if(outgoing) {
+	  if(ringing) 
+	    SetItem(c.callNo, 1, _T("r") );
+	  else if(complete)
+	    SetItem(c.callNo, 1, _T("o") );
+	  else // not accepted yet..
+	    SetItem(c.callNo, 1, _T("c") );
+	} else {
+	  if(ringing) 
+	    SetItem(c.callNo, 1, _T("R") );
+	  else if(complete)
+	    SetItem(c.callNo, 1, _T("I") );
+	  else // not accepted yet..  shouldn't happen!
+	    SetItem(c.callNo, 1, _T("C") );
+	} 
+	// XXX do something more noticable if it's incoming, ringing!
+    }
+    
+    
+    // select if necessary
+    if((c.state & IAXC_CALL_STATE_SELECTED) &&
+	!(GetItemState(c.callNo,wxLIST_STATE_SELECTED|wxLIST_STATE_SELECTED))) 
+    {
+	fprintf(stderr, "setting call %d to selected\n", c.callNo);
+	SetItemState(c.callNo,wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
+    }
+    AutoSize();
+  if (!wxThread::IsMain()) wxMutexGuiLeave();
+
+    return 0;
+}
+
+void IAXCalls::OnSelect(wxListEvent &evt) {
+	int selected = evt.m_itemIndex; //GetSelection();
+	fprintf(stderr, "User Selected item %d\n", selected);
+	iaxc_select_call(selected);
+}
+
+
 class IAXFrame : public wxFrame
 {
 public: 
@@ -106,8 +218,8 @@ public:
     void IAXFrame::OnQuit(wxEvent &evt);
     void IAXFrame::OnPTTChange(wxCommandEvent &evt);
     void IAXFrame::OnSilenceChange(wxCommandEvent &evt);
-    void IAXFrame::OnCallBoxSelect(wxCommandEvent &evt);
     void IAXFrame::OnNotify(void);
+    void IAXFrame::OnRegisterMenu(wxCommandEvent &evt);
 
 
     bool IAXFrame::GetPTTState();
@@ -120,7 +232,7 @@ public:
     wxTextCtrl *iaxDest;
     wxStaticText *muteState;
 
-    wxRadioBox *callBox;
+    IAXCalls *calls;
 
     bool pttMode;  // are we in PTT mode?
     bool pttState; // is the PTT button pressed?
@@ -202,9 +314,18 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     /* NOTE: Mac doesn't use a File/Exit item, and Application/Quit is
 	automatically added for us */
  
-#ifndef __WXMAC__
     wxMenu *fileMenu = new wxMenu();
+    fileMenu->Append(ID_REGISTER, _T("&Register\tCtrl-R"));
+
+// Mac: no quit item (it goes in app menu)
+// Win: "exit" item.
+// Linux and others: Quit.
+#if !defined(__WXMAC__)
+#if defined(__WXMSW__)
     fileMenu->Append(ID_QUIT, _T("E&xit\tCtrl-X"));
+#else
+    fileMenu->Append(ID_QUIT, _T("&Quit\tCtrl-Q"));
+#endif
 #endif
 
     wxMenu *optionsMenu = new wxMenu();
@@ -256,21 +377,11 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     // Add call appearances
     if(wxGetApp().optNumCalls > 1) {
-      int i;
       int nCalls = wxGetApp().optNumCalls;
-      wxString *labels = new wxString[nCalls];
 
-      for(i=0;i<nCalls;i++)
-	  labels[i] = wxString::Format("%d: No Call", i);
-    
-      callBox = new wxRadioBox(aPanel, ID_CALLBOX, _T("Calls"), 
-	  wxDefaultPosition, wxDefaultSize, 
-	  nCalls,  labels, 
-	  1, wxRA_SPECIFY_COLS);
-
-	  topsizer->Add(callBox, 0, wxEXPAND);
-	
+      topsizer->Add(calls = new IAXCalls(this, nCalls), 1, wxEXPAND);
     }
+
 
     /* Destination */
     topsizer->Add(iaxDest = new wxTextCtrl(aPanel, -1, _T("guest@ast1/8068"), 
@@ -383,6 +494,34 @@ void IAXFrame::OnQuit(wxEvent &evt)
 	exit(0);	
 }
 
+void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
+	wxTextEntryDialog dialog(this,
+	    _T("Register with a remote asterisk server"),
+	    _T("Format is user:password@hostname"),
+	    _T("iaxuser:iaxpass@ast1"),
+	    wxOK | wxCANCEL);
+
+	if(dialog.ShowModal() == wxID_OK)
+	{
+	    wxString value = dialog.GetValue();
+	    wxStringTokenizer tok(value, _T(":@"));
+	    char user[256], pass[256], host[256];
+
+	    if(tok.CountTokens() != 3) {
+		theFrame->SetStatusText("error in registration format");
+		return;
+	    }
+
+	    strncpy( user , tok.GetNextToken().c_str(), 256);
+	    strncpy( pass , tok.GetNextToken().c_str(), 256);
+	    strncpy( host , tok.GetNextToken().c_str(), 256);
+
+	    fprintf(stderr, "Registering user %s pass %s host %s\n", 
+		    user, pass, host);
+	    iaxc_register(user, pass, host);
+	}
+}
+
 void IAXFrame::OnPTTChange(wxCommandEvent &evt)
 {
 	pttMode = evt.IsChecked();
@@ -415,10 +554,6 @@ void IAXFrame::OnSilenceChange(wxCommandEvent &evt)
 	}
 }
 
-void IAXFrame::OnCallBoxSelect(wxCommandEvent &evt) {
-	int selected = evt.GetSelection();
-	iaxc_select_call(selected);
-}
 
 
 BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
@@ -440,8 +575,8 @@ BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_MENU(ID_QUIT,IAXFrame::OnQuit)
 	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
 	EVT_MENU(ID_SILENCE,IAXFrame::OnSilenceChange)
+	EVT_MENU(ID_REGISTER,IAXFrame::OnRegisterMenu)
       
-	EVT_RADIOBOX(ID_CALLBOX, IAXFrame::OnCallBoxSelect)
 
 END_EVENT_TABLE()
 
@@ -588,47 +723,6 @@ extern "C" {
      return 1;
    }
 
-   int state_callback(struct iaxc_ev_call_state c)
-   {
-	wxString label;
-
-	label += wxString::Format("%d: ", c.callNo);
-
-	if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
-	    label += _T("No Call");
-	} else {
-	    if(c.state & IAXC_CALL_STATE_COMPLETE)
-	      if(c.state & IAXC_CALL_STATE_OUTGOING)
-		label += _T("O");
-	      else 
-		label += _T("I");
-	    else
-	      if(c.state & IAXC_CALL_STATE_OUTGOING)
-		label += _T("o");
-	      else 
-		label += _T("i");
-
-	    label += wxString::Format(" %s", c.remote); 
-	}
-
-      if (!wxThread::IsMain()) wxMutexGuiEnter();
-#if 0
-#ifdef __WXMSW__  
-	// XXX figure out why MSW has this problem figuring out which method
-        // to call...
-	theFrame->callBox->wxRadioBoxBase::SetLabel(c.callNo, label);
-#else
-	theFrame->callBox->SetLabel(c.callNo, label);
-#endif
-#endif
-	theFrame->callBox->SetString(c.callNo, label);
-	if((c.state & IAXC_CALL_STATE_SELECTED) &&
-	    (theFrame->callBox->GetSelection() != c.callNo))
-	    theFrame->callBox->SetSelection(c.callNo);
-      if (!wxThread::IsMain()) wxMutexGuiLeave();
-
-	return 0;
-   }
 
    int iaxc_callback(iaxc_event e)
    {
@@ -638,7 +732,7 @@ extern "C" {
 	    case IAXC_EVENT_TEXT:
 		return status_callback(e.ev.text.message);
 	    case IAXC_EVENT_STATE:
-		return state_callback(e.ev.call);
+		return theFrame->calls->OnStateCallback(e.ev.call);
 	    default:
 		return 0;  // not handled
 	}
