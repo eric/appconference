@@ -123,7 +123,18 @@ struct iaxc_audio_device {
 	int devID;              /* driver-specific ID */
 };
 
-int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring);
+/* Get audio device information:
+ * 	**devs: a pointer to an array of device structures, as declared above.  function
+ * 	will give you a pointer to the proper array, which will be valid as long as iaxc is
+ * 	initialized.
+ *
+ * 	*nDevs: a pointer to an int, to which the count of devices in the array devs will be
+ * 	written
+ *
+ * 	*input, *output, *ring: the currently selected devices for input, output, ring will
+ * 	be written to the int pointed to by these pointers.
+ */
+int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring); 
 int iaxc_audio_devices_set(int input, int output, int ring);
 
 
