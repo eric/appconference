@@ -1,3 +1,37 @@
+=======================================================================
+INTRODUCTION
+
+This is iaxclient, a portable IAX/IAX2 protocol telephony client library.
+
+The library itself is in the directory "lib", located in the same
+directory as this README file.
+
+The library is designed to build for multiple platforms, and currently
+supports Linux, MacOSX, and Win32 platforms.  It is designed to handle
+the "backend" of IAX telephony operations, including call handling,
+network protocols, audio encoding/decoding, and audio capture/playback.
+In it's future, it may be extended to also handle video encode, decode,
+capture and playback.
+
+There are also sample clients, which use the library, included here.
+
+Currently, these are all stored under the "simpleclient" directory, and
+there are two of them:
+
+simpleclient/testcall:  A simple command-line oriented test program,
+			useful for testing and debugging.   It supports 
+			all of the same platforms as the library itself.
+
+simpleclient/wx:	A wxWindows (see wxwindows.org) based GUI
+			client.  This client also supports all of the
+			same platforms as the library itself.
+
+
+The home page for iaxclient is "http://iaxclient.sourceforge.net/"
+
+Up-to-date versions of iaxclient are available from a sourceforge CVS
+repository.
+
 
 =======================================================================
 LICENSES
@@ -23,15 +57,37 @@ The iaxclient library may also include, when compiled, works distributed
 under other licenses.  See those directories and source files for
 specifics.  These include:
 
-    libiax: 		(c) 199 Mark Spencer under the LGPL.
+    libiax: 		(c) 2001 Mark Spencer under the LGPL.
+    libiax2: 		(c) 2001 Mark Spencer under the LGPL.
     gsm encoder:	Copyright 1992, 1993, 1994 by Jutta Degener 
 			and Carsten Bormann, Technische Universitaet Berlin
 			(free license, terms in gsm/copyright)
     portaudio:		Copyright (c) 1999-2000 Ross Bencina and Phil Burk
 			Modified BSD style license, in portaudio/LICENSE.txt
 
-    resample: 		(not currently used) Copyright 1991 Lance Norskog 
-			And Sundry Contributors, free license in resample.c
+    sox tools: 		compand.c: Copyright 1999 Chris Bagwell And 
+					Nick Bailey
+			resample.c: (not currently used) Copyright 1991
+			Lance Norskog And Sundry Contributors, 
+			free licenses in source files.
+
+
+=======================================================================
+CONTRIBUTORS:
+
+IAXCLIENT itself was contributed to by:
+
+Steve Kann <stevek@stevek.com>
+Shawn Lawrence <shawn.lawrence@terracecomm.com>
+
+In addition to including libiax, IAXCLIENT is also based in part on code
+included in test clients within libiax itself.
+
+The included sub-libraries, including libiax, libiax2, gsm, portaudio,
+and the sox-derived filters, were developed by others, as noted in above
+and in their sources.  We couldn't have built IAXCLIENT (or, it would
+have been much more difficult!) without the great work from these
+projects.
 
 =======================================================================
 BUILDING THE LIBRARY:
@@ -46,12 +102,11 @@ The Win32 build has been tested using the Cygwin Environment, and the
 MinGW port of the GCC compiler suite.  
 
 See http://www.mingw.org/mingwfaq.shtml#faq-usingwithcygwin for the
-MinGW FAQ entry on using MinGW with Cygwin.
+MinGW FAQ entry on using MinGW with Cygwin.  You do need to make sure
+that you install the Gnu "make" utility when you install cygwin.
 
 It should probably also work if you use the MSYS environment and the
-MinGW compiler, but we'd need to change some detection code in the
-environment in order to detect the "uname" string returned by the MSYS
-uname command, or otherwise figure out the platform.
+MinGW compiler, but this configuration is not as well tested.
 
 =======================================================================
 LIBRARY ORGANIZATION/DESIGN/CODING CONVENTION NOTES
@@ -59,12 +114,6 @@ LIBRARY ORGANIZATION/DESIGN/CODING CONVENTION NOTES
 The iaxclient library is designed to be a small, simple library that
 encapsulates all that you need in order to make IAX protocol telephony
 programs.
-
-It is designed to be portable, such that it can run on at least Linux,
-Windows, and MacOSX platforms.
-
-It should include all component libraries needed for IAX, audio,
-network, encoding, etc, but not GUI code of any kind.
 
 All exported symbols should be prefixed with "iaxc_", to avoid namespace
 collisions/pollution in programs using this library.
@@ -88,6 +137,8 @@ library when it it built, and the requirements for building testcall are
 the same as for the library itself.
 
 
+See README files in the other sample clients for directions for building
+these.
 
 
 
