@@ -111,11 +111,12 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
 
     /* Set up Menus */
+    /* NOTE: Mac doesn't use a File/Exit item, and Application/Quit is
+	automatically added for us */
+ 
+#ifndef __WXMAC__
     wxMenu *fileMenu = new wxMenu();
-#ifndef WXMAC
     fileMenu->Append(ID_QUIT, _T("E&xit\tCtrl-X"));
-#else
-    fileMenu->Append(ID_QUIT, _T("&Quit\tCtrl-Q"));
 #endif
 
     wxMenu *optionsMenu = new wxMenu();
@@ -125,7 +126,10 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
    
 
     wxMenuBar *menuBar = new wxMenuBar();
+
+#ifndef __WXMAC__
     menuBar->Append(fileMenu, _T("&File"));
+#endif
     menuBar->Append(optionsMenu, _T("&Options"));
 
     SetMenuBar(menuBar);

@@ -71,7 +71,7 @@ wx$(EXEEXT): $(OBJS) $(LIBS)
 $(PROG).app: $(PROG)
 	mkdir -p $(PROG).app/Contents/MacOS wx.app/Contents/Resources
 	mv $(PROG) $(PROG).app/Contents/MacOS
-	cp `wx-config --prefix`/lib/*.rsrc $(PROG).app/Contents/Resources
+	cp `wx-config --prefix`/lib/libwx_mac*.rsrc $(PROG).app/Contents/Resources/$(PROG).rsrc
 	echo -n "APPL????" > $(PROG).app/Contents/PkgInfo
 	cp Info.plist $(PROG).app/Contents/Info.plist 
 
