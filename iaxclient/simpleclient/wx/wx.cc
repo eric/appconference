@@ -198,68 +198,6 @@ void IAXCalls::OnSize(wxSizeEvent& evt) {
     AutoSize();
 }
 
-int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
-{
-    wxListItem stateItem; // for all the state color
-
-    stateItem.m_itemId = c.callNo;
-
-    // first, handle inactive calls
-    if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
-	//fprintf(stderr, "state for item %d is free\n", c.callNo);
-	SetItem(c.callNo, 2, _T("No call") );
-	SetItem(c.callNo, 1, _T("") );
-	stateItem.SetTextColour(*wxLIGHT_GREY);
-	stateItem.SetBackgroundColour(*wxWHITE);
-    } else {
-	// set remote 
-	SetItem(c.callNo, 2, c.remote );
-
-	
-	bool outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
-	bool ringing = c.state & IAXC_CALL_STATE_RINGING;
-	bool complete = c.state & IAXC_CALL_STATE_COMPLETE;
-
-	if( ringing && !outgoing ) {
-	    stateItem.SetTextColour(*wxBLACK);
-	    stateItem.SetBackgroundColour(*wxRED);
-	} else {
-	    stateItem.SetTextColour(*wxBLUE);
-	    stateItem.SetBackgroundColour(*wxWHITE);
-	}
-
-	if(outgoing) {
-	  if(ringing) 
-	    SetItem(c.callNo, 1, _T("r") );
-	  else if(complete)
-	    SetItem(c.callNo, 1, _T("o") );
-	  else // not accepted yet..
-	    SetItem(c.callNo, 1, _T("c") );
-	} else {
-	  if(ringing) 
-	    SetItem(c.callNo, 1, _T("R") );
-	  else if(complete)
-	    SetItem(c.callNo, 1, _T("I") );
-	  else // not accepted yet..  shouldn't happen!
-	    SetItem(c.callNo, 1, _T("C") );
-	} 
-	// XXX do something more noticable if it's incoming, ringing!
-    }
-   
-    SetItem( stateItem ); 
-    
-    // select if necessary
-    if((c.state & IAXC_CALL_STATE_SELECTED) &&
-	!(GetItemState(c.callNo,wxLIST_STATE_SELECTED|wxLIST_STATE_SELECTED))) 
-    {
-	//fprintf(stderr, "setting call %d to selected\n", c.callNo);
-	SetItemState(c.callNo,wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
-    }
-    AutoSize();
-    Refresh();
-
-    return 0;
-}
 
 void IAXCalls::OnSelect(wxListEvent &evt) {
 	int selected = evt.m_itemIndex; //GetSelection();
@@ -321,6 +259,73 @@ protected:
 };
 
 static IAXFrame *theFrame;
+
+int IAXCalls::HandleStateEvent(struct iaxc_ev_call_state c)
+{
+    wxListItem stateItem; // for all the state color
+
+    stateItem.m_itemId = c.callNo;
+
+    if(c.state & IAXC_CALL_STATE_RINGING) {
+      theFrame->Raise();
+    }
+
+    // first, handle inactive calls
+    if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
+	//fprintf(stderr, "state for item %d is free\n", c.callNo);
+	SetItem(c.callNo, 2, _T("No call") );
+	SetItem(c.callNo, 1, _T("") );
+	stateItem.SetTextColour(*wxLIGHT_GREY);
+	stateItem.SetBackgroundColour(*wxWHITE);
+    } else {
+	// set remote 
+	SetItem(c.callNo, 2, c.remote );
+
+	
+	bool outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
+	bool ringing = c.state & IAXC_CALL_STATE_RINGING;
+	bool complete = c.state & IAXC_CALL_STATE_COMPLETE;
+
+	if( ringing && !outgoing ) {
+	    stateItem.SetTextColour(*wxBLACK);
+	    stateItem.SetBackgroundColour(*wxRED);
+	} else {
+	    stateItem.SetTextColour(*wxBLUE);
+	    stateItem.SetBackgroundColour(*wxWHITE);
+	}
+
+	if(outgoing) {
+	  if(ringing) 
+	    SetItem(c.callNo, 1, _T("r") );
+	  else if(complete)
+	    SetItem(c.callNo, 1, _T("o") );
+	  else // not accepted yet..
+	    SetItem(c.callNo, 1, _T("c") );
+	} else {
+	  if(ringing) 
+	    SetItem(c.callNo, 1, _T("R") );
+	  else if(complete)
+	    SetItem(c.callNo, 1, _T("I") );
+	  else // not accepted yet..  shouldn't happen!
+	    SetItem(c.callNo, 1, _T("C") );
+	} 
+	// XXX do something more noticable if it's incoming, ringing!
+    }
+   
+    SetItem( stateItem ); 
+    
+    // select if necessary
+    if((c.state & IAXC_CALL_STATE_SELECTED) &&
+	!(GetItemState(c.callNo,wxLIST_STATE_SELECTED|wxLIST_STATE_SELECTED))) 
+    {
+	//fprintf(stderr, "setting call %d to selected\n", c.callNo);
+	SetItemState(c.callNo,wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
+    }
+    AutoSize();
+    Refresh();
+
+    return 0;
+}
 
 void IAXFrame::OnNotify()
 {
