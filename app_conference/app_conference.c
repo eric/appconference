@@ -532,11 +532,11 @@ static int conference_exec(struct ast_channel *chan, void *data)
 	}
 	
 	for (;;) {
+		gettimeofday(&time1,NULL);
 		if (ast_check_hangup(chan) == 1) {
 		    break;
 		}
 		ms = AST_CONF_LATENCY;
-		gettimeofday(&time1,NULL);
 		rest = ast_waitfor(chan, ms);
 		gettimeofday(&time2,NULL);
 
@@ -547,8 +547,8 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		    dus = (time2.tv_sec * 1000000 + time2.tv_usec) - (time1.tv_sec * 1000000 + time1.tv_usec);
 		} else {
 		    // and all the others...
-		    dms = (time2.tv_sec * 1000 + time2.tv_usec / 1000) - (oldtimer.tv_sec * 1000 + oldtimer.tv_usec / 1000);
-		    dus = (time2.tv_sec * 1000000 + time2.tv_usec) - (oldtimer.tv_sec * 1000000 + oldtimer.tv_usec);
+		    dms = (time1.tv_sec * 1000 + time1.tv_usec / 1000) - (oldtimer.tv_sec * 1000 + oldtimer.tv_usec / 1000);
+		    dus = (time1.tv_sec * 1000000 + time1.tv_usec) - (oldtimer.tv_sec * 1000000 + oldtimer.tv_usec);
 		    dus += urest;
 		}
 
@@ -587,15 +587,13 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		//    ast_log(LOG_NOTICE,"mod = %d\n",(time3.tv_usec - time2.tv_usec));
 		} else {
 		}
-		    oldtimer.tv_sec = time1.tv_sec;
-		    oldtimer.tv_usec = time1.tv_usec;
 		urest = dus % 1000;
 		dms = dus / 1000;
 		// lets find that missing 1ms
-		if (urest > 500) {
+	/*	if (urest > 500) {
 		    urest = 0;
 		    dms++;
-		}
+		} */
 	    if (dms >= AST_CONF_MIN_MS) {
 		send_audio(conference,member,dms);
 		if (member->priority == 3) {
@@ -604,6 +602,8 @@ static int conference_exec(struct ast_channel *chan, void *data)
 	    } else {
 		urest += dms * 1000;
 	    }
+	    oldtimer.tv_sec = time1.tv_sec;
+	    oldtimer.tv_usec = time1.tv_usec;
 	} // for
 	
 	if (member != NULL) {
