@@ -57,6 +57,15 @@
 #include "iax-client.h"
 #include "md5.h"
 
+/*
+	work around jitter-buffer shrinking in asterisk:
+	channels/chan_iax2.c:schedule_delivery() shrinks jitter buffer by 2.
+	this causes frames timestamped 1ms apart to ( sometimes ) be delivered 
+	out of order, and results in garbled audio. our temporary fix is to increase
+	the minimum number of ( timestamped ) milliseconds between frames to 3 ( 2 + 1 ).
+*/
+#define IAX_MIN_TIMESTAMP_INCREMENT 3
+
 /* Define socket options for IAX2 sockets, based on platform
  * availability of flags */
 #ifdef WIN32
@@ -451,7 +460,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts)
 	/* Never send a packet with the same timestamp since timestamps can be used
 	   to acknowledge certain packets */
     	if ((unsigned) ms <= session->lastsent)
-		ms = session->lastsent + 1;
+		ms = session->lastsent + IAX_MIN_TIMESTAMP_INCREMENT ;
 
 	/* Record the last sent packet for future reference */
 	session->lastsent = ms;
