@@ -1,5 +1,5 @@
 
-CFLAGS=-Igsm/inc -Ilibiax/src
+CFLAGS=-Igsm/inc -Ilibiax/src -Iportaudio/pa_common
 
 OBJS=\
 	libiax/src/md5.o \
@@ -22,14 +22,23 @@ OBJS=\
 	gsm/src/rpe.o \
 	gsm/src/short_term.o \
 	gsm/src/table.o \
+	portaudio/pa_common/pa_lib.o \
 	iaxclient_lib.o 
 
 OBJS_WIN32=\
 	audio_win32.o \
 	winfuncs.o \
+	portaudio/pa_win_wmme/pa_win_wmme.o
 
-OBJS_LINUX=
-OBJS_MACOSX=
+
+OBJS_LINUX=\
+	portaudio/pa_unix_oss/pa_unix_oss.o \
+	portaudio/pa_unix_oss/pa_unix.o 
+
+OBJS_MACOSX=\
+	portaudio/pa_mac_core/pa_mac_core.o \
+	portaudio/pablio/ringbuffer.o
+	
 
 LIB=libiaxclient.a
 
