@@ -66,7 +66,12 @@ static int sample_rate = 8000;
 #define ECHO_TAIL	  4096 /* echo_tail length, in frames must be pow(2) for mec/span ? */
 
 /* RingBuffer Size; Needs to be Pow(2), 1024 = 512 samples = 64ms */
-#define RBSZ 32768 
+#define OUTRBSZ 32768 
+
+/* Input ringbuffer size;  this doesn't seem to be as critical, and making it big
+ * causes issues when we're answering calls, etc., and the audio system is running
+ * but not being drained */
+#define INRBSZ  2048
 
 /* TUNING:  The following constants may help in tuning for situations
  * where you are getting audio-level under/overruns.
@@ -79,7 +84,7 @@ static int sample_rate = 8000;
  * RBOUTTARGET:  This a target size of the output ringbuffer, in milliseconds, 
  * where audio for your speakers goes after being decoded and mixed, and
  * before the audio callback asks for it.  It can get larger than this
- * (up to RBSZ, above), but when it does, for a bit, we will start
+ * (up to OUTRBSZ, above), but when it does, for a bit, we will start
  * dropping some frames.  For no drops at all, this needs to be set to
  * contain the number of samples in your largest scheduling gap
  *
@@ -102,7 +107,7 @@ static int sample_rate = 8000;
 // try setting this to our RBOUTMAXSZ?
 //#define PA_NUMBUFFERS (RBOUTMAXSZ / (2*SAMPLES_PER_FRAME))
 //
-static char inRingBuf[RBSZ], outRingBuf[RBSZ];
+static char inRingBuf[INRBSZ], outRingBuf[OUTRBSZ];
 static RingBuffer inRing, outRing;
 
 static int outRingLenAvg;
@@ -586,6 +591,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
       );
     if( err != paNoError ) 
     {
+	Pa_CloseStream(iStream);
 	handle_paerror(err, "opening separate output stream");
 	return -1;
     }
@@ -636,11 +642,18 @@ int pa_start (struct iaxc_audio_driver *d ) {
 	
     //fprintf(stderr, "starting pa\n");
 
-    if(errcnt >= 5) {
+    if(errcnt > 5) {
 	iaxc_usermsg(IAXC_TEXT_TYPE_FATALERROR,
 		"iaxclient audio: Can't open Audio Device, we tried 5 times.  Perhaps you do not have an input or output device?");
-	return -1; // Give Up.  Too many errors.
+	/* OK, we'll give the application the option to abort or not here, but we will throw a fatal error
+	 * anyway */
+	iaxc_millisleep(1000);
+	//return -1; // Give Up.  Too many errors.
     }
+
+    /* flush the ringbuffers */
+    RingBuffer_Init(&inRing, INRBSZ, inRingBuf);
+    RingBuffer_Init(&outRing, OUTRBSZ, outRingBuf);
 
     if(pa_openstreams(d))  {
 	errcnt++;
@@ -917,8 +930,8 @@ int pa_initialize (struct iaxc_audio_driver *d, int sr) {
 
     
 
-    RingBuffer_Init(&inRing, RBSZ, inRingBuf);
-    RingBuffer_Init(&outRing, RBSZ, outRingBuf);
+    RingBuffer_Init(&inRing, INRBSZ, inRingBuf);
+    RingBuffer_Init(&outRing, OUTRBSZ, outRingBuf);
 
     running = 0;
 
