@@ -76,6 +76,8 @@ specifics.  These include:
 			resample.c: (not currently used) Copyright 1991
 			Lance Norskog And Sundry Contributors, 
 			free licenses in source files.
+    libspeex:		(c) various authors
+			BSD-like license.
 
 
 =======================================================================
