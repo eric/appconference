@@ -228,7 +228,7 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
         CFStringRef resPath = CFURLCopyFileSystemPath(resDirAbs, kCFURLPOSIXPathStyle);
         char path[1024];
         CFStringGetCString(resPath, path, 1024, kCFStringEncodingASCII);
-        xrc_subdirectory = wxString(path) + wxFILE_SEP_PATH + xrc_subdirectory;
+        xrc_subdirectory = wxString(path) + wxFILE_SEP_PATH + "rc";
     }
 #endif
 
