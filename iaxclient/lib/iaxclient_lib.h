@@ -21,6 +21,10 @@
 #include <pthread.h>
 #endif
 
+#if (SPEEX_PREPROCESS == 1)
+#include "libspeex/speex_preprocess.h"
+#endif
+
 #include <stdio.h>
 
 

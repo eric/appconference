@@ -43,21 +43,53 @@ static int input_postprocess(void *audio, int len, void *out)
     unsigned long ilen,olen;
     double volume;
     static double lowest_volume = 1;
+#if SPEEX_PREPROCESS
+    int silent;
+    static SpeexPreprocessState *st = NULL;
+    int i;
+    if(!st) {
+	st = speex_preprocess_state_init(160,8000);
+	i = 1;
+	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_VAD, &i);
+	i = 1;
+	speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_AGC, &i);
+    }
+    silent = !speex_preprocess(st, audio, NULL);
+//if(silent) fprintf(stderr, "silent\n"); else fprintf(stderr, "VOICE\n");
+#endif
 
     if(!input_compand) {
 	char *argv[5];
+#ifdef SPEEX_PREPROCESS
+	/* in this case, we just use the compander for the volume
+	 * meters.. */
+	argv[0] = strdup("0.05,0.1"); /* attack, decay */
+	argv[1] = strdup("-90,-90,0,0"); /* transfer function */
+	st_compand_start(&input_compand, argv, 2);
+#else
+
 	argv[0] = strdup("0.04,0.3"); /* attack, decay */
 	argv[1] = strdup("-90,-90,-50,-60,-30,-10,0,-5"); /* transfer function */
 	argv[2] = strdup("0"); /* gain */
 	argv[3] = strdup("0"); /* init volume */
 	argv[4] = strdup("0.04"); /* delay */
-
 	st_compand_start(&input_compand, argv, 5);
+#endif
+
     }
 
 
     ilen=olen=len;
+/* this is ugly.  Basically just don't get volume level if speex thought
+ * we were silent.  just set it to 0 in that case */
+#ifdef SPEEX_PREPROCESS
+    if(!silent)
+#endif
     st_compand_flow(input_compand, audio, out, &ilen, &olen);
+
+#ifdef SPEEX_PREPROCESS
+    else *input_compand->volume = 0;
+#endif
 
     /* until the compander fills it's buffer, it might not put out full
      * buffers worth of data.  So, clear it unless it's all valid 
@@ -72,7 +104,11 @@ static int input_postprocess(void *audio, int len, void *out)
     if(volume < lowest_volume) lowest_volume = volume;
 
     if(iaxc_silence_threshold > 0)
+#ifdef SPEEX_PREPROCESS
+	return silent;
+#else
 	return volume < lowest_volume + 5;
+#endif
     else
 	return volume < iaxc_silence_threshold;
 }

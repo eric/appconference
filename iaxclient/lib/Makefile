@@ -2,6 +2,8 @@
 # set to 2 for IAX2
 IAXVER=2
 
+SPEEX_PREPROCESS=1
+
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
 
 CFLAGS:= $(CFLAGS) -g
@@ -111,6 +113,12 @@ else
 OBJS:= $(OBJS) $(OBJS_IAX2)
 CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT 
 endif
+
+ifeq ($(SPEEX_PREPROCESS),1)
+OBJS:= $(OBJS) libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
+CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
+endif
+
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)
 
