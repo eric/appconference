@@ -21,10 +21,11 @@ extern "C" {
 #endif
 
 /* configuration constants */
-#define JB_HISTORY_LONGSZ	10
-#define JB_HISTORY_SHORTSZ	150
-#define JB_HISTORY_SHORTTM	2500
-#define JB_HISTORY_DROPPCT	2
+#define JB_HISTORY_SZ		500
+#define JB_HISTORY_DROPPCT	3
+#define JB_HISTORY_DROPPCT_MAX	4
+#define JB_HISTORY_MAXBUF_SZ	JB_HISTORY_SZ * JB_HISTORY_DROPPCT_MAX / 100 
+
 
 /* return codes */
 #define JB_OK		0
@@ -71,11 +72,12 @@ typedef struct jitterbuf {
 	jb_info info;
 
 	/* history */
-	long hist_longmax[JB_HISTORY_LONGSZ];	/* history buckets */
-	long hist_longmin[JB_HISTORY_LONGSZ];	/* history buckets */
-	long hist_short[JB_HISTORY_SHORTSZ];   /* short-term history */
-	long hist_ts;				/* effective start time of short-term history */
-	int  hist_shortcur;			/* current index into short-term history */
+	long history[JB_HISTORY_SZ];   		/* history */
+	int  hist_ptr;				/* points to index in history for next entry */
+	long hist_maxbuf[JB_HISTORY_MAXBUF_SZ];	/* a sorted buffer of the max delays */
+	long hist_minbuf[JB_HISTORY_MAXBUF_SZ];	/* a sorted buffer of the min delays */
+	int  hist_maxbuf_valid;			/* are the "maxbuf"/minbuf valid? */
+
 
 	jb_frame *frames; 		/* queued frames */
 	jb_frame *free; 		/* free frames (avoid malloc?) */

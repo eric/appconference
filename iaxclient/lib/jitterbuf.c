@@ -103,80 +103,123 @@ static void history_put(jitterbuf *jb, long ts, long now) {
     /* don't add special/negative times to history */
     if(ts <= 0) return;
 
-    /* rotate long-term history as needed */
-    while( (now - jb->hist_ts) > JB_HISTORY_SHORTTM) 
-    {
-	jb->hist_ts += JB_HISTORY_SHORTTM;
+    jb->history[(jb->hist_ptr++) % JB_HISTORY_SZ] = now - ts;
+    jb->hist_maxbuf_valid = 0;
+}
 
-	/* rotate long-term history */
-	memmove(&(jb->hist_longmax[1]), &(jb->hist_longmax[0]), (JB_HISTORY_LONGSZ-1) * sizeof(jb->hist_longmax[0]));
-	memmove(&(jb->hist_longmin[1]), &(jb->hist_longmin[0]), (JB_HISTORY_LONGSZ-1) * sizeof(jb->hist_longmin[0]));
+static void history_calc_maxbuf(jitterbuf *jb) {
+    int i,j,p;
 
-	/* move current short-term history to long-term */
-	if(jb->hist_shortcur > 2) {
-	    qsort(jb->hist_short,jb->hist_shortcur,sizeof(long),longcmp);
-	    /* intentionally drop PCT from max */
-	    jb->hist_longmax[0] = jb->hist_short[jb->hist_shortcur-1-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
-	    jb->hist_longmin[0] = jb->hist_short[0];
-	    if(jb->hist_longmax[0] < jb->hist_longmin[0]) fprintf(stderr, "ERROR!!!!!!!!");
-	    jb_dbg("history: rotating, short-term was %ld %ld (%ld)\n", 
-		jb->hist_longmax[0], jb->hist_longmin[0], 
-		jb->hist_longmax[0]-jb->hist_longmin[0]);
-	    jb_dbginfo(jb);
-	  //jb_warnqueue(jb);
+    if(jb->hist_ptr == 0) return;
 
-	    /* clear short-term */
-	    jb->hist_shortcur = 0;
-	} else {
-	    /* XXX what should we do here? */
-	    /* just keep the old values for long-term? */
-	}
 
+    /* initialize maxbuf/minbuf to the latest value */
+    for(i=0;i<JB_HISTORY_MAXBUF_SZ;i++) {
+/*
+ * jb->hist_maxbuf[i] = jb->history[(jb->hist_ptr-1) % JB_HISTORY_SZ];
+ * jb->hist_minbuf[i] = jb->history[(jb->hist_ptr-1) % JB_HISTORY_SZ];
+ */
+      jb->hist_maxbuf[i] = JB_LONGMIN;
+      jb->hist_minbuf[i] = JB_LONGMAX;
     }
 
-    /* add this entry, if it's in the window */
-    if(jb->hist_shortcur < JB_HISTORY_SHORTSZ)
-	jb->hist_short[jb->hist_shortcur++] = now - ts;
+    /* use insertion sort to populate maxbuf */
+    /* we want it to be the top "n" values, in order */
 
+    /* start at the beginning, or JB_HISTORY_SZ frames ago */
+    i = (jb->hist_ptr > JB_HISTORY_SZ) ? (jb->hist_ptr - JB_HISTORY_SZ) : 0; 
+
+    for(;i<jb->hist_ptr;i++) {
+	long toins = jb->history[i % JB_HISTORY_SZ];
+
+	/* if the maxbuf should get this */
+	if(toins > jb->hist_maxbuf[JB_HISTORY_MAXBUF_SZ-1])  {
+
+	    /* insertion-sort it into the maxbuf */
+	    for(j=0;j<JB_HISTORY_MAXBUF_SZ;j++) {
+		/* found where it fits */
+		if(toins > jb->hist_maxbuf[j]) {
+		    /* move over */
+		    memmove(jb->hist_maxbuf+j+1,jb->hist_maxbuf+j, (JB_HISTORY_MAXBUF_SZ-(j+1)) * sizeof(long));
+		    /* insert */
+		    jb->hist_maxbuf[j] = toins;
+
+		    break;
+		}
+	    }
+	}
+
+	/* if the minbuf should get this */
+	if(toins < jb->hist_minbuf[JB_HISTORY_MAXBUF_SZ-1])  {
+
+	    /* insertion-sort it into the maxbuf */
+	    for(j=0;j<JB_HISTORY_MAXBUF_SZ;j++) {
+		/* found where it fits */
+		if(toins < jb->hist_minbuf[j]) {
+		    /* move over */
+		    memmove(jb->hist_minbuf+j+1,jb->hist_minbuf+j, (JB_HISTORY_MAXBUF_SZ-(j+1)) * sizeof(long));
+		    /* insert */
+		    jb->hist_minbuf[j] = toins;
+
+		    break;
+		}
+	    }
+	}
+
+	if(0) { 
+	  int k;
+	  fprintf(stderr, "toins = %d\n", toins);
+	  fprintf(stderr, "maxbuf =");
+	  for(k=0;k<JB_HISTORY_MAXBUF_SZ;k++) 
+	      fprintf(stderr, "%d ", jb->hist_maxbuf[k]);
+	  fprintf(stderr, "\nminbuf =");
+	  for(k=0;k<JB_HISTORY_MAXBUF_SZ;k++) 
+	      fprintf(stderr, "%d ", jb->hist_minbuf[k]);
+	  fprintf(stderr, "\n");
+	}
+    }
+
+    jb->hist_maxbuf_valid = 1;
 }
 
 static void history_get(jitterbuf *jb) {
-    int i,n;
-    long max = JB_LONGMIN;
-    long min = JB_LONGMAX;
-    long jitter = 0;
+    long max, min, jitter;
+    int index;
+    int count;
 
-    if(jb->hist_shortcur > 0) {
-      qsort(jb->hist_short,jb->hist_shortcur,sizeof(long),longcmp);
-      min = jb->hist_short[0];
-      max = jb->hist_short[jb->hist_shortcur-1-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
-      jitter = max - min;
+    if(!jb->hist_maxbuf_valid) 
+      history_calc_maxbuf(jb);
+
+    /* count is how many items in history we're examining */
+    count = (jb->hist_ptr < JB_HISTORY_SZ) ? jb->hist_ptr : JB_HISTORY_SZ;
+
+    /* index is the "n"ths highest/lowest that we'll look for */
+    index = count * JB_HISTORY_DROPPCT / 100;
+
+    /* sanity checks for index */
+    if(index > (JB_HISTORY_MAXBUF_SZ - 1)) index = JB_HISTORY_MAXBUF_SZ - 1;
+
+
+    if(index < 0) {
+      jb->info.min = 0;
+      jb->info.jitter = 0;
+      return;
     }
 
-    n = jb->hist_ts/JB_HISTORY_SHORTTM;
-    if(n > JB_HISTORY_LONGSZ) n = JB_HISTORY_LONGSZ;
+    max = jb->hist_maxbuf[index];
+    min = jb->hist_minbuf[index];
 
+    jitter = max - min;
 
-    /* Look at historical jitter;  we're specifically only looking at jitter here, (not min and max),
-     * and damping its effect on our calculation */
-    for(i=0;i<n;i++) {
-      int jit = jb->hist_longmax[i] - jb->hist_longmin[i];
-      if(jit > jitter + 40) {
-	  /* add less and less of this higher jitter, depending on how "old" the measurement is */
-	  /* jb_dbg("historical[%d] = %d, jit was %d\n", i, jit, jitter); */
-	  jitter += 2 * (jit - jitter) / (2 + i); 
-      } else if (jit > jitter) {
-	  jitter = jit;
-      }
-    }
-
-    /* not enough history.. */
-    if(n == 0 && jb->hist_shortcur == 0) {
-	min = max = jitter = 0;
-    }
+    /* these debug stmts compare the difference between looking at the absolute jitter, and the
+     * values we get by throwing away the outliers */
+    /*
+    fprintf(stderr, "[%d] min=%d, max=%d, jitter=%d\n", index, min, max, jitter);
+    fprintf(stderr, "[%d] min=%d, max=%d, jitter=%d\n", 0, jb->hist_minbuf[0], jb->hist_maxbuf[0], jb->hist_maxbuf[0]-jb->hist_minbuf[0]);
+    */
 
     jb->info.min = min;
-    jb->info.jitter = jitter;;
+    jb->info.jitter = jitter;
 }
 
 static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts) {
