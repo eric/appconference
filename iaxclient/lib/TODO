@@ -34,7 +34,22 @@ TODO items:
 	really robust enough for our needs once we do this stuff.
 
 
-2) Call handling:
+
+2) Codecs:  (I think that someone is working on this)
+
+	Currently, the library assumes that all calls will be GSM only,
+	and further assumes that all frames will be 20ms.  It can
+	control the frame size (within reason) for frames it sends out,
+	but should deal gracefully with incoming frames that aren't
+	20ms.
+
+	Codecs should probably be implemented via a similar set of
+	structure abstractions as audio drivers, above.  They also need
+	to handle incoming packets which may switch formats abruptly(?).
+
+DONE (or, at least, mostly done):
+==============================================================
+Call handling 
 	currently, the library really only supports one call, and not
 	very well.  It should have a collection of calls (either an
 	array, or a linked list), and keep track of the current state of
@@ -62,19 +77,7 @@ TODO items:
 	testcall would just ask for a single call, so it wouldn't have
 	to worry about a lot of this.
 
-3) Codecs:  (I think that someone is working on this)
-
-	Currently, the library assumes that all calls will be GSM only,
-	and further assumes that all frames will be 20ms.  It can
-	control the frame size (within reason) for frames it sends out,
-	but should deal gracefully with incoming frames that aren't
-	20ms.
-
-	Codecs should probably be implemented via a similar set of
-	structure abstractions as audio drivers, above.  They also need
-	to handle incoming packets which may switch formats abruptly(?).
-
-4) Events:
+Events:
 	We might want to consolidate the (currently three) callbacks
 	that the library makes to clients, into a single callback, that
 	passes back a structure with event info.  I was thinking of a
