@@ -52,11 +52,23 @@ iaxc_event_callback_t iaxc_event_callback = NULL;
 
 void iaxc_set_silence_threshold(double thr) {
     iaxc_silence_threshold = thr;
+    iaxc_set_speex_filters();
 }
 
 void iaxc_set_audio_output(int mode) {
     iaxc_audio_output_mode = mode;
 }
+
+
+int iaxc_get_filters(void) {
+      return iaxc_filters;
+}
+
+void iaxc_set_filters(int filters) {
+      iaxc_filters = filters;
+      iaxc_set_speex_filters();
+}
+
 
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
       long secs = timeA->tv_sec - timeB->tv_sec;

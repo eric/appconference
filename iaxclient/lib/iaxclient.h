@@ -159,7 +159,15 @@ struct iaxc_sound {
 /* play a sound.  sound = an iaxc_sound structure, ring: 0: play through output device; 1: play through "ring" device */
 int iaxc_play_sound(struct iaxc_sound *sound, int ring);
 
+/* stop sound with ID "id" */
 int iaxc_stop_sound(int id);
+
+
+#define IAXC_FILTER_DENOISE 	(1<<0)
+#define IAXC_FILTER_AGC 	(1<<1)
+#define IAXC_FILTER_ECHO 	(1<<2)
+int iaxc_get_filters(void);
+void iaxc_set_filters(int filters);
 
 
 #ifdef __cplusplus

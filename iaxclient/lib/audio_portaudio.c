@@ -237,6 +237,35 @@ int pa_stop_sound(int soundID) {
   return retval; /* found? */
 }
 
+static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
+{
+#if defined(SPEEX_EC)
+      /* convert buffers to float, echo cancel, convert back */
+      float finBuffer[1024], foutBuffer[1024], fcancBuffer[1024];
+      int i;
+      for(i=0;i<n;i++)
+      {
+	  finBuffer[i] = inputBuffer[i];
+	  foutBuffer[i] = outputBuffer[i];
+      }
+
+      speex_echo_cancel(ec, finBuffer, foutBuffer, fcancBuffer, NULL);
+
+      for(i=0;i<n;i++)
+      {
+	  inputBuffer[i] =  fcancBuffer[i];
+      }
+
+#endif
+
+#if defined(USE_MEC2) || defined(SPAN_EC)
+      int i;
+      for(i=0;i<n;i++) 
+	inputBuffer[i] = echo_can_update(ec, outBuffer[i], inBuffer[i]);
+#endif
+
+}
+
 int pa_callback(void *inputBuffer, void *outputBuffer,
 	    unsigned long framesPerBuffer, PaTimestamp outTime, void *userData ) {
 
@@ -274,58 +303,15 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	/* input overflow might happen here */
 	if(virtualMono) {
 	  stereo2mono(virtualInBuffer, inputBuffer, framesPerBuffer);
-#if defined(SPEEX_EC)
-	  {
-	      /* convert buffers to float, echo cancel, convert back */
-	      float finBuffer[160], foutBuffer[160], fcancBuffer[160];
-	      int i;
-	      for(i=0;i<160;i++)
-	      {
-		  finBuffer[i] = virtualInBuffer[i]/32767.0f;
-		  foutBuffer[i] = virtualOutBuffer[i]/32767.0f;
-	      }
-	      speex_echo_cancel(ec, finBuffer, foutBuffer, fcancBuffer, NULL);
-	      for(i=0;i<160;i++)
-	      {
-		  virtualInBuffer[i] =  (short)(fcancBuffer[i] * 32767.0f);
-	      }
+	  if(iaxc_filters & IAXC_FILTER_ECHO)
+	      iaxc_echo_can(virtualInBuffer, virtualOutBuffer, framesPerBuffer);
 
-	  }
-#endif
-#if defined(USE_MEC2) || defined(SPAN_EC)
-	  {   /* Echo Can, for virtualMono */
-	      int i;
-	      for(i=0;i<framesPerBuffer;i++) 
-		virtualInBuffer[i] = echo_can_update(ec, virtualOutBuffer[i], virtualInBuffer[i]);
-	  }
-#endif
 	  RingBuffer_Write(&inRing, virtualInBuffer, totBytes);
 	} else {
-#if defined(SPEEX_EC)
-	  {
-	      /* convert buffers to float, echo cancel, convert back */
-	      float finBuffer[160], foutBuffer[160], fcancBuffer[160];
-	      int i;
-	      for(i=0;i<160;i++)
-	      {
-		  finBuffer[i] = ((short *)inputBuffer)[i]/32767.0f;
-		  foutBuffer[i] = ((short *)outputBuffer)[i]/32767.0f;
-	      }
-	      speex_echo_cancel(ec, finBuffer, foutBuffer, fcancBuffer, NULL);
-	      for(i=0;i<160;i++)
-	      {
-		  ((short *)inputBuffer)[i] =  (short)(fcancBuffer[i] * 32767.0f);
-	      }
 
-	  }
-#endif
-#if defined(USE_MEC2) || defined(SPAN_EC)
-	  {   /* Echo Can, for mono */
-	      int i;
-	      for(i=0;i<framesPerBuffer;i++) 
-		((short *)inputBuffer)[i] = echo_can_update(ec, ((short *)outputBuffer)[i], ((short *)inputBuffer)[i]);
-	  }
-#endif
+	  if(iaxc_filters & IAXC_FILTER_ECHO)
+	      iaxc_echo_can(inputBuffer, outputBuffer, framesPerBuffer);
+
 	  RingBuffer_Write(&inRing, inputBuffer, totBytes);
 	}
     }
@@ -605,7 +591,7 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     ec = echo_can_create(2048, 0);
 #endif
 #if defined(SPEEX_EC)
-    ec = speex_echo_state_init(160, 500); /* in ms */
+    ec = speex_echo_state_init(FRAMES_PER_BUFFER, 2048); /* in frames */
 #endif
 
     running = 0;
