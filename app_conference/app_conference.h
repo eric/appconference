@@ -13,6 +13,7 @@
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
+ *
  */
 
 #ifndef _ASTERISK_CONF_H
@@ -30,6 +31,7 @@
 #include <asterisk/channel.h>
 #include <asterisk/file.h>
 #include <asterisk/channel_pvt.h>
+#include <asterisk/cli.h>
 
 /* standard includes */
 #include <stdlib.h>
@@ -59,12 +61,24 @@
 #endif
 
 //
+// feature defines
+//
+
+// number of times the last non-silent frame should be 
+// repeated after silence starts
+#define AST_CONF_CACHE_LAST_FRAME 1
+
+//
+// !!! THESE CONSTANTS SHOULD BE CLEANED UP AND CLARIFIED !!!
+//
+
+//
 // sample information for AST_FORMAT_SLINEAR format
 //
 
 #define AST_CONF_SAMPLE_RATE 8000
 #define AST_CONF_SAMPLE_SIZE 16
-#define AST_CONF_SAMPLE_FREQUENCY 20
+#define AST_CONF_FRAME_INTERVAL 20
 
 //
 // so, since we cycle approximately every 20ms, 
@@ -87,7 +101,7 @@
 #define AST_CONF_FRAME_DATA_SIZE 320
 
 // 1000 ms-per-second / 20 ms-per-frame = 50 frames-per-second
-#define AST_CONF_FRAMES_PER_SECOND ( 1000 / AST_CONF_SAMPLE_FREQUENCY )
+#define AST_CONF_FRAMES_PER_SECOND ( 1000 / AST_CONF_FRAME_INTERVAL )
 
 
 //
@@ -98,16 +112,16 @@
 #define AST_CONF_BUFFER_SIZE ( AST_CONF_FRAME_DATA_SIZE + AST_FRIENDLY_OFFSET )
 
 // maximum number of frames queued per member
-#define AST_CONF_MAX_QUEUE 10
+#define AST_CONF_MAX_QUEUE 25
 
 // minimum number of frames queued per member
 #define AST_CONF_MIN_QUEUE 0
 
 // number of queued frames before we start dropping
-#define AST_CONF_QUEUE_DROP_THRESHOLD 5
+#define AST_CONF_QUEUE_DROP_THRESHOLD 4
 
 // number of milliseconds between frame drops
-#define AST_CONF_QUEUE_DROP_TIME_LIMIT 100
+#define AST_CONF_QUEUE_DROP_TIME_LIMIT 750
 
 //
 // timer and sleep values
@@ -115,10 +129,10 @@
 
 // milliseconds we're willing to wait for a channel
 // event before we check for outgoing frames
-#define AST_CONF_WAITFOR_LATENCY 5
+#define AST_CONF_WAITFOR_LATENCY 40
 
 // milliseconds to sleep before trying to process frames
-#define AST_CONF_CONFERENCE_SLEEP 5
+#define AST_CONF_CONFERENCE_SLEEP 40 
 
 // milliseconds to wait between state notification updates
 #define AST_CONF_NOTIFICATION_SLEEP 500
@@ -130,8 +144,8 @@
 // number of frames behind before warning
 #define AST_CONF_OUTGOING_FRAMES_WARN 50
 
-// number of milliseconds off AST_CONF_SAMPLE_FREQUENCY before warning
-#define AST_CONF_FREQUENCY_WARNING 1000
+// number of milliseconds off AST_CONF_FRAME_INTERVAL before warning
+#define AST_CONF_INTERVAL_WARNING 1000
 
 //
 // silence detection values
@@ -171,7 +185,7 @@ int app_conference_main( struct ast_channel* chan, void* data ) ;
 // utility functions
 long usecdiff( struct timeval* timeA, struct timeval* timeB ) ;
 void add_milliseconds( struct timeval* tv, long ms ) ;
-void copy_timeval( struct timeval* target, struct timeval* source ) ;
 
 #endif
+
 
