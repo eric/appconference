@@ -49,6 +49,8 @@ void iaxc_shutdown();
 void iaxc_set_encode_format(int fmt);
 void iaxc_process_calls();
 int iaxc_service_audio();
+int iaxc_start_processing_thread();
+int iaxc_stop_processing_thread();
 void iaxc_call(char *num);
 void iaxc_answer_call(void); 
 void iaxc_dump_call(void);

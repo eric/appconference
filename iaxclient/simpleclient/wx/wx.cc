@@ -50,11 +50,12 @@ enum
     ID_MUTE,
     ID_SUPPRESS,
 
+    CALLBACK_STATUS = 1000,
+    CALLBACK_LEVELS,
+
     ID_MAX
 };
 
-static int inputLevel = 0;
-static int outputLevel = 0;
 
 static char *buttonlabels[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#" };
 
@@ -80,6 +81,7 @@ public:
     void IAXFrame::OnHangup(wxEvent &evt);
     void IAXFrame::OnQuit(wxEvent &evt);
     void IAXFrame::OnPTTChange(wxEvent &evt);
+    void IAXFrame::OnNotify(void);
 
     bool IAXFrame::GetPTTState();
     void IAXFrame::CheckPTT();
@@ -94,6 +96,11 @@ public:
     bool pttMode;  // are we in PTT mode?
     bool pttState; // is the PTT button pressed?
 
+    // values set by callbacks
+    int	      inputLevel;
+    int	      outputLevel;
+    wxString  statusString;
+
 protected:
     DECLARE_EVENT_TABLE()
 
@@ -104,13 +111,33 @@ protected:
 
 static IAXFrame *theFrame;
 
+void IAXFrame::OnNotify()
+{
+    static wxString lastStatus;
+    static int lastInputLevel = 0;
+    static int lastOutputLevel = 0;
+
+    if(pttMode) CheckPTT(); 
+
+    if(statusString != lastStatus) {
+      SetStatusText(statusString);
+      lastStatus = statusString;
+    }
+
+    if(lastInputLevel != inputLevel) {
+      input->SetValue(inputLevel); 
+      lastInputLevel = inputLevel;
+    }
+
+    if(lastOutputLevel != outputLevel) {
+      output->SetValue(outputLevel); 
+      lastOutputLevel = outputLevel;
+    }
+}
+
 void IAXTimer::Notify()
 {
-
-    iaxc_process_calls();
-    // really shouldn't do this so often..
-    static int i=0;
-    if((i++%10==0) && theFrame->pttMode) theFrame->CheckPTT(); 
+    theFrame->OnNotify();
 }
 
 
@@ -125,13 +152,15 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     wxBoxSizer *row1sizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
     pttMode = false;
+    inputLevel = 0;
+    outputLevel = 0;
+    statusString = wxString("Welcome to IAXClient");
 
 
 
     /* add status bar first; otherwise, sizer doesn't take it into
      * account */
     CreateStatusBar();
-    SetStatusText("Welcome to IAXClient!");
 
 
     /* Set up Menus */
@@ -215,7 +244,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 #endif
 
     timer = new IAXTimer();
-    timer->Start(10);
+    timer->Start(100);
     //output = new wxGauge(this, -1, 100); 
 }
 
@@ -281,11 +310,10 @@ void IAXFrame::OnHangup(wxEvent &evt)
 void IAXFrame::OnQuit(wxEvent &evt)
 {
 	iaxc_dump_call();
-	iaxc_process_calls();
 	for(int i=0;i<10;i++) {
 	  iaxc_millisleep(100);
-	  iaxc_process_calls();
 	}
+	iaxc_stop_processing_thread();
 	exit(0);	
 }
 
@@ -299,6 +327,7 @@ void IAXFrame::OnPTTChange(wxEvent &evt)
 	} else {
 		SetPTT(true);	
 		iaxc_set_silence_threshold(DEFAULT_SILENCE_THRESHOLD);
+		iaxc_set_audio_output(0);  // unmute output
 		muteState->SetLabel("PTT Disabled");
 	}
 }
@@ -323,6 +352,8 @@ BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_MENU(ID_QUIT,IAXFrame::OnQuit)
 	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
 
+	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
+
 END_EVENT_TABLE()
 
 IAXFrame::~IAXFrame()
@@ -330,6 +361,7 @@ IAXFrame::~IAXFrame()
 #ifdef __WXGTK__
     gdk_window_destroy(keyStateWindow);
 #endif
+    iaxc_stop_processing_thread();
 }
 
 bool IAXClient::OnInit() 
@@ -350,26 +382,38 @@ bool IAXClient::OnInit()
 
 
 extern "C" {
+
+   /* yes, using member variables, and polling for changes
+    * isn't really a nice way to do callbacks.  BUT, I've tried the
+    * "right" ways, unsuccessfully:
+    *
+    * 1) I've tried using wxGuiMutexEnter/Leave, but that deadlocks (and it should, I guess),
+    * because sometimes these _are_ called in response to GUI events (i.e. the status callback eventually
+    * gets called when you press hang up.
+    *
+    * 2) I've tried using events and ::wxPostEvent, but that also deadlocks (at least on GTK),
+    * because it calls wxWakeUpIdle, which calls wxGuiMutexEnter, which deadlocks also, for some reason.
+    *
+    * So, this isn't ideal, but it works, until I can figure out a better way
+    */
    void status_callback(char *msg)
    {
-      theFrame->SetStatusText(msg);
+      theFrame->statusString = wxString(msg);
    }
 
    int levels_callback(float input, float output)
    {
+
       if (input < LEVEL_MIN)
 	input = LEVEL_MIN; 
       else if (input > LEVEL_MAX)
 	input = LEVEL_MAX;
-      inputLevel = (int)input - (LEVEL_MIN); 
+      theFrame->inputLevel = (int)input - (LEVEL_MIN); 
 
       if (output < LEVEL_MIN)
 	output = LEVEL_MIN; 
       else if (input > LEVEL_MAX)
 	output = LEVEL_MAX;
-      outputLevel = (int)output - (LEVEL_MIN); 
-
-      theFrame->input->SetValue(inputLevel); 
-      theFrame->output->SetValue(outputLevel); 
+      theFrame->outputLevel = (int)output - (LEVEL_MIN); 
    }
 }

@@ -103,6 +103,7 @@ int doTestCall(int argc, char **argv)
 	if(do_levels)
 	  iaxc_set_levels_callback(levels_callback); 
 
+	iaxc_start_processing_thread();
 
 #if 0		
 
