@@ -14,6 +14,11 @@
 #ifndef _ASTERISK_IAX_CLIENT_H
 #define _ASTERISK_IAX_CLIENT_H
 
+#if defined(_MSC_VER)
+/* disable zero-sized array in struct/union warning */
+#pragma warning(disable:4200)
+#endif
+
 #ifndef LINUX
 #define socklen_t int
 #endif
@@ -72,10 +77,21 @@ struct iax_session;
 #define IAX_EVENT_REGREJ  30		/* Registration reply */
 #define IAX_EVENT_LINKURL	31		/* Unlink */
 
+/* moved from iax.c to support attended transfer */
+#define IAX_EVENT_REREQUEST	999
+#define IAX_EVENT_TXREPLY	1000
+#define IAX_EVENT_TXREJECT	1001
+#define IAX_EVENT_TXACCEPT  1002
+#define IAX_EVENT_TXREADY	1003
+
 #define IAX_SCHEDULE_FUZZ 0			/* ms of fuzz to drop */
 
 #ifdef WIN32
+#if defined(_MSC_VER)
+typedef int (__stdcall *sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+#else
 typedef int PASCAL (*sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+#endif
 #else
 typedef int (*sendto_t)(int, const void *, size_t, int, const struct sockaddr *, socklen_t);
 #endif
@@ -89,6 +105,11 @@ struct iax_event {
 	struct iax_ies ies;				/* IE's for IAX2 frames */
 	unsigned char data[0];			/* Raw data if applicable */
 };
+
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
 
 /* All functions return 0 on success and -1 on failure unless otherwise
    specified */
@@ -115,16 +136,12 @@ extern struct iax_event *iax_get_event(int blocking);
 extern int iax_auth_reply(struct iax_session *session, char *password, 
 						char *challenge, int methods);
 
-/* Stop iax, hangup file descriptors, free memory, etc. */
-extern void iax_end(void);
-
 /* Free an event */
 extern void iax_event_free(struct iax_event *event);
 
 struct sockaddr_in;
 
 /* Front ends for sending events */
-extern void iax_set_formats(int fmt);
 extern int iax_send_dtmf(struct iax_session *session, char digit);
 extern int iax_send_voice(struct iax_session *session, int format, char *data, int datalen, int samples);
 extern int iax_send_image(struct iax_session *session, int format, char *data, int datalen);
@@ -155,6 +172,19 @@ extern void iax_destroy(struct iax_session  * session);
 
 extern void iax_enable_debug(void);
 extern void iax_disable_debug(void);
+
+/* For attended trnasfer, application create a new session,
+ * make a call on the new session.
+ * On answer of the new session, call iax_setup_transfer and wait for
+ * IAX_EVENT_TXREADY when both sides are completed succefully or
+ * IAX_EVENT_TXREJECT for either side.
+ * If there are music on hold the it will be stopped by this library.
+ */
+extern int iax_setup_transfer(struct iax_session *s0, struct iax_session *s1);
+
+#if defined(__cplusplus)
+}
+#endif
 
 void iax_set_private(struct iax_session *s, void *pvt);
 void *iax_get_private(struct iax_session *s);

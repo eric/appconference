@@ -20,11 +20,16 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #endif
-#include <string.h>
-#include "frame.h"
+
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
+
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include "frame.h"
 #include "iax2.h"
 #include "iax2-parser.h"
 
