@@ -15,7 +15,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
+
+/* define these here, just for ancient compiler systems */
+#define JB_LONGMAX 2147483647L
+#define JB_LONGMIN (-JB_LONGMAX - 1L)
 
 #define jb_warn(...) (warnf ? warnf(__VA_ARGS__) : (void)0)
 #define jb_err(...) (errf ? errf(__VA_ARGS__) : (void)0)
@@ -29,7 +32,7 @@
 
 static jb_output_function_t warnf, errf, dbgf;
 
-int jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg) {
+void jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg) {
     warnf = warn;
     errf = err;
     dbgf = dbg;
@@ -41,7 +44,7 @@ int jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_
 static void jb_dbginfo(jitterbuf *jb);
 
 
-int jb_reset(jitterbuf *jb) {
+void jb_reset(jitterbuf *jb) {
     memset(jb,0,sizeof(jitterbuf));
 
     /* initialize length */
@@ -66,7 +69,7 @@ void jb_destroy(jitterbuf *jb) {
     jb_dbg2("jb_destroy(%x)\n", jb);
 
     /* free all the frames on the "free list" */
-    frame = jb->free; frame;
+    frame = jb->free;
     while(frame != NULL) {
       jb_frame *next = frame->next;
       free(frame);
@@ -99,7 +102,6 @@ static void history_put(jitterbuf *jb, long ts, long now) {
 
 	/* rotate long-term history */
 	memmove(&(jb->hist_longmax[1]), &(jb->hist_longmax[0]), (JB_HISTORY_LONGSZ-1) * sizeof(jb->hist_longmax[0]));
-
 	memmove(&(jb->hist_longmin[1]), &(jb->hist_longmin[0]), (JB_HISTORY_LONGSZ-1) * sizeof(jb->hist_longmin[0]));
 
 	/* move current short-term history to long-term */
@@ -130,33 +132,43 @@ static void history_put(jitterbuf *jb, long ts, long now) {
 
 }
 
-static long history_get(jitterbuf *jb, long *minptr) {
+static void history_get(jitterbuf *jb) {
     int i,n;
-    long max = LONG_MIN;
-    long min = LONG_MAX;
+    long max = JB_LONGMIN;
+    long min = JB_LONGMAX;
+    long jitter = 0;
 
     if(jb->hist_shortcur > 2) {
       qsort(jb->hist_short,jb->hist_shortcur,sizeof(long),longcmp);
       min = jb->hist_short[0];
       max = jb->hist_short[jb->hist_shortcur-1-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
+      jitter = max - min;
     }
 
     n = jb->hist_ts/JB_HISTORY_SHORTTM;
     if(n > JB_HISTORY_LONGSZ) n = JB_HISTORY_LONGSZ;
 
- 
+
+    /* Look at historical jitter;  we're specifically only looking at jitter here, (not min and max),
+     * and damping its effect on our calculation */
     for(i=0;i<n;i++) {
-      if(jb->hist_longmax[i] > max) max = jb->hist_longmax[i];
-      if(jb->hist_longmin[i] < min) min = jb->hist_longmin[i];
+      int jit = jb->hist_longmax[i] - jb->hist_longmin[i];
+      if(jit > jitter + 40) {
+	  /* add less and less of this higher jitter, depending on how "old" the measurement is */
+	  /* jb_dbg("historical[%d] = %d, jit was %d\n", i, jit, jitter); */
+	  jitter += 2 * (jit - jitter) / (2 + i); 
+      } else if (jit > jitter) {
+	  jitter = jit;
+      }
     }
 
     /* not enough history.. */
     if(n == 0 && jb->hist_shortcur <= 2) {
-	min = max = 0;
+	min = max = jitter = 0;
     }
 
-    if(minptr) *minptr = min;
-    return max-min;
+    jb->info.min = min;
+    jb->info.jitter = jitter;;
 }
 
 static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts) {
@@ -282,6 +294,7 @@ static void jb_dbginfo(jitterbuf *jb) {
 	    jb->info.last_voice_ms);
 }
 
+#ifdef DEEP_DEBUG
 static void jb_chkqueue(jitterbuf *jb) {
     int i=0;
     jb_frame *p = jb->frames;
@@ -317,10 +330,9 @@ static void jb_dbgqueue(jitterbuf *jb) {
 
     jb_dbg("\n");
 }
+#endif
 
 int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
-    long adj;
-
     jb_dbg2("jb_put(%x,%x,%ld,%ld,%ld)\n", jb, data, ms, ts, now);
 
     jb->info.frames_in++;
@@ -343,7 +355,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 
     //if((now - jb_next(jb)) > 2 * jb->info.last_voice_ms) jb_warn("SCHED: %ld", (now - jb_next(jb)));
     /* get jitter info */
-    jb->info.jitter = history_get(jb, &jb->info.min);
+    history_get(jb);
 
 
     /* target */
@@ -493,7 +505,7 @@ long jb_next(jitterbuf *jb) {
     if(jb->info.silence) {
       long next = queue_next(jb);
       if(next > 0) return next + jb->info.current;
-      else return LONG_MAX;
+      else return JB_LONGMAX;
     } else {
       return jb->info.last_voice_ts + jb->info.last_voice_ms;
     }
@@ -526,7 +538,7 @@ int jb_getall(jitterbuf *jb, jb_frame *frameout) {
 
 int jb_getinfo(jitterbuf *jb, jb_info *stats) {
 
-    jb->info.jitter = history_get(jb, NULL);
+    history_get(jb);
 
     *stats = jb->info;
 

@@ -88,7 +88,7 @@ void			jb_destroy(jitterbuf *jb);
 /* reset jitterbuf */
 /* NOTE:  The jitterbuffer should be empty before you call this, otherwise
  * you will leak queued frames, and some internal structures */
-int			jb_reset(jitterbuf *jb);
+void			jb_reset(jitterbuf *jb);
 
 /* queue a frame data=frame data, timings (in ms): ms=length of frame (for voice), ts=ts (sender's time) 
  * now=now (in receiver's time)*/
@@ -116,8 +116,8 @@ int			jb_getinfo(jitterbuf *jb, jb_info *stats);
 /* set jitterbuf info: only "settings" may be honored */
 int			jb_setinfo(jitterbuf *jb, jb_info *settings);
 
-typedef 		int (*jb_output_function_t)(const char *fmt, ...);
-int 			jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg);
+typedef 		void (*jb_output_function_t)(const char *fmt, ...);
+void 			jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg);
 
 #ifdef __cplusplus
 }

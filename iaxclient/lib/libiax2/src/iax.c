@@ -2492,12 +2492,12 @@ static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
 			e->etype = IAX_EVENT_VOICE;
 			e->session = session;
 			e->subclass = session->voiceformat;
+			e->datalen = datalen;
 			if (datalen) {
 #ifdef EXTREME_DEBUG
 				DEBU(G "%d bytes of voice\n", datalen);
 #endif
 				memcpy(e->data, mh->data, datalen);
-				e->datalen = datalen;
 			}
 			ts = (session->last_ts & 0xFFFF0000) | ntohs(mh->ts);
 			return schedule_delivery(e, ts, updatehistory);
