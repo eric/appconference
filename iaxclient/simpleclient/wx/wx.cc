@@ -268,7 +268,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 	  nCalls,  labels, 
 	  1, wxRA_SPECIFY_COLS);
 
-	  topsizer->Add(callBox, 1, wxEXPAND);
+	  topsizer->Add(callBox, 0, wxEXPAND);
 	
     }
 
