@@ -25,6 +25,7 @@
 static PABLIO_Stream *iStream;
 static PABLIO_Stream *oStream;
 static int oneStream;
+static int virtualMono;
 static const PaDeviceInfo **inputDevices;
 static const PaDeviceInfo **outputDevices;
 static int nInputDevices;
@@ -76,8 +77,10 @@ static int pa_scan_devices() {
 int pa_initialize_audio() {
     PaError  err;
 
+//#if 0
+#ifndef MACOSX
     /* Open simplified blocking I/O layer on top of PortAudio. */
-    /* first, try opening one stream for in/out */
+    /* first, try opening one stream for in/out, Mono */
     err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
                            (PABLIO_READ  | PABLIO_WRITE | PABLIO_MONO) );
     
@@ -85,9 +88,25 @@ int pa_initialize_audio() {
 	/* if this works, set iStream, oStream to this stream */
 	oStream = iStream;
 	oneStream = 1;
+	virtualMono = 0;
+	return 0;
+    }
+#endif
+
+    /* Open simplified blocking I/O layer on top of PortAudio. */
+    /* first, try opening one stream for in/out, Mono */
+    err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
+                           (PABLIO_READ  | PABLIO_WRITE | PABLIO_STEREO) );
+    
+    if( err == paNoError ) {
+	/* if this works, set iStream, oStream to this stream */
+	oStream = iStream;
+	oneStream = 1;
+	virtualMono = 1;
 	return 0;
     }
 
+#if TRY_TWO_OPENS
     oneStream = 0;
     err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
                            (PABLIO_READ  | PABLIO_MONO) );
@@ -101,6 +120,7 @@ int pa_initialize_audio() {
 	handle_paerror(err, "opening separate output stream");
 	return -1;
     }
+#endif
 
     return 0;
 }
@@ -118,25 +138,63 @@ void pa_read_audio_input() {
 
 }
 
+
+void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples) {
+    int i;
+    //fprintf(stderr, "mono2stereo: %d samples\n", nSamples);
+    for(i=0;i<nSamples;i++) {
+	*(out++) = *in;
+	*(out++) = *(in++); 
+    }
+}
+
+void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples) {
+    int i;
+    //fprintf(stderr, "stereo2mono: %d samples\n", nSamples);
+    for(i=0;i<nSamples;i++) {
+	*(out) = *(in++);
+	out++; in++;
+	//*(out++) += *(in++);
+    }
+}
+
 void pa_play_recv_audio(void *fr, int fr_size) {
-	if(GetAudioStreamWriteable(oStream) < SAMPLES_PER_FRAME * FRAMES_PER_BLOCK)
+      
+	SAMPLE stereobuf[FRAMES_PER_BLOCK * 2];
+	SAMPLE *buf;
+	if(GetAudioStreamWriteable(oStream) < FRAMES_PER_BLOCK)
 	{
 	      //fprintf(stderr, "audio_portaudio: audio output overflow\n");
 	      return;
 	}
 
+	if(virtualMono) {
+	    mono2stereo(stereobuf, (SAMPLE *)fr, FRAMES_PER_BLOCK);
+	    buf = stereobuf;
+	} else {
+	    buf = (short *)fr;
+	}
+
 	// Play the audio as decoded
-	WriteAudioStream(oStream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);
+	WriteAudioStream(oStream, buf, FRAMES_PER_BLOCK);
 }
 
 void pa_send_audio(struct timeval *lastouttm, struct iaxc_call *most_recent_answer, int iEncodeType) {
-	SAMPLE samples[SAMPLES_PER_FRAME * FRAMES_PER_BLOCK];
+	SAMPLE samples[FRAMES_PER_BLOCK * 2]; // could be stereo
+	SAMPLE monobuf[FRAMES_PER_BLOCK];
+	SAMPLE *buf;
 
 	/* send all available complete frames */
-	while(GetAudioStreamReadable(iStream) >= FRAMES_PER_BLOCK)
+	while(GetAudioStreamReadable(iStream) >= (FRAMES_PER_BLOCK))
 	{
 		ReadAudioStream(iStream, samples, FRAMES_PER_BLOCK);
-		send_encoded_audio(most_recent_answer, samples, iEncodeType);
+		if(virtualMono) {
+		    stereo2mono(monobuf, samples, FRAMES_PER_BLOCK);
+		    buf = monobuf;
+		} else {
+		    buf = samples;
+		}
+		send_encoded_audio(most_recent_answer, buf, iEncodeType);
 	}
 }
 
