@@ -1223,8 +1223,10 @@ int iax_register(struct iax_session *session, char *server, char *peer, char *se
 	tmp[255] = '\0';
 	strncpy(tmp, server, sizeof(tmp) - 1);
 	p = strchr(tmp, ':');
-	if (p)
-		portno = atoi(p);
+	if (p) {
+		*p = '\0';
+		portno = atoi(p+1);
+	}
 	
 	memset(&ied, 0, sizeof(ied));
 	if (secret)
