@@ -13,12 +13,13 @@
 #include "iaxclient_lib.h"
 #include "speex/speex.h"
 
-/* defining SPEEX_TERMINATOR, and using frame sizes > 160 will result in encoded output with a
+/* defining SPEEX_TERMINATOR, and using frame sizes > frame_size will result in encoded output with a
  * terminator after each 20ms sub-frame, in a format which is generally incompatible with asterisk. 
  * so, unless you're doing something special, DON'T define this! */
 
 struct state {
       void *state;
+      int frame_size;
       SpeexBits bits;
 };
 
@@ -52,7 +53,7 @@ static int decode ( struct iaxc_audio_codec *c,
 	//return 0;
 	//fprintf(stderr, "Speex Interpolate\n");
 	speex_decode_int(decstate->state, NULL, out);
-	*outlen -= 160;
+	*outlen -= decstate->frame_size;
 	return 0;
     }
 
@@ -62,15 +63,15 @@ static int decode ( struct iaxc_audio_codec *c,
 
     start_bits = speex_bits_remaining(&decstate->bits);
 
-    while(speex_bits_remaining(&decstate->bits) && (*outlen >= 160)) 
+    while(speex_bits_remaining(&decstate->bits) && (*outlen >= decstate->frame_size)) 
     {
         ret = speex_decode_int(decstate->state, &decstate->bits, out);
 // * from speex/speex.h, speex_decode returns:
 // * @return return status (0 for no error, -1 for end of stream, -2 other)
         if (ret == 0) {
         /* one frame of output */
-            *outlen -= 160;
-            out += 160;
+            *outlen -= decstate->frame_size;
+            out += decstate->frame_size;
         } else if (ret == -1) {
 	/* at end of stream, or just a terminator */
             bits_left = speex_bits_remaining(&decstate->bits);
@@ -106,14 +107,14 @@ static int encode ( struct iaxc_audio_codec *c,
   //int bitrate;
     struct state * encstate = (struct state *) c->encstate;
 
-    /* need to encode minimum of 160 samples */
+    /* need to encode minimum of encstate->frame_size samples */
 
 #ifdef SPEEX_TERMINATOR
 //fprintf(stderr, "SPEEX_TERMINATOR = 1\n");
-    /* if mininum_outgoing_framesize (*inlen) is set at >160, 
+    /* if mininum_outgoing_framesize (*inlen) is set at >encstate->frame_size, 
        then pack multiple sets together in one packet on the wire, 
        separate with terminator */
-    while(*inlen >= 160) 
+    while(*inlen >= encstate->frame_size) 
     {
     /* reset and encode*/
         speex_bits_reset(&encstate->bits);
@@ -127,8 +128,8 @@ static int encode ( struct iaxc_audio_codec *c,
         bytes = speex_bits_write(&encstate->bits, out, *outlen);
 //fprintf(stderr, "encode wrote %d bytes, outlen was %d\n", bytes, *outlen);
     /* advance pointers to input and output */
-        *inlen -= 160;
-        in += 160;
+        *inlen -= encstate->frame_size;
+        in += encstate->frame_size;
         *outlen -= bytes;
         out += bytes;
      } 
@@ -137,11 +138,11 @@ static int encode ( struct iaxc_audio_codec *c,
 /*  only add terminator at end of bits */
     speex_bits_reset(&encstate->bits);
 
-    /* need to encode minimum of 160 samples */
-    while(*inlen >= 160) {
+    /* need to encode minimum of encstate->frame_size samples */
+    while(*inlen >= encstate->frame_size) {
       speex_encode_int(encstate->state, in, &encstate->bits);
-      *inlen -= 160;
-      in += 160;
+      *inlen -= encstate->frame_size;
+      in += encstate->frame_size;
     } 
 
     /* add terminator */
@@ -169,8 +170,6 @@ struct iaxc_audio_codec *iaxc_audio_codec_speex_new(struct iaxc_speex_settings *
   c->encode = encode;
   c->decode = decode;
   c->destroy = destroy;
-
-  c->minimum_frame_size = 160;
 
   c->encstate = calloc(sizeof(struct state),1);
   c->decstate = calloc(sizeof(struct state),1);
@@ -212,6 +211,14 @@ struct iaxc_audio_codec *iaxc_audio_codec_speex_new(struct iaxc_speex_settings *
   if(set->abr)
     speex_encoder_ctl(encstate->state, SPEEX_SET_ABR, &set->abr);
 
+  /* set up frame sizes (normally, this is 20ms worth) */
+  speex_encoder_ctl(encstate->state,SPEEX_GET_FRAME_SIZE,&encstate->frame_size);
+  speex_encoder_ctl(decstate->state,SPEEX_GET_FRAME_SIZE,&decstate->frame_size);
+
+  c->minimum_frame_size = 160;
+
+  if(encstate->frame_size >  c->minimum_frame_size)  c->minimum_frame_size = encstate->frame_size;
+  if(decstate->frame_size >  c->minimum_frame_size)  c->minimum_frame_size = decstate->frame_size;
 
   if(!(encstate->state && decstate->state)) 
       return NULL;
