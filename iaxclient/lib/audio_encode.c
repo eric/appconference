@@ -70,9 +70,6 @@ static int input_postprocess(void *audio, int len, void *out)
 	iaxc_set_speex_filters();
     }
 
-    /* only preprocess if we're interested in VAD, AGC, or DENOISE */
-    if((iaxc_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) || iaxc_silence_threshold > 0)
-	silent = !speex_preprocess(st, audio, NULL);
 
     if(!input_compand) {
 	char *argv[5];
@@ -82,21 +79,18 @@ static int input_postprocess(void *audio, int len, void *out)
 	st_compand_start(&input_compand, argv, 2);
     }
 
-
     ilen=olen=len;
+    st_compand_flow(input_compand, audio, out, &ilen, &olen);
+
+    /* only preprocess if we're interested in VAD, AGC, or DENOISE */
+    if((iaxc_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) || iaxc_silence_threshold > 0)
+	silent = !speex_preprocess(st, audio, NULL);
+
 
     /* this is ugly.  Basically just don't get volume level if speex thought
      * we were silent.  just set it to 0 in that case */
-    if(iaxc_silence_threshold <= 0 || !silent)
-	st_compand_flow(input_compand, audio, out, &ilen, &olen);
-    else 
+    if(iaxc_silence_threshold > 0 && silent)
 	*input_compand->volume = 0;
-
-    /* until the compander fills it's buffer, it might not put out full
-     * buffers worth of data.  So, clear it unless it's all valid 
-     * (also, this helps shut up valgrind :) */
-    if(olen != len)
-	memset(out,0,len*2);
 
     do_level_callback();
 
