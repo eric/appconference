@@ -16,7 +16,7 @@ capture and playback.
 There are also sample clients, which use the library, included here.
 
 Currently, these are all stored under the "simpleclient" directory, and
-there are two of them:
+there are three of them:
 
 simpleclient/testcall:  A simple command-line oriented test program,
 			useful for testing and debugging.   It supports 
@@ -25,6 +25,10 @@ simpleclient/testcall:  A simple command-line oriented test program,
 simpleclient/wx:	A wxWindows (see wxwindows.org) based GUI
 			client.  This client also supports all of the
 			same platforms as the library itself.
+
+simpleclient/WinIAX:  	A MSVC/Win32 client.  This only works with
+			Win32, obviously, and was contributed by
+			Faizan "Tili" Naqvi <faizan@tilizone.com>
 
 
 The home page for iaxclient is "http://iaxclient.sourceforge.net/"
@@ -79,6 +83,7 @@ IAXCLIENT itself was contributed to by:
 
 Steve Kann <stevek@stevek.com>
 Shawn Lawrence <shawn.lawrence@terracecomm.com>
+Faizan "Tili" Naqvi <faizan@tilizone.com>
 
 In addition to including libiax, IAXCLIENT is also based in part on code
 included in test clients within libiax itself.
