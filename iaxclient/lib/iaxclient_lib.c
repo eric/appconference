@@ -843,6 +843,7 @@ static void iaxc_handle_regreply(struct iax_event *e) {
     // XXX I think the session is no longer valid.. at least, that's
     // what miniphone does, and re-using the session doesn't seem to
     // work!
+    iax_destroy(cur->session);
     cur->session = NULL;
 }
 
