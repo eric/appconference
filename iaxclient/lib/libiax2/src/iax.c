@@ -1496,7 +1496,7 @@ static int iax_send_txready(struct iax_session *session)
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_int(&ied, IAX_IE_TRANSFERID, session->transferid);
-	return send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXACC, 0, ied.buf, ied.pos);
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_TXREADY, 0, ied.buf, ied.pos, -1);
 }
 
 int iax_auth_reply(struct iax_session *session, char *password, char *challenge, int methods)
@@ -2133,6 +2133,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				/* Can't call schedule_delivery since timestamp is non-normal */
 				break;;
 			case IAX_COMMAND_TXREQ:
+				session->transfer = *e->ies.apparent_addr;
 				session->transfer.sin_family = AF_INET;
 				session->transfercallno = e->ies.callno;
 				session->transferring = TRANSFER_BEGIN;
