@@ -120,6 +120,18 @@ $(LIB): $(OBJS)
 	ar cru $(LIB) $(OBJS)
 	$(RANLIB) $(LIB)
 
+MSLIB=iaxclient.lib
+MGLIBDIR=c:/mingw/lib
+GCCLIBDIR=$(MGLIBDIR)/gcc-lib/mingw32/3.2/
+
+GCCLIB=$(GCCLIBDIR)/libgcc.a 
+
+
+$(MSLIB): $(OBJS)
+#	rm -f $(MSLIB)
+	cp $(GCCLIB) $(MSLIB)
+	ar rs $(MSLIB) $(OBJS) 
+
 plat:
 	echo Platform is $(OSTYPE)
 	echo OBJS are $(OBJS)
