@@ -69,6 +69,7 @@ typedef struct PxInfo
    PxSrcInfo   src[32];
    DWORD       muxID;
    DWORD       speakerID;
+   DWORD       waveID;
 } PxInfo;
 
 int Px_GetNumMixers( void *pa_stream )
@@ -123,6 +124,9 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
 
    mixer->numInputs = 0;
    mixer->muxID = 0;
+
+	/* ??? win32 default for wave control seems to be 0 ??? */
+	mixer->waveID = 0 ; 
 
    /*
     * Find the input source selector (mux or mixer) and
@@ -309,6 +313,12 @@ void Px_SetMasterVolume( PxMixer *mixer, PxVolume volume )
  PCM output volume
 */
 
+int Px_SupportsPCMOutputVolume( PxMixer* mixer ) 
+{
+	PxInfo* info = ( PxInfo* )( mixer ) ;
+	return ( info->waveID == -1 ) ? 0 : 1 ;
+}
+
 PxVolume Px_GetPCMOutputVolume( PxMixer *mixer )
 {
   MMRESULT result;
@@ -316,16 +326,18 @@ PxVolume Px_GetPCMOutputVolume( PxMixer *mixer )
   unsigned short mono_vol = 0;
   PxInfo *info = (PxInfo *)mixer;
 
-  /* first, try to use the proper device id ( speakerID ) */
-  result = waveOutGetVolume(info->speakerID, &vol);
+	/* invalid waveID, return zero */
+	if ( info->waveID == -1 )
+		return 0.0 ;
 
-	/* if that fails, try the muxID */
+	/* get the wave output volume */
+	result = waveOutGetVolume( (HWAVEOUT)( info->waveID ), &vol);
+
+	/* on failure, mark waveID as invalid and return zero */
 	if ( result != MMSYSERR_NOERROR )
 	{
-		result = waveOutGetVolume( (HWAVEOUT)( info->muxID ), &vol ) ;
-
-		if ( result != MMSYSERR_NOERROR )
-			return 0.0 ;
+		info->waveID = -1 ;
+		return 0.0 ;
 	}
 
   mono_vol = (unsigned short)vol;
@@ -334,18 +346,23 @@ PxVolume Px_GetPCMOutputVolume( PxMixer *mixer )
 
 void Px_SetPCMOutputVolume( PxMixer *mixer, PxVolume volume )
 {
-  MMRESULT result;
-  PxInfo *info = (PxInfo *)mixer;
+	MMRESULT result;
+	PxInfo *info = (PxInfo *)mixer;
 
-  /* first, try to use the proper device id ( speakerID ) */
-  result = waveOutSetVolume(info->speakerID, MAKELONG(volume*0xFFFF, volume*0xFFFF));
+	/* invalid waveID */
+	if ( info->waveID == -1 )
+		return ;
 
-	/* if that fails, try the muxID */
+	/* set the wave output volume */
+	result = waveOutSetVolume( (HWAVEOUT)( info->waveID ), MAKELONG(volume*0xFFFF, volume*0xFFFF));
+
+	/* on failure, mark waveID as invalid  */
 	if ( result != MMSYSERR_NOERROR )
-		result = waveOutSetVolume( (HWAVEOUT)( info->muxID ), MAKELONG(volume*0xFFFF, volume*0xFFFF) ) ;
+	{
+		info->waveID = -1 ;
+	}
 
-  if (result != MMSYSERR_NOERROR)
-      return;
+	return ;
 }
 
 /*

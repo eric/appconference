@@ -598,6 +598,19 @@ int pa_start (struct iaxc_audio_driver *d ) {
 	}
     }
 
+	/* select the microphone as the input source */
+	if ( iMixer != NULL )
+	{
+		int n = Px_GetNumInputSources( iMixer ) - 1 ;
+		for ( ; n > 0 ; --n )
+		{
+			if ( stricmp( "microphone", Px_GetInputSourceName( iMixer, n ) ) == 0 )
+			{
+				Px_SetCurrentInputSource( iMixer, n ) ;
+			}
+		}
+	}
+
     running = 1;
     return 0;
 }
@@ -683,15 +696,25 @@ int pa_destroy (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-double pa_input_level_get(struct iaxc_audio_driver *d){
+double pa_input_level_get(struct iaxc_audio_driver *d)
+{
+	/* iMixer should be non-null if we using either one or two streams */
     if(!iMixer) return -1;
-    //fprintf(stderr, "getting input level %f\n", Px_GetInputVolume(iMixer));
+
+	/* make sure this device supports input volume controls */
+	if ( Px_GetNumInputSources( iMixer ) == 0 )
+		return -1 ;
+
     return Px_GetInputVolume(iMixer);
 }
 
 double pa_output_level_get(struct iaxc_audio_driver *d){
     PxMixer *mix;
 
+	/* oMixer may be null if we're using one stream,
+	   in which case, iMixer should not be null,
+	   if it is, return an error */
+	   
     if(oMixer)
       mix = oMixer;
     else if (iMixer)
@@ -699,11 +722,17 @@ double pa_output_level_get(struct iaxc_audio_driver *d){
     else
       return -1;
 
-    return Px_GetPCMOutputVolume(mix);
+	/* prefer the pcm output, but default to the master output */
+    return Px_GetOutputVolume( mix, Px_SupportsPCMOutputVolume( mix ) ) ;
 }
 
 int pa_input_level_set(struct iaxc_audio_driver *d, double level){
     if(!iMixer) return -1;
+     
+	/* make sure this device supports input volume controls */
+	if ( Px_GetNumInputSources( iMixer ) == 0 )
+		return -1 ;
+
     //fprintf(stderr, "setting input level to %f\n", level);
     Px_SetInputVolume(iMixer, level);
     return 0;
@@ -719,7 +748,9 @@ int pa_output_level_set(struct iaxc_audio_driver *d, double level){
     else
       return -1;
 
-    Px_SetPCMOutputVolume(mix, level);
+	/* prefer the pcm output, but default to the master output */
+    Px_SetOutputVolume( mix, Px_SupportsPCMOutputVolume( mix ), level ) ;
+
     return 0;
 }
 
