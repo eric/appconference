@@ -137,6 +137,12 @@ struct iaxc_audio_device {
 int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring); 
 int iaxc_audio_devices_set(int input, int output, int ring);
 
+double iaxc_input_level_get();
+double iaxc_output_level_get();
+int iaxc_input_level_set(double level);
+int iaxc_output_level_set(double level);
+
+
 
 #ifdef __cplusplus
 }

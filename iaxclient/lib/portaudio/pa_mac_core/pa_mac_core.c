@@ -2194,3 +2194,23 @@ const PaDeviceInfo* Pa_GetDeviceInfo( PaDeviceID id )
 }
 
 
+/*  Added by SK 20Oct2003 
+ *  Get/Set the input/output level for a Pa stream.  Levels are expressed as a
+ *  double, range 0 to 1.  negative values indicate an error.
+ */
+
+double Pa_GetInputLevel( PortAudioStream *stream ) {
+    fprintf(stderr, "GetInputLevel called\n");
+}
+
+double Pa_GetOutputLevel( PortAudioStream *stream ) {
+    fprintf(stderr, "GetOutputLevel called\n");
+} 
+
+PaError Pa_SetInputLevel( PortAudioStream *stream , double level) {
+    fprintf(stderr, "SetInputLevel called\n");
+}
+
+PaError Pa_SetOutputLevel( PortAudioStream *stream , double level) {
+    fprintf(stderr, "SetOutputLevel called\n");
+}

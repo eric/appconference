@@ -457,6 +457,19 @@ void Pa_Sleep( long msec );
 PaError Pa_GetSampleSize( PaSampleFormat format );
 
 
+/*  Added by SK 20Oct2003 
+ *  Get/Set the input/output level for a Pa stream.  Levels are expressed as a
+ *  double, range 0 to 1.  negative values indicate an error.
+ */
+
+double Pa_GetInputLevel( PortAudioStream *stream );
+double Pa_GetOutputLevel( PortAudioStream *stream );
+  
+PaError Pa_SetInputLevel( PortAudioStream *stream , double level);
+PaError Pa_SetOutputLevel( PortAudioStream *stream , double level);
+
+
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -91,8 +91,6 @@ struct iaxc_audio_driver {
 
 	/* 
 	 * select_ring ? 
-	 * set_input_level
-	 * set_output_level
 	 * set_latency
 	 */
 
@@ -100,6 +98,13 @@ struct iaxc_audio_driver {
 	int (*stop)(struct iaxc_audio_driver *d);
 	int (*output)(struct iaxc_audio_driver *d, void *samples, int nSamples);
 	int (*input)(struct iaxc_audio_driver *d, void *samples, int *nSamples);
+
+	/* levels */
+	double (*input_level_get)(struct iaxc_audio_driver *d);
+	double (*output_level_get)(struct iaxc_audio_driver *d);
+	int (*input_level_set)(struct iaxc_audio_driver *d, double level);
+	int (*output_level_set)(struct iaxc_audio_driver *d, double level);
+
 }; 
 
 

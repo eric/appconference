@@ -386,3 +386,78 @@ PaError Pa_FlushStream(int devHandle)
 
   return paNoError;
 }
+
+
+/*  Added by SK 20Oct2003 
+ *  Get/Set the input/output level for a Pa stream.  Levels are expressed as a
+ *  double, range 0 to 1.  negative values indicate an error.
+ */
+
+static int mixer_fd = -1;
+static char *mixer_device = "/dev/mixer";
+
+double Pa_GetInputLevel( PortAudioStream *stream ) {
+    unsigned vol;
+
+    if(mixer_fd < 0) {
+      if((mixer_fd = open(mixer_device, O_RDONLY)) < 0)
+	return -1;
+    }
+
+    if(ioctl(mixer_fd, SOUND_MIXER_READ_IGAIN, &vol) == -1)
+      return -1;
+
+    return (double) ((vol & 0xff) + (vol >> 8)) / 200.0;
+}
+
+double Pa_GetOutputLevel( PortAudioStream *stream ) {
+/*
+    pad = Pa_GetInternalDevice(past->past_OutputDeviceID);
+    pad->pad_Info.name = deviceName;
+ */
+    unsigned vol;
+
+    if(mixer_fd < 0) {
+      if((mixer_fd = open(mixer_device, O_RDONLY)) < 0)
+	return -1;
+    }
+
+    if(ioctl(mixer_fd, SOUND_MIXER_READ_PCM, &vol) == -1)
+      return -1;
+
+    return (double) ((vol & 0xff) + (vol >> 8)) / 200.0;
+} 
+
+PaError Pa_SetInputLevel( PortAudioStream *stream , double level) {
+    unsigned vol;
+
+    if(mixer_fd < 0) {
+      if((mixer_fd = open(mixer_device, O_RDONLY)) < 0)
+	return -1;
+    }
+
+    vol = level * 100;
+    vol |= (vol << 8);
+    
+    if(ioctl(mixer_fd, SOUND_MIXER_WRITE_IGAIN, &vol) == -1)
+      return -1;
+
+    return paNoError;
+}
+
+PaError Pa_SetOutputLevel( PortAudioStream *stream , double level) {
+    unsigned vol;
+
+    if(mixer_fd < 0) {
+      if((mixer_fd = open(mixer_device, O_RDONLY)) < 0)
+	return -1;
+    }
+
+    vol = level * 100;
+    vol |= (vol << 8);
+    
+    if(ioctl(mixer_fd, SOUND_MIXER_WRITE_PCM, &vol) == -1)
+      return -1;
+
+    return paNoError;
+}

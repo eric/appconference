@@ -782,3 +782,18 @@ int iaxc_audio_devices_set(int input, int output, int ring) {
     return audio.select_devices(&audio, input, output, ring);
 }
 
+double iaxc_input_level_get() {
+    return audio.input_level_get(&audio);
+}
+
+double iaxc_output_level_get() {
+    return audio.output_level_get(&audio);
+}
+
+int iaxc_input_level_set(double level) {
+    return audio.input_level_set(&audio, level);
+}
+
+int iaxc_output_level_set(double level) {
+    return audio.output_level_set(&audio, level);
+}

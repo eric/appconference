@@ -369,6 +369,24 @@ int pa_destroy (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
+double pa_input_level_get(struct iaxc_audio_driver *d){
+	return Pa_GetInputLevel(iStream);
+}
+
+double pa_output_level_get(struct iaxc_audio_driver *d){
+	return Pa_GetOutputLevel(oStream);
+}
+
+int pa_input_level_set(struct iaxc_audio_driver *d, double level){
+	return Pa_SetInputLevel(iStream, level);
+}
+
+int pa_output_level_set(struct iaxc_audio_driver *d, double level){
+	return Pa_SetOutputLevel(oStream, level);
+}
+
+
+
 /* initialize audio driver */
 int pa_initialize (struct iaxc_audio_driver *d ) {
     PaError  err;
@@ -389,6 +407,10 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     d->stop = pa_stop;
     d->output = pa_output;
     d->input = pa_input;
+    d->input_level_get = pa_input_level_get;
+    d->input_level_set = pa_input_level_set;
+    d->output_level_get = pa_output_level_get;
+    d->output_level_set = pa_output_level_set;
 
     /* setup private data stuff */
     selectedInput  = Pa_GetDefaultInputDeviceID();
