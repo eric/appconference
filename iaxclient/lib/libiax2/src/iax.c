@@ -613,7 +613,10 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	   or delayed, with retransmission */
 	struct ast_iax2_full_hdr *fh;
 	struct ast_iax2_mini_hdr *mh;
-	double buffer[4096];   /* Buffer -- we use this for a frame later, double might ensure proper alignment?  */
+        struct {
+                struct iax_frame fr2;
+                unsigned char buffer[4096];             /* Buffer -- must preceed fr2 */
+        } buf;
 	struct iax_frame *fr;
 	int res;
 	int sendmini=0;
@@ -621,7 +624,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	unsigned int fts;
 	
 	/* Shut up GCC */
-	buffer[0] = 0;
+	buf.buffer[0] = 0;
 	
 	if (!pvt) {
 		IAXERROR "No private structure for packet?\n");
@@ -645,7 +648,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	}
 	/* Allocate an iax_frame */
 	if (now) {
-		fr = (struct iax_frame *)&buffer;
+		fr = &buf.fr2;
 	} else
 		fr = iax_frame_new(DIRECTION_OUTGRESS, f->datalen);
 	if (!fr) {
@@ -1656,7 +1659,7 @@ static struct iax_session *iax_find_session(struct sockaddr_in *sin,
 			return cur;
 		cur = cur->next;
 	}
-	if (makenew && (dcallno == -1)) {
+	if (makenew && !dcallno) {
 		cur = iax_session_new();
 		cur->peercallno = callno;
 		cur->peeraddr.sin_addr.s_addr = sin->sin_addr.s_addr;
@@ -2280,7 +2283,6 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 	struct ast_iax2_mini_hdr *mh = (struct ast_iax2_mini_hdr *)buf;
 	struct iax_session *session;
 	
-	/*  THIS IS BAD: buf[len - 1] = '\0'; */
 	if (ntohs(fh->scallno) & IAX_FLAG_FULL) {
 		/* Full size header */
 		if (len < sizeof(struct ast_iax2_full_hdr)) {
