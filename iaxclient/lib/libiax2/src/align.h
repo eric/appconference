@@ -35,7 +35,7 @@ extern unsigned int set_align32(unsigned int *dstp, unsigned int src);
 # define GET_ALIGN_16(srcp)	get_align16((unsigned short *)(srcp))
 # define SET_ALIGN_32(dstp, src) set_align32((unsigned int *)(dstp), src)
 #else
-# define GET_ALIGN_16(srcp)	*((unsigned short *)srcp)
-# define GET_ALIGN_32(srcp)	*((unsigned int *)srcp)
-# define SET_ALIGN_32(dstp, src) *((unsigned int *)dstp)=(unsigned int)(src)
+# define GET_ALIGN_16(srcp)	*((unsigned short *)(srcp))
+# define GET_ALIGN_32(srcp)	*((unsigned int *)(srcp))
+# define SET_ALIGN_32(dstp, src) *((unsigned int *)(dstp))=(unsigned int)(src)
 #endif
