@@ -1,6 +1,10 @@
 #ifndef _iaxclient_h
 #define _iaxclient_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* IAXCLIENT.H external library include 2003 SteveK, 
  * This file is covered by the LGPL */
 
@@ -51,5 +55,9 @@ int iaxc_was_call_answered();
 
 typedef int (*iaxc_levels_callback_t)(float input, float output);
 void iaxc_set_levels_callback(iaxc_levels_callback_t func);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
