@@ -51,26 +51,42 @@ int ast_onering_write(struct ast_onering *s, struct ast_frame *f)
 
 struct ast_frame *ast_onering_read(struct ast_onering *s,int samples)
 {
+	struct ast_frame *f;
+	char *databuf;
 	/* Make sure we have enough data */
 	if (s->len < (samples * 2)) {
 	//	ast_log(LOG_NOTICE,"s->len = %d, samples = %d\n",s->len,samples);
 		return NULL;
 	}
+	databuf = malloc((samples * 2) + AST_FRIENDLY_OFFSET);
+	if (databuf == NULL) {
+	    ast_log(LOG_NOTICE,"unable to malloc\n");
+	    return NULL;
+	}
+	memset(databuf,0x0,(samples * 2) + AST_FRIENDLY_OFFSET);
+	f = malloc(sizeof(struct ast_frame));
+	if (f == NULL) {
+	    free(databuf);
+	    ast_log(LOG_NOTICE,"unable to malloc\n");
+	    return NULL;
+	}
+	memset(f,0x0,sizeof(struct ast_frame));
 	/* Make frame */
-	s->f.frametype = AST_FRAME_VOICE;
-	s->f.subclass = AST_FORMAT_SLINEAR;
-	s->f.data = s->framedata + AST_FRIENDLY_OFFSET;
-	s->f.offset = AST_FRIENDLY_OFFSET;
-	s->f.datalen = samples * 2;
-	s->f.samples = samples;
+	f->frametype = AST_FRAME_VOICE;
+	f->subclass = AST_FORMAT_SLINEAR;
+	f->data = databuf + AST_FRIENDLY_OFFSET;
+	f->offset = AST_FRIENDLY_OFFSET;
+	f->mallocd =  AST_MALLOCD_HDR | AST_MALLOCD_DATA;
+	f->datalen = samples * 2;
+	f->samples = samples;
 	/* Fill Data */
-	memcpy(s->f.data, s->data, samples * 2);
+	memcpy(f->data, s->data, samples * 2);
 	s->len -= samples * 2;
 	/* Move remaining data to the front if applicable */
 	if (s->len) 
 		memmove(s->data, s->data + (samples * 2), s->len);
 	/* Return frame */
-	return &s->f;
+	return f;
 }
 
 
