@@ -189,6 +189,19 @@ int iaxc_get_filters(void);
 void iaxc_set_filters(int filters);
 
 /* speex specific codec settings */
+/* a good choice is (1,-1,-1,0,8000,3): 8kbps ABR */
+/* Decode options:
+	* decode_enhance: 1/0  perceptual enhancement for decoder 
+	* quality: Generally, set either quality (0-9) or bitrate.  
+	*    -1 for "default"
+	* bitrate: in kbps.  Applies to CBR only; -1 for default.  
+	*    (overrides "quality" for CBR mode)
+	* vbr: Variable bitrate mode:  0/1
+	* abr mode/rate:  0 for not ABR, bitrate for ABR mode
+	* complexity:  algorithmic complexity.  Think -N for gzip.
+	*    Higher numbers take more CPU for better quality.  3 is
+	*    default and good choice.
+*/
 void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity);
 
 #ifdef __cplusplus
