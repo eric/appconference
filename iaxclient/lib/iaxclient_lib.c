@@ -41,6 +41,9 @@ struct timeval lastouttm;
 static void do_iax_event();
 
 static THREAD procThread;
+#ifdef WIN32
+static THREADID procThreadID;
+#endif
 
 /* QuitFlag: 0: Running 1: Should Quit, -1: Not Running */
 static int procThreadQuitFlag = -1;
