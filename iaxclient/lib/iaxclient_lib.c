@@ -615,6 +615,7 @@ void iaxc_call(char *num)
 {
 	int callNo;
 	struct iax_session *newsession;
+	char *ext = strstr(num, "/");
 
 	MUTEXLOCK(&iaxc_lock);
 
@@ -642,8 +643,6 @@ void iaxc_call(char *num)
 	/* XXX ??? */
 	calls[callNo].gsmin = 0;
 	calls[callNo].gsmout = 0;
-
-	char *ext = strstr(num, "/");
 
 	if(ext) {
 	    strncpy(calls[callNo].remote_name, num, IAXC_EVENT_BUFSIZ); 
