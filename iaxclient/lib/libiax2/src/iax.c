@@ -1894,11 +1894,19 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 	      type = JB_TYPE_SILENCE;	
 	    }
 
+	    /* unwrap timestamp */
+	    ts = unwrap_timestamp(ts,e->session->last_ts);
+
+	    /* move forward last_ts if it's greater.  We do this _after_ unwrapping, because
+	     * asterisk _still_ has cases where it doesn't send full frames when it ought to */
+	    if(ts > e->session->last_ts) {
+		e->session->last_ts = ts;		
+	    }
+
+
 	    /* insert into jitterbuffer */
 	    /* TODO: Perhaps we could act immediately if it's not droppable and late */
-	    if(jb_put(e->session->jb, e, type, len,
-		    unwrap_timestamp(ts,e->session->last_ts), 
-		    calc_rxstamp(e->session)) == JB_DROP) {
+	    if(jb_put(e->session->jb, e, type, len, ts, calc_rxstamp(e->session)) == JB_DROP) {
 		  iax_event_free(e);
 	    }
 
