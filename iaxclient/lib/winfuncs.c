@@ -6,6 +6,8 @@
 
 #include <stdio.h>
 
+#include <sys/timeb.h>
+
 /* Win-doze doesnt have gettimeofday(). This sux. So, what we did is
 provide some gettimeofday-like functionality that works for our purposes. */
 
@@ -23,7 +25,7 @@ provide some gettimeofday-like functionality that works for our purposes. */
 void gettimeofday( struct timeval* tv, void* tz )
 {
 	struct _timeb curSysTime;
-	_ftime(curSysTime);
+	_ftime(&curSysTime);
 	tv->tv_sec = curSysTime.time;
 	tv->tv_usec = curSysTime.millitm * 1000;
 
