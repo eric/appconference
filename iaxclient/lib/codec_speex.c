@@ -69,6 +69,7 @@ static int decode ( struct iaxc_audio_codec *c,
 // * from speex/speex.h, speex_decode returns:
 // * @return return status (0 for no error, -1 for end of stream, -2 other)
         if (ret == 0) {
+            //fprintf(stderr, "decode: inlen=%d outlen=%d\n", *inlen, *outlen);
         /* one frame of output */
             *outlen -= decstate->frame_size;
             out += decstate->frame_size;
@@ -134,12 +135,14 @@ static int encode ( struct iaxc_audio_codec *c,
         out += bytes;
      } 
 #else
+
 //fprintf(stderr, "SPEEX_TERMINATOR = 0\n");
 /*  only add terminator at end of bits */
     speex_bits_reset(&encstate->bits);
 
     /* need to encode minimum of encstate->frame_size samples */
     while(*inlen >= encstate->frame_size) {
+            //fprintf(stderr, "encode: inlen=%d outlen=%d\n", *inlen, *outlen);
       speex_encode_int(encstate->state, in, &encstate->bits);
       *inlen -= encstate->frame_size;
       in += encstate->frame_size;
@@ -214,6 +217,10 @@ struct iaxc_audio_codec *iaxc_audio_codec_speex_new(struct iaxc_speex_settings *
   /* set up frame sizes (normally, this is 20ms worth) */
   speex_encoder_ctl(encstate->state,SPEEX_GET_FRAME_SIZE,&encstate->frame_size);
   speex_encoder_ctl(decstate->state,SPEEX_GET_FRAME_SIZE,&decstate->frame_size);
+
+  /* XXX: for some reason, with narrowband, we get 0 for decstate sometimes? */
+  if(!decstate->frame_size) decstate->frame_size = 160;
+  if(!encstate->frame_size) encstate->frame_size = 160;
 
   c->minimum_frame_size = 160;
 
