@@ -74,6 +74,7 @@ static int scan_devices(struct iaxc_audio_driver *d) {
 	if(i == Pa_GetDefaultOutputDeviceID())
 	  dev->capabilities |= IAXC_AD_OUTPUT_DEFAULT;
     }
+    return 0;
 }
 
 void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples) {
@@ -295,7 +296,6 @@ int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 	int bytestoread;
 
 	bytestoread = *nSamples * sizeof(SAMPLE);
- 
 
 	/* we don't return partial buffers */
 	if(RingBuffer_GetReadAvailable(&inRing) < bytestoread) {
@@ -304,6 +304,8 @@ int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 	}
 
 	RingBuffer_Read(&inRing, samples, bytestoread);
+
+	return 0;
 }
 
 int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
