@@ -139,6 +139,8 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
 
     UseView->Append("default");
     UseView->Append("compact");
+    UseView->Append("compactlogo");
+    UseView->Append("micro");
     UseView->SetValue(config->Read("UseView", "default"));
 
     config->SetPath("/Accounts");

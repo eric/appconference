@@ -99,6 +99,8 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
         SetItem(item);
     }
 
+    SetItemState(0, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+
     Refresh();
     Show();
     AutoSize();
@@ -236,11 +238,17 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     wxString   str;
     long       dummy;
     bool       bCont;
+    static int selectedcall = -1;
 
     if(c.state & IAXC_CALL_STATE_RINGING) {
       wxGetApp().theFrame->Show();
       wxGetApp().theFrame->Raise();
     }
+
+    int i;
+    int nCalls = wxGetApp().theFrame->nCalls;
+    for(i=0; i<nCalls; i++)
+        SetItem(i, 1, _T("") );
 
     // first, handle inactive calls
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
@@ -252,6 +260,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         bool     outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
         bool     ringing  = c.state & IAXC_CALL_STATE_RINGING;
         bool     complete = c.state & IAXC_CALL_STATE_COMPLETE;
+        bool     selected = c.state & IAXC_CALL_STATE_SELECTED;
         wxString info;
         wxString fullname;
 
@@ -260,13 +269,24 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 
         SetItem(c.callNo, 2, info );
 
+        if(selected)
+            selectedcall = c.callNo;
+
         if(outgoing) {
             if(ringing) {
                 SetItem(c.callNo, 1, _T("ring out") );
                 iaxc_play_sound(&ringback, 0);
             } else {
                 if(complete) {
-                    SetItem(c.callNo, 1, _T("ACTIVE") );
+                    // I really need to clean up this spaghetti code
+                    if(selected)
+                        SetItem(c.callNo, 1, _T("ACTIVE") );
+                    else
+                        if(c.callNo == selectedcall)
+                            SetItem(c.callNo, 1, _T("") );
+                        else
+                            SetItem(c.callNo, 1, _T("ACTIVE") );
+
                     iaxc_stop_sound(ringback.id);
                 } else {
                     // not accepted yet..
@@ -312,13 +332,11 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         } 
     }
     
-    // select if necessary
-    if((c.state & IAXC_CALL_STATE_SELECTED) &&
-      !(GetItemState(c.callNo,wxLIST_STATE_SELECTED|wxLIST_STATE_SELECTED))) 
-    {
-        //fprintf(stderr, "setting call %d to selected\n", c.callNo);
+    if((c.state & IAXC_CALL_STATE_SELECTED)) 
         SetItemState(c.callNo,wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
-    }
+    else
+        SetItemState(c.callNo,~wxLIST_STATE_SELECTED,wxLIST_STATE_SELECTED);
+
     AutoSize();
     Refresh();
 

@@ -488,14 +488,18 @@ int MyFrame::HandleLevelEvent(float input, float output)
     static int lastInputLevel = 0;
     static int lastOutputLevel = 0;
 
-    if(lastInputLevel != inputLevel) {
-      wxGetApp().theFrame->Input->SetValue(inputLevel); 
-      lastInputLevel = inputLevel;
+    if(wxGetApp().theFrame->Input != NULL) {
+      if(lastInputLevel != inputLevel) {
+        wxGetApp().theFrame->Input->SetValue(inputLevel); 
+        lastInputLevel = inputLevel;
+      }
     }
 
-    if(lastOutputLevel != outputLevel) {
-      wxGetApp().theFrame->Output->SetValue(outputLevel); 
-      lastOutputLevel = outputLevel;
+    if(wxGetApp().theFrame->Output != NULL) {
+      if(lastOutputLevel != outputLevel) {
+        wxGetApp().theFrame->Output->SetValue(outputLevel); 
+        lastOutputLevel = outputLevel;
+      }
     }
 
     return 1;

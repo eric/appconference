@@ -316,6 +316,7 @@ void DirectoryDialog::OnDialOTList(wxCommandEvent &event)
             DialString = config->Read("/PhoneBook/" + DialString + "/Extension", "");
         }
         Dial(DialString);
+        Close(TRUE);
     }
 }
 
@@ -330,6 +331,7 @@ void DirectoryDialog::OnDialPhoneList(wxCommandEvent &event)
         DialString = config->Read("/PhoneBook/" + PhoneList->GetItemText(sel) +
                                   "/Extension", "");
         Dial(DialString);
+        Close(TRUE);
     }
 }
 
