@@ -283,10 +283,7 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int for
 	/* update last output timestamp */
 	gettimeofday( &timeLastOutput, NULL ) ;
 
-	if(len == 0) {
-		fprintf(stderr, "Empty voice frame\n");
-		return -1;
-	}
+	//if(len == 0) fprintf(stderr, "Interpolation voice frame\n");
 
 	if(format == 0) {
 		fprintf(stderr, "decode_audio: Format is zero (should't happen)!\n");

@@ -49,6 +49,8 @@ static int selectedInput, selectedOutput, selectedRing;
 #define ECHO_TAIL	  4096 /* echo_tail length, in frames must be pow(2) for mec/span ? */
 
 #define RBSZ 1024 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
+//#define RBSZ 2048 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
+//#define RBLEN 80 * 16 /* 80ms */
 static char inRingBuf[RBSZ], outRingBuf[RBSZ];
 static RingBuffer inRing, outRing;
 
@@ -348,13 +350,17 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	  bWritten = RingBuffer_Read(&outRing, virtualOutBuffer, totBytes);
 	  /* we zero "virtualOutBuffer", then convert the whole thing,
 	   * yes, because we use virtualOutBuffer for ec below */
-	  if(bWritten < totBytes)
+	  if(bWritten < totBytes) {
 	      memset(((char *)virtualOutBuffer) + bWritten, 0, totBytes - bWritten);
+	      //fprintf(stderr, "U");
+	  }
 	  mono2stereo(outputBuffer, virtualOutBuffer, framesPerBuffer);
 	} else {
 	  bWritten = RingBuffer_Read(&outRing, outputBuffer, totBytes);
-	  if(bWritten < totBytes)
+	  if(bWritten < totBytes) {
 	      memset((char *)outputBuffer + bWritten, 0, totBytes - bWritten);
+	      //fprintf(stderr, "U");
+	  }
 	}
 
 	/* zero underflowed space [ silence might be more golden than garbage? ] */
@@ -694,6 +700,7 @@ int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 	int bytestowrite = nSamples * sizeof(SAMPLE);
 
+//	if(RingBuffer_GetWriteAvailable(&outRing) < bytestowrite)  fprintf(stderr, "O");
 	RingBuffer_Write(&outRing, samples, bytestowrite);
 
 	return 0;

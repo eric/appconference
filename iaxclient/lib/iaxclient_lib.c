@@ -48,6 +48,11 @@ struct timeval lastouttm;
 static void do_iax_event();
 static int service_audio();
 
+/* external global networking replacements */
+static iaxc_sendto_t   iaxc_sendto = sendto;
+static iaxc_recvfrom_t iaxc_recvfrom = recvfrom;
+
+
 static THREAD procThread;
 #ifdef WIN32
 static THREADID procThreadID;
@@ -235,6 +240,11 @@ int iaxc_selected_call() {
 	return selected_call;
 }
 
+void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) {
+    iaxc_sendto = st;
+    iaxc_recvfrom = rf;
+}
+
 // Parameters:
 // audType - Define whether audio is handled by library or externally
 int iaxc_initialize(int audType, int inCalls) {
@@ -246,11 +256,15 @@ int iaxc_initialize(int audType, int inCalls) {
 
 	MUTEXINIT(&iaxc_lock);
 
-	if ( (port = iax_init(0) < 0)) {
-		iaxc_usermsg(IAXC_ERROR, "Fatal error: failed to initialize iax with port %d", port);
-		return -1;
+	if(iaxc_sendto == sendto) {
+	    if ( (port = iax_init(0) < 0)) {
+		    iaxc_usermsg(IAXC_ERROR, "Fatal error: failed to initialize iax with port %d", port);
+		    return -1;
+	    }
+	    netfd = iax_get_fd();
+	} else {
+	    iax_set_networking(iaxc_sendto, iaxc_recvfrom);
 	}
-	netfd = iax_get_fd();
 
 	nCalls = inCalls;
 	/* initialize calls */
@@ -360,9 +374,7 @@ static void iaxc_do_pings(void) {
       if(ping_since > IAXC_CALL_TIMEOUT/3) { 
 	  //fprintf(stderr, "Sending Ping for call %d as=%ld, ps=%ld\n", i, act_since, ping_since); 
 	  calls[i].last_ping = now;
-#ifdef IAXC_IAX2
 	  iax_send_ping(calls[i].session);
-#endif
 	  break; 
       }
 
@@ -608,28 +620,21 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 
 	samples = bufsize;
 
-#ifdef IAXC_IAX2
-	while(total_consumed < e->datalen) {
+	do {
 		cur = decode_audio(call, fr + (bufsize - samples),
 		    e->data+total_consumed,e->datalen-total_consumed,
 		    call->format, &samples);
-#else
-	while(total_consumed < e->event.voice.datalen) {
-		cur = decode_audio(call, fr,
-		    e->event.voice.data+total_consumed,e->event.voice.datalen-total_consumed,
-		    call.format, &samples);
-#endif
+
 		if(cur < 0) {
-			iaxc_usermsg(IAXC_STATUS, "Bad or incomplete voice packet.  Unable to decode. dropping");
-			return;
-		} else {  /* its an audio packet to be output to user */
-			total_consumed += cur;
-
-			if(iaxc_audio_output_mode != 0) continue;
-
-			audio.output(&audio,fr,bufsize-samples);
+		    iaxc_usermsg(IAXC_STATUS, "Bad or incomplete voice packet.  Unable to decode. dropping");
+		    return;
 		}
-	}
+
+		total_consumed += cur;
+		if(iaxc_audio_output_mode != 0) 
+		    continue;
+		audio.output(&audio,fr,bufsize-samples);
+	} while(total_consumed < e->datalen);
 }
 
 
@@ -670,7 +675,7 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			// notify the user?
  			break;
 		case IAX_EVENT_VOICE:
-			handle_audio_event(e, callNo);
+			handle_audio_event(e, callNo); 
 			break;
 		case IAX_EVENT_TEXT:
 			handle_text_event(e, callNo);
@@ -1066,7 +1071,6 @@ static void do_iax_event() {
 			calls[callNo].decoder = 0;
 			calls[callNo].session = e->session;
 			calls[callNo].state = IAXC_CALL_STATE_ACTIVE|IAXC_CALL_STATE_RINGING;
-
 
 			iax_accept(calls[callNo].session,format);
 			iax_ring_announce(calls[callNo].session);

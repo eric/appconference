@@ -9,21 +9,26 @@ SPAN_EC=0
 SPEEX_EC=1
 MEC2_EC=0
 
-CFLAGS=-Igsm/inc \
+USE_NEWJB=0
+
+CFLAGS= -I. -Igsm/inc \
 	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \
 	-Ilibspeex/include
 
-CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
-#CFLAGS:= $(CFLAGS) -g -O2
+#CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
+CFLAGS:= $(CFLAGS) -g -O2
 
 ifeq ($(SPEEX_PREPROCESS),1)
 CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
 endif
 
+ifeq ($(USE_NEWJB),1)
+CFLAGS:= $(CFLAGS) -DNEWJB
+endif
 
 # debug flags
 # CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -DEXTREME_DEBUG -D_DEBUG 
-# CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG 
+# CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG
 
 OBJS=\
 	gsm/src/add.o \
@@ -54,6 +59,7 @@ OBJS=\
 	codec_ulaw.o \
 	codec_alaw.o \
 	codec_speex.o \
+	jitterbuf.o \
 	iaxclient_lib.o 
 
 OBJS_LIBSPEEX=\

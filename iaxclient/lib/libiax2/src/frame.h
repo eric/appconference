@@ -44,21 +44,40 @@ extern "C" {
 #define AST_HTML_LINKREJECT	20		/* Reject LINKURL */
 
 /* Data formats for capabilities and frames alike */
-#define AST_FORMAT_G723_1	(1 << 0)	/* G.723.1 compression */
-#define AST_FORMAT_GSM		(1 << 1)	/* GSM compression */
-#define AST_FORMAT_ULAW		(1 << 2)	/* Raw mu-law data (G.711) */
-#define AST_FORMAT_ALAW		(1 << 3)	/* Raw A-law data (G.711) */
-#define AST_FORMAT_MP3		(1 << 4)	/* MPEG-2 layer 3 */
-#define AST_FORMAT_ADPCM	(1 << 5)	/* ADPCM (whose?) */
-#define AST_FORMAT_SLINEAR	(1 << 6)	/* Raw 16-bit Signed Linear (8000 Hz) PCM */
-#define AST_FORMAT_LPC10	(1 << 7)	/* LPC10, 180 samples/frame */
-#define AST_FORMAT_G729A	(1 << 8)	/* G.729a Audio */
-
-#define AST_FORMAT_MAX_AUDIO (1 << 15)	/* Maximum audio format */
-#define AST_FORMAT_JPEG		(1 << 16)	/* JPEG Images */
-#define AST_FORMAT_PNG		(1 << 17)	/* PNG Images */
-#define AST_FORMAT_H261		(1 << 18)	/* H.261 Video */
-#define AST_FORMAT_H263		(1 << 19)	/* H.263 Video */
+/*! G.723.1 compression */
+#define AST_FORMAT_G723_1       (1 << 0)
+	/*! GSM compression */
+#define AST_FORMAT_GSM          (1 << 1)
+	/*! Raw mu-law data (G.711) */
+#define AST_FORMAT_ULAW         (1 << 2)
+	/*! Raw A-law data (G.711) */
+#define AST_FORMAT_ALAW         (1 << 3)
+	/*! ADPCM (G.726, 32kbps) */
+#define AST_FORMAT_G726         (1 << 4)
+	/*! ADPCM (IMA) */
+#define AST_FORMAT_ADPCM        (1 << 5)
+	/*! Raw 16-bit Signed Linear (8000 Hz) PCM */
+#define AST_FORMAT_SLINEAR      (1 << 6)
+	/*! LPC10, 180 samples/frame */
+#define AST_FORMAT_LPC10        (1 << 7)
+	/*! G.729A audio */
+#define AST_FORMAT_G729A        (1 << 8)
+	/*! SpeeX Free Compression */
+#define AST_FORMAT_SPEEX        (1 << 9)
+	/*! iLBC Free Compression */
+#define AST_FORMAT_ILBC         (1 << 10)
+	/*! Maximum audio format */
+#define AST_FORMAT_MAX_AUDIO    (1 << 15)
+	/*! JPEG Images */
+#define AST_FORMAT_JPEG         (1 << 16)
+	/*! PNG Images */
+#define AST_FORMAT_PNG          (1 << 17)
+	/*! H.261 Video */
+#define AST_FORMAT_H261         (1 << 18)
+	/*! H.263 Video */
+#define AST_FORMAT_H263         (1 << 19)
+	/*! Max one */
+#define AST_FORMAT_MAX_VIDEO    (1 << 24)
 
 /* Control frame types */
 #define AST_CONTROL_HANGUP		1			/* Other end has hungup */

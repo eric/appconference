@@ -16,7 +16,22 @@ extern "C" {
 #include <stdio.h>
 #ifdef WIN32
 #include <windows.h>
+#include <winsock.h>
+#else
+#include <sys/socket.h>
 #endif
+
+#ifdef WIN32
+#if defined(_MSC_VER)
+	typedef int (__stdcall *iaxc_sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+#else
+	typedef int PASCAL (*iaxc_sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+#endif
+#else
+	typedef int (*iaxc_sendto_t)(int, const void *, size_t, int, const struct sockaddr *, socklen_t);
+	typedef int (*iaxc_recvfrom_t)(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
+#endif
+
 
 /* Define audio type constants */
 #define AUDIO_INTERNAL 0
@@ -128,6 +143,11 @@ int iaxc_quelch(int callNo, int MOH);
 int iaxc_unquelch(int call);
 int iaxc_mic_boost_get( void ) ;
 int iaxc_mic_boost_set( int enable ) ;
+
+/* application-defined networking; give substiture sendto and recvfrom functions,
+ * must be called before iaxc_initialize! */
+void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) ;
+
 
 #define IAXC_AD_INPUT           (1<<0)
 #define IAXC_AD_OUTPUT          (1<<1)

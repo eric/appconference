@@ -28,6 +28,16 @@ static int decode ( struct iaxc_audio_codec *c,
     float fbuf[240];
     int i;
 
+    if(*inlen == 0) {
+        //fprintf(stderr, "ILBC Interpolate\n");
+	iLBC_decode(fbuf, NULL, c->decstate, 0);
+	for(i=0;i<240;i++)
+	    out[i] = fbuf[i];
+        *outlen -= 240;
+        return 0;
+    }
+
+
     /* need to decode minimum of 33 bytes to 160 byte output */
     if( (*inlen < 50) || (*outlen < 240) ) {
 	fprintf(stderr, "codec_ilbc: inlen = %d outlen= %d\n",*inlen,*outlen);

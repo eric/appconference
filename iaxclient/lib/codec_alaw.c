@@ -10,6 +10,10 @@
 #include "codec_alaw.h"
 #include "iaxclient_lib.h"
 
+struct state {
+    INTERPOLATE_DECLS;
+};
+
 static inline short int alawdecode (unsigned char alaw)
 {
 	int value;
@@ -82,10 +86,29 @@ static inline unsigned char alawencode (short int linear)
 
 static int decode ( struct iaxc_audio_codec *c, 
     int *inlen, char *in, int *outlen, short *out ) {
+    struct state *state = c->decstate;
+    int i;
+    short sample;
+
+    if(*inlen == 0) {
+        for(i=0;i<INTERPOLATE_BUFSIZ;i++) {
+
+            INTERPOLATE_GET(state, sample);
+
+            *(out++) = sample;
+            (*outlen)--;
+
+            if((*outlen < 0)) break;
+        }
+        return 0;
+    }
+
 
     while ((*inlen > 0) && (*outlen > 0)) {
-	*(out++) = alawdecode((unsigned char)*(in++));
+	sample = alawdecode((unsigned char)*(in++));
+	*(out++) = sample;
 	(*inlen)--; (*outlen)--;
+	INTERPOLATE_PUT(state,sample);
     }
 
     return 0;
@@ -120,6 +143,9 @@ struct iaxc_audio_codec *iaxc_audio_codec_alaw_new() {
 
   /* really, we can use less, but don't want to */
   c->minimum_frame_size = 160;
+
+  /* decoder state, used for interpolation */
+  c->decstate = calloc(sizeof(struct state),1);
 
   return c;
 }

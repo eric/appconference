@@ -76,6 +76,7 @@ struct iax_session;
 #define IAX_EVENT_TEXT		29		/* Text Frame :-) */
 #define IAX_EVENT_REGREJ  30		/* Registration reply */
 #define IAX_EVENT_LINKURL	31		/* Unlink */
+#define IAX_EVENT_CNG	32		/* Comfort-noise (almost silence) */
 
 /* moved from iax.c to support attended transfer */
 #define IAX_EVENT_REREQUEST	999
@@ -94,6 +95,7 @@ typedef int PASCAL (*sendto_t)(SOCKET, const char *, int, int, const struct sock
 #endif
 #else
 typedef int (*sendto_t)(int, const void *, size_t, int, const struct sockaddr *, socklen_t);
+typedef int (*recvfrom_t)(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
 #endif
 
 struct iax_event {
@@ -191,6 +193,11 @@ extern int iax_setup_transfer(struct iax_session *s0, struct iax_session *s1);
 void iax_set_private(struct iax_session *s, void *pvt);
 void *iax_get_private(struct iax_session *s);
 void iax_set_sendto(struct iax_session *s, sendto_t sendto);
+
+/* to use application networking instead of internal, set call this instead of iax_init,
+ * and pass in sendto and recvfrom replacements.  blocking reads may not be implemented */
+void iax_set_networking(sendto_t st, recvfrom_t rf);
+
 
 /* Handle externally received frames */
 struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_in *sin);

@@ -43,11 +43,18 @@ static int decode ( struct iaxc_audio_codec *c,
     int *inlen, char *in, int *outlen, short *out ) {
 
     struct state * decstate = (struct state *) c->decstate;
-
     int ret =0;
     int bits_left = 0;
     int bits_read = 0;
     int start_bits = 0;
+
+    if(*inlen == 0) {
+	//return 0;
+	//fprintf(stderr, "Speex Interpolate\n");
+	speex_decode_int(decstate->state, NULL, out);
+	*outlen -= 160;
+	return 0;
+    }
 
     /* XXX if the input contains more than we can read, we lose here */
     speex_bits_read_from(&decstate->bits, in, *inlen);

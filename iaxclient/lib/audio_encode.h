@@ -17,6 +17,5 @@ void increment_encoded_data_count(int *i, int iEncodeType);
 void iaxc_set_speex_filters(void);
 
 
-
 #endif
 

@@ -24,6 +24,7 @@
 #include <io.h>
 #include <errno.h>
 
+
 #define	snprintf _snprintf
 
 #if defined(_MSC_VER)
@@ -57,6 +58,10 @@ void gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 #endif
 
+#endif
+
+#ifdef NEWJB
+#include "jitterbuf.h"
 #endif
 
 #include "iax-client.h"
@@ -136,10 +141,14 @@ static int maxretries = 10;
 /* Dropcount (in per-MEMORY_SIZE) usually percent */
 static int iax_dropcount = 3;
 
+/* external global networking replacements */
+static sendto_t	  iax_sendto = sendto;
+static recvfrom_t iax_recvfrom = recvfrom;
+
 struct iax_session {
 	/* Private data */
 	void *pvt;
-	/* Sendto function */
+	/* session-local Sendto function */
 	sendto_t sendto;
 	/* Is voice quelched (e.g. hold) */
 	int quelch;
@@ -223,6 +232,10 @@ struct iax_session {
 	int transferpeer;	/* for attended transfer */
 	int transfer_moh;	/* for music on hold while performing attended transfer */
 
+#ifdef NEWJB
+	jitterbuf *jb;
+#endif
+
 	/* For linking if there are multiple connections */
 	struct iax_session *next;
 };
@@ -263,6 +276,7 @@ void iax_set_sendto(struct iax_session *s, sendto_t ptr)
 {
 	s->sendto = ptr;
 }
+
 
 /* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ 
 #ifdef	WIN32
@@ -425,7 +439,10 @@ struct iax_session *iax_session_new(void)
 		s->peercallno = 0;
 		s->transferpeer = 0;		/* for attended transfer */
 		s->next = sessions;
-		s->sendto = sendto;
+		s->sendto = iax_sendto;
+#ifdef NEWJB
+		s->jb = jb_new();
+#endif
 		sessions = s;
 	}
 	return s;
@@ -598,67 +615,75 @@ static int iax_reliable_xmit(struct iax_frame *f)
 		return -1;
 }
 
+void iax_set_networking(sendto_t st, recvfrom_t rf)
+{
+	iax_sendto = st;
+	iax_recvfrom = rf;
+}
+
 int iax_init(int preferredportno)
 {
 	int portno = preferredportno;
 	struct sockaddr_in sin;
 	int sinlen;
 	int flags;
-	
-	if (netfd > -1) {
-		/* Sokay, just don't do anything */
-		DEBU(G "Already initialized.");
-		return 0;
-	}
-	netfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-	if (netfd < 0) {
-		DEBU(G "Unable to allocate UDP socket\n");
-		IAXERROR "Unable to allocate UDP socket\n");
-		return -1;
-	}
-	
-	if (preferredportno == 0) 
-		preferredportno = IAX_DEFAULT_PORTNO;
-		
-	if (preferredportno > 0) {
-		sin.sin_family = AF_INET;
-		sin.sin_addr.s_addr = 0;
-		sin.sin_port = htons((short)preferredportno);
-		if (bind(netfd, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
-			DEBU(G "Unable to bind to preferred port.  Using random one instead.");
-		}
-	}
-	sinlen = sizeof(sin);
-	if (getsockname(netfd, (struct sockaddr *) &sin, &sinlen) < 0) {
-		close(netfd);
-		netfd = -1;
-		DEBU(G "Unable to figure out what I'm bound to.");
-		IAXERROR "Unable to determine bound port number.");
-	}
+
+	if(iax_recvfrom == recvfrom) {
+	    if (netfd > -1) {
+		    /* Sokay, just don't do anything */
+		    DEBU(G "Already initialized.");
+		    return 0;
+	    }
+	    netfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+	    if (netfd < 0) {
+		    DEBU(G "Unable to allocate UDP socket\n");
+		    IAXERROR "Unable to allocate UDP socket\n");
+		    return -1;
+	    }
+	    
+	    if (preferredportno == 0) 
+		    preferredportno = IAX_DEFAULT_PORTNO;
+		    
+	    if (preferredportno > 0) {
+		    sin.sin_family = AF_INET;
+		    sin.sin_addr.s_addr = 0;
+		    sin.sin_port = htons((short)preferredportno);
+		    if (bind(netfd, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
+			    DEBU(G "Unable to bind to preferred port.  Using random one instead.");
+		    }
+	    }
+	    sinlen = sizeof(sin);
+	    if (getsockname(netfd, (struct sockaddr *) &sin, &sinlen) < 0) {
+		    close(netfd);
+		    netfd = -1;
+		    DEBU(G "Unable to figure out what I'm bound to.");
+		    IAXERROR "Unable to determine bound port number.");
+	    }
 #ifdef	WIN32
-	flags = 1;
-	if (ioctlsocket(netfd,FIONBIO,(unsigned long *) &flags)) {
-		_close(netfd);
-		netfd = -1;
-		DEBU(G "Unable to set non-blocking mode.");
-		IAXERROR "Unable to set non-blocking mode.");
-	}
-	
+	    flags = 1;
+	    if (ioctlsocket(netfd,FIONBIO,(unsigned long *) &flags)) {
+		    _close(netfd);
+		    netfd = -1;
+		    DEBU(G "Unable to set non-blocking mode.");
+		    IAXERROR "Unable to set non-blocking mode.");
+	    }
+	    
 #else
-	if ((flags = fcntl(netfd, F_GETFL)) < 0) {
-		close(netfd);
-		netfd = -1;
-		DEBU(G "Unable to retrieve socket flags.");
-		IAXERROR "Unable to retrieve socket flags.");
-	}
-	if (fcntl(netfd, F_SETFL, flags | O_NONBLOCK) < 0) {
-		close(netfd);
-		netfd = -1;
-		DEBU(G "Unable to set non-blocking mode.");
-		IAXERROR "Unable to set non-blocking mode.");
-	}
+	    if ((flags = fcntl(netfd, F_GETFL)) < 0) {
+		    close(netfd);
+		    netfd = -1;
+		    DEBU(G "Unable to retrieve socket flags.");
+		    IAXERROR "Unable to retrieve socket flags.");
+	    }
+	    if (fcntl(netfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+		    close(netfd);
+		    netfd = -1;
+		    DEBU(G "Unable to set non-blocking mode.");
+		    IAXERROR "Unable to set non-blocking mode.");
+	    }
 #endif
-	portno = ntohs(sin.sin_port);
+	    portno = ntohs(sin.sin_port);
+	}
 	srand(time(NULL));
 	callnums = rand() % 32767 + 1;
 	transfer_id = rand() % 32767 + 1;
@@ -1136,6 +1161,15 @@ static void destroy_session(struct iax_session *session)
 				prev->next = session->next;
 			else
 				sessions = session->next;
+#ifdef NEWJB
+			{
+			    jb_frame frame;
+			    while(jb_getall(session->jb,&frame) == JB_OK) 
+				iax_event_free(frame.data);
+		   	
+			    jb_destroy(session->jb);
+			}
+#endif
 			free(session);
 			return;
 		}
@@ -1682,6 +1716,36 @@ static int display_time(int ms)
 
 #define FUDGE 1
 
+#ifdef NEWJB
+/* From chan_iax2/steve davies:  need to get permission from steve or digium, I guess */
+static long unwrap_timestamp(long ts, long last)
+{
+        int x;
+
+        if ( (ts & 0xFFFF0000) == (last & 0xFFFF0000) ) {
+                x = ts - last;
+                if (x < -50000) {
+                        /* Sudden big jump backwards in timestamp:
+                           What likely happened here is that miniframe timestamp has circled but we haven't
+                           gotten the update from the main packet.  We'll just pretend that we did, and
+                           update the timestamp appropriately. */
+                        ts = ( (last & 0xFFFF0000) + 0x10000) | (ts & 0xFFFF);
+                                DEBU(G "schedule_delivery: pushed forward timestamp\n");
+                }
+                if (x > 50000) {
+                        /* Sudden apparent big jump forwards in timestamp:
+                           What's likely happened is this is an old miniframe belonging to the previous
+                           top-16-bit timestamp that has turned up out of order.
+                           Adjust the timestamp appropriately. */
+                        ts = ( (last & 0xFFFF0000) - 0x10000) | (ts & 0xFFFF);
+                                DEBU(G "schedule_delivery: pushed back timestamp\n");
+                }
+        }
+	return ts;
+}
+#endif
+
+
 static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts, int updatehistory)
 {
 	/* 
@@ -1717,6 +1781,32 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 		e->session->lastts = ts;
 	}
 #endif
+
+#ifdef NEWJB
+	{
+	    int type = JB_TYPE_CONTROL;
+	    int len = 0;
+
+	    if(e->etype == IAX_EVENT_VOICE) {
+	      type = JB_TYPE_VOICE;
+	      /* XXX: Should probably parse this in full frames, then
+	       * store that, and use this for miniframes, instead of
+	       * hardcoding this guess here */
+	      len = (e->subclass == AST_FORMAT_ILBC) ? 30 : 20; 
+	    } else if(e->etype == IAX_EVENT_CNG) {
+	      type = JB_TYPE_SILENCE;	
+	    }
+
+	    /* insert into jitterbuffer */
+	    /* TODO: Perhaps we could act immediately if it's not droppable and late */
+	    if(jb_put(e->session->jb, e, type, len,
+		    unwrap_timestamp(ts,e->session->last_ts), 
+		    calc_rxstamp(e->session)) == JB_DROP) {
+		  iax_event_free(e);
+	    }
+
+	}
+#else
 	
 	/* How many ms from now should this packet be delivered? (remember
 	   this can be a negative number, too */
@@ -1840,6 +1930,7 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 #ifdef EXTREME_DEBUG
 	DEBU(G "Delivering packet in %d ms\n", ms);
 #endif
+#endif /* NEWJB */
 	return NULL;
 	
 }
@@ -2006,6 +2097,15 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 			}
 			e = schedule_delivery(e, ts, updatehistory);
 			break;
+		case AST_FRAME_CNG:
+			e->etype = IAX_EVENT_CNG;
+			e->subclass = subclass;
+                        if (datalen) {
+                                memcpy(e->data, fh->iedata, datalen);
+                                e->datalen = datalen;
+                        }
+                        e = schedule_delivery(e, ts, updatehistory);
+                        break;
 		case AST_FRAME_IAX:
 			/* Parse IE's */
 			if (datalen) {
@@ -2317,7 +2417,7 @@ static struct iax_event *iax_net_read(void)
 	struct sockaddr_in sin;
 	int sinlen;
 	sinlen = sizeof(sin);
-	res = recvfrom(netfd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
+	res = iax_recvfrom(netfd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
 	if (res < 0) {
 #ifdef	WIN32
 		if (WSAGetLastError() != WSAEWOULDBLOCK) {
@@ -2457,6 +2557,63 @@ struct iax_event *iax_get_event(int blocking)
 		free(cur);
 	}
 
+#ifdef NEWJB
+	/* get jitterbuffer-scheduled events */
+	{
+	    struct iax_session *cur;
+	    jb_frame frame;
+	    for(cur=sessions; cur; cur=cur->next) {
+		int ret;
+		long now;
+		long next;
+
+		now = (tv.tv_sec - cur->rxcore.tv_sec) * 1000 +
+		      (tv.tv_usec - cur->rxcore.tv_usec) / 1000;
+
+		if(now > (next = jb_next(cur->jb))) {
+		    ret = jb_get(cur->jb,&frame,now);
+		    switch(ret) {
+			case JB_OK:
+			    if(frame.type == JB_TYPE_VOICE && next + 20 != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not %ld+20!\n", jb_next(cur->jb), next);
+			    event = frame.data;
+			    event = handle_event(event);
+			    if (event) {
+				    return event;
+			    }
+			break;
+			case JB_INTERP:
+			    if(next + 20 != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not %ld+20!\n", jb_next(cur->jb), next);
+			    /* create an interpolation frame */
+			    //fprintf(stderr, "Making Interpolation frame\n");
+			    event = (struct iax_event *)malloc(sizeof(struct iax_event));
+			    if (event) {
+				    event->etype    = IAX_EVENT_VOICE;
+				    event->subclass = cur->voiceformat;
+				    event->ts	    = now; /* XXX: ??? applications probably ignore this anyway */
+				    event->session  = cur;
+				    event->datalen  = 0;
+				    event = handle_event(event);
+				    if(event)
+					return event;
+			    }
+			break;
+			case JB_DROP:
+			    if(next != jb_next(cur->jb)) fprintf(stderr, "NEXT %ld is not next %ld!\n", jb_next(cur->jb), next);
+			    iax_event_free(frame.data);
+			break;
+			case JB_NOFRAME:
+			case JB_EMPTY:
+			    /* do nothing */
+			break;
+			default:
+			    /* shouldn't happen */
+			break;
+		    }
+		}
+	    }
+	}
+
+#endif
 	/* Now look for networking events */
 	if (blocking) {
 		/* Block until there is data if desired */
@@ -2465,7 +2622,7 @@ struct iax_event *iax_get_event(int blocking)
 
 		FD_ZERO(&fds);
 		FD_SET(netfd, &fds);
-	
+
 		nextEventTime = iax_time_to_next_event(); 
 
 		if(nextEventTime < 0) 
