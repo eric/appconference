@@ -20,21 +20,7 @@ The home page for iaxclient is "http://iaxclient.sourceforge.net/"
 LICENSES
 
 
-Like the iaxclient library, iaxComm is provided under the terms of the LGPL:
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+iaxComm is provided under the terms of the GPL:
 
 =======================================================================
 CONTRIBUTORS:
@@ -49,13 +35,21 @@ NOTE:
 First you must make sure you have XRC support installed.  (Check with wx
 Documentation for your platform)
 
-Developed/Tested on WinXP with MinGW
+LINUX NOTE:
 
-Win32 MinGW: type "make"
-Linux: type "make" using standard gnu make/gcc
-MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
+In order to make linux binaries redistibutable, we need to compile the
+wxWindows stuff as static libraries, rather than shared.
 
-
-Untested:
-
-FreeBSD: type "gmake" using standard gnu make/gcc
+1.  Untar the wxWindows source distribution, and cd into it.
+2. run configure
+    ./configure --disable-shared
+3. make and install
+    make install
+4. Now we need to compile the xrc library
+    cd contrib/src/xrc
+    make install
+5. Since we're now compiling in the xrc resources, we need to compile wxrc
+    cd ../../utils/wxrc
+    make
+    cp wxrc /usr/bin
+6. Enjoy wxWindows with all of that xrc-y goodness!
