@@ -17,13 +17,28 @@
 #include <string.h>
 #include <limits.h>
 
-#define jb_warn(...) fprintf(stderr, __VA_ARGS__)
-//#define jb_warn(...) 
-#define jb_err(...)  fprintf(stderr, __VA_ARGS__)
-//#define jb_dbg(...)  fprintf(stderr, __VA_ARGS__)
-#define jb_dbg(...)  
+#define jb_warn(...) (warnf ? warnf(__VA_ARGS__) : (void)0)
+#define jb_err(...) (errf ? errf(__VA_ARGS__) : (void)0)
+#define jb_dbg(...) (dbgf ? dbgf(__VA_ARGS__) : (void)0)
 
-static void jb_warninfo(jitterbuf *jb);
+#ifdef DEEP_DEBUG
+#define jb_dbg2(...) (dbgf ? dbgf(__VA_ARGS__) : (void)0)
+#else
+#define jb_dbg2(...) ((void)0)
+#endif
+
+static jb_output_function_t warnf, errf, dbgf;
+
+int jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg) {
+    warnf = warn;
+    errf = err;
+    dbgf = dbg;
+}
+
+
+
+
+static void jb_dbginfo(jitterbuf *jb);
 
 
 int jb_reset(jitterbuf *jb) {
@@ -37,19 +52,18 @@ int jb_reset(jitterbuf *jb) {
 jitterbuf * jb_new() {
     jitterbuf *jb;
 
-
     jb = malloc(sizeof(jitterbuf));
     if(!jb) return NULL;
 
     jb_reset(jb);
 
-    jb_dbg("jb_new() = %x\n", jb);
+    jb_dbg2("jb_new() = %x\n", jb);
     return jb;
 }
 
 void jb_destroy(jitterbuf *jb) {
     jb_frame *frame; 
-    jb_dbg("jb_destroy(%x)\n", jb);
+    jb_dbg2("jb_destroy(%x)\n", jb);
 
     /* free all the frames on the "free list" */
     frame = jb->free; frame;
@@ -69,29 +83,6 @@ void jb_destroy(jitterbuf *jb) {
 /* maybe later we can make the history buckets variable size, or something? */
 /* drop parameter determines whether we will drop outliers to minimize
  * delay */
-static inline long maxdiff(long *arr, int n, int drop) {
-   long max=LONG_MIN, max2=LONG_MIN, min = LONG_MAX;
-
-    if(n<2) return 0;
-
-    while(n-- > 0) {
-	if(arr[n] > max) {
-	  max2 = max;
-	  max = arr[n];
-	} else if (arr[n] > max2) {
-	  max2 = arr[n];
-	}
-	if(arr[n] < min) {
-	  min = arr[n];
-	}
-    }
-
-    if(drop)
-      return max2-min;
-    else
-      return max-min;
-}
-
 static int longcmp(const void *a, const void *b) {
     return *(long *)a - *(long *)b;
 }
@@ -118,10 +109,10 @@ static void history_put(jitterbuf *jb, long ts, long now) {
 	    jb->hist_longmax[0] = jb->hist_short[jb->hist_shortcur-1-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
 	    jb->hist_longmin[0] = jb->hist_short[0];
 	    if(jb->hist_longmax[0] < jb->hist_longmin[0]) fprintf(stderr, "ERROR!!!!!!!!");
-	    jb_warn("history: rotating, short-term was %ld %ld (%ld)\n", 
+	    jb_dbg("history: rotating, short-term was %ld %ld (%ld)\n", 
 		jb->hist_longmax[0], jb->hist_longmin[0], 
 		jb->hist_longmax[0]-jb->hist_longmin[0]);
-	    jb_warninfo(jb);
+	    jb_dbginfo(jb);
 	  //jb_warnqueue(jb);
 
 	    /* clear short-term */
@@ -271,20 +262,19 @@ jb_frame *queue_get(jitterbuf *jb, long ts) {
 
 /* some diagnostics */
 static void jb_dbginfo(jitterbuf *jb) {
-}
+    if(dbgf == NULL) return;
 
-static void jb_warninfo(jitterbuf *jb) {
-    jb_warn("\njb info: fin=%ld fout=%ld flate=%ld flost=%ld fdrop=%ld fcur=%ld\n",
+    jb_dbg("\njb info: fin=%ld fout=%ld flate=%ld flost=%ld fdrop=%ld fcur=%ld\n",
 	    jb->info.frames_in, jb->info.frames_out, jb->info.frames_late, jb->info.frames_lost, jb->info.frames_dropped, jb->info.frames_cur);
 	
-    jb_warn("	jitter=%ld current=%ld target=%ld min=%ld sil=%d len=%d len/fcur=%ld\n",
+    jb_dbg("	jitter=%ld current=%ld target=%ld min=%ld sil=%d len=%d len/fcur=%ld\n",
 	    jb->info.jitter, jb->info.current, jb->info.target, jb->info.min, jb->info.silence, jb->info.current - jb->info.min, 
 	    jb->info.frames_cur ? (jb->info.current - jb->info.min)/jb->info.frames_cur : -8);
     if(jb->info.frames_in > 0) 
-	jb_warn("jb info: Loss PCT = %ld%%, Late PCT = %ld%%\n",
+	jb_dbg("jb info: Loss PCT = %ld%%, Late PCT = %ld%%\n",
 	    jb->info.frames_lost * 100/(jb->info.frames_in + jb->info.frames_lost), 
 	    jb->info.frames_late * 100/jb->info.frames_in);
-	jb_warn("jb info: queue %d -> %d.  last_ts %d (queue len: %d) last_ms %d\n",
+	jb_dbg("jb info: queue %d -> %d.  last_ts %d (queue len: %d) last_ms %d\n",
 	    queue_next(jb), 
 	    queue_last(jb),
 	    jb->info.last_voice_ts, 
@@ -309,70 +299,29 @@ static void jb_chkqueue(jitterbuf *jb) {
     } while (p->next != jb->frames);
 }
 
-static void jb_warnqueue(jitterbuf *jb) {
+static void jb_dbgqueue(jitterbuf *jb) {
     int i=0;
     jb_frame *p = jb->frames;
 
-    jb_warn("queue: ");
+    jb_dbg("queue: ");
 
     if(!p) {
-      jb_warn("EMPTY\n");
+      jb_dbg("EMPTY\n");
       return;
     }
 
     do {
-	jb_warn("[%d]=%ld ", i++, p->ts);
+	jb_dbg("[%d]=%ld ", i++, p->ts);
 	p=p->next;
     } while (p->next != jb->frames);
 
-    jb_warn("\n");
+    jb_dbg("\n");
 }
-
-static void jb_adjust(jitterbuf *jb, int now) {
-#if 0
-    long diff;
-    long adjustment;
-
-    jb->info.jitter = history_get(jb, NULL);
-    
-    diff = (jb->info.jitter) - jb->info.length;
-
-    if(jb->info.silence) {
-	if(diff > 0)
-	{
-	    /* just grow as we want, we'll only be expanding the silence a bit */
-	    adjustment = diff;
-	} else { /* we can shrink quickly here, as long as we have silence in the queue */
-	    /* find out the gap (negative) between what we last sent, and the next frame in the queue
-	     * it might not be voice, but then we'll adjust again later */
-	    adjustment = (jb->info.last_ts ) - jb_next(jb); 
-
-	    /* of course, clamp our adjustment at our goal */
-	    if(adjustment < diff) adjustment = diff;
-	}
-    } else {
-	if(diff < 0) {
-	    /* shrink at about a 1 in 10 rate.  We'll drop 10% of frames, which is pretty unnoticable,
-	     * but we get the latency down quickly */
-	    adjustment = (jb->info.last_adjustment - now)/10;
-	    if(adjustment < diff) adjustment = diff;
-	} else {
-	    /* adjust at a rate such that we get the full desired adjustment before the end of the buffer */
-	    /* XXX: Is this a reasonable way to grow?? */
-	    adjustment = diff * (now - jb->info.last_adjustment) / (jb->info.length + now - jb->info.last_adjustment);	
-	}
-    }
-
-    jb->info.length += adjustment;
-    jb->info.last_adjustment = now;
-#endif
-}
-
 
 int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
     long adj;
 
-    jb_dbg("jb_put(%x,%x,%ld,%ld,%ld)\n", jb, data, ms, ts, now);
+    jb_dbg2("jb_put(%x,%x,%ld,%ld,%ld)\n", jb, data, ms, ts, now);
 
     jb->info.frames_in++;
 
@@ -384,15 +333,7 @@ int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
 
     queue_put(jb,data,type,ms,ts);
 
-    jb_dbginfo(jb);
     return JB_OK;
-}
-
-/* this is the adjustment to be applied to the next outgoing frame timestamp */
-static long jb_getadjustment(jitterbuf *jb) { 
-  /* XXX fudge: try fudging by one voice frame */
-  //return (jb->info.length - jb->info.drift + 30); 
-  return 0;
 }
 
 
@@ -427,7 +368,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	   (diff > queue_last(jb)  - queue_next(jb)) ) ) {
 	      jb->info.current += jb->info.last_voice_ms;
 	      jb->info.last_adjustment = now;
-	      jb_warn("G");
+	      jb_dbg("G");
 	      return JB_INTERP;
       }
 
@@ -443,7 +384,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 
 	*frameout = *frame;
 	jb->info.frames_out++;
-	jb_warn("o");
+	jb_dbg("o");
 	return JB_OK;
       }
 
@@ -456,7 +397,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	jb->info.frames_out++;
 	jb->info.frames_late++;
 	jb->info.frames_lost--;
-	jb_warn("l");
+	jb_dbg("l");
 	//jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
 	//jb_warninfo(jb);
 	return JB_DROP;
@@ -481,10 +422,10 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	  *frameout = *frame;
 	  jb->info.frames_out++;
 	  jb->info.frames_dropped++;
-	  jb_warn("s");
+	  jb_dbg("s");
 	  return JB_DROP;
 	} else {
-	  jb_warn("S");
+	  jb_dbg("S");
 	  return JB_NOFRAME;
 	}
       }
@@ -513,14 +454,14 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	      return JB_INTERP;
 	  } */
 	  jb->info.frames_lost++;
-	  jb_warn("L");
+	  jb_dbg("L");
 	  return JB_INTERP;
       }
 
       /* normal case; return the frame, increment stuff */
       *frameout = *frame;
       jb->info.frames_out++;
-      jb_warn("v");
+      jb_dbg("v");
       return JB_OK;
   } else {     
       /* TODO: after we get the non-silent case down, we'll make the
@@ -539,7 +480,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	  jb->info.last_voice_ts = frame->ts + jb->info.current + frame->ms;
 	  jb->info.last_voice_ms = frame->ms;
 	  *frameout = *frame;
-	  jb_warn("V");
+	  jb_dbg("V");
 	  return JB_OK;
        }
        /* normal case; in silent mode, got a non-voice frame */
@@ -560,11 +501,13 @@ long jb_next(jitterbuf *jb) {
 
 int jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
     int ret = _jb_get(jb,frameout,now);
-//    static int lastts=0;
- //   int thists = ((ret == JB_OK) || (ret == JB_DROP)) ? frameout->ts : 0;
-//    jb_warn("jb_get(%x,%x,%ld) = %d (%d)\n", jb, frameout, now, ret, thists);
-//    if(thists && thists < lastts) jb_warn("XXXX timestamp roll-back!!!\n");
-//    lastts = thists;
+#if 0
+    static int lastts=0;
+    int thists = ((ret == JB_OK) || (ret == JB_DROP)) ? frameout->ts : 0;
+    jb_warn("jb_get(%x,%x,%ld) = %d (%d)\n", jb, frameout, now, ret, thists);
+    if(thists && thists < lastts) jb_warn("XXXX timestamp roll-back!!!\n");
+    lastts = thists;
+#endif
     return ret;
 }
 

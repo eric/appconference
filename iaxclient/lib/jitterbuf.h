@@ -116,6 +116,8 @@ int			jb_getinfo(jitterbuf *jb, jb_info *stats);
 /* set jitterbuf info: only "settings" may be honored */
 int			jb_setinfo(jitterbuf *jb, jb_info *settings);
 
+typedef 		int (*jb_output_function_t)(const char *fmt, ...);
+int 			jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg);
 
 #ifdef __cplusplus
 }

@@ -284,6 +284,56 @@ EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) {
     iaxc_recvfrom = rf;
 }
 
+void jb_errf(const char *fmt, ...)
+{
+    va_list args;
+    char buf[1024];
+
+    va_start(args, fmt);
+#ifdef WIN32
+    _vsnprintf(buf, 1024, fmt, args);
+#else
+    vsnprintf(buf, 1024, fmt, args);
+#endif
+    va_end(args);
+
+    iaxc_usermsg(IAXC_ERROR, buf);
+}
+
+void jb_warnf(const char *fmt, ...)
+{
+    va_list args;
+    char buf[1024];
+
+    va_start(args, fmt);
+#ifdef WIN32
+    _vsnprintf(buf, 1024, fmt, args);
+#else
+    vsnprintf(buf, 1024, fmt, args);
+#endif
+    va_end(args);
+
+    iaxc_usermsg(IAXC_NOTICE, buf);
+}
+
+void jb_dbgf(const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+#ifdef WIN32
+    _vfprintf(stderr, fmt, args);
+#else
+    vfprintf(stderr, fmt, args);
+#endif
+    va_end(args);
+}
+
+static void setup_jb_output() {
+      jb_setoutput(jb_errf, jb_warnf, jb_dbgf);
+      //jb_setoutput(jb_errf, jb_warnf, NULL);
+}
+
 // Parameters:
 // audType - Define whether audio is handled by library or externally
 EXPORT int iaxc_initialize(int audType, int inCalls) {
@@ -292,6 +342,8 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 	/* os-specific initializations: init gettimeofday fake stuff in
 	 * Win32, etc) */
 	os_init();
+
+	setup_jb_output();
 
 	MUTEXINIT(&iaxc_lock);
 

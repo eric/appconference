@@ -28,7 +28,9 @@
 ** full duplex audio (simultaneous record and playback).
 ** And some only support full duplex at lower sample rates.
 */
+#ifndef SAMPLE_RATE
 #define SAMPLE_RATE           (8000)
+#endif
 #define NUM_SECONDS              (5)
 #define SAMPLES_PER_FRAME        (1)
 #define FRAMES_PER_BLOCK       (160)
