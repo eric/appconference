@@ -113,7 +113,12 @@ void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples) {
 static void mix_slin(short *dst, short *src, int samples) {
     int i=0,val=0;
     for (i=0;i<samples;i++) {
-        val = ((short *)dst)[i] + ((short *)src)[i];
+
+        if(virtualMono)
+	  val = ((short *)dst)[2*i] + ((short *)src)[i];
+	else
+	  val = ((short *)dst)[i] + ((short *)src)[i];
+
         if(val > 0x7fff) {
             val = 0x7fff-1;
         } else if (val < -0x7fff) {
