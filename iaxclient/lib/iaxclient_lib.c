@@ -143,10 +143,10 @@ void iaxc_do_state_callback(int callNo)
       iaxc_post_event(e);
 }
 
-static int iaxc_next_free_call()  {
+static int iaxc_first_free_call()  {
 	int i;
 	for(i=0;i<nCalls;i++) 
-	    if(calls[i].session==NULL) 
+	    if(calls[i].state == IAXC_CALL_STATE_FREE) 
 		return i;
 	
 	return -1;
@@ -154,47 +154,41 @@ static int iaxc_next_free_call()  {
 
 static int iaxc_clear_call(int toDump)
 {
-      if(selected_call == toDump) iaxc_select_call(-1);
-
       // XXX libiax should handle cleanup, I think..
-      calls[toDump].session = NULL;
       calls[toDump].state = IAXC_CALL_STATE_FREE;
+      calls[toDump].session = NULL;
       iaxc_do_state_callback(toDump);
 }
 
-/* select a call.  -1 == no call */
+/* select a call.  */
 /* XXX Locking??  Start/stop audio?? */
 int iaxc_select_call(int callNo) {
-	if(callNo < -1 || callNo >= nCalls) {
+
+	// continue if already selected?
+	//if(callNo == selected_call) return;
+
+	if(callNo < 0 || callNo >= nCalls) {
 		iaxc_usermsg(IAXC_ERROR, "Error: tried to select out_of_range call %d", callNo);
 		return -1;
 	}
-
-	if(!calls[callNo].session) {
-		iaxc_usermsg(IAXC_ERROR, "Error: tried to select inactive call", callNo);
-		return -1;
-	}
-   
-	if(selected_call >= 0) {	
+  
+	// de-select old call if not also the new call	
+	if(callNo != selected_call) {
 	    calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+	    selected_call = callNo;
 	    iaxc_do_state_callback(selected_call);
+
+	    calls[callNo].state |= IAXC_CALL_STATE_SELECTED;
 	}
 
-	selected_call = callNo;
 
-	if(callNo >= 0) {
-	    calls[callNo].state |= IAXC_CALL_STATE_SELECTED;
-
-
-	    // if it's an incoming call, and ringing, answer it.
-	    if( !(calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) && 
-		 (calls[selected_call].state & IAXC_CALL_STATE_RINGING)) {
-		iaxc_answer_call(selected_call);
-	    } else {
-	    // otherwise just update state (answer does this for us)
-	      iaxc_do_state_callback(selected_call);
-	    }
-	    // should do callback to say all are unselected...
+	// if it's an incoming call, and ringing, answer it.
+	if( !(calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) && 
+	     (calls[selected_call].state & IAXC_CALL_STATE_RINGING)) {
+	    iaxc_answer_call(selected_call);
+	} else {
+	// otherwise just update state (answer does this for us)
+	  iaxc_do_state_callback(selected_call);
 	}
 }
 	  
@@ -232,7 +226,7 @@ int iaxc_initialize(int audType, int inCalls) {
 		return -1;
 	}
 	iAudioType = audType;
-	selected_call = -1;
+	selected_call = 0;
 
 	gettimeofday(&lastouttm,NULL);
 	switch (iAudioType) {
@@ -351,9 +345,10 @@ int iaxc_stop_processing_thread()
 
 int service_audio()
 {
-	/* do audio input stuff for buffers that have received data from audio in device already. Must
-		do them in serial number order (the order in which they were originally queued). */
-	if(selected_call >= 0) /* send audio only if call answered */
+	/* send audio only if incoming call answered, or outgoing call
+	 * selected. */
+	if( (calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) 
+	    || (calls[selected_call].state & IAXC_CALL_STATE_COMPLETE)) 
 	{
 		switch (iAudioType) {
 			case AUDIO_INTERNAL:
@@ -515,16 +510,25 @@ void iaxc_call(char *num)
 	int callNo;
 	struct iax_session *newsession;
 
-	callNo = iaxc_next_free_call();
+	MUTEXLOCK(&iaxc_lock);
+
+	// use selected call if not active, otherwise, get a new
+	// appearance
+	if(calls[selected_call].state  & IAXC_CALL_STATE_ACTIVE) {
+	  callNo = iaxc_first_free_call();
+	} else {
+	  callNo = selected_call;
+	}
+
 	if(callNo < 0) {
 		iaxc_usermsg(IAXC_STATUS, "No free call appearances");
-		return;
+		goto iaxc_call_bail;
 	}
 
 	newsession = iax_session_new();
 	if(!newsession) {
 		iaxc_usermsg(IAXC_ERROR, "Can't make new session");
-		return;
+		goto iaxc_call_bail;
 	}
 
 	calls[callNo].session = newsession;
@@ -543,8 +547,11 @@ void iaxc_call(char *num)
 	iax_call(calls[callNo].session, "7001234567", num, NULL, 10);
 #endif
 
-	// does state stuff
+	// does state stuff also
 	iaxc_select_call(callNo);
+
+iaxc_call_bail:
+	MUTEXUNLOCK(&iaxc_lock);
 }
 
 void iaxc_answer_call(int callNo) 
@@ -577,14 +584,8 @@ void iaxc_dump_all_calls(void)
 
 void iaxc_dump_call(void)
 {
-	int toDump;
 	MUTEXLOCK(&iaxc_lock);
-	toDump = selected_call;
-	if(toDump < 0) {
-	    iaxc_usermsg(IAXC_ERROR, "Error: tried to dump but no call selected");
-	} else {
-	    iaxc_dump_one_call(selected_call);
-	}
+	iaxc_dump_one_call(selected_call);
 	MUTEXUNLOCK(&iaxc_lock);
 }
 
@@ -600,7 +601,7 @@ void iaxc_reject_call(void)
 void iaxc_send_dtmf(char digit)
 {
 	MUTEXLOCK(&iaxc_lock);
-	if(selected_call >= 0)
+	if(calls[selected_call].state & IAXC_CALL_STATE_ACTIVE)
 		iax_send_dtmf(calls[selected_call].session,digit);
 	MUTEXUNLOCK(&iaxc_lock);
 }
@@ -705,7 +706,7 @@ static void do_iax_event() {
 			iaxc_usermsg(IAXC_ERROR, "Registration requested by someone, but we don't understand!");
 		} else  if(e->etype == IAX_EVENT_CONNECT) {
 			
-			callNo = iaxc_next_free_call();
+			callNo = iaxc_first_free_call();
 
 			if(callNo < 0) {
 				iaxc_usermsg(IAXC_STATUS, "Incoming Call, but no appearances");
