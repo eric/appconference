@@ -2,7 +2,7 @@
  * jitterbuf: an application-independent jitterbuffer
  *
  * Copyrights:
- * Copyright (C) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2004-2005, Horizon Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
@@ -34,17 +34,20 @@
 
 static jb_output_function_t warnf, errf, dbgf;
 
-void jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg) {
+void jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg) 
+{
     warnf = warn;
     errf = err;
     dbgf = dbg;
 }
 
-static void increment_losspct(jitterbuf *jb) {
+static void increment_losspct(jitterbuf *jb) 
+{
     jb->info.losspct = (100000 + 499 * jb->info.losspct)/500;    
 }
 
-static void decrement_losspct(jitterbuf *jb) {
+static void decrement_losspct(jitterbuf *jb) 
+{
     jb->info.losspct = (499 * jb->info.losspct)/500;    
 }
 
@@ -52,7 +55,8 @@ static void decrement_losspct(jitterbuf *jb) {
 static void jb_dbginfo(jitterbuf *jb);
 
 
-void jb_reset(jitterbuf *jb) {
+void jb_reset(jitterbuf *jb) 
+{
     memset(jb,0,sizeof(jitterbuf));
 
     /* initialize length */
@@ -60,8 +64,10 @@ void jb_reset(jitterbuf *jb) {
     jb->info.silence = 1; 
 }
 
-jitterbuf * jb_new() {
+jitterbuf * jb_new() 
+{
     jitterbuf *jb;
+
 
     jb = malloc(sizeof(jitterbuf));
     if(!jb) return NULL;
@@ -72,7 +78,8 @@ jitterbuf * jb_new() {
     return jb;
 }
 
-void jb_destroy(jitterbuf *jb) {
+void jb_destroy(jitterbuf *jb) 
+{
     jb_frame *frame; 
     jb_dbg2("jb_destroy(%x)\n", jb);
 
@@ -94,11 +101,13 @@ void jb_destroy(jitterbuf *jb) {
 /* maybe later we can make the history buckets variable size, or something? */
 /* drop parameter determines whether we will drop outliers to minimize
  * delay */
-static int longcmp(const void *a, const void *b) {
+static int longcmp(const void *a, const void *b) 
+{
     return *(long *)a - *(long *)b;
 }
 
-static void history_put(jitterbuf *jb, long ts, long now) {
+static void history_put(jitterbuf *jb, long ts, long now) 
+{
     long delay = now - ts;
     long kicked;
 
@@ -148,8 +157,9 @@ invalidate:
     return;
 }
 
-static void history_calc_maxbuf(jitterbuf *jb) {
-    int i,j,p;
+static void history_calc_maxbuf(jitterbuf *jb) 
+{
+    int i,j;
 
     if(jb->hist_ptr == 0) return;
 
@@ -209,13 +219,13 @@ static void history_calc_maxbuf(jitterbuf *jb) {
 
 	if(0) { 
 	  int k;
-	  fprintf(stderr, "toins = %d\n", toins);
+	  fprintf(stderr, "toins = %ld\n", toins);
 	  fprintf(stderr, "maxbuf =");
 	  for(k=0;k<JB_HISTORY_MAXBUF_SZ;k++) 
-	      fprintf(stderr, "%d ", jb->hist_maxbuf[k]);
+	      fprintf(stderr, "%ld ", jb->hist_maxbuf[k]);
 	  fprintf(stderr, "\nminbuf =");
 	  for(k=0;k<JB_HISTORY_MAXBUF_SZ;k++) 
-	      fprintf(stderr, "%d ", jb->hist_minbuf[k]);
+	      fprintf(stderr, "%ld ", jb->hist_minbuf[k]);
 	  fprintf(stderr, "\n");
 	}
     }
@@ -223,7 +233,8 @@ static void history_calc_maxbuf(jitterbuf *jb) {
     jb->hist_maxbuf_valid = 1;
 }
 
-static void history_get(jitterbuf *jb) {
+static void history_get(jitterbuf *jb) 
+{
     long max, min, jitter;
     int index;
     int count;
@@ -263,7 +274,8 @@ static void history_get(jitterbuf *jb) {
     jb->info.jitter = jitter;
 }
 
-static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts) {
+static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts) 
+{
     jb_frame *frame;
     jb_frame *p;
 
@@ -320,24 +332,27 @@ static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts) {
     }
 }
 
-static long queue_next(jitterbuf *jb) {
+static long queue_next(jitterbuf *jb) 
+{
     if(jb->frames) return jb->frames->ts;
     else return -1;
 }
 
-static long queue_last(jitterbuf *jb) {
+static long queue_last(jitterbuf *jb) 
+{
     if(jb->frames) return jb->frames->prev->ts;
     else return -1;
 }
 
-static jb_frame *_queue_get(jitterbuf *jb, long ts, int all) {
+static jb_frame *_queue_get(jitterbuf *jb, long ts, int all) 
+{
     jb_frame *frame;
     frame = jb->frames;
 
     if(!frame)
 	return NULL;
 
-    //jb_warn("queue_get: ASK %ld FIRST %ld\n", ts, frame->ts);
+    /*jb_warn("queue_get: ASK %ld FIRST %ld\n", ts, frame->ts); */
 
     if(all || ts > frame->ts) {
 	/* remove this frame */
@@ -364,16 +379,19 @@ static jb_frame *_queue_get(jitterbuf *jb, long ts, int all) {
     return NULL;
 }
 
-static jb_frame *queue_get(jitterbuf *jb, long ts) {
+static jb_frame *queue_get(jitterbuf *jb, long ts) 
+{
     return _queue_get(jb,ts,0);
 }
 
-static jb_frame *queue_getall(jitterbuf *jb) {
+static jb_frame *queue_getall(jitterbuf *jb) 
+{
     return _queue_get(jb,0,1);
 }
 
 /* some diagnostics */
-static void jb_dbginfo(jitterbuf *jb) {
+static void jb_dbginfo(jitterbuf *jb) 
+{
     if(dbgf == NULL) return;
 
     jb_dbg("\njb info: fin=%ld fout=%ld flate=%ld flost=%ld fdrop=%ld fcur=%ld\n",
@@ -395,7 +413,8 @@ static void jb_dbginfo(jitterbuf *jb) {
 }
 
 #ifdef DEEP_DEBUG
-static void jb_chkqueue(jitterbuf *jb) {
+static void jb_chkqueue(jitterbuf *jb) 
+{
     int i=0;
     jb_frame *p = jb->frames;
 
@@ -412,7 +431,8 @@ static void jb_chkqueue(jitterbuf *jb) {
     } while (p->next != jb->frames);
 }
 
-static void jb_dbgqueue(jitterbuf *jb) {
+static void jb_dbgqueue(jitterbuf *jb) 
+{
     int i=0;
     jb_frame *p = jb->frames;
 
@@ -432,7 +452,8 @@ static void jb_dbgqueue(jitterbuf *jb) {
 }
 #endif
 
-int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
+int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) 
+{
     jb_dbg2("jb_put(%x,%x,%ld,%ld,%ld)\n", jb, data, ms, ts, now);
 
     jb->info.frames_in++;
@@ -449,23 +470,29 @@ int jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now) {
 }
 
 
-static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
+static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) 
+{
     jb_frame *frame;
     long diff;
 
-    //if((now - jb_next(jb)) > 2 * jb->info.last_voice_ms) jb_warn("SCHED: %ld", (now - jb_next(jb)));
+    /*if((now - jb_next(jb)) > 2 * jb->info.last_voice_ms) jb_warn("SCHED: %ld", (now - jb_next(jb))); */
     /* get jitter info */
     history_get(jb);
 
 
     /* target */
     jb->info.target = jb->info.jitter + jb->info.min + 2 * jb->info.last_voice_ms; 
-	//now - jb->info.last_voice_ts;
+
+    /* if a hard clamp was requested, use it */
+    if((jb->info.max_jitterbuf) && ((jb->info.target - jb->info.min) > jb->info.max_jitterbuf)) {
+	jb_dbg("clamping target from %d to %d\n", (jb->info.target - jb->info.min), jb->info.max_jitterbuf);
+	jb->info.target = jb->info.min + jb->info.max_jitterbuf;
+    }
 
     diff = jb->info.target - jb->info.current;
 
-//    jb_warn("diff = %d lms=%d last = %d now = %d\n", diff, 
-//	jb->info.last_voice_ms, jb->info.last_adjustment, now);
+    /*    jb_warn("diff = %d lms=%d last = %d now = %d\n", diff,  */
+    /*	jb->info.last_voice_ms, jb->info.last_adjustment, now); */
 
     /* move up last_voice_ts; it is now the expected voice ts */
     jb->info.last_voice_ts += jb->info.last_voice_ms;
@@ -511,8 +538,8 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	jb->info.frames_late++;
 	jb->info.frames_lost--;
 	jb_dbg("l");
-	//jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
-	//jb_warninfo(jb);
+	/*jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
+	jb_warninfo(jb); */
 	return JB_DROP;
       }
 
@@ -608,7 +635,8 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
   }
 }
 
-long jb_next(jitterbuf *jb) {
+long jb_next(jitterbuf *jb) 
+{
     if(jb->info.silence) {
       long next = queue_next(jb);
       if(next > 0) { 
@@ -621,7 +649,8 @@ long jb_next(jitterbuf *jb) {
     }
 }
 
-int jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
+int jb_get(jitterbuf *jb, jb_frame *frameout, long now) 
+{
     int ret = _jb_get(jb,frameout,now);
 #if 0
     static int lastts=0;
@@ -633,7 +662,8 @@ int jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
     return ret;
 }
 
-int jb_getall(jitterbuf *jb, jb_frame *frameout) {
+int jb_getall(jitterbuf *jb, jb_frame *frameout) 
+{
     jb_frame *frame;
     frame = queue_getall(jb);
 
@@ -646,7 +676,8 @@ int jb_getall(jitterbuf *jb, jb_frame *frameout) {
 }
 
 
-int jb_getinfo(jitterbuf *jb, jb_info *stats) {
+int jb_getinfo(jitterbuf *jb, jb_info *stats) 
+{
 
     history_get(jb);
 
@@ -655,7 +686,12 @@ int jb_getinfo(jitterbuf *jb, jb_info *stats) {
   return JB_OK;
 }
 
-int jb_setinfo(jitterbuf *jb, jb_info *settings) {
+int jb_setinfo(jitterbuf *jb, jb_info *settings) 
+{
+  /* take selected settings from the struct */
+
+  jb->info.max_jitterbuf = settings->max_jitterbuf;
+
   return JB_OK;
 }
 

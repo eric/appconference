@@ -2,7 +2,7 @@
  * jitterbuf: an application-independent jitterbuffer
  *
  * Copyrights:
- * Copyright (C) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2004-2005, Horizon Wimba, Inc.
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
@@ -63,6 +63,9 @@ typedef struct jb_info {
 	long last_voice_ms;	/* the duration of the last voice frame */
 	long silence;		/* we are presently playing out silence */
 	long last_adjustment;   /* the time of the last adjustment */
+
+	/* settings */
+	long max_jitterbuf;	/* defines a hard clamp to use in setting the jitter buffer delay */
 } jb_info;
 
 typedef struct jb_frame {
