@@ -21,6 +21,16 @@ extern "C" {
 #include <sys/socket.h>
 #endif
 
+#ifdef BUILDING_DLL
+# ifdef WIN32
+#  define EXPORT  __stdcall __declspec(dllexport)
+# else
+#  define EXPORT
+# endif
+#else
+# define EXPORT
+#endif
+
 #ifdef WIN32
 #if defined(_MSC_VER)
 	typedef int (__stdcall *iaxc_sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
@@ -33,7 +43,6 @@ extern "C" {
 	typedef int (*iaxc_sendto_t)(int, const void *, size_t, int, const struct sockaddr *, socklen_t);
 	typedef int (*iaxc_recvfrom_t)(int s, void *buf, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
 #endif
-
 
 /* Define audio type constants */
 #define AUDIO_INTERNAL 0
@@ -115,36 +124,48 @@ typedef struct iaxc_event_struct {
 } iaxc_event;
 
 typedef int (*iaxc_event_callback_t)(iaxc_event e);
-void iaxc_set_event_callback(iaxc_event_callback_t func);
+EXPORT void iaxc_set_event_callback(iaxc_event_callback_t func);
 
-int iaxc_initialize(int audType, int nCalls);
-void iaxc_shutdown();
-void iaxc_set_formats(int preferred, int allowed);
-void iaxc_set_min_outgoing_framesize(int samples);
-void iaxc_set_callerid(char *name, char *number);
-void iaxc_process_calls();
-int iaxc_service_audio();
-int iaxc_start_processing_thread();
-int iaxc_stop_processing_thread();
-void iaxc_call(char *num);
-void iaxc_register(char *user, char *pass, char *host);
-void iaxc_answer_call(int callNo); 
-void iaxc_blind_transfer_call(int callNo, char *number); 
-void iaxc_dump_all_calls(void);
-void iaxc_dump_call(void);
-void iaxc_reject_call(void);
-void iaxc_send_dtmf(char digit);
-int iaxc_was_call_answered();
-void iaxc_millisleep(long ms);
-void iaxc_set_silence_threshold(double thr);
-void iaxc_set_audio_output(int mode);
-int iaxc_select_call(int callNo);
-int iaxc_first_free_call();
-int iaxc_selected_call();
-int iaxc_quelch(int callNo, int MOH);
-int iaxc_unquelch(int call);
-int iaxc_mic_boost_get( void ) ;
-int iaxc_mic_boost_set( int enable ) ;
+/* Sets iaxclient to post a pointer to a copy of event using o/s specific Post method */
+EXPORT int iaxc_set_event_callpost(void *handle, int id);
+
+/* frees event delivered via o/s specific Post method */
+EXPORT void iaxc_free_event(iaxc_event *e); 
+
+
+/* Event Accessors */
+EXPORT struct iaxc_ev_levels *iaxc_get_event_levels(iaxc_event *e);
+EXPORT struct iaxc_ev_text *iaxc_get_event_text(iaxc_event *e);
+EXPORT struct iaxc_ev_call_state *iaxc_get_event_state(iaxc_event *e);
+
+EXPORT int iaxc_initialize(int audType, int nCalls);
+EXPORT void iaxc_shutdown();
+EXPORT void iaxc_set_formats(int preferred, int allowed);
+EXPORT void iaxc_set_min_outgoing_framesize(int samples);
+EXPORT void iaxc_set_callerid(char *name, char *number);
+EXPORT void iaxc_process_calls();
+EXPORT int iaxc_service_audio();
+EXPORT int iaxc_start_processing_thread();
+EXPORT int iaxc_stop_processing_thread();
+EXPORT void iaxc_call(char *num);
+EXPORT void iaxc_register(char *user, char *pass, char *host);
+EXPORT void iaxc_answer_call(int callNo); 
+EXPORT void iaxc_blind_transfer_call(int callNo, char *number); 
+EXPORT void iaxc_dump_all_calls(void);
+EXPORT void iaxc_dump_call(void);
+EXPORT void iaxc_reject_call(void);
+EXPORT void iaxc_send_dtmf(char digit);
+EXPORT int iaxc_was_call_answered();
+EXPORT void iaxc_millisleep(long ms);
+EXPORT void iaxc_set_silence_threshold(double thr);
+EXPORT void iaxc_set_audio_output(int mode);
+EXPORT int iaxc_select_call(int callNo);
+EXPORT int iaxc_first_free_call();
+EXPORT int iaxc_selected_call();
+EXPORT int iaxc_quelch(int callNo, int MOH);
+EXPORT int iaxc_unquelch(int call);
+EXPORT int iaxc_mic_boost_get( void ) ;
+EXPORT int iaxc_mic_boost_set( int enable ) ;
 
 /* application-defined networking; give substiture sendto and recvfrom functions,
  * must be called before iaxc_initialize! */
@@ -175,13 +196,13 @@ struct iaxc_audio_device {
  * 	*input, *output, *ring: the currently selected devices for input, output, ring will
  * 	be written to the int pointed to by these pointers.
  */
-int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring); 
-int iaxc_audio_devices_set(int input, int output, int ring);
+EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring); 
+EXPORT int iaxc_audio_devices_set(int input, int output, int ring);
 
-double iaxc_input_level_get();
-double iaxc_output_level_get();
-int iaxc_input_level_set(double level);
-int iaxc_output_level_set(double level);
+EXPORT double iaxc_input_level_get();
+EXPORT double iaxc_output_level_get();
+EXPORT int iaxc_input_level_set(double level);
+EXPORT int iaxc_output_level_set(double level);
 
 
 struct iaxc_sound {
@@ -196,10 +217,10 @@ struct iaxc_sound {
 };
 
 /* play a sound.  sound = an iaxc_sound structure, ring: 0: play through output device; 1: play through "ring" device */
-int iaxc_play_sound(struct iaxc_sound *sound, int ring);
+EXPORT int iaxc_play_sound(struct iaxc_sound *sound, int ring);
 
 /* stop sound with ID "id" */
-int iaxc_stop_sound(int id);
+EXPORT int iaxc_stop_sound(int id);
 
 
 #define IAXC_FILTER_DENOISE 	(1<<0)
@@ -207,8 +228,8 @@ int iaxc_stop_sound(int id);
 #define IAXC_FILTER_ECHO 	(1<<2)
 #define IAXC_FILTER_AAGC 	(1<<3) /* Analog (mixer-based) AGC */
 #define IAXC_FILTER_CN 		(1<<4) /* Send CN frames when silence detected */
-int iaxc_get_filters(void);
-void iaxc_set_filters(int filters);
+EXPORT int iaxc_get_filters(void);
+EXPORT void iaxc_set_filters(int filters);
 
 /* speex specific codec settings */
 /* a good choice is (1,-1,-1,0,8000,3): 8kbps ABR */
@@ -224,7 +245,7 @@ void iaxc_set_filters(int filters);
 	*    Higher numbers take more CPU for better quality.  3 is
 	*    default and good choice.
 */
-void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity);
+EXPORT void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity);
 
 #ifdef __cplusplus
 }

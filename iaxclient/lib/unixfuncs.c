@@ -1,5 +1,6 @@
 
 #include <sys/time.h>
+#include "iaxclient_lib.h"
 
 #ifndef NULL
 #define NULL (0)
@@ -303,4 +304,18 @@ int iaxc_prioboostbegin() {
 int iaxc_prioboostend()  {
 	if(pb) StopWatchDog(pb);
 	return 0;
+}
+
+
+/* TODO: Implement for X/MacOSX? */
+int post_event_callback(iaxc_event ev) {
+#if 0
+  iaxc_event *e;
+  e = malloc(sizeof(ev));
+  *e = ev;
+
+  /* XXX Test return value? */
+  PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e);
+#endif
+  return 0;
 }

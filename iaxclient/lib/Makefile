@@ -203,15 +203,23 @@ endif
 # Setup platform-specific stuff based on gleaning
 ifeq ($(OSTYPE),WIN32)
 OBJS:= $(OBJS) $(OBJS_WIN32) 
+DYNLDFLAGS= -lwinmm -lwsock32 -lcomdlg32 -luser32 -lgdi32 -lole32 -lcomctl32 -lctl3d32 \
+		-lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -Wl,--out-implib,libiaxclient.a
+DYNCFLAGS=-DBUILDING_DLL
+DYNLIB=iaxclient.dll
 endif
 
 ifeq ($(OSTYPE),LINUX)
 OBJS:= $(OBJS) $(OBJS_LINUX) 
+DYNCFLAGS=-fPIC
+DYNLIB=libiaxclient.so
 endif
 
 ifeq ($(OSTYPE),SOLARIS)
 OBJS:= $(OBJS) $(OBJS_SOLARIS) 
 CFLAGS:= $(CFLAGS) -DALIGN32 
+DYNCFLAGS=-fPIC
+DYNLIB=libiaxclient.so
 CC=gcc
 endif
 
@@ -221,6 +229,7 @@ RANLIB= ranlib
 # comment these lines to build against current OS, and not 10.2.7.
 CC=MACOSX_DEPLOYMENT_TARGET=10.2 NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk cc
 CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.2.7.sdk/usr/include
+DYNLIB=libiaxclient.dylib
 endif
 
 
@@ -265,6 +274,12 @@ $(MSLIB): $(OBJS)
 #	rm -f $(MSLIB)
 	cp $(GCCLIB) $(MSLIB)
 	ar rs $(MSLIB) $(OBJS) 
+
+
+shared: CFLAGS := $(CFLAGS) -fPIC -DBUILDING_DLL
+shared: clean libiaxclient.a
+	$(CC) -shared -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS)
+
 
 plat:
 	echo Platform is $(OSTYPE)

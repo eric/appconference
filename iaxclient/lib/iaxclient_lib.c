@@ -29,6 +29,9 @@ static int iAudioType;
 int audio_format_capability;
 int audio_format_preferred;
 
+void * post_event_handle = NULL;
+int post_event_id = 0;
+
 static int minimum_outgoing_framesize = 160; /* 20ms */
 
 MUTEX iaxc_lock;
@@ -65,27 +68,27 @@ static void iaxc_do_pings(void);
 
 iaxc_event_callback_t iaxc_event_callback = NULL;
 
-void iaxc_set_silence_threshold(double thr) {
+EXPORT void iaxc_set_silence_threshold(double thr) {
     iaxc_silence_threshold = thr;
     iaxc_set_speex_filters();
 }
 
-void iaxc_set_audio_output(int mode) {
+EXPORT void iaxc_set_audio_output(int mode) {
     iaxc_audio_output_mode = mode;
 }
 
 
-int iaxc_get_filters(void) {
+EXPORT int iaxc_get_filters(void) {
       return iaxc_filters;
 }
 
-void iaxc_set_filters(int filters) {
+EXPORT void iaxc_set_filters(int filters) {
       iaxc_filters = filters;
       iaxc_set_speex_filters();
 }
 
 
-long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
+EXPORT long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
       long secs = timeA->tv_sec - timeB->tv_sec;
       long usecs = secs * 1000000;
       usecs += (timeA->tv_usec - timeB->tv_usec);
@@ -93,9 +96,31 @@ long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
 }
 
 
-void iaxc_set_event_callback(iaxc_event_callback_t func) {
+EXPORT void iaxc_set_event_callback(iaxc_event_callback_t func) {
     iaxc_event_callback = func;
 }
+
+EXPORT int iaxc_set_event_callpost(void *handle, int id) {
+    post_event_handle = handle;
+    post_event_id = id;
+    iaxc_event_callback = post_event_callback; 
+    return 0;
+}
+
+EXPORT void iaxc_free_event(iaxc_event *e) {
+    free(e);
+}
+
+EXPORT struct iaxc_ev_levels *iaxc_get_event_levels(iaxc_event *e) {
+    return &e->ev.levels;
+}
+EXPORT struct iaxc_ev_text *iaxc_get_event_text(iaxc_event *e) {
+    return &e->ev.text;
+}
+EXPORT struct iaxc_ev_call_state *iaxc_get_event_state(iaxc_event *e) {
+    return &e->ev.call;
+}
+
 
 // Messaging functions
 static void default_message_callback(char *message) {
@@ -105,7 +130,7 @@ static void default_message_callback(char *message) {
 }
 
 // Post Events back to clients
-void iaxc_post_event(iaxc_event e) {
+EXPORT void iaxc_post_event(iaxc_event e) {
     if(iaxc_event_callback)
     {
 	int rv;
@@ -176,7 +201,7 @@ void iaxc_do_state_callback(int callNo)
       iaxc_post_event(e);
 }
 
-int iaxc_first_free_call()  {
+EXPORT int iaxc_first_free_call()  {
 	int i;
 	for(i=0;i<nCalls;i++) 
 	    if(calls[i].state == IAXC_CALL_STATE_FREE) 
@@ -197,7 +222,7 @@ static void iaxc_clear_call(int toDump)
 
 /* select a call.  */
 /* XXX Locking??  Start/stop audio?? */
-int iaxc_select_call(int callNo) {
+EXPORT int iaxc_select_call(int callNo) {
 
 	// continue if already selected?
 	//if(callNo == selected_call) return;
@@ -236,7 +261,7 @@ int iaxc_select_call(int callNo) {
 }
 	  
 /* external API accessor */
-int iaxc_selected_call() {
+EXPORT int iaxc_selected_call() {
 	return selected_call;
 }
 
@@ -247,7 +272,7 @@ void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) {
 
 // Parameters:
 // audType - Define whether audio is handled by library or externally
-int iaxc_initialize(int audType, int inCalls) {
+EXPORT int iaxc_initialize(int audType, int inCalls) {
 	int i;
 
 	/* os-specific initializations: init gettimeofday fake stuff in
@@ -310,7 +335,7 @@ int iaxc_initialize(int audType, int inCalls) {
 	return 0;
 }
 
-void iaxc_shutdown() {
+EXPORT void iaxc_shutdown() {
 	iaxc_dump_all_calls();
 
 	MUTEXLOCK(&iaxc_lock);
@@ -321,17 +346,17 @@ void iaxc_shutdown() {
 }
 
 
-void iaxc_set_formats(int preferred, int allowed)
+EXPORT void iaxc_set_formats(int preferred, int allowed)
 {
 	audio_format_capability = allowed;
 	audio_format_preferred = preferred;
 }
 
-void iaxc_set_min_outgoing_framesize(int samples) {
+EXPORT void iaxc_set_min_outgoing_framesize(int samples) {
     minimum_outgoing_framesize = samples;
 }
 
-void iaxc_set_callerid(char *name, char *number) {
+EXPORT void iaxc_set_callerid(char *name, char *number) {
     int i;
     
     for(i=0; i<nCalls; i++) {
@@ -415,7 +440,7 @@ void iaxc_refresh_registrations() {
     }
 }
 
-void iaxc_process_calls(void) {
+EXPORT void iaxc_process_calls(void) {
 
 #ifdef USE_WIN_AUDIO	
     win_flush_audio_output_buffers();
@@ -514,7 +539,7 @@ THREADFUNCDECL(iaxc_processor)
     return ret;
 }
 
-int iaxc_start_processing_thread()
+EXPORT int iaxc_start_processing_thread()
 {
       procThreadQuitFlag = 0;
       if( THREADCREATE(iaxc_processor, NULL, procThread, procThreadID) 
@@ -524,7 +549,7 @@ int iaxc_start_processing_thread()
       return 0;
 }
 
-int iaxc_stop_processing_thread()
+EXPORT int iaxc_stop_processing_thread()
 {
     if(procThreadQuitFlag >= 0)
     {
@@ -717,7 +742,7 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 	}
 }
 
-void iaxc_register(char *user, char *pass, char *host)
+EXPORT void iaxc_register(char *user, char *pass, char *host)
 {
 	struct iaxc_registration *newreg;
 
@@ -751,7 +776,7 @@ void iaxc_register(char *user, char *pass, char *host)
 	registrations = newreg;
 }
 
-void iaxc_call(char *num)
+EXPORT void iaxc_call(char *num)
 {
 	int callNo;
 	struct iax_session *newsession;
@@ -820,7 +845,7 @@ iaxc_call_bail:
 	MUTEXUNLOCK(&iaxc_lock);
 }
 
-void iaxc_answer_call(int callNo) 
+EXPORT void iaxc_answer_call(int callNo) 
 {
 	if(callNo < 0)
 	    return;
@@ -832,7 +857,7 @@ void iaxc_answer_call(int callNo)
 	iaxc_do_state_callback(callNo);
 }
 
-void iaxc_blind_transfer_call(int callNo, char *DestExtn)
+EXPORT void iaxc_blind_transfer_call(int callNo, char *DestExtn)
 {
 	iax_transfer(calls[callNo].session, DestExtn);
 }
@@ -848,7 +873,7 @@ static void iaxc_dump_one_call(int callNo)
       iaxc_clear_call(callNo);
 }
 
-void iaxc_dump_all_calls(void)
+EXPORT void iaxc_dump_all_calls(void)
 {
       int callNo;
       MUTEXLOCK(&iaxc_lock);
@@ -858,7 +883,7 @@ void iaxc_dump_all_calls(void)
 }
 
 
-void iaxc_dump_call(void)
+EXPORT void iaxc_dump_call(void)
 {
     if(selected_call >= 0) {
 	MUTEXLOCK(&iaxc_lock);
@@ -867,7 +892,7 @@ void iaxc_dump_call(void)
     }
 }
 
-void iaxc_reject_call(void)
+EXPORT void iaxc_reject_call(void)
 {
     if(selected_call >= 0) {
 	MUTEXLOCK(&iaxc_lock);
@@ -878,7 +903,7 @@ void iaxc_reject_call(void)
     }
 }
 
-void iaxc_send_dtmf(char digit)
+EXPORT void iaxc_send_dtmf(char digit)
 {
     if(selected_call >= 0) {
 	MUTEXLOCK(&iaxc_lock);
@@ -1099,14 +1124,14 @@ void iaxc_external_service_audio()
 	return;
 }
 
-int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring) {
+EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, int *input, int *output, int *ring) {
       *devs = audio.devices;
       *nDevs = audio.nDevices;
       audio.selected_devices(&audio,input,output,ring);
       return 0;
 }
 
-int iaxc_audio_devices_set(int input, int output, int ring) {
+EXPORT int iaxc_audio_devices_set(int input, int output, int ring) {
     int ret = 0;
     MUTEXLOCK(&iaxc_lock);
     ret = audio.select_devices(&audio, input, output, ring);
@@ -1114,31 +1139,31 @@ int iaxc_audio_devices_set(int input, int output, int ring) {
     return ret;
 }
 
-double iaxc_input_level_get() {
+EXPORT double iaxc_input_level_get() {
     return audio.input_level_get(&audio);
 }
 
-double iaxc_output_level_get() {
+EXPORT double iaxc_output_level_get() {
     return audio.output_level_get(&audio);
 }
 
-int iaxc_input_level_set(double level) {
+EXPORT int iaxc_input_level_set(double level) {
     return audio.input_level_set(&audio, level);
 }
 
-int iaxc_output_level_set(double level) {
+EXPORT int iaxc_output_level_set(double level) {
     return audio.output_level_set(&audio, level);
 }
 
-int iaxc_play_sound(struct iaxc_sound *s, int ring) {
+EXPORT int iaxc_play_sound(struct iaxc_sound *s, int ring) {
     return audio.play_sound(s,ring);
 }
 
-int iaxc_stop_sound(int id) {
+EXPORT int iaxc_stop_sound(int id) {
     return audio.stop_sound(id);
 }
 
-int iaxc_quelch(int callNo, int MOH)
+EXPORT int iaxc_quelch(int callNo, int MOH)
 {
 	struct iax_session *session = calls[callNo].session;
 	if (!session)
@@ -1147,17 +1172,17 @@ int iaxc_quelch(int callNo, int MOH)
 	return iax_quelch_moh(session, MOH);
 }
 
-int iaxc_unquelch(int call)
+EXPORT int iaxc_unquelch(int call)
 {
 	return iax_unquelch(calls[call].session);
 }
 
-int iaxc_mic_boost_get( void )
+EXPORT int iaxc_mic_boost_get( void )
 {
 	return audio.mic_boost_get( &audio ) ;
 }
 
-int iaxc_mic_boost_set( int enable )
+EXPORT int iaxc_mic_boost_set( int enable )
 {
 	return audio.mic_boost_set( &audio, enable ) ;
 }

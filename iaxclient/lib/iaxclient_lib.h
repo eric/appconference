@@ -193,6 +193,13 @@ extern MUTEX iaxc_lock;
 /* external audio functions */
 void iaxc_external_service_audio();
 
+/* post_event_callback */
+int post_event_callback(iaxc_event e);
+
+/* parameters for callback */
+extern void * post_event_handle;
+extern int post_event_id;
+
 
 /* Common decode PLC code */
 /* requires DECLS in a structure */
@@ -213,7 +220,6 @@ void iaxc_external_service_audio();
 		state->interp_buf[state->interp_bufptr++] = sample; \
 		if(state->interp_bufptr >= INTERPOLATE_BUFSIZ) state->interp_bufptr = 0; \
 	} while(0)
-
 
 
 #endif

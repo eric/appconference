@@ -49,3 +49,13 @@ void iaxc_millisleep(long ms)
 {
 	Sleep(ms);
 }
+
+int post_event_callback(iaxc_event ev) {
+  iaxc_event *e;
+  e = malloc(sizeof(ev));
+  *e = ev;
+
+  /* XXX Test return value? */
+  PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e);
+  return 0;
+}
