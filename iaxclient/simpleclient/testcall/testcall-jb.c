@@ -138,6 +138,10 @@ int jm_init() {
 
 int jm_sendto(int fd, const void *buf, size_t sz, int i, const struct sockaddr * addr, socklen_t asz) {
 	(void)fd;
+
+	// X% outgoing loss
+	//if((1.0+rand())/RAND_MAX  < 0.10) return 0;
+
 	return sendto(netfd, buf, sz, i, addr, asz);	
 }
 
@@ -366,6 +370,9 @@ int main(int argc, char **argv)
 
 	//iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
 	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ILBC|IAXC_FORMAT_ALAW|IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
+	//iaxc_set_formats(IAXC_FORMAT_ILBC,IAXC_FORMAT_ILBC);
+	//iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_SPEEX);
+
 	iaxc_set_silence_threshold(silence_threshold);
 
 	list_devices();
