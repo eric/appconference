@@ -42,7 +42,36 @@ extern "C" {
 #define IAXC_FORMAT_H263         (1 << 19)       /* H.263 Video */
 
 
+#if 0
+/* not yet implemented */
 
+#define IAXC_EVENT_BUFSIZ	256
+struct iaxc_ev_levels {
+	float input;
+	float output;
+};
+
+struct iaxc_ev_text {
+	char message[IAXC_EVENT_BUFSIZ];
+};
+
+struct iaxc_ev_call {
+	char callerid[IAXC_EVENT_BUFSIZ];
+}
+
+typedef struct iaxc_event_struct {
+	int type;
+	union {
+		struct iaxc_ev_levels 	levels;
+		struct iaxc_ev_text 	text;
+		struct iaxc_ev_call 	call;
+	} event;
+	struct iaxc_event_struct *next;
+} iaxc_event;
+
+typedef int (*iaxc_event_callback_t)(iaxc_event e);
+void iaxc_set_event_callback(iaxc_message_callback_t func);
+#endif
 
 int iaxc_initialize(int audType);
 void iaxc_shutdown();

@@ -78,8 +78,8 @@ struct peer {
 };
 
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
-void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p);
-void iaxc_service_network(int netfd, FILE *f);
+void iaxc_handle_network_event(struct iax_event *e, struct peer *p);
+void iaxc_service_network(int netfd);
 
 
 
