@@ -265,7 +265,7 @@ void IAXFrame::CheckPTT()
 
 void IAXFrame::OnDTMF(wxEvent &evt)
 {
-	iaxc_send_dtmf(evt.m_id);
+	iaxc_send_dtmf(*buttonlabels[evt.m_id]);
 }
 
 void IAXFrame::OnDial(wxEvent &evt)
