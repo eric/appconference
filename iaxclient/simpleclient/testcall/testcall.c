@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 	FILE *f;
 	char c;
 	int i;
-	char *dest = "guest@10.23.1.31/9999";
+	char *dest = NULL;
 	double silence_threshold = -99;
 
 
@@ -194,9 +194,11 @@ int main(int argc, char **argv)
 \n\
 	    q: drop the call and hangup.\n\
 	    0-9 * or #: dial those DTMF digits.\n");
-	fprintf(f, "Calling %s\n", dest);
-	
-	iaxc_call(dest);
+	if(dest) {
+	    fprintf(f, "Calling %s\n", dest);
+	    
+	    iaxc_call(dest);
+	}
 
 	iaxc_start_processing_thread();
 	printf("ready for keyboard input\n");
