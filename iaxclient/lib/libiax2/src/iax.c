@@ -2541,9 +2541,7 @@ int iax_quelch_moh(struct iax_session *session, int MOH)
 		return -1;
 		
 	if (MOH)
-		iax_ie_append_int(&ied, IAX_IE_MUSICONHOLD, 1);
-	else
-		iax_ie_append_int(&ied, IAX_IE_MUSICONHOLD, 0);
+		iax_ie_append(&ied, IAX_IE_MUSICONHOLD);
 		
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos, -1);		
 }
