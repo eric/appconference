@@ -44,12 +44,12 @@ extern "C" {
 
 
 
-int iaxc_initialize(int audType, FILE *file);
+int iaxc_initialize(int audType);
 void iaxc_shutdown();
 void iaxc_set_encode_format(int fmt);
 void iaxc_process_calls();
 int iaxc_service_audio();
-void iaxc_call(FILE *f, char *num);
+void iaxc_call(char *num);
 void iaxc_answer_call(void); 
 void iaxc_dump_call(void);
 void iaxc_reject_call(void);

@@ -191,7 +191,7 @@ void IAXFrame::OnDTMF(wxEvent &evt)
 
 void IAXFrame::OnDial(wxEvent &evt)
 {
-	iaxc_call(stderr, (char *)(theFrame->iaxDest->GetValue().c_str()));
+	iaxc_call((char *)(theFrame->iaxDest->GetValue().c_str()));
 }
 
 void IAXFrame::OnHangup(wxEvent &evt)

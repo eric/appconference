@@ -36,18 +36,7 @@ void killem(void)
 
 void mysleep(void)
 {
-#ifdef POSIXSLEEP
-	struct timespec req;
-	
-	req.tv_nsec=10*1000*1000;  /* 10 ms */
-	req.tv_sec=0;
-
-	/* yes, it can return early.  We don't care */
-	nanosleep(&req,NULL);
-#else
-	Sleep(10); /* WinAPI sleep */
-#endif
-
+	iaxc_millisleep(10);
 }
 
 int levels_callback(float input, float output) {
@@ -101,7 +90,7 @@ int main(int argc, char **argv)
 	/* activate the exit handler */
 	atexit(killem);
 	
-	iaxc_initialize(AUDIO_INTERNAL_PA, f);
+	iaxc_initialize(AUDIO_INTERNAL_PA);
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 	iaxc_set_silence_threshold(silence_threshold);
 
@@ -118,7 +107,7 @@ int main(int argc, char **argv)
 	    0-9 * or #: dial those DTMF digits.\n");
 	fprintf(f, "Calling %s\n", dest);
 	
-	iaxc_call(f,dest);
+	iaxc_call(dest);
 
 	iaxc_start_processing_thread();
 	printf("ready for keyboard input\n");
@@ -128,7 +117,7 @@ int main(int argc, char **argv)
 	      case 'q':
 		printf("Hanging up and exiting\n");
 		iaxc_dump_call();
-		sleep(1);
+		iaxc_millisleep(1000);
 		iaxc_stop_processing_thread();
 		exit(0);
 	      break;		

@@ -56,21 +56,20 @@ void mysleep(void)
 
 void usage()
 { 
+#if 0
     fprintf(stderr, "Usage is XXX\n");
+#endif
     exit(1);
 }
 
 int doTestCall(int argc, char **argv)
 {
-	FILE *f;
 	char c;
 	int i;
 	char *dest = "guest@ast1";
 	int do_levels = 1;
 	double silence_threshold = -99;
 
-
-	f = stdout;
 
 	for(i=1;i<argc;i++)
 	{
@@ -94,14 +93,10 @@ int doTestCall(int argc, char **argv)
 	}
 
 
-	printf("settings: \n");
-	printf("\tsilence threshold: %f\n", silence_threshold);
-	printf("\tlevel output: %s\n", do_levels ? "on" : "off");
-
 	/* activate the exit handler */
 	atexit(killem);
 	
-	iaxc_initialize(AUDIO_INTERNAL_PA, f);
+	iaxc_initialize(AUDIO_INTERNAL_PA);
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 	iaxc_set_silence_threshold(silence_threshold);
 
@@ -110,6 +105,10 @@ int doTestCall(int argc, char **argv)
 
 
 #if 0		
+
+	printf("settings: \n");
+	printf("\tsilence threshold: %f\n", silence_threshold);
+	printf("\tlevel output: %s\n", do_levels ? "on" : "off");
 	fprintf(f, "\n\
 	    TestCall accept some keyboard input while it's running.\n\
 	    You must hit 'enter' for your keypresses to be recognized,\n\

@@ -77,7 +77,11 @@ static iaxc_usermsg(int type, const char *fmt, ...)
     char buf[256];
 
     va_start(args, fmt);
+#ifdef WIN32
+    _vsnprintf(buf, 250, fmt, args);
+#else
     vsnprintf(buf, 250, fmt, args);
+#endif
     va_end(args);
 
     if(type == IAXC_ERROR)
@@ -90,7 +94,7 @@ static iaxc_usermsg(int type, const char *fmt, ...)
 
 // Parameters:
 // audType - Define whether audio is handled by library or externally
-int iaxc_initialize(int audType, FILE *file) {
+int iaxc_initialize(int audType) {
 	/* get time of day in milliseconds, offset by tick count (see our
 	   gettimeofday() implementation) */
 	os_init();
@@ -102,7 +106,6 @@ int iaxc_initialize(int audType, FILE *file) {
 	netfd = iax_get_fd();
 
 	iAudioType = audType;
-	f=file;
 	answered_call=0;
 	newcall=0;
 	gettimeofday(&lastouttm,NULL);
@@ -322,7 +325,7 @@ void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 }
 
 
-void iaxc_call(FILE *f, char *num)
+void iaxc_call(char *num)
 {
 	struct peer *peer;
 
