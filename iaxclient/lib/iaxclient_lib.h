@@ -14,13 +14,13 @@
 
 #else
 /* not win32 */
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/time.h>
 #endif
 
 #include <stdio.h>
-#include <sys/types.h>
 
 
 
