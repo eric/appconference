@@ -464,7 +464,7 @@ static int send_audio(struct ast_conference *conference, struct ast_conf_member 
 		while (cf = ast_smoother_read(member->smoother)) {
 		    ast_write(member->chan,cf);
 		}
-		ast_frfree(cf);
+		if (cf != NULL) ast_frfree(cf);
 	    } else {
 		ast_write(member->chan,cf);
 		ast_frfree(cf);
