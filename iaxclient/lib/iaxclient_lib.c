@@ -289,8 +289,8 @@ static void iaxc_do_pings(void) {
 
       act_since = iaxc_usecdiff(&now, &calls[i].last_activity)/1000;
 
-      // if we've had any activity in half the timeout, don't worry about anything.
-      if(act_since < IAXC_CALL_TIMEOUT/2)
+      // if we've had any activity in a while, don't worry about anything.
+      if(act_since < IAXC_CALL_TIMEOUT/3)
 	  break;  /* OK */
 
       ping_since = iaxc_usecdiff(&now, &calls[i].last_ping)/1000;
@@ -299,7 +299,7 @@ static void iaxc_do_pings(void) {
        * ping in a while, send a ping.
        */
       if(ping_since > IAXC_CALL_TIMEOUT/3) { 
-	  fprintf(stderr, "Sending Ping for call %d\n", i); 
+	  //fprintf(stderr, "Sending Ping for call %d as=%ld, ps=%ld\n", i, act_since, ping_since); 
 	  calls[i].last_ping = now;
 	  iax_send_ping(calls[i].session);
 	  break; 
@@ -310,8 +310,9 @@ static void iaxc_do_pings(void) {
        */
       if(act_since > IAXC_CALL_TIMEOUT) {
 	  /* timeout the call. */
+	  //fprintf(stderr, "Timing out call %d as=%ld, ps=%ld\n", i, act_since, ping_since); 
 	  iax_hangup(calls[i].session,"Timed out waiting for ping or activity");
-	  iaxc_usermsg(IAXC_STATUS, "call %d timed out", i);
+	  iaxc_usermsg(IAXC_STATUS, "call %d timed out (ping/act = %ld/%ld)", i, ping_since/1000, act_since/1000);
 	  iaxc_clear_call(i);
       }
 
@@ -532,6 +533,7 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		case IAX_EVENT_RINGA:
 			break;
 		case IAX_EVENT_PONG:  /* we got a pong */
+			//fprintf(stderr, "**********GOT A PONG!\n");
 			break;
 		default:
 			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
