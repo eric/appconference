@@ -528,12 +528,12 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 #ifdef IAXC_IAX2
 	while(total_consumed < e->datalen) {
 		cur = decode_audio(call, fr,
-		    e->data,e->datalen-total_consumed,
+		    e->data+total_consumed,e->datalen-total_consumed,
 		    iEncodeType);
 #else
 	while(total_consumed < e->event.voice.datalen) {
 		cur = decode_audio(call, fr,
-		    e->event.voice.data,e->event.voice.datalen-total_consumed,
+		    e->event.voice.data+total_consumed,e->event.voice.datalen-total_consumed,
 		    iEncodeType);
 #endif
 		if(cur < 0) {
