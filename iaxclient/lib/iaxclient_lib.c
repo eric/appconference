@@ -1210,8 +1210,8 @@ EXPORT int iaxc_mic_boost_set( int enable )
 	return audio.mic_boost_set( &audio, enable ) ;
 }
 
-EXPORT char* iaxc_version()
+EXPORT char* iaxc_version(char* ver)
 {
-	char* ver;
 	strncpy(ver,   LIBVER,   IAXC_EVENT_BUFSIZ);
+	return ver;
 }
