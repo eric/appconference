@@ -22,8 +22,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "ringbuffer.h"
 #include "app_conference.h"
-#include "onering.h"
 
 
 static pthread_mutex_t conflock = AST_MUTEX_INITIALIZER;
@@ -128,14 +128,16 @@ int add_buffer(struct ast_conf_member *member, struct ast_channel *chan)
 	    ast_log(LOG_ERROR,"unable to malloc ast_conf_audiobuffer!\n");
 	    return -1;
 	}
-	newbuffer->ring = ast_onering_new();
+	if (RingBuffer_Init(&newbuffer->ring,AST_CONF_BUFFER_SIZE,newbuffer->bufdata) != 0) {
+	    ast_log(LOG_ERROR, "unable to init ringbuffer\n");
+	}
 	newbuffer->ringfails = 0;
 	newbuffer->chan = chan;
 	newbuffer->next = member->bufferlist;
 	pthread_mutex_init(&newbuffer->lock,NULL);
 	
 	member->bufferlist = newbuffer;
-	ast_log(LOG_NOTICE,"ring %#x\n",newbuffer->ring);
+//	ast_log(LOG_NOTICE,"ring %#x\n",newbuffer->ring);
 	return 0;
 }
 
@@ -165,7 +167,7 @@ void add_member(struct ast_conf_member *member, struct ast_conference *conf) {
 		    ast_pthread_mutex_unlock(&conf->lock);
 		    return;
 		}
-		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to memberlist (type=%c, priority=%d, chan=%#x)\n",member->type,member->priority,member->chan,memberlist->type,memberlist->priority,memberlist->chan);		
+//		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to memberlist (type=%c, priority=%d, chan=%#x)\n",member->type,member->priority,member->chan,memberlist->type,memberlist->priority,memberlist->chan);		
 	    }
 
 	    if (memberlist->type != 'L') {
@@ -177,7 +179,7 @@ void add_member(struct ast_conf_member *member, struct ast_conference *conf) {
 		    ast_pthread_mutex_unlock(&conf->lock);
 		    return;
 		}
-		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to member (type=%c, priority=%d, chan=%#x)\n",memberlist->type,memberlist->priority,memberlist->chan,member->type,member->priority,member->chan);		
+//		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to member (type=%c, priority=%d, chan=%#x)\n",memberlist->type,memberlist->priority,memberlist->chan,member->type,member->priority,member->chan);		
 	    }
 
 	    ast_pthread_mutex_unlock(&memberlist->lock);
@@ -193,7 +195,7 @@ void add_member(struct ast_conf_member *member, struct ast_conference *conf) {
 
 	ast_pthread_mutex_unlock(&conf->memberlock);
 	ast_pthread_mutex_unlock(&conf->lock);
-	ast_log(LOG_NOTICE,"member added to conference %s\n",conf->name);
+//	ast_log(LOG_NOTICE,"member added to conference %s\n",conf->name);
 }
 
 struct ast_conf_member *create_member(struct ast_channel *chan, char type, int prio) {
@@ -213,7 +215,7 @@ struct ast_conf_member *create_member(struct ast_channel *chan, char type, int p
 	member->next = NULL;
 	member->smoother = NULL;
 	// XXX add us to all bufferlists!!!
-	ast_log(LOG_NOTICE,"created member (type=%c, priority=%d)\n",member->type,member->priority);
+//	ast_log(LOG_NOTICE,"created member (type=%c, priority=%d)\n",member->type,member->priority);
 	return member;
 }
 
@@ -230,9 +232,6 @@ void remove_bufferlist(struct ast_conf_audiobuffer *bufferlist) {
 	    buffertmp = bufferl;
 	    bufferl = bufferl->next;
 	    if (buffertmp != NULL) {
-		if (buffertmp->ring != NULL) {
-		    ast_onering_free(buffertmp->ring);
-		}
 	        free(buffertmp);
 	    }
 	}
@@ -244,7 +243,7 @@ int remove_member(struct ast_conf_member *member,struct ast_conference *conf) {
 	struct ast_conf_audiobuffer *bufferl;
 	struct ast_conf_audiobuffer *buffertmp;
 	
-		ast_log(LOG_NOTICE,"removing member from conference %s\n",conf->name);
+//		ast_log(LOG_NOTICE,"removing member from conference %s\n",conf->name);
 	ast_pthread_mutex_lock(&conf->memberlock);
 	memberl = conf->memberlist;
 	membertmp = NULL;
@@ -332,6 +331,7 @@ void kill_conf(struct ast_conference *conf) {
 void write_audio(struct ast_frame *f, struct ast_conference *conference, struct ast_conf_member *member) {
 	struct ast_conf_member *memberl;
 	struct ast_conf_audiobuffer *bufferl;
+	long byteswritten;
 	//here comes the good stuff:
 	// write the audio into "our" buffer of every confmember, except ours
 	ast_pthread_mutex_lock(&(conference->lock));
@@ -346,16 +346,13 @@ void write_audio(struct ast_frame *f, struct ast_conference *conference, struct 
 		while (bufferl != NULL) {
 		    if (bufferl->chan == member->chan) {
 	    ast_pthread_mutex_lock(&(bufferl->lock));
-			if (bufferl->ring != NULL) {
-			    if (ast_onering_write(bufferl->ring,f) != 0) {
-			    ast_log(LOG_ERROR,"failed to write audio\n");
+			    byteswritten = RingBuffer_Write(&bufferl->ring,f->data,f->samples*2);
+			    if ( byteswritten != (f->samples*2)) {
+			    ast_log(LOG_ERROR,"failed to write audio (wrote %d bytes)\n",byteswritten);
 //			ast_log(LOG_NOTICE,"written %d bytes from chan %#x to buffer %#x\n",f->datalen,member->chan,bufferl->ring);
 			    } else {
 //			    ast_log(LOG_NOTICE,"+\n");
 			    }
-			} else {
-			    ast_log(LOG_ERROR,"bufferl has no ring.\n");
-			}
 	    ast_pthread_mutex_unlock(&(bufferl->lock));
 		    }
 		    bufferl = bufferl->next;
@@ -375,14 +372,14 @@ void mix_slin(char *dst, char *src, int samples) {
     for (i=0;i<samples;i++) {
 	val = ((short *)dst)[i] + ((short *)src)[i];
 	if(val > 0x7fff) {
-	    ((short *)dst)[i] = 0x7fff;
+	    ((short *)dst)[i] = 0x7fff-1;
 	    continue;
 	} else {
 	    ((short *)dst)[i] = val;
 	    continue;
 	} 
 	if (val < -0x7fff) {
-	    ((short *)dst)[i] = -0x7fff;
+	    ((short *)dst)[i] = -0x7fff+1;
 	    continue;
 	} else {
 	    ((short *)dst)[i] = val;
@@ -395,8 +392,9 @@ void mix_slin(char *dst, char *src, int samples) {
 struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_member *member, int samples) {
 	struct ast_conf_audiobuffer *bufferl;
 	struct ast_frame *f,*fout;
-	char *databuf;
+	char *databuf,tempbuf[samples*2];
 	int res=-1;
+	long bytesread=0;
 	
 	databuf = malloc((samples * 2) + AST_FRIENDLY_OFFSET);
 	memset(databuf,0x0,(samples * 2) + AST_FRIENDLY_OFFSET);
@@ -408,27 +406,26 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	bufferl = member->bufferlist;
 	while (bufferl != NULL) {
 	    ast_pthread_mutex_lock(&(bufferl->lock));
-		if (bufferl->ring != NULL) {
-		    f = ast_onering_read(bufferl->ring,samples);
-		    if (f != NULL) {
-    //  ast_log(LOG_NOTICE,"%d samples\n",f->samples);
-			mix_slin(databuf + AST_FRIENDLY_OFFSET,f->data, samples);
-			res = 0;
-			ast_frfree(f);
-		    } else {
+		    memset(tempbuf,0x0,sizeof(tempbuf));
+		    if (RingBuffer_GetReadAvailable(&bufferl->ring) < (samples * 2)) {
 			// this doesnt have to be an error, because * doesnt send iax audio frames when it
 			// has nothing to send, for example in the demo context before Sandy says goodbye.
 			// remember that this member didnt give us data
 			bufferl->ringfails++;
 			if (bufferl->ringfails > 100) {
-			    ast_log(LOG_NOTICE,"No audio available for conference member %#x in conference %s\n", bufferl->chan, conference->name);
+	//		    ast_log(LOG_NOTICE,"No audio available for conference member %#x in conference %s (read %d bytes, samples=%d)\n", bufferl->chan, conference->name,bytesread,samples);
 			    bufferl->ringfails = 0;
 			}
 			// was BUG: break;
+		    } else {
+			bytesread=RingBuffer_Read(&bufferl->ring,tempbuf,samples*2);
+			if ( bytesread == (samples*2)) {
+			    mix_slin(databuf + AST_FRIENDLY_OFFSET,tempbuf, samples);
+			    res = 0;
+			} else {
+			ast_log(LOG_ERROR,"this is odd\n");
+			}
 		    }
-		} else {
-		    ast_log(LOG_NOTICE,"bufferl has no ring\n");
-		}
 	    ast_pthread_mutex_unlock(&(bufferl->lock));
 	    bufferl = bufferl->next;
 	}
