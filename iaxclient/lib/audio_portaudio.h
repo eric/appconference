@@ -8,13 +8,6 @@
 #include "winpoop.h"
 #endif
 
-/* Values for flags for OpenAudioStream(). */
-#define PABLIO_READ     (1<<0)
-#define PABLIO_WRITE    (1<<1)
-#define PABLIO_READ_WRITE    (PABLIO_READ|PABLIO_WRITE)
-#define PABLIO_MONO     (1<<2)
-#define PABLIO_STEREO   (1<<3)
-
 /*
 ** Note that many of the older ISA sound cards on PCs do NOT support
 ** full duplex audio (simultaneous record and playback).
