@@ -514,7 +514,7 @@ static int conference_exec(struct ast_channel *chan, void *data)
 	int rest=0;
 	long dus=0,urest=0;
 	int first=1;
-	struct timeval time1, time2, time3, oldtimer; /* <--- got lots of time ;-) */
+	struct timeval lasttime, curtime; /* <--- got lots of time ;-) */
 
 	LOCAL_USER_ADD(u);
 	
@@ -556,29 +556,22 @@ static int conference_exec(struct ast_channel *chan, void *data)
 	    remove_member(member,conference);
 	    return -1;
 	}
-	
+
+	// seed time	
+	gettimeofday(&lasttime,NULL);
 	for (;;) {
-		gettimeofday(&time1,NULL);
+
 		if (ast_check_hangup(chan) == 1) {
 		    break;
 		}
+
 		ms = AST_CONF_LATENCY;
 		rest = ast_waitfor(chan, ms);
-		gettimeofday(&time2,NULL);
 
-		if (first == 1) {
-		    // first loop
-		    first = 0;
-		    dms = (time2.tv_sec * 1000 + time2.tv_usec / 1000) - (time1.tv_sec * 1000 + time1.tv_usec / 1000);
-		    dus = usecdiff(&time2,&time1);
-		} else {
-		    // and all the others...
-		    dms = (time1.tv_sec * 1000 + time1.tv_usec / 1000) - (oldtimer.tv_sec * 1000 + oldtimer.tv_usec / 1000);
-		    dus = usecdiff(&time1,&oldtimer);
-		    dus += urest;
-		}
+		gettimeofday(&curtime,NULL);
 
-
+		dus = usecdiff(&curtime,&lasttime);
+		dus += urest;
 
 		if (rest > 0) {
 		    // ok, we got a frame from the channel
@@ -611,19 +604,20 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		    if (f) {
 			ast_frfree(f);
 		    }
-		    gettimeofday(&time3,NULL);
+//		    gettimeofday(&time3,NULL);
 //		    dms += (time3.tv_sec * 1000 + time3.tv_usec / 1000) - (time2.tv_sec * 1000 + time2.tv_usec / 1000);
 //		    dus += (time3.tv_sec * 1000000 + time3.tv_usec) - (time2.tv_sec * 1000000 + time2.tv_usec);
 		//    ast_log(LOG_NOTICE,"mod = %d\n",(time3.tv_usec - time2.tv_usec));
-		} else {
 		}
+
 		urest = dus % 1000;
 		dms = dus / 1000;
 		// lets find that missing 1ms
-		if (urest > 500) {
-		    urest = 0;
-		    dms++;
-		} 
+		//if (urest > 500) {
+		//    urest = 0;
+		//    dms++;
+		//} 
+
 	    if (dms >= AST_CONF_MIN_MS) {
 		send_audio(conference,member,dms);
 		if (member->priority == 3) {
@@ -632,8 +626,7 @@ static int conference_exec(struct ast_channel *chan, void *data)
 	    } else {
 		urest += dms * 1000;
 	    }
-	    oldtimer.tv_sec = time1.tv_sec;
-	    oldtimer.tv_usec = time1.tv_usec;
+	    lasttime = curtime;
 	} // for
 	
 	if (member != NULL) {
