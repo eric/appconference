@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio_v18\pa_common" /I ".\portaudio_v18\pablio" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -85,6 +85,10 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\gsm\src\add.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_encode.c
 # End Source File
 # Begin Source File
@@ -97,6 +101,50 @@ SOURCE=.\audio_win32.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\gsm\src\code.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\sox\compand.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\decode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_create.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_decode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_destroy.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_encode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_explode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_implode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_option.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\gsm_print.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\libiax\src\iax.c
 # End Source File
 # Begin Source File
@@ -105,23 +153,51 @@ SOURCE=.\iaxclient_lib.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\gsm\src\long_term.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\lpc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\libiax\src\md5.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\portaudio_v18\pa_common\pa_lib.c
+SOURCE=.\portaudio\pa_common\pa_lib.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\portaudio_v18\pa_win_wmme\pa_win_wmme.c
+SOURCE=.\portaudio\pa_win_wmme\pa_win_wmme.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\portaudio_v18\pablio\pablio.c
+SOURCE=.\portaudio\pablio\pablio.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\portaudio_v18\pablio\ringbuffer.c
+SOURCE=.\gsm\src\preprocess.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\portaudio\pablio\ringbuffer.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\rpe.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\short_term.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\sox\soxcompat.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\table.c
 # End Source File
 # Begin Source File
 
@@ -173,6 +249,10 @@ SOURCE=.\iaxclient_lib.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\gsm\src\k6opt.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\libiax\src\md5.h
 # End Source File
 # Begin Source File
@@ -185,12 +265,12 @@ SOURCE=.\libiax\src\ringtone.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\sox\sox.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\libiax\src\winpoop.h
 # End Source File
 # End Group
-# Begin Source File
-
-SOURCE=.\gsm\win32lib\Release\gsm.lib
-# End Source File
 # End Target
 # End Project
