@@ -1,3 +1,15 @@
+/*
+ * iaxclient: a cross-platform IAX softphone library
+ *
+ * Copyrights:
+ * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ *
+ * Contributors:
+ * Steve Kann <stevek@stevek.com>
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU Lesser (Library) General Public License
+ */
 #ifndef _iaxclient_h
 #define _iaxclient_h
 
@@ -5,8 +17,6 @@
 extern "C" {
 #endif
 
-/* IAXCLIENT.H external library include 2003 SteveK, 
- * This file is covered by the LGPL */
 
 /* This is the include file which declared all external API functions to
  * IAXCLIENT.  It should include all functions and declarations needed

@@ -1,6 +1,7 @@
 /*
  * iaxclient: a portable telephony toolkit
  *
+ * (c) 2004 Cyril VELTER <cyril.velter@metadys.com>
  * Written by Cyril VELTER <cyril.velter@metadys.com>
  *
  * This program is free software, distributed under the terms of

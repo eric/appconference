@@ -1,17 +1,22 @@
 /*
- * iaxclient_lib: An Inter-Asterisk eXchange communication library
+ * iaxclient: a cross-platform IAX softphone library
+ *
+ * Copyrights:
+ * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ *
+ * Contributors:
+ * Steve Kann <stevek@stevek.com>
+ * Michael Van Donselaar <mvand@vandonselaar.org> 
+ * Shawn Lawrence <shawn.lawrence@terracecomm.com>
+ *
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU Lesser (Library) General Public License
  *
  * Module: audio_portaudio
  * Purpose: Audio code to provide portaudio driver support for IAX library
  * Developed by: Shawn Lawrence, Terrace Communications Inc.
  * Creation Date: April 18, 2003
- *
- * This program is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
- *
- * IAX library Copyright (c) 2001 Linux Support Services
- * IAXlib is free software, distributed under the terms of
- * the GNU Lesser (Library) General Public License
  *
  * This library uses the PortAudio Portable Audio Library
  * For more information see: http://www.portaudio.com
