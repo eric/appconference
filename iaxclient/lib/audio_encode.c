@@ -7,7 +7,7 @@ static compand_t input_compand = NULL;
 static compand_t output_compand = NULL;
 
 static SpeexPreprocessState *st = NULL;
-int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_ECHO;
+int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE;
 
 static int level_calls = 0;
 

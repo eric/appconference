@@ -4,7 +4,8 @@ IAXVER=2
 
 SPEEX_PREPROCESS=1
 SPAN_EC=0
-SPEEX_EC=0
+SPEEX_EC=1
+MEC2_EC=0
 
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
 
@@ -128,6 +129,10 @@ endif
 
 ifeq ($(SPEEX_EC),1)
 CFLAGS:= $(CFLAGS) -DSPEEX_EC=1
+endif
+
+ifeq ($(MEC2_EC),1)
+CFLAGS:= $(CFLAGS) -DUSE_MEC2=1
 endif
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)

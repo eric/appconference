@@ -41,6 +41,7 @@ static PortAudioStream *iStream, *oStream;
 static selectedInput, selectedOutput, selectedRing;
 
 #define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
+#define ECHO_TAIL	  2048   /* echo_tail length, in frames */
 
 #define RBSZ 1024 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
 static char inRingBuf[RBSZ], outRingBuf[RBSZ]; 
@@ -261,7 +262,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 #if defined(USE_MEC2) || defined(SPAN_EC)
       int i;
       for(i=0;i<n;i++) 
-	inputBuffer[i] = echo_can_update(ec, outBuffer[i], inBuffer[i]);
+	inputBuffer[i] = echo_can_update(ec, outputBuffer[i], inputBuffer[i]);
 #endif
 
 }
@@ -285,15 +286,18 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	/* output underflow might happen here */
 	if(virtualMono) {
 	  bWritten = RingBuffer_Read(&outRing, virtualOutBuffer, totBytes);
-	  mono2stereo(outputBuffer, virtualOutBuffer, bWritten/2);
-	  bWritten *=2;
+	  /* we zero "virtualOutBuffer", then convert the whole thing,
+	   * yes, because we use virtualOutBuffer for ec below */
+	  if(bWritten < totBytes)
+	      memset(((char *)virtualOutBuffer) + bWritten, 0, totBytes - bWritten);
+	  mono2stereo(outputBuffer, virtualOutBuffer, framesPerBuffer);
 	} else {
 	  bWritten = RingBuffer_Read(&outRing, outputBuffer, totBytes);
+	  if(bWritten < totBytes)
+	      memset((char *)outputBuffer + bWritten, 0, totBytes - bWritten);
 	}
 
 	/* zero underflowed space [ silence might be more golden than garbage? ] */
-	if(bWritten < totBytes)
-	    memset((char *)outputBuffer + bWritten, 0, totBytes - bWritten);
 
 	pa_mix_sounds(outputBuffer, framesPerBuffer);
     }
@@ -588,10 +592,10 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     RingBuffer_Init(&outRing, RBSZ, outRingBuf);
 
 #if defined(USE_MEC2) || defined(SPAN_EC)
-    ec = echo_can_create(2048, 0);
+    ec = echo_can_create(ECHO_TAIL, 0);
 #endif
 #if defined(SPEEX_EC)
-    ec = speex_echo_state_init(FRAMES_PER_BUFFER, 2048); /* in frames */
+    ec = speex_echo_state_init(FRAMES_PER_BUFFER, ECHO_TAIL); /* in frames */
 #endif
 
     running = 0;
