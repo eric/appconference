@@ -101,6 +101,13 @@ long GetAudioStreamReadable( PABLIO_Stream *aStream );
 PaError OpenAudioStream( PABLIO_Stream **aStreamPtr, double sampleRate,
                          PaSampleFormat format, long flags );
 
+/* same as OpenAudioStream, except you can specify DeviceIDs for input
+ * and output devices  Added for IAXCLIENT */
+PaError OpenAudioStreamByID( PABLIO_Stream **rwblPtr, double sampleRate,
+                         PaSampleFormat format, long flags ,
+                         PaDeviceID inID, PaDeviceID outID);
+
+
 PaError CloseAudioStream( PABLIO_Stream *aStream );
 
 #ifdef __cplusplus
