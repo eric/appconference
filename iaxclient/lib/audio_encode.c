@@ -102,9 +102,16 @@ static int input_postprocess(void *audio, int len)
 	silent = !speex_preprocess(st, audio, NULL);
 
     /* Analog AGC: Bring speex AGC gain out to mixer, with lots of hysteresis */
-    if(!silent && (iaxc_filters & IAXC_FILTER_AGC) && (iaxc_filters & IAXC_FILTER_AAGC)) {
+    /* use a higher continuation threshold for AAGC than for VAD itself */
+    if(!silent && 
+	(iaxc_filters & IAXC_FILTER_AGC) && 
+	(iaxc_filters & IAXC_FILTER_AAGC) && 
+	(st->speech_prob > .20)
+	) {
       static int i;
       double level;
+
+
       i++;
 
       if((i&0x3f) == 0) {
@@ -125,7 +132,7 @@ static int input_postprocess(void *audio, int len)
 	     /* raise slowly if we're cold */
 	     else if((loudness < 4000) && (level <= 0.9)) {
 		   /* fprintf(stderr, "raising level\n"); */
-		   iaxc_input_level_set(iaxc_input_level_get() + 0.1);
+		   iaxc_input_level_set(level + 0.1);
 	     }
 	  }
       }
