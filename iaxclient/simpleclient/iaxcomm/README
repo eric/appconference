@@ -88,3 +88,10 @@ You will need to compile wxWindows from sources.
     make
     cp wxrc /usr/bin
 6. Enjoy wxWindows with all of that xrc-y goodness!
+
+
+MACOSX NOTES:
+
+1.  wxWindows 2.4.2 (and maybe others) can sometimes crash on Mac OS X.  The solution to this
+    that we've found is to just replace mac/thread.cpp with unix/threadpsx.cpp.
+
