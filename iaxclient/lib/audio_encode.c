@@ -99,24 +99,26 @@ static int input_postprocess(void *audio, int len)
       i++;
 
       if((i&0x3f) == 0) {
-        /* fprintf(stderr, "loudness = %f\n", st->loudness2); */
-        /* lower quickly if we're too hot */
-         if(st->loudness2 > 8000) {
-           if(level <= 0.9) {
-             level =  iaxc_input_level_get();
-             if(level >= 0.1) {
-               iaxc_input_level_set(level - 0.1);
-             }
-           }
-         }
-         /* raise slowly if we're cold */
-         else if( st->loudness2 < 4000) {
-             level =  iaxc_input_level_get();
-             if(level <= 0.9) {
-               /* fprintf(stderr, "raising level\n"); */
-               iaxc_input_level_set(iaxc_input_level_get() + 0.1);
-             }
-         }
+	  float loudness = st->loudness2;
+	  if((loudness > 8000) || (loudness < 4000)) {
+	    level =  iaxc_input_level_get();
+	    /* fprintf(stderr, "loudness = %f, level = %f\n", loudness, level); */
+	    /* lower quickly if we're really too hot */
+	     if((loudness > 16000) && (level > 0.5)) {
+		   /* fprintf(stderr, "lowering quickly level\n"); */
+		   iaxc_input_level_set(level - 0.2);
+	     } 
+	     /* lower less quickly if we're a bit too hot */
+	     else if((loudness > 8000) && (level >= 0.15)) {
+		   /* fprintf(stderr, "lowering slowly level\n"); */
+		   iaxc_input_level_set(level - 0.1);
+	     }
+	     /* raise slowly if we're cold */
+	     else if((loudness < 4000) && (level <= 0.9)) {
+		   /* fprintf(stderr, "raising level\n"); */
+		   iaxc_input_level_set(iaxc_input_level_get() + 0.1);
+	     }
+	  }
       }
     }
 

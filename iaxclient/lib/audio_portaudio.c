@@ -389,16 +389,6 @@ int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 
     int totBytes = framesPerBuffer * sizeof(SAMPLE);
 
-    short virtualOutBuffer[FRAMES_PER_BUFFER * 2];
-
-#if 0
-    /* shouldn't ever happen */
-    if(virtualMono && framesPerBuffer > FRAMES_PER_BUFFER) {
-	fprintf(stderr, "ERROR: buffer in callback is too big!\n");
-	exit(1);
-    }
-#endif
-
     /* XXX: need to handle virtualMonoOut case!!! */
     if(outputBuffer)
     {  
@@ -858,6 +848,13 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
 
     /* start, then stop streams, in order to test devices, and get mixers */
     pa_start(d);
+    /* if input level is very low, raise it a bit;  helps AAGC work properly */
+    {
+      double level;
+      level = pa_input_level_get(d);
+      if(level < 0.5)
+	pa_input_level_set(d,0.6);
+    }
     pa_stop(d);
 
     return 0;
