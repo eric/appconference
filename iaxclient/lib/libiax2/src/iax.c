@@ -2258,6 +2258,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_PING:
+			case IAX_COMMAND_POKE:
 				/* PINGS and PONGS don't get scheduled; */
 				e->etype = IAX_EVENT_PING;
 				e->ts = ts;
