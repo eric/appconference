@@ -437,6 +437,14 @@ void AddAccountDialog::OnAdd(wxCommandEvent &event)
     config->Write("Password", Password->GetValue());
     delete config;
 
+    // Well we wouldn't have added it if we didn't want to regiser
+    // Thanks, AJ
+    char user[256], pass[256], host[256];
+    wxStrcpy(user, UserName->GetValue());
+    wxStrcpy(pass, Password->GetValue());
+    wxStrcpy(host, HostName->GetValue());
+    iaxc_register(user, pass, host);
+
     AccountName->SetValue("");
     HostName->SetValue("");
     UserName->SetValue("");
