@@ -330,7 +330,7 @@ static long queue_last(jitterbuf *jb) {
     else return -1;
 }
 
-jb_frame *queue_get(jitterbuf *jb, long ts) {
+static jb_frame *_queue_get(jitterbuf *jb, long ts, int all) {
     jb_frame *frame;
     frame = jb->frames;
 
@@ -339,7 +339,7 @@ jb_frame *queue_get(jitterbuf *jb, long ts) {
 
     //jb_warn("queue_get: ASK %ld FIRST %ld\n", ts, frame->ts);
 
-    if(ts > frame->ts) {
+    if(all || ts > frame->ts) {
 	/* remove this frame */
 	frame->prev->next = frame->next;
 	frame->next->prev = frame->prev;
@@ -362,6 +362,14 @@ jb_frame *queue_get(jitterbuf *jb, long ts) {
     } 
 
     return NULL;
+}
+
+static jb_frame *queue_get(jitterbuf *jb, long ts) {
+    return _queue_get(jb,ts,0);
+}
+
+static jb_frame *queue_getall(jitterbuf *jb) {
+    return _queue_get(jb,0,1);
 }
 
 /* some diagnostics */
@@ -627,7 +635,7 @@ int jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 
 int jb_getall(jitterbuf *jb, jb_frame *frameout) {
     jb_frame *frame;
-    frame = queue_get(jb, 0);
+    frame = queue_getall(jb);
 
     if(!frame) {
       return JB_NOFRAME;
