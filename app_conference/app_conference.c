@@ -123,11 +123,11 @@ int add_buffer(struct ast_conf_member *member, struct ast_channel *chan)
 	struct ast_conf_audiobuffer *newbuffer;
 
 	newbuffer = malloc(sizeof(struct ast_conf_audiobuffer));
-	memset(newbuffer,0x0,sizeof(struct ast_conf_audiobuffer));
 	if (newbuffer == NULL) {
 	    ast_log(LOG_ERROR,"unable to malloc ast_conf_audiobuffer!\n");
 	    return -1;
 	}
+	memset(newbuffer,0x0,sizeof(struct ast_conf_audiobuffer));
 	if (RingBuffer_Init(&newbuffer->ring,AST_CONF_BUFFER_SIZE,newbuffer->bufdata) != 0) {
 	    ast_log(LOG_ERROR, "unable to init ringbuffer\n");
 	}
@@ -159,19 +159,20 @@ void add_member(struct ast_conf_member *member, struct ast_conference *conf) {
 //    ast_log(LOG_NOTICE,"memberlist = %#x\n",memberlist);
     	    // for each member, create a new audiobuffer and prepend it
 
-	// XXX add us to all bufferlists!!! , if we are supposed to speak
-	    if (member->type != 'L') {
+	// and everybody else (expcept us) to our bufferlist, if he is supposed to speak
+	    if (memberlist->type != 'L') {
 		if(add_buffer(member,memberlist->chan) < 0) {
+	    	    ast_log(LOG_ERROR,"unable to malloc ast_conf_audiobuffer!\n");
 		    ast_pthread_mutex_unlock(&memberlist->lock);
 		    ast_pthread_mutex_unlock(&conf->memberlock);
 		    ast_pthread_mutex_unlock(&conf->lock);
 		    return;
 		}
-//		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to memberlist (type=%c, priority=%d, chan=%#x)\n",member->type,member->priority,member->chan,memberlist->type,memberlist->priority,memberlist->chan);		
+		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to memberlist (type=%c, priority=%d, chan=%#x)\n",member->type,member->priority,member->chan,memberlist->type,memberlist->priority,memberlist->chan);		
 	    }
 
-	    if (memberlist->type != 'L') {
-		// and add everybody else (expcept us) to our bufferlist, if he is supposed to speak
+	// XXX add us to all bufferlists!!! , if we are supposed to speak
+	    if (member->type != 'L') {
 		if(add_buffer(memberlist,member->chan) < 0) {
 	    	    ast_log(LOG_ERROR,"unable to malloc ast_conf_audiobuffer!\n");
 		    ast_pthread_mutex_unlock(&memberlist->lock);
@@ -179,7 +180,7 @@ void add_member(struct ast_conf_member *member, struct ast_conference *conf) {
 		    ast_pthread_mutex_unlock(&conf->lock);
 		    return;
 		}
-//		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to member (type=%c, priority=%d, chan=%#x)\n",memberlist->type,memberlist->priority,memberlist->chan,member->type,member->priority,member->chan);		
+		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to member (type=%c, priority=%d, chan=%#x)\n",memberlist->type,memberlist->priority,memberlist->chan,member->type,member->priority,member->chan);		
 	    }
 
 	    ast_pthread_mutex_unlock(&memberlist->lock);
@@ -338,17 +339,17 @@ void write_audio(struct ast_frame *f, struct ast_conference *conference, struct 
 	ast_pthread_mutex_lock(&(conference->memberlock));
 	memberl = conference->memberlist;
 	while (memberl != NULL) {
-//	ast_log(LOG_NOTICE,"member (type=%c)\n",memberl->type);
 	    if (memberl->chan != member->chan) {
 	    ast_pthread_mutex_lock(&(member->lock));
 	    ast_pthread_mutex_lock(&(member->bufferlock));
 		bufferl = memberl->bufferlist;
+//    ast_log(LOG_NOTICE,"member (type=%c) bufferl=%#x\n",memberl->type,bufferl);
 		while (bufferl != NULL) {
 		    if (bufferl->chan == member->chan) {
 	    ast_pthread_mutex_lock(&(bufferl->lock));
 			    byteswritten = RingBuffer_Write(&bufferl->ring,f->data,f->samples*2);
 			    if ( byteswritten != (f->samples*2)) {
-			    ast_log(LOG_ERROR,"failed to write audio (wrote %d bytes)\n",byteswritten);
+				ast_log(LOG_ERROR,"failed to write audio (wrote %d bytes)\n",byteswritten);
 //			ast_log(LOG_NOTICE,"written %d bytes from chan %#x to buffer %#x\n",f->datalen,member->chan,bufferl->ring);
 			    } else {
 //			    ast_log(LOG_NOTICE,"+\n");
