@@ -1,100 +1,177 @@
+
+// $Id$
+
 /*
  * app_conference
  *
  * A channel independent conference application for Asterisk
  *
  * Copyright (C) 2002, 2003 Junghanns.NET GmbH
+ * Copyright (C) 2003, 2004 HorizonLive.com, Inc.
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
  */
- 
+
 #ifndef _ASTERISK_CONF_H
 #define _ASTERISK_CONF_H
 
-/* 160 samples 16bit signed linear */
+/* asterisk includes */
+#include <asterisk/pbx.h>
+#include <asterisk/module.h>
+#include <asterisk/logger.h>
+#include <asterisk/lock.h>
+#include <asterisk/frame.h>
+#include <asterisk/manager.h>
+#include <asterisk/dsp.h>
+#include <asterisk/translate.h>
+#include <asterisk/channel.h>
+#include <asterisk/file.h>
+#include <asterisk/channel_pvt.h>
+
+/* standard includes */
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
+#include <stdio.h>
+
+#include <pthread.h>
+
+#if (SILDET == 2)
+#include "libspeex/speex_preprocess.h"
+#endif
+
+//
+// app_conference defines
+//
+
+// debug logging level
+
+// LOG_NOTICE for debugging, LOG_DEBUG for production
+#ifdef APP_CONFERENCE_DEBUG
+#define AST_CONF_DEBUG LOG_NOTICE
+#else
+#define AST_CONF_DEBUG LOG_DEBUG
+#endif
+
+//
+// sample information for AST_FORMAT_SLINEAR format
+//
+
+#define AST_CONF_SAMPLE_RATE 8000
+#define AST_CONF_SAMPLE_SIZE 16
+#define AST_CONF_SAMPLE_FREQUENCY 20
+
+//
+// so, since we cycle approximately every 20ms, 
+// we can compute the following values:
+//
+// 160 samples per 20 ms frame -or- 
+// ( 8000 samples-per-second * ( 20 ms / 1000 ms-per-second ) ) = 160 samples
+//
+// 320 bytes ( 2560 bits ) of data  20 ms frame -or-
+// ( 160 samples * 16 bits-per-sample / 8 bits-per-byte ) = 320 bytes
+//
+
+// 160 samples 16-bit signed linear
 #define AST_CONF_BLOCK_SAMPLES 160
 
-/* wait max 100 ms for audio */
-/* this value may not be longer than the time a ringbuffer can take (~1s) */
-#define AST_CONF_LATENCY 100
+// 2 bytes per sample ( i.e. 16-bit )
+#define AST_CONF_BYTES_PER_SAMPLE 2
 
-/* output audio frames must be at least 20 ms long */
-#define AST_CONF_MIN_MS 20
+// 320 bytes for each 160 sample frame of 16-bit audio 
+#define AST_CONF_FRAME_DATA_SIZE 320
 
-#define AST_CONF_BUFFER_SIZE 8192
+// 1000 ms-per-second / 20 ms-per-frame = 50 frames-per-second
+#define AST_CONF_FRAMES_PER_SECOND ( 1000 / AST_CONF_SAMPLE_FREQUENCY )
 
-struct ast_conf_audiobuffer {
-    /* lock */
-    pthread_mutex_t lock;
 
-    /* channel */
-    struct ast_channel *chan;
+//
+// buffer and queue values
+//
 
-//    struct ast_onering *ring;
+// account for friendly offset when allocating buffer for frame
+#define AST_CONF_BUFFER_SIZE ( AST_CONF_FRAME_DATA_SIZE + AST_FRIENDLY_OFFSET )
 
-    struct RingBuffer ring;
-    
-    char bufdata[AST_CONF_BUFFER_SIZE];
+// maximum number of frames queued per member
+#define AST_CONF_MAX_QUEUE 10
 
-    int ringfails;
-        
-    /* next */
-    struct ast_conf_audiobuffer *next;
-};
+// minimum number of frames queued per member
+#define AST_CONF_MIN_QUEUE 0
 
-struct ast_conf_member {
-    /* lock */
-    pthread_mutex_t lock;
+// number of queued frames before we start dropping
+#define AST_CONF_QUEUE_DROP_THRESHOLD 5
 
-    /* channel */
-    struct ast_channel *chan;
+// number of milliseconds between frame drops
+#define AST_CONF_QUEUE_DROP_TIME_LIMIT 100
 
-    int samplesperframe;
+//
+// timer and sleep values
+//
 
-    /* highest priority gets the channel */
-    int priority;
+// milliseconds we're willing to wait for a channel
+// event before we check for outgoing frames
+#define AST_CONF_WAITFOR_LATENCY 5
 
-    /*  Member Type
-	L = ListenOnly 
-	M = Moderator
-	S = Standard (Listen/Talk)
-    */
-    char type;
-    
-    /* lock */
-    pthread_mutex_t bufferlock;
+// milliseconds to sleep before trying to process frames
+#define AST_CONF_CONFERENCE_SLEEP 5
 
-    /* audiobuffers */
-    struct ast_conf_audiobuffer *bufferlist;
+// milliseconds to wait between state notification updates
+#define AST_CONF_NOTIFICATION_SLEEP 500
 
-//    struct ast_ringbuffer *echo;
+//
+// warning threshold values
+//
 
-    struct ast_smoother *smoother;
-    
-    /* next member */
-    struct ast_conf_member *next;    
-};
+// number of frames behind before warning
+#define AST_CONF_OUTGOING_FRAMES_WARN 5
 
-struct ast_conference {
-    /* lock */
-    pthread_mutex_t lock;
+// number of milliseconds off AST_CONF_SAMPLE_FREQUENCY before warning
+#define AST_CONF_FREQUENCY_WARNING 10
 
-    /* lock */
-    pthread_mutex_t memberlock;
+//
+// silence detection values
+//
 
-    /* name (e.g. room1)  */
-    char name[80];
+// toggle silence detection
+#define ENABLE_SILENCE_DETECTION 1
 
-    /* member in this conference */
-    int membercount;
+// silence threshold
+#define AST_CONF_SILENCE_THRESHOLD 128
 
-    /* members in this conference */
-    struct ast_conf_member *memberlist;    
+// speech tail (delay before dropping silent frames, in ms.
+// #define AST_CONF_SPEECH_TAIL 180
 
-    /* next conference */
-    struct ast_conference *next;
-};
+// number of frames to ignore speex_preprocess() after speech detected
+#define AST_CONF_SKIP_SPEEX_PREPROCESS 20
+
+// our speex probability values
+#define AST_CONF_PROB_START 0.05
+#define AST_CONF_PROB_CONTINUE 0.02
+
+//
+// format translation values
+//
+
+#define AC_SUPPORTED_FORMATS 3
+
+enum { AC_SLINEAR_INDEX = 0, AC_ULAW_INDEX, AC_GSM_INDEX } ;
+
+//
+// app_conference functions
+//
+
+// main module function
+int app_conference_main( struct ast_channel* chan, void* data ) ;
+
+// utility functions
+long usecdiff( struct timeval* timeA, struct timeval* timeB ) ;
+void add_milliseconds( struct timeval* tv, long ms ) ;
+void copy_timeval( struct timeval* target, struct timeval* source ) ;
+
 #endif
+
