@@ -2439,7 +2439,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				e->etype = IAX_EVENT_LINKURL;
 				/* Fall through */
 			case AST_HTML_URL:
-				if (!e->etype)
+				if (e->etype == -1)
 					e->etype = IAX_EVENT_URL;
 				e->subclass = fh->csub;
 				e->datalen = datalen;
