@@ -1738,9 +1738,9 @@ PaError Pa_SetInputLevel( PortAudioStream *stream , double level) {
     DWORD vol;
     HWAVEIN  hWaveIn = ((PaWMMEStreamData *) ((internalPortAudioStream *)stream)->past_DeviceData)->hWaveIn;
 
-#if 0
+#ifdef NOTDEF
 
-    There doesn't seem to be an easy way to do this :(
+    /* There doesn't seem to be an easy way to do this :( */
     MIXERCONTROLDETAILS mcd;
     
    
