@@ -1407,6 +1407,11 @@ static int iax_send_pong(struct iax_session *session, unsigned int ts)
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PONG, ts, NULL, 0, -1);
 }
 
+int iax_send_ping(struct iax_session *session)
+{
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PING, 0, NULL, 0, -1);
+}
+
 static int iax_send_lagrp(struct iax_session *session, unsigned int ts)
 {
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_LAGRP, ts, NULL, 0, -1);
@@ -1568,6 +1573,12 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 		secret = strtok(NULL, ":");
 	} else
 		secret = NULL;
+
+	if(username)
+	  strncpy(session->username, username, sizeof(session->username) - 1);
+
+	if(secret)
+	  strncpy(session->secret, secret, sizeof(session->secret) - 1);
 	
 	if (strchr(hostname, ':')) {
 		strtok(hostname, ":");
