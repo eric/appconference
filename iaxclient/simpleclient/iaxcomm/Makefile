@@ -54,7 +54,7 @@ ifeq ($(OSTYPE),MACOSX)
 PROG=iaxcomm
 TARGET=iaxcomm.app
 CFLAGS:= $(CFLAGS) `wx-config --cflags`
-EXTRALIBS = /opt/wxwindows/v2.4.1/lib/libwx_mac_xrc-2.4.a
+EXTRALIBS = /opt/wxwindows/v2.4.2/lib/libwx_mac_xrc-2.4.a
 SYSLIBS=$(EXTRALIBS) -framework CoreAudio -framework AudioToolbox `wx-config --libs`
 CXX=`wx-config --cxx`
 REZ=`wx-config --rezflags`
@@ -84,4 +84,5 @@ $(PROG).app: $(OBJS) $(LIBS)
 	cp `wx-config --prefix`/lib/libwx_mac*.rsrc $(PROG).app/Contents/Resources/$(PROG).rsrc
 	echo -n "APPL????" > $(PROG).app/Contents/PkgInfo
 	cp Info.plist $(PROG).app/Contents/Info.plist 
+	cp -r rc $(PROG).app/Contents/Resources
 	$(CXX) $(OBJS) $(LIBS) $(SYSLIBS) -o $(PROG).app/Contents/MacOS/$(PROG)

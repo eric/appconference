@@ -85,10 +85,10 @@ bool theApp::OnInit()
     long     dummy;
     bool     bCont;
 
+#ifndef __WXMAC__
+// XXX this seems broken on mac with wx-2.4.2
     m_single_instance_checker = new wxSingleInstanceChecker( GetAppName() );
 
-// XXX this seems broken on mac with wx-2.4.1
-#ifndef __WXMAC__
 	
     // And if a copy is alreay running, then abort...
     if ( m_single_instance_checker->IsAnotherRunning() ) {
@@ -128,7 +128,7 @@ bool theApp::OnInit()
     SetTopWindow( theFrame );
 
     // Load up the rest of the XML resources
-    load_xrc_resource( "preferences_dialog.xrc" );
+    //load_xrc_resource( "preferences_dialog.xrc" );
 
     // Show the main frame. Unlike most controls, frames don't show immediately upon
     // construction, but instead wait for a specific Show() function.
@@ -203,7 +203,9 @@ int theApp::OnExit(void)
 {
     // Delete the single instance checker
     wxLogDebug( "Deleting the single instance checker." );
+#ifndef __WXMAC__
     delete m_single_instance_checker;
+#endif    
     return 0;
 }
 
@@ -215,10 +217,28 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
 {
     wxString xrc_subdirectory = "rc";
     wxString xrc_fullname;
+#ifdef __WXMAC__
+    {
+	CFBundleRef mainBundle = CFBundleGetMainBundle ();
+	CFURLRef resDir = CFBundleCopyResourcesDirectoryURL (mainBundle);
+	CFURLRef resDirAbs = CFURLCopyAbsoluteURL (resDir);
+	CFStringRef resPath = CFURLCopyFileSystemPath(resDirAbs, kCFURLPOSIXPathStyle);
+	char path[1024];
+	CFStringGetCString(resPath, path, 1024, kCFStringEncodingASCII);
+	xrc_subdirectory = wxString(path) + wxFILE_SEP_PATH + xrc_subdirectory;
+
+    }
+#endif
     xrc_fullname << xrc_subdirectory << "/" << xrc_filename;
+    //xrc_fullname = wxGetCwd() + wxFILE_SEP_PATH + xrc_subdirectory +
+    //		      wxFILE_SEP_PATH + xrc_filename;
+
 
     if ( ::wxFileExists( xrc_fullname ) ) {
         wxXmlResource::Get()->Load( xrc_fullname );
+    } else {
+	wxMessageBox(_("XRC To load is ")+ xrc_fullname);
+	wxFatalError(_("Can't Load XRC ") + xrc_fullname);
     }
 }
 
