@@ -8,7 +8,7 @@
  * Mark Spencer <markster@linux-support.net>
  *
  * This program is free software, distributed under the terms of
- * the GNU General Public License
+ * the GNU Lesser General Public License (LGPL)
  */
  
 #ifndef _ASTERISK_IAX_CLIENT_H

@@ -2488,9 +2488,25 @@ struct iax_event *iax_get_event(int blocking)
 	if (blocking) {
 		/* Block until there is data if desired */
 		fd_set fds;
+		int nextEventTime;
+
 		FD_ZERO(&fds);
 		FD_SET(netfd, &fds);
+	
+		nextEventTime = iax_time_to_next_event(); 
+
+		if(nextEventTime < 0) 
 		select(netfd + 1, &fds, NULL, NULL, NULL);
+		else 
+		{ 
+			struct timeval nextEvent; 
+
+			nextEvent.tv_sec = nextEventTime / 1000; 
+			nextEvent.tv_usec = (nextEventTime % 1000) * 1000;
+
+			select(netfd + 1, &fds, NULL, NULL, &nextEvent); 
+		} 
+
 	}
 	event = iax_net_read();
 	
