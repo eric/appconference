@@ -631,9 +631,12 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 		return -1;
 	}
 	
+	/* this must come before the next call to calc_timestamp() since
+	 calc_timestamp() will change lastsent to the returned value */
+	lastsent = pvt->lastsent;
+
 	/* Calculate actual timestamp */
 	fts = calc_timestamp(pvt, ts);
-	lastsent = pvt->lastsent;
 
 	if (((fts & 0xFFFF0000L) == (lastsent & 0xFFFF0000L))
 		/* High two bits are the same on timestamp, or sending on a trunk */ &&
