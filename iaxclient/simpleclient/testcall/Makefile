@@ -71,7 +71,11 @@ SYSLIBS= -lsocket -lnsl -lpthread -lrt -lresolv -lm
 MAKE=gmake
 endif
 
+ifeq ($(OSTYPE),WIN32)
+PROGS= testcall$(EXEEXT)
+else
 PROGS= testcall$(EXEEXT) testcall-jb$(EXEEXT)
+endif
 
 all: makelib $(PROGS)
 
