@@ -68,15 +68,17 @@ void pa_send_audio(struct timeval *lastouttm, struct peer *most_recent_answer, i
 
 	long framecount = GetAudioStreamReadable(inStream);
 	for(i = 0; i < framecount; i++) {
+		long diff;
 		gettimeofday(&now,NULL);
 		// See if we should be sending (jitter buffer for IAX)
-		if (iaxc_usecdiff(lastouttm,&now) < (OUT_INTERVAL*1000))
+		if ((diff=iaxc_usecdiff(&now,lastouttm)) < (OUT_INTERVAL*1000))
 		{
+			//fprintf(stderr, "PORTAUDIO: out interval not satisfied diff=%ld\n", diff);
 			i = framecount;
 			break;
 		}
 
-		fprintf(stderr, "PORTAUDIO: reading audio\n");
+		//fprintf(stderr, "PORTAUDIO: reading audio\n");
 		// Read the audio from the audio buffer
 		ReadAudioStream(inStream, samples, FRAMES_PER_BLOCK);
 
