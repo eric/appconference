@@ -1,0 +1,116 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_MAIN_DLG DIALOG DISCARDABLE  0, 0, 234, 175
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Sans Serif"
+BEGIN
+    PUSHBUTTON      "Dial",IDC_BN_DIAL,67,34,50,14
+    EDITTEXT        IDC_E_IAX_URI,50,7,177,14,ES_AUTOHSCROLL
+    LTEXT           "IAX URI:",IDC_STATIC,17,10,29,8
+    PUSHBUTTON      "Hangup",IDC_BN_HANGUP,117,34,50,14
+    LTEXT           "Welcome to WinIAX Client",IDC_ST_STATUS,7,143,220,25
+    PUSHBUTTON      "1",IDC_BN_1,90,58,17,14
+    PUSHBUTTON      "2",IDC_BN_2,108,58,17,14
+    PUSHBUTTON      "3",IDC_BN_3,126,58,17,14
+    PUSHBUTTON      "4",IDC_BN_4,90,72,17,14
+    PUSHBUTTON      "5",IDC_BN_5,108,72,17,14
+    PUSHBUTTON      "6",IDC_BN_6,126,72,17,14
+    PUSHBUTTON      "7",IDC_BN_7,90,86,17,14
+    PUSHBUTTON      "8",IDC_BN_8,108,86,17,14
+    PUSHBUTTON      "9",IDC_BN_9,126,86,17,14
+    PUSHBUTTON      "*",IDC_BN_ASTERISK,90,100,17,14
+    PUSHBUTTON      "0",IDC_BN_0,108,100,17,14
+    PUSHBUTTON      "#",IDC_BN_HASH,126,100,17,14
+    CONTROL         "Progress1",IDC_PROG_OUTPUT,"msctls_progress32",
+                    PBS_VERTICAL | WS_BORDER,204,49,8,73
+    CONTROL         "Progress2",IDC_PROG_INPUT,"msctls_progress32",
+                    PBS_VERTICAL | WS_BORDER,219,49,8,73
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO DISCARDABLE 
+BEGIN
+    IDD_MAIN_DLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 227
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 168
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
