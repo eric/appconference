@@ -25,11 +25,21 @@ else
 ifneq (,$(findstring MINGW,$(shell uname)))
 OSTYPE=WIN32
 else
+ifneq (,$(findstring FreeBSD,$(shell uname)))
+OSTYPEREAL=FREEBSD
+else
 $(warning OSTYPE cannot be detected, assuming Linux)
+endif
 OSTYPE=LINUX
 endif
 endif
 endif
+endif
+
+ifeq ($(OSTYPEREAL),FREEBSD)
+MAKE=gmake
+else
+MAKE=make
 endif
 
 ifeq ($(OSTYPE),WIN32)
@@ -39,7 +49,11 @@ endif
 
 ifeq ($(OSTYPE),LINUX)
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
+ifeq ($(OSTYPEREAL),FREEBSD)
+SYSLIBS=-lc_r -lm
+else
 SYSLIBS=-lpthread -lm
+endif
 endif
 
 ifeq ($(OSTYPE),MACOSX)
@@ -55,10 +69,10 @@ clean:
 	rm -f $(OBJS) $(PROGS)
 
 makelib:
-	(cd ../../lib; make libiaxclient.a)
+	(cd ../../lib; $(MAKE) libiaxclient.a)
 
 ../../lib/libiaxclient.a: 
-	(cd ../../lib; make libiaxclient.a)
+	(cd ../../lib; $(MAKE) libiaxclient.a)
 
 testcall$(EXEEXT): $(OBJS) $(LIBS)
 	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)

@@ -83,7 +83,8 @@ IAXCLIENT itself was contributed to by:
 
 Steve Kann <stevek@stevek.com>
 Shawn Lawrence <shawn.lawrence@terracecomm.com>
-Faizan "Tili" Naqvi <faizan@tilizone.com>
+Faizan "Tili" Naqvi <faizan@tilizone.com> [Win32 VC++ build/client]
+Scott Lambert <lambert@lambertfam.org> [FreeBSD build changes]
 
 In addition to including libiax, IAXCLIENT is also based in part on code
 included in test clients within libiax itself.
@@ -98,6 +99,7 @@ projects.
 BUILDING THE LIBRARY:
 
 Linux: type "make" using standard gnu make/gcc
+FreeBSD: type "gmake" using standard gnu make/gcc
 MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
 Win32: type "make" using Cygwin/MinGW (see below)
 

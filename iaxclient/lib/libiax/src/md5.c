@@ -1,7 +1,7 @@
 /* MD5 checksum routines used for authentication.  Not covered by GPL, but
    in the public domain as per the copyright below */
 
-#ifdef FREEBSD
+#ifdef __FreeBSD__
 # include <machine/endian.h>
 #elif defined(LINUX)  
 # include <endian.h>

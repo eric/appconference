@@ -43,7 +43,11 @@
 #ifdef __linux__
 #include <linux/soundcard.h>
 #else
+#ifdef __FreeBSD__
+#include <sys/soundcard.h>
+#else
 #include <machine/soundcard.h> /* JH20010905 */
+#endif
 #endif
 
 

@@ -49,8 +49,12 @@
 #include <arpa/inet.h>
 #include <time.h>
 #ifdef LINUX
+#ifdef __FreeBSD__
+#include <err.h>
+#else
 #include <malloc.h>
 #include <error.h>
+#endif
 #endif
 #endif
 
@@ -211,7 +215,11 @@ void gettimeofday(struct timeval *tv, struct timezone *tz);
 
 #else
 /* Linux, and others */
+#if __FreeBSD__
+#define SENDSOCKOPTS MSG_DONTWAIT | SO_NOSIGPIPE
+#else
 #define SENDSOCKOPTS MSG_DONTWAIT | MSG_NOSIGNAL
+#endif
 
 #endif
 #endif
