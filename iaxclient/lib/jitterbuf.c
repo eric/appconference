@@ -507,7 +507,10 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
 	   (diff > queue_last(jb)  - queue_next(jb)) ) ) {
 	      jb->info.current += jb->info.last_voice_ms;
 	      jb->info.last_adjustment = now;
+              jb->info.cnt_contig_interp++;
 	      jb_dbg("G");
+              if (jb->info.max_contig_interp && jb->info.cnt_contig_interp >= jb->info.max_contig_interp)
+                  jb->info.silence_begin_ts = jb->info.last_voice_ts - jb->info.current;
 	      return JB_INTERP;
       }
 
@@ -518,8 +521,10 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
 	/* rewind last_voice_ts, since this isn't voice */
 	jb->info.last_voice_ts -= jb->info.last_voice_ms;
 
-	if(frame->type == JB_TYPE_SILENCE) 
+	if(frame->type == JB_TYPE_SILENCE) {
 	  jb->info.silence_begin_ts = frame->ts;
+          jb->info.cnt_contig_interp = 0;
+        }
 
 	*frameout = *frame;
 	jb->info.frames_out++;
@@ -560,6 +565,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
 	jb->info.last_voice_ts -= jb->info.last_voice_ms;
 	jb->info.current -= jb->info.last_voice_ms;
 	jb->info.last_adjustment = now;
+        jb->info.cnt_contig_interp = 0;
 
 	if(frame)  {
 	  *frameout = *frame;
@@ -600,6 +606,9 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
 	  } */
 	  jb->info.frames_lost++;
 	  increment_losspct(jb);
+          jb->info.cnt_contig_interp++;
+          if (jb->info.max_contig_interp && jb->info.cnt_contig_interp >= jb->info.max_contig_interp)
+            jb->info.silence_begin_ts = jb->info.last_voice_ts - jb->info.current;
 	  jb_dbg("L");
 	  return JB_INTERP;
       }
@@ -608,6 +617,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now)
       *frameout = *frame;
       jb->info.frames_out++;
       decrement_losspct(jb);
+      jb->info.cnt_contig_interp = 0;
       jb_dbg("v");
       return JB_OK;
   } else {     
@@ -709,6 +719,7 @@ int jb_setinfo(jitterbuf *jb, jb_info *settings)
   /* take selected settings from the struct */
 
   jb->info.max_jitterbuf = settings->max_jitterbuf;
+  jb->info.max_contig_interp = settings->max_contig_interp;
 
   return JB_OK;
 }

@@ -67,9 +67,11 @@ typedef struct jb_info {
 	long last_voice_ms;	/* the duration of the last voice frame */
 	long silence_begin_ts;	/* the time of the last CNG frame, when in silence */
 	long last_adjustment;   /* the time of the last adjustment */
+        long cnt_contig_interp; /* the count of consecutive interpolation frames */
 
 	/* settings */
 	long max_jitterbuf;	/* defines a hard clamp to use in setting the jitter buffer delay */
+        long max_contig_interp; /* the max count of interpolations to send before assuming silence */
 } jb_info;
 
 typedef struct jb_frame {
