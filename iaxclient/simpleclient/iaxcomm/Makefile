@@ -1,9 +1,9 @@
 PROVIDER=asterisk
-VERSION=0.99pre6
+VERSION=0.99pre9
 CFLAGS=-I../../lib 
 
 #debug
-CFLAGS:= $(CFLAGS) -g -Wall -DVERSION=\"$(VERSION)\"
+CFLAGS:= $(CFLAGS) -g -Wall -DVERSION='"$(VERSION)"'
 
 OBJS = main.o prefs.o calls.o directory.o dial.o frame.o devices.o xrc_res.o accounts.o ringer.o
 XRCS = rc/devices.xrc rc/directory.xrc rc/frame.xrc rc/menubar.xrc rc/panel.xrc rc/prefs.xrc

@@ -163,19 +163,22 @@ MyFrame::MyFrame( wxWindow *parent )
 
     AllowuLawVal    = config->Read("AllowuLaw",  0l);
     AllowaLawVal    = config->Read("AllowaLaw",  0l);
-    AllowGSMVal     = config->Read("AllowGSM",   0l);
-    AllowSpeexVal   = config->Read("AllowSpeex", 1l);
+    AllowGSMVal     = config->Read("AllowGSM",   1l);
+    AllowSpeexVal   = config->Read("AllowSpeex", 0l);
     AllowiLBCVal    = config->Read("AllowiLBC",  0l);
-    PreferredBitmap = config->Read("Preferred",  IAXC_FORMAT_SPEEX);
+    PreferredBitmap = config->Read("Preferred",  IAXC_FORMAT_GSM);
 
     config->SetPath("/Codecs/SpeexTune");
 
+    SPXTuneVal      = config->Read("SPXTune",        0l);
     SPXEnhanceVal   = config->Read("SPXEnhance",     1l);
-    SPXQualityVal   = config->Read("SPXQuality",     4l);
+    SPXQualityVal   = config->Read("SPXQuality",    -1l);
     SPXBitrateVal   = config->Read("SPXBitrate",     9l);
-    SPXABRVal       = config->Read("SPXABR",         9l);
-    SPXVBRVal       = config->Read("SPXVBR",         1l);
-    SPXComplexityVal= config->Read("SPXComplexity",  4l);
+    SPXABRVal       = config->Read("SPXABR",         0l);
+    SPXVBRVal       = config->Read("SPXVBR",         0l);
+    SPXComplexityVal= config->Read("SPXComplexity",  3l);
+
+    config->SetPath("/Prefs");
 
     //----Add the panel-----------------------------------------------------------------
     Name = config->Read("UseSkin", "default");
@@ -283,8 +286,6 @@ void MyFrame::ApplyFilters()
 
 void MyFrame::ApplyCodecs()
 {
-    wxConfig   *config = new wxConfig("iaxComm");
-
     int  Allowed = 0;
 
     if(AllowiLBCVal)
@@ -304,12 +305,15 @@ void MyFrame::ApplyCodecs()
 
     iaxc_set_formats(PreferredBitmap, Allowed);
 
-    iaxc_set_speex_settings(   (int)SPXEnhanceVal,
-                             (float)SPXQualityVal,
-                               (int)SPXBitrateVal,
-                               (int)SPXVBRVal,
-                               (int)SPXABRVal,
-                               (int)SPXComplexityVal);
+    if(SPXTuneVal) {
+        iaxc_set_speex_settings(   (int)SPXEnhanceVal,
+                                 (float)SPXQualityVal,
+                                   (int)(SPXBitrateVal * 1000),
+                                   (int)SPXVBRVal,
+                                   (int)SPXABRVal,
+                                   (int)SPXComplexityVal);
+
+    }
 }
 
 MyFrame::~MyFrame()
@@ -672,6 +676,11 @@ void MyFrame::OnKeyPad(wxCommandEvent &event)
         digit = '#';
 
     iaxc_send_dtmf(digit);
+
+    wxString SM;
+    SM.Printf("DTMF %d", digit); 
+    SetStatusText(SM); 
+
     Extension->SetValue(Extension->GetValue()+digit);
 }
 
@@ -688,7 +697,7 @@ void MyFrame::OnDialDirect(wxCommandEvent &event)
     } else {
         Dial(DialString);
     }
-    Extension->Clear();
+    Extension->SetValue("");
 }
 
 void MyFrame::OnTransfer(wxCommandEvent &event)

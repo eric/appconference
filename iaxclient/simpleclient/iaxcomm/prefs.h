@@ -83,6 +83,7 @@ private:
 
     int             LocalPreferredBitmap;
 
+    wxCheckBox     *SPXTune;
     wxCheckBox     *SPXEnhance;
     wxSpinCtrl     *SPXQuality;
     wxSpinCtrl     *SPXBitrate;

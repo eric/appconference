@@ -200,16 +200,27 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         bool     ringing  = c.state & IAXC_CALL_STATE_RINGING;
         bool     complete = c.state & IAXC_CALL_STATE_COMPLETE;
         bool     selected = c.state & IAXC_CALL_STATE_SELECTED;
-        wxString info;
-        wxString fullname;
 
-        fullname.Printf("%s", c.remote_name);
+        wxString Info;
+        wxString Codec;
+        wxString RemoteName;
+        wxString Remote;
+        
 
-        info  = fullname.AfterLast('@');	// Hide username:password
+        RemoteName.Printf("%s", c.remote_name);
+        Info  = RemoteName.AfterLast('@');	// Hide username:password
+        Info  = Info.BeforeFirst('/');          // Remove extension in outbound call
+        					// (it will be duplicated in <>)
 
-        info += " ["+ GetCodec(c) + "]";	// Indicate Negotiated codec
+        Remote.Printf("%s", c.remote);
+        if(!Remote.IsEmpty())			// Additional info in Remote
+            Info += " <" + Remote + ">";
 
-        SetItem(c.callNo, 2, info );
+        Codec = GetCodec(c);			// Negotiated codec
+        if(!Codec.IsEmpty())
+            Info += " ["+ GetCodec(c) + "]";	// Indicate Negotiated codec
+
+        SetItem(c.callNo, 2, Info );
 
         if(selected)
             selectedcall = c.callNo;

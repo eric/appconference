@@ -98,6 +98,7 @@ BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
     EVT_RADIOBUTTON(XRCID("PreferSpeex"),    PrefsDialog::OnCodecPrefer)
     EVT_RADIOBUTTON(XRCID("PreferiLBC"),     PrefsDialog::OnCodecPrefer)
 
+    EVT_CHECKBOX( XRCID("SPXTune"),          PrefsDialog::OnSpeexTune)
     EVT_CHECKBOX( XRCID("SPXEnhance"),       PrefsDialog::OnSpeexTune)
     EVT_SPINCTRL( XRCID("SPXQuality"),       PrefsDialog::OnSpeexTune)
     EVT_SPINCTRL( XRCID("SPXBitrate"),       PrefsDialog::OnSpeexTune)
@@ -170,6 +171,7 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     PreferSpeex    = XRCCTRL(*this, "PreferSpeex",    wxRadioButton);
     PreferiLBC     = XRCCTRL(*this, "PreferiLBC",     wxRadioButton);
 
+    SPXTune        = XRCCTRL(*this, "SPXTune",        wxCheckBox);
     SPXEnhance     = XRCCTRL(*this, "SPXEnhance",     wxCheckBox);
     SPXQuality     = XRCCTRL(*this, "SPXQuality",     wxSpinCtrl);
     SPXBitrate     = XRCCTRL(*this, "SPXBitrate",     wxSpinCtrl);
@@ -240,12 +242,33 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     if(LocalPreferredBitmap == IAXC_FORMAT_ULAW)
         PreferuLaw->SetValue(TRUE);
 
+    // XRCed won't let us set minimum less than 0
+    SPXQuality->SetRange(-1,10);
+    SPXBitrate->SetRange(-1,32);
+
+    SPXTune->SetValue(       wxGetApp().theFrame->SPXTuneVal);
     SPXEnhance->SetValue(    wxGetApp().theFrame->SPXEnhanceVal);
     SPXQuality->SetValue(    wxGetApp().theFrame->SPXQualityVal);
     SPXBitrate->SetValue(    wxGetApp().theFrame->SPXBitrateVal);
     SPXABR->SetValue(        wxGetApp().theFrame->SPXABRVal);
     SPXVBR->SetValue(        wxGetApp().theFrame->SPXVBRVal);
     SPXComplexity->SetValue( wxGetApp().theFrame->SPXComplexityVal);
+
+    if(wxGetApp().theFrame->SPXTuneVal) {
+        SPXEnhance->Enable();
+        SPXQuality->Enable();
+        SPXBitrate->Enable();
+        SPXABR->Enable();
+        SPXVBR->Enable();
+        SPXComplexity->Enable();
+    } else {
+        SPXEnhance->Disable();
+        SPXQuality->Disable();
+        SPXBitrate->Disable();
+        SPXABR->Disable();
+        SPXVBR->Disable();
+        SPXComplexity->Disable();
+    }
 
     delete config;
 
@@ -445,7 +468,7 @@ void PrefsDialog::OnCodecPrefer(wxCommandEvent &event)
         LocalPreferredBitmap = IAXC_FORMAT_ULAW;
 
     if(PreferaLaw->GetValue())
-        LocalPreferredBitmap = IAXC_FORMAT_SPEEX;
+        LocalPreferredBitmap = IAXC_FORMAT_ALAW;
 
     OnCodecAllow(event);
 }
@@ -475,6 +498,23 @@ void PrefsDialog::OnCodecAllow(wxCommandEvent &event)
 
 void PrefsDialog::OnSpeexTune(wxCommandEvent &event)
 {
+    wxGetApp().theFrame->SPXTuneVal = SPXTune->GetValue();
+
+    if(wxGetApp().theFrame->SPXTuneVal) {
+        SPXEnhance->Enable();
+        SPXQuality->Enable();
+        SPXBitrate->Enable();
+        SPXABR->Enable();
+        SPXVBR->Enable();
+        SPXComplexity->Enable();
+    } else {
+        SPXEnhance->Disable();
+        SPXQuality->Disable();
+        SPXBitrate->Disable();
+        SPXABR->Disable();
+        SPXVBR->Disable();
+        SPXComplexity->Disable();
+    }
     // Not sure if there's anything different to do here
     OnCodecAllow(event);
 }
@@ -493,6 +533,7 @@ void PrefsDialog::OnSaveCodecs(wxCommandEvent &event)
     
     config->SetPath("/Codecs/SpeexTune");
     
+    config->Write("SPXTune",         SPXTune->GetValue());
     config->Write("SPXEnhance",      SPXEnhance->GetValue());
     config->Write("SPXQuality",      SPXQuality->GetValue());
     config->Write("SPXBitrate",      SPXBitrate->GetValue());
@@ -516,6 +557,7 @@ void PrefsDialog::OnApplyCodecs(wxCommandEvent &event)
 
     wxGetApp().theFrame->PreferredBitmap  = LocalPreferredBitmap;
 
+    wxGetApp().theFrame->SPXTuneVal       = SPXTune->GetValue();
     wxGetApp().theFrame->SPXEnhanceVal    = SPXEnhance->GetValue();
     wxGetApp().theFrame->SPXQualityVal    = SPXQuality->GetValue();
     wxGetApp().theFrame->SPXBitrateVal    = SPXBitrate->GetValue();

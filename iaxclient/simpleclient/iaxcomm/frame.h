@@ -112,11 +112,12 @@ public:
 
     int         PreferredBitmap;
 
-    int         SPXEnhanceVal;
+    bool        SPXTuneVal;
+    bool        SPXEnhanceVal;
     int         SPXQualityVal;
     int         SPXBitrateVal;
     int         SPXABRVal;
-    int         SPXVBRVal;
+    bool        SPXVBRVal;
     int         SPXComplexityVal;
     
 private:

@@ -424,22 +424,12 @@
                     </object>
                     <object class="sizeritem">
                       <object class="wxCheckBox" name="AGC">
-                        <label></label>
+                        <label> Digital Automatic Gain Detection</label>
                       </object>
                       <border>10</border>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <orient></orient>
-                    <object class="spacer">
-                      <size>10,10</size>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxStaticText">
-                        <label>Digital Automatic Gain Detection</label>
-                      </object>
-                      <minsize>230,20</minsize>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
                   </object>
                   <border>10</border>
                 </object>
@@ -458,22 +448,12 @@
                     </object>
                     <object class="sizeritem">
                       <object class="wxCheckBox" name="AAGC">
-                        <label></label>
+                        <label> Analog Automatic Gain Detection</label>
                       </object>
                       <border>10</border>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <orient></orient>
-                    <object class="spacer">
-                      <size>10,10</size>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxStaticText">
-                        <label>Analog Automatic Gain Detection</label>
-                      </object>
-                      <minsize>230,20</minsize>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
                   </object>
                   <border>10</border>
                 </object>
@@ -514,22 +494,12 @@
                     </object>
                     <object class="sizeritem">
                       <object class="wxCheckBox" name="CN">
-                        <label></label>
+                        <label> Sends CN Frames when silence is detected</label>
                       </object>
                       <border>10</border>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <orient></orient>
-                    <object class="spacer">
-                      <size>10,10</size>
-                    </object>
-                    <object class="sizeritem">
-                      <object class="wxStaticText">
-                        <label>Sends CN Frames when silence is detected</label>
-                      </object>
-                      <minsize>230,20</minsize>
-                      <flag>wxALIGN_CENTRE_VERTICAL</flag>
-                    </object>
                   </object>
                   <border>10</border>
                 </object>
@@ -541,15 +511,13 @@
                     <object class="sizeritem">
                       <object class="wxStaticText">
                         <label>Echo Cancellation:</label>
-                        <enabled>0</enabled>
                       </object>
                       <minsize>130,20</minsize>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <object class="sizeritem">
                       <object class="wxCheckBox" name="EchoCancel">
-                        <label></label>
-                        <enabled>0</enabled>
+                        <label> Still Experimental.  May cause application crash.</label>
                       </object>
                       <border>10</border>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
@@ -611,7 +579,7 @@
                         <label>Preferred Codec</label>
                         <orient>wxVERTICAL</orient>
                         <object class="spacer">
-                          <size>5,5</size>
+                          <size>5,27</size>
                         </object>
                         <object class="sizeritem">
                           <object class="wxBoxSizer">
@@ -622,7 +590,7 @@
                               <object class="wxStaticText">
                                 <label>iLBC</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -645,7 +613,7 @@
                               <object class="wxStaticText">
                                 <label>Speex</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -668,7 +636,7 @@
                               <object class="wxStaticText">
                                 <label>GSM</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -691,7 +659,7 @@
                               <object class="wxStaticText">
                                 <label>a-law</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -714,7 +682,7 @@
                               <object class="wxStaticText">
                                 <label>u-law</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -736,7 +704,7 @@
                         <label>Allowed Codecs</label>
                         <orient>wxVERTICAL</orient>
                         <object class="spacer">
-                          <size>5,5</size>
+                          <size>5,27</size>
                         </object>
                         <object class="sizeritem">
                           <object class="wxBoxSizer">
@@ -747,7 +715,7 @@
                               <object class="wxStaticText">
                                 <label>iLBC</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -770,7 +738,7 @@
                               <object class="wxStaticText">
                                 <label>Speex</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -793,7 +761,7 @@
                               <object class="wxStaticText">
                                 <label>GSM</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -816,7 +784,7 @@
                               <object class="wxStaticText">
                                 <label>a-law</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -839,7 +807,7 @@
                               <object class="wxStaticText">
                                 <label>u-law</label>
                               </object>
-                              <minsize>80,22</minsize>
+                              <minsize>80,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -869,9 +837,32 @@
                             </object>
                             <object class="sizeritem">
                               <object class="wxStaticText">
+                                <label>Enable Speex Tuning</label>
+                              </object>
+                              <minsize>130,20</minsize>
+                              <flag>wxALIGN_CENTRE_VERTICAL</flag>
+                            </object>
+                            <object class="sizeritem">
+                              <object class="wxCheckBox" name="SPXTune">
+                                <label></label>
+                              </object>
+                              <border>10</border>
+                              <flag>wxALIGN_CENTRE_VERTICAL</flag>
+                            </object>
+                            <orient></orient>
+                          </object>
+                          <border>10</border>
+                        </object>
+                        <object class="sizeritem">
+                          <object class="wxBoxSizer">
+                            <object class="spacer">
+                              <size>10,10</size>
+                            </object>
+                            <object class="sizeritem">
+                              <object class="wxStaticText">
                                 <label>Enhanced Decoding</label>
                               </object>
-                              <minsize>130,22</minsize>
+                              <minsize>130,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -894,12 +885,11 @@
                               <object class="wxStaticText">
                                 <label>Quality</label>
                               </object>
-                              <minsize>130,22</minsize>
+                              <minsize>130,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
                               <object class="wxSpinCtrl" name="SPXQuality">
-                                <min>0</min>
                                 <max>10</max>
                               </object>
                               <border>10</border>
@@ -919,12 +909,11 @@
                               <object class="wxStaticText">
                                 <label>Bit Rate (kbps)</label>
                               </object>
-                              <minsize>130,22</minsize>
+                              <minsize>130,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
                               <object class="wxSpinCtrl" name="SPXBitrate">
-                                <min>6</min>
                                 <max>32</max>
                               </object>
                               <border>10</border>
@@ -944,12 +933,11 @@
                               <object class="wxStaticText">
                                 <label>Average Bit Rate (kbps)</label>
                               </object>
-                              <minsize>130,22</minsize>
+                              <minsize>130,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
                               <object class="wxSpinCtrl" name="SPXABR">
-                                <min>6</min>
                                 <max>32</max>
                               </object>
                               <border>10</border>
@@ -980,7 +968,7 @@
                               <object class="wxStaticText">
                                 <label>Complexity</label>
                               </object>
-                              <minsize>130,22</minsize>
+                              <minsize>130,20</minsize>
                               <flag>wxALIGN_CENTRE_VERTICAL</flag>
                             </object>
                             <object class="sizeritem">
@@ -1002,10 +990,6 @@
                 </object>
                 <vgap>8</vgap>
                 <growablecols>0</growablecols>
-                <object class="spacer">
-                  <size>5,5</size>
-                  <flag>wxGROW</flag>
-                </object>
                 <object class="sizeritem">
                   <object class="wxBoxSizer">
                     <object class="sizeritem">
