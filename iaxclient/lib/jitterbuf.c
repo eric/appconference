@@ -99,12 +99,53 @@ static int longcmp(const void *a, const void *b) {
 }
 
 static void history_put(jitterbuf *jb, long ts, long now) {
+    long delay = now - ts;
+    long kicked;
 
     /* don't add special/negative times to history */
     if(ts <= 0) return;
 
-    jb->history[(jb->hist_ptr++) % JB_HISTORY_SZ] = now - ts;
+    kicked = jb->history[jb->hist_ptr & JB_HISTORY_SZ];
+
+    jb->history[(jb->hist_ptr++) % JB_HISTORY_SZ] = delay;
+
+    /* optimization; the max/min buffers don't need to be recalculated, if this packet's
+     * entry doesn't change them.  This happens if this packet is not involved, _and_ any packet
+     * that got kicked out of the history is also not involved 
+     * We do a number of comparisons, but it's probably still worthwhile, because it will usually
+     * succeed, and should be a lot faster than going through all 500 packets in history */
+    if(!jb->hist_maxbuf_valid)
+      return;
+
+    /* don't do this until we've filled history 
+     * (reduces some edge cases below) */
+    if(jb->hist_ptr < JB_HISTORY_SZ)
+      goto invalidate;
+
+    /* if the new delay would go into min */
+    if(delay < jb->hist_minbuf[JB_HISTORY_MAXBUF_SZ-1])
+      goto invalidate;
+    
+    /* or max.. */
+    if(delay > jb->hist_maxbuf[JB_HISTORY_MAXBUF_SZ-1])
+      goto invalidate;
+
+    /* or the kicked delay would be in min */
+    if(kicked <= jb->hist_minbuf[JB_HISTORY_MAXBUF_SZ-1]) 
+      goto invalidate;
+
+    if(kicked >= jb->hist_maxbuf[JB_HISTORY_MAXBUF_SZ-1]) 
+      goto invalidate;
+
+    /* if we got here, we don't need to invalidate, 'cause this delay didn't 
+     * affect things */
+    return;
+    /* end optimization */
+
+
+invalidate:
     jb->hist_maxbuf_valid = 0;
+    return;
 }
 
 static void history_calc_maxbuf(jitterbuf *jb) {
@@ -425,8 +466,8 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
     if(!jb->info.silence) { 
 	  /* we want to grow */
       if( (diff > 0) && 
-	  /* we haven't grown in a frames' length */
-	  (((jb->info.last_adjustment + jb->info.last_voice_ms ) < now) || 
+	  /* we haven't grown in 2 frames' length */
+	  (((jb->info.last_adjustment + 2 * jb->info.last_voice_ms ) < now) || 
 	   /* we need to grow more than the "length" we have left */
 	   (diff > queue_last(jb)  - queue_next(jb)) ) ) {
 	      jb->info.current += jb->info.last_voice_ms;
@@ -490,6 +531,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	  jb_dbg("s");
 	  return JB_DROP;
 	} else {
+	  increment_losspct(jb);
 	  jb_dbg("S");
 	  return JB_NOFRAME;
 	}

@@ -21,9 +21,14 @@ extern "C" {
 #endif
 
 /* configuration constants */
-#define JB_HISTORY_SZ		500
+	/* Number of historical timestamps to use in calculating jitter and drift */
+#define JB_HISTORY_SZ		500	
+	/* what percentage of timestamps should we drop from the history when we examine it;
+	 * this might eventually be something made configurable */
 #define JB_HISTORY_DROPPCT	3
+	/* the maximum droppct we can handle (say it was configurable). */
 #define JB_HISTORY_DROPPCT_MAX	4
+	/* the size of the buffer we use to keep the top and botton timestamps for dropping */
 #define JB_HISTORY_MAXBUF_SZ	JB_HISTORY_SZ * JB_HISTORY_DROPPCT_MAX / 100 
 
 
@@ -74,8 +79,8 @@ typedef struct jitterbuf {
 	/* history */
 	long history[JB_HISTORY_SZ];   		/* history */
 	int  hist_ptr;				/* points to index in history for next entry */
-	long hist_maxbuf[JB_HISTORY_MAXBUF_SZ];	/* a sorted buffer of the max delays */
-	long hist_minbuf[JB_HISTORY_MAXBUF_SZ];	/* a sorted buffer of the min delays */
+	long hist_maxbuf[JB_HISTORY_MAXBUF_SZ];	/* a sorted buffer of the max delays (highest first) */
+	long hist_minbuf[JB_HISTORY_MAXBUF_SZ];	/* a sorted buffer of the min delays (lowest first) */
 	int  hist_maxbuf_valid;			/* are the "maxbuf"/minbuf valid? */
 
 
