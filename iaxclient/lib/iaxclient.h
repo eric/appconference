@@ -58,7 +58,9 @@ extern "C" {
 #define IAXC_TEXT_TYPE_STATUS		1
 #define IAXC_TEXT_TYPE_NOTICE		2
 #define IAXC_TEXT_TYPE_ERROR		3
-#define IAXC_TEXT_TYPE_IAX		4
+/* FATAL ERROR: User Agent should probably display error, then die. */
+#define IAXC_TEXT_TYPE_FATALERROR	4
+#define IAXC_TEXT_TYPE_IAX		5
 
 
 

@@ -1411,6 +1411,7 @@ static OSStatus PAOSX_DevicePropertyListener (AudioDeviceID					inDevice,
 	AudioStreamBasicDescription userStreamFormat, hardwareStreamFormat;
     PaHostInOut              *hostInOut;
 	AudioStreamBasicDescription *destFormatPtr, *srcFormatPtr;
+        AudioConverterRef oldConverter; 
 
     past = (internalPortAudioStream *) inClientData;
     pahsc = (PaHostSoundControl *) past->past_DeviceData;
@@ -1464,7 +1465,7 @@ static OSStatus PAOSX_DevicePropertyListener (AudioDeviceID					inDevice,
         
         // Don't delete old converter until we create new one so we don't pull
         // the rug out from under other audio threads.
-        AudioConverterRef oldConverter = hostInOut->converter;
+        oldConverter = hostInOut->converter;
         
         // Make converter to change sample rate.
         err = AudioConverterNew (

@@ -76,6 +76,7 @@ pthread_create(&thread, NULL, func, args)
 #include "gsm.h"
 
 
+void iaxc_usermsg(int type, const char *fmt, ...);
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
 void iaxc_handle_network_event(struct iax_event *e, int callNo);
 void iaxc_service_network(int netfd);

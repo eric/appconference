@@ -537,6 +537,7 @@ int pa_openauxstream (struct iaxc_audio_driver *d ) {
 
 int pa_start (struct iaxc_audio_driver *d ) {
     PaError err;
+    static int errcnt=0;
 
     if(running) return 0;
 
@@ -555,8 +556,18 @@ int pa_start (struct iaxc_audio_driver *d ) {
 	
     //fprintf(stderr, "starting pa\n");
 
-    if(pa_openstreams(d)) 
-      return -1;
+    if(errcnt >= 5) {
+	iaxc_usermsg(IAXC_TEXT_TYPE_FATALERROR,
+		"iaxclient audio: Can't open Audio Device, we tried 5 times.  Perhaps you do not have an input or output device?");
+	return -1; // Give Up.  Too many errors.
+    }
+
+    if(pa_openstreams(d))  {
+	errcnt++;
+        return -1;
+    }
+
+    errcnt = 0; // only count consecutive errors.
 
     err = Pa_StartStream(iStream); 
     if(err != paNoError)

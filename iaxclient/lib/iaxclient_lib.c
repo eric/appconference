@@ -122,7 +122,7 @@ void iaxc_post_event(iaxc_event e) {
 #define IAXC_STATUS IAXC_TEXT_TYPE_STATUS
 #define IAXC_NOTICE IAXC_TEXT_TYPE_NOTICE
 
-static void iaxc_usermsg(int type, const char *fmt, ...)
+void iaxc_usermsg(int type, const char *fmt, ...)
 {
     va_list args;
     iaxc_event e;
