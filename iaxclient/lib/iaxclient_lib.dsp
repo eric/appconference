@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /W3 /Gm /GX /ZI /Od /I ".\libiax\src" /I ".\gsm\inc" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio_v18\pa_common" /I ".\portaudio_v18\pablio" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -85,6 +85,14 @@ LIB32=link.exe -lib
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\audio_encode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\audio_portaudio.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_win32.c
 # End Source File
 # Begin Source File
@@ -101,6 +109,22 @@ SOURCE=.\libiax\src\md5.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\portaudio_v18\pa_common\pa_lib.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\portaudio_v18\pa_win_wmme\pa_win_wmme.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\portaudio_v18\pablio\pablio.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\portaudio_v18\pablio\ringbuffer.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\winfuncs.c
 # End Source File
 # End Group
@@ -110,6 +134,14 @@ SOURCE=.\winfuncs.c
 # Begin Source File
 
 SOURCE=.\libiax\src\answer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\audio_encode.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\audio_portaudio.h
 # End Source File
 # Begin Source File
 

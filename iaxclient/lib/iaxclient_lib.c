@@ -1,12 +1,17 @@
 #include "iaxclient_lib.h"
+#include <process.h>
 
 #ifdef WIN32
 
 #include "audio_win32.h"
+#include "audio_portaudio.h"
+#include "audio_encode.h"
 
 #endif 
 
 static int iAudioType;
+static int iEncodeType;
+
 int netfd;
 int port;
 int c, i;
@@ -40,30 +45,83 @@ int initialize_client(int audType, FILE *file) {
 	answered_call=0;
 	newcall=0;
 	lastouttick=0;
-	if (iAudioType == AUDIO_INTERNAL) {
-		if (initialize_audio() != 0)
-			return -1;
+	switch (iAudioType) {
+		case AUDIO_INTERNAL:
+#ifdef WIN32
+			if (win_initialize_audio() != 0)
+				return -1;
+#else
+#endif
+			break;
+		case AUDIO_INTERNAL_PA:
+			if (pa_initialize_audio() != 0)
+				return -1;
+			break;
 	}
 	return 0;
 }
 
 void shutdown_client() {
 	iax_shutdown();
-	if (iAudioType == AUDIO_INTERNAL) {
-		shutdown_audio();
+	switch (iAudioType) {
+		case AUDIO_INTERNAL:
+#ifdef WIN32
+			win_shutdown_audio();
+#else
+#endif
+			break;
+		case AUDIO_INTERNAL_PA:
+			pa_shutdown_audio();
+			break;
 	}
 }
 
 
-int process_calls() {
-	/* service the network stuff */
-	service_network(netfd,f);
-	flush_audio_output_buffers();
-	service_network(netfd,f);
-	if (iAudioType == AUDIO_INTERNAL) {
-		prepare_audio_buffers();
+void set_encode_format(int fmt)
+{
+	iEncodeType = fmt;
+	iax_set_formats(fmt);
+}
+
+void process_calls(void *dummy) {
+	while (1) {
+		/* service the network stuff */
+		service_network(netfd,f);
+#ifdef WIN32	
+		win_flush_audio_output_buffers();
+		service_network(netfd,f);
+		if (iAudioType == AUDIO_INTERNAL) {
+			win_prepare_audio_buffers();
+		}
+#else
+#endif
+		service_network(netfd,f);
+		service_audio();
+		service_network(netfd,f);
+		Sleep(10);
+		//if (service_audio() == -1)
+		//	break;
+		if (!answered_call)
+			break;
 	}
-	return service_audio();
+#ifdef WIN32
+	_endthread();
+#else
+#endif
+}
+
+void start_call_processing() {
+	if (!answered_call) {
+		while(1) {
+			service_network(netfd, f);
+			if (answered_call)
+				break;
+		}
+	}
+#ifdef WIN32
+	_beginthread(process_calls, 0, NULL);
+#else
+#endif
 }
 
 int service_audio()
@@ -72,54 +130,62 @@ int service_audio()
 		do them in serial number order (the order in which they were originally queued). */
 	if(answered_call) /* send audio only if call answered */
 	{
-		int i;
-		gsm_frame fo;
-		if (iAudioType == AUDIO_INTERNAL) {
-			for(;;) /* loop until all are found */
-			{
-
-				for(i = 0; i < NWHIN; i++) /* find an available one that's the one we are looking for */
-				{
-					service_network(netfd,f); /* service network here for better performance */
-					/* if not time to send any more, dont */
-					if (GetTickCount() < (lastouttick + OUT_INTERVAL))
-					{
-						i = NWHIN; /* set to value that WILL exit loop */
-						break;
-					}
-					if (audio_ready(i) == 1) {
-				
-						/* must have read exactly 320 bytes */
-						if (check_audio_packet_size(i) == 0)
-						{
-//							fprintf(stderr,"Short audio read, got %d bytes, expected %d bytes\n", whin[i].dwBytesRecorded,
-//								get_audio_packet_size(i));
-							return -1;
-						}
-						if(!most_recent_answer->gsmout)
-								most_recent_answer->gsmout = gsm_create();
-						service_network(netfd,f); /* service network here for better performance */
-						/* encode the audio from the buffer into GSM format */
-						gsm_encode(most_recent_answer->gsmout, (short *) ((char *) get_audio_data(i)), fo);
-						if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, (char *)fo, sizeof(gsm_frame)) == -1)
-							puts("Failed to send voice!"); 
-						lastouttick = GetTickCount(); /* save time of last output */
-						/* unprepare (free) the header */
-						free_audio_header(i);
-						/* bump the serial number to look for the next time */
-						bump_audio_sn();
-						/* exit the loop so that we can start at lowest buffer again */
-						break;
-					}
-				} 
-				if (i >= NWHIN) break; /* if all found, get out of loop */
-			}
-		}
-		else {
-			external_service_audio();
+		switch (iAudioType) {
+			case AUDIO_INTERNAL:
+				service_network(netfd, f);
+#ifdef WIN32			
+				win_process_audio_buffers(&lastouttick, most_recent_answer, iEncodeType);		
+#endif
+				service_network(netfd, f);
+				break;
+			case AUDIO_INTERNAL_PA:
+				service_network(netfd, f);
+				pa_send_audio(&lastouttick, most_recent_answer, iEncodeType);
+				break;
+			default:
+				service_network(netfd, f);
+				external_service_audio();
+				service_network(netfd, f);
+				break;
 		}
 	}
 	return 0;
+}
+
+
+void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p) {
+	int len;
+	short fr[160];
+
+	if (check_encoded_audio_length(e, iEncodeType) < 0)
+		return;
+
+	len = 0;
+	while(len < e->event.voice.datalen) {
+//		if(gsm_decode(p->gsmin, (char *) e->event.voice.data + len, fr)) {
+		if(decode_audio(e,p,fr,len,iEncodeType)) {
+			fprintf(stderr, "Bad voice packet.  Unable to decode.\n");
+			return;
+		} else {  /* its an audio packet to be output to user */
+			switch (iAudioType) {
+				case AUDIO_INTERNAL:
+#ifdef WIN32
+					win_flush_audio_output_buffers();
+					win_play_recv_audio(fr, sizeof(fr));
+#else
+#endif
+					break;
+
+				case AUDIO_INTERNAL_PA:
+					pa_play_recv_audio(fr, sizeof(fr));
+					break;
+				case AUDIO_EXTERNAL:
+					// Add external audio callback here
+					break;
+			}
+		}
+		increment_encoded_data_count(&len, iEncodeType);
+	}
 }
 
 void handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
@@ -153,16 +219,10 @@ void handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 			client_answer_call();
  			break;
 		case IAX_EVENT_VOICE:
-			switch(e->event.voice.format) {
-				case AST_FORMAT_GSM:
-					if (iAudioType == AUDIO_INTERNAL)
-						handle_audio_event(f, e, p);
-					else
-						external_audio_event(f, e, p);
-					break;
-				default :
-					fprintf(f, "Don't know how to handle that format %d\n", e->event.voice.format);
-			}
+			handle_audio_event(f, e, p);
+			break;
+//				default :
+					//fprintf(f, "Don't know how to handle that format %d\n", e->event.voice.format);
 			break;
 		case IAX_EVENT_RINGA:
 			break;
@@ -200,6 +260,7 @@ void client_call(FILE *f, char *num)
 	most_recent_answer = peer;
 
 	iax_call(peer->session, "WinIAX", num, NULL, 10);
+	start_call_processing();
 }
 
 void client_answer_call(void) 
@@ -229,6 +290,12 @@ void client_reject_call(void)
 {
 	iax_reject(most_recent_answer->session, "Call rejected manually.");
 	most_recent_answer = 0;
+}
+
+void client_send_dtmf(char digit)
+{
+	if(most_recent_answer)
+		iax_send_dtmf(most_recent_answer->session,digit);
 }
 
 static struct peer *find_peer(struct iax_session *session)

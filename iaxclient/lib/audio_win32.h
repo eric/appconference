@@ -8,14 +8,6 @@
 #ifndef audio_win32_h_
 #define audio_win32_h_
 
-struct peer {
-	int time;
-	gsm gsmin;
-	gsm gsmout;
-
-	struct iax_session *session;
-	struct peer *next;
-};
 
 typedef struct whout {
 	WAVEHDR w;
@@ -47,16 +39,18 @@ char bufin[NWHIN][320];
 WAVEFORMATEX wf;
 WHOUT *wh,*wh1,*wh2;
 
-int initialize_audio();
-void shutdown_audio();
-void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p);
-int prepare_audio_buffers();
-void flush_audio_output_buffers();
+int win_initialize_audio();
+void win_shutdown_audio();
+void win_play_recv_audio(void *fr, int fr_size);
+int win_prepare_audio_buffers();
+void win_flush_audio_output_buffers();
+int win_process_audio_buffers(unsigned long *outtick, struct peer *most_recent_answer, int iEncodeType);
 //int process_call_audio();
-int audio_ready(int i);
-int check_audio_packet_size(int i);
-int get_audio_packet_size(int i);
-void free_audio_header(int i);
-void bump_audio_sn();
+int win_audio_ready(int i);
+int win_check_audio_packet_size(int i);
+int win_get_audio_packet_size(int i);
+void win_free_audio_header(int i);
+void win_bump_audio_sn();
+void *win_get_audio_data(int i);
 
 #endif
