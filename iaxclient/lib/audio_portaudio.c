@@ -370,19 +370,23 @@ int pa_destroy (struct iaxc_audio_driver *d ) {
 }
 
 double pa_input_level_get(struct iaxc_audio_driver *d){
-	return Pa_GetInputLevel(iStream);
+    if(!running) return -1;
+    return Pa_GetInputLevel(iStream);
 }
 
 double pa_output_level_get(struct iaxc_audio_driver *d){
-	return Pa_GetOutputLevel(oStream);
+    if(!running) return -1;
+    return Pa_GetOutputLevel(oStream);
 }
 
 int pa_input_level_set(struct iaxc_audio_driver *d, double level){
-	return Pa_SetInputLevel(iStream, level);
+    if(!running) return -1;
+    return Pa_SetInputLevel(iStream, level);
 }
 
 int pa_output_level_set(struct iaxc_audio_driver *d, double level){
-	return Pa_SetOutputLevel(oStream, level);
+    if(!running) return -1;
+    return Pa_SetOutputLevel(oStream, level);
 }
 
 
