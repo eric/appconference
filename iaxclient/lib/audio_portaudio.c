@@ -277,16 +277,17 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 #if defined(SPEEX_EC)
 	  {
 	      /* convert buffers to float, echo cancel, convert back */
-	      float finBuffer[160], foutBuffer[160]; fcancBuffer[160];
+	      float finBuffer[160], foutBuffer[160], fcancBuffer[160];
+	      int i;
 	      for(i=0;i<160;i++)
 	      {
 		  finBuffer[i] = virtualInBuffer[i]/32767.0f;
 		  foutBuffer[i] = virtualOutBuffer[i]/32767.0f;
 	      }
-	      speex_echo_cancel(ec, foutBuffer, finBuffer, fcancBuffer, NULL);
+	      speex_echo_cancel(ec, finBuffer, foutBuffer, fcancBuffer, NULL);
 	      for(i=0;i<160;i++)
 	      {
-		  virtualInBuffer[i] =  (short)(fcancBuffer * 32767.0f);
+		  virtualInBuffer[i] =  (short)(fcancBuffer[i] * 32767.0f);
 	      }
 
 	  }
@@ -303,16 +304,17 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 #if defined(SPEEX_EC)
 	  {
 	      /* convert buffers to float, echo cancel, convert back */
-	      float finBuffer[160], foutBuffer[160]; fcancBuffer[160];
+	      float finBuffer[160], foutBuffer[160], fcancBuffer[160];
+	      int i;
 	      for(i=0;i<160;i++)
 	      {
-		  finBuffer[i] = inBuffer[i]/32767.0f;
-		  foutBuffer[i] = outBuffer[i]/32767.0f;
+		  finBuffer[i] = ((short *)inputBuffer)[i]/32767.0f;
+		  foutBuffer[i] = ((short *)outputBuffer)[i]/32767.0f;
 	      }
-	      speex_echo_cancel(ec, foutBuffer, finBuffer, fcancBuffer, NULL);
+	      speex_echo_cancel(ec, finBuffer, foutBuffer, fcancBuffer, NULL);
 	      for(i=0;i<160;i++)
 	      {
-		  inBuffer[i] =  (short)(fcancBuffer * 32767.0f);
+		  ((short *)inputBuffer)[i] =  (short)(fcancBuffer[i] * 32767.0f);
 	      }
 
 	  }

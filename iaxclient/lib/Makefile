@@ -126,6 +126,9 @@ OBJS:= $(OBJS) ec/echo.o
 CFLAGS:= $(CFLAGS) -DSPAN_EC=1
 endif
 
+ifeq ($(SPEEX_EC),1)
+CFLAGS:= $(CFLAGS) -DSPEEX_EC=1
+endif
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)
 
