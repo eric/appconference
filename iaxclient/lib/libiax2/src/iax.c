@@ -105,7 +105,7 @@
 
 #define MIN_RETRY_TIME 10
 #define MAX_RETRY_TIME 10000
-#define MEMORY_SIZE 100
+#define MEMORY_SIZE 1000
 
 #define TRANSFER_NONE  0
 #define TRANSFER_BEGIN 1
@@ -1901,7 +1901,7 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts)
 #ifdef EXTREME_DEBUG
 		DEBU(G "Shrinking jitterbuffer (target = %d, current = %d...\n", max, e->session->jitterbuffer);
 #endif
-		e->session->jitterbuffer -= 2;
+		e->session->jitterbuffer -= 1;
 	}
 		
 	/* Keep the jitter buffer from becoming unreasonably large */
