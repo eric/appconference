@@ -2279,7 +2279,7 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 	struct ast_iax2_mini_hdr *mh = (struct ast_iax2_mini_hdr *)buf;
 	struct iax_session *session;
 	
-	buf[len - 1] = '\0';
+	/*  THIS IS BAD: buf[len - 1] = '\0'; */
 	if (ntohs(fh->scallno) & IAX_FLAG_FULL) {
 		/* Full size header */
 		if (len < sizeof(struct ast_iax2_full_hdr)) {
