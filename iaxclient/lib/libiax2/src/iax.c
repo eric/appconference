@@ -2266,8 +2266,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				e->etype = IAX_EVENT_PONG;
 				session->pingtime = calc_timestamp(session,0,NULL) - ts;
 				session->remote_netstats.jitter = e->ies.rr_jitter;
-				session->remote_netstats.losspct = e->ies.rr_loss & 0xff;
-				session->remote_netstats.losscnt = e->ies.rr_loss << 24;
+				session->remote_netstats.losspct = e->ies.rr_loss >> 24;;
+				session->remote_netstats.losscnt = e->ies.rr_loss & 0xffffff;
 				session->remote_netstats.packets = e->ies.rr_pkts;
 				session->remote_netstats.delay = e->ies.rr_delay;
 				session->remote_netstats.dropped = e->ies.rr_dropped;
