@@ -34,6 +34,11 @@ void killem(void)
 	return;
 }
 
+void fatal_error(char *err) {
+	killem();
+	fprintf(stderr, "FATAL ERROR: %s\n", err);
+	exit(1);
+}
 
 void mysleep(void)
 {
@@ -58,6 +63,17 @@ int iaxc_callback(iaxc_event e)
     }
 }
 
+void list_devices()
+{
+    struct iaxc_audio_device *devs;
+    int nDevs, input, output, ring;
+    int i;
+
+    iaxc_audio_devices_get(&devs,&nDevs, &input, &output, &ring);
+    for(i=0;i<nDevs;i++) {
+	fprintf(stderr, "DEVICE ID=%d NAME=%s CAPS=%x\n", devs[i].devID, devs[i].name, devs[i].capabilities);
+    }
+}
 
 void usage()
 { 
@@ -105,9 +121,13 @@ int main(int argc, char **argv)
 	/* activate the exit handler */
 	atexit(killem);
 	
-	iaxc_initialize(AUDIO_INTERNAL_PA,1);
+	if(iaxc_initialize(AUDIO_INTERNAL_PA,1))
+	    fatal_error("cannot initialize iaxclient!");
+
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 	iaxc_set_silence_threshold(silence_threshold);
+
+	list_devices();
 
 	if(do_levels)
 	  iaxc_set_event_callback(iaxc_callback); 
