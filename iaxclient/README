@@ -112,12 +112,15 @@ projects.
 =======================================================================
 BUILDING THE LIBRARY:
 
-Linux: type "make" using standard gnu make/gcc
-FreeBSD: type "gmake" using standard gnu make/gcc
-MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
-Win32: type "make" using Cygwin/MinGW (see below)
-Solaris: type "gmake" using standard gnu make/gcc
+From the "lib" directory:
+	Linux: type "make" using standard gnu make/gcc
+	FreeBSD: type "gmake" using standard gnu make/gcc
+	MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
+	Win32: type "make" using Cygwin/MinGW (see below)
+	Solaris: type "gmake" using standard gnu make/gcc
 
+For a shared library, make clean, then make shared.
+You should receive a shared library (.dll, .so, .dylib, depending on your platform).
 
 Cygwin/MinGW:
 The Win32 build has been tested using the Cygwin Environment, and the
