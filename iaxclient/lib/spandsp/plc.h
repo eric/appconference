@@ -32,6 +32,8 @@
 #if !defined(_PLC_H_)
 #define _PLC_H_
 
+#include <stdint.h>
+
 /*! \page plc_page Packet loss concealment
 \section plc_page_sec_1 What does it do?
 The packet loss concealment module provides a suitable synthetic fill-in signal,
