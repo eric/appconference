@@ -16,9 +16,6 @@
 #include <winsock.h>
 #include <stdio.h>
 
-/* holder of the time, relative to startup in system ticks. See our
-gettimeofday() implementation */
-time_t	startuptime;
 
 static int inet_aton(char *cp, struct in_addr *inp)
 {
