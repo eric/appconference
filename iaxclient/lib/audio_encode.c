@@ -8,6 +8,10 @@ static double input_level = 0, output_level = 0;
 static SpeexPreprocessState *st = NULL;
 int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE;
 
+/* use to measure time since last audio was processed */
+static struct timeval timeLastInput ;
+static struct timeval timeLastOutput ;
+
 static double vol_to_db(double vol)
 {
     /* avoid calling log10 on zero */
@@ -18,14 +22,22 @@ static int do_level_callback()
 {
     static struct timeval last = {0,0};
     struct timeval now;
-
+	double input_db, output_db ;
 
     gettimeofday(&now,NULL); 
     if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000) return 0;
 
     last = now;
 
-    iaxc_do_levels_callback(vol_to_db(input_level), vol_to_db(output_level)); 
+	/* if input has not been processed in the last second, set to silent */
+	input_db = ( iaxc_usecdiff( &now, &timeLastInput ) < 1000000 ) 
+		? vol_to_db( input_level ) : -99.9 ;
+
+	/* if output has not been processed in the last second, set to silent */
+	output_db = ( iaxc_usecdiff( &now, &timeLastOutput ) < 1000000 ) 
+		? vol_to_db( output_level ) : -99.9 ;
+
+    iaxc_do_levels_callback( input_db, output_db ) ;
 
     return 0;
 }
@@ -109,6 +121,9 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
 	int silent;
 	int samples = 160; /* currently always 20ms */
 
+	/* update last input timestamp */
+	gettimeofday( &timeLastInput, NULL ) ;
+
 	silent = input_postprocess(data,samples);	
 
 	if(silent) return 0;  /* poof! no encoding! */
@@ -128,6 +143,7 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
 	      puts("Failed to send voice!");
 	      return -1;
 	}
+	
 	return 0;
 }
 
@@ -136,6 +152,9 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
  * XXX out MUST be 160 bytes */
 int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEncodeType)
 {
+	/* update last output timestamp */
+	gettimeofday( &timeLastOutput, NULL ) ;
+
 	if(len == 0) {
 		fprintf(stderr, "Empty voice frame\n");
 		return -1;
