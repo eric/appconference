@@ -30,6 +30,7 @@ OBJS=\
 	portaudio/pablio/ringbuffer.o \
 	audio_encode.o \
 	audio_portaudio.o \
+	audio_file.o \
 	sox/compand.o \
 	sox/soxcompat.o \
 	iaxclient_lib.o 
@@ -108,7 +109,7 @@ OBJS:= $(OBJS) $(OBJS_IAX1)
 CFLAGS:= $(CFLAGS) -Ilibiax/src
 else
 OBJS:= $(OBJS) $(OBJS_IAX2)
-CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT -DDEBUG_DEFAULT
+CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT 
 endif
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)

@@ -241,6 +241,10 @@ int iaxc_initialize(int audType, int inCalls) {
 			if (pa_initialize(&audio))
 				return -1;
 			break;
+		case AUDIO_INTERNAL_FILE:
+			if (file_initialize(&audio))
+				return -1;
+			break;
 	}
 	return 0;
 }
