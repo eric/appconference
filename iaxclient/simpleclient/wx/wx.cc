@@ -28,6 +28,9 @@ class IAXClient : public wxApp
 	          virtual bool OnInit();
 		  virtual bool OnCmdLineParsed(wxCmdLineParser& p);
 		  virtual void OnInitCmdLine(wxCmdLineParser& p);
+
+		  bool optNoDialPad;
+		  wxString optDestination;
 };
 
 DECLARE_APP(IAXClient)
@@ -169,12 +172,11 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     wxButton *dialButton;
 
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer *row1sizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
     pttMode = false;
     inputLevel = 0;
     outputLevel = 0;
-    statusString = wxString("Welcome to IAXClient");
+    statusString = _T("Welcome to IAXClient");
 
 
 
@@ -206,36 +208,48 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     SetMenuBar(menuBar);
 
-   
-    /* DialPad Buttons */
-    wxGridSizer *dialpadsizer = new wxGridSizer(3);
-    for(int i=0; i<12;i++)
-    {
-	dialpadsizer->Add(
-	  new wxButton(aPanel, i, wxString(buttonlabels[i]),
-		  wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 
-	    1, wxEXPAND|wxALL, 3);
+    wxBoxSizer *row1sizer; 
+    if(wxGetApp().optNoDialPad) {
+	row1sizer = new wxBoxSizer(wxVERTICAL);
+
+	/* volume meters */
+	row1sizer->Add(input  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,15), 
+	      wxGA_HORIZONTAL,  wxDefaultValidator, _T("input level")),1, wxEXPAND); 
+
+	row1sizer->Add(output  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,15), 
+	      wxGA_HORIZONTAL,  wxDefaultValidator, _T("output level")),1, wxEXPAND); 
+    } else {
+	row1sizer = new wxBoxSizer(wxHORIZONTAL);
+	/* DialPad Buttons */
+	wxGridSizer *dialpadsizer = new wxGridSizer(3);
+	for(int i=0; i<12;i++)
+	{
+	    dialpadsizer->Add(
+	      new wxButton(aPanel, i, wxString(buttonlabels[i]),
+		      wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 
+		1, wxEXPAND|wxALL, 3);
+	}
+	row1sizer->Add(dialpadsizer,1, wxEXPAND);
+
+	/* volume meters */
+	row1sizer->Add(input  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
+	      wxGA_VERTICAL,  wxDefaultValidator, _T("input level")),0, wxEXPAND); 
+
+	row1sizer->Add(output  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
+	      wxGA_VERTICAL,  wxDefaultValidator, _T("output level")),0, wxEXPAND); 
     }
-    row1sizer->Add(dialpadsizer,1, wxEXPAND);
-
-    /* volume meters */
-    row1sizer->Add(input  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
-	  wxGA_VERTICAL,  wxDefaultValidator, wxString("input level")),0,wxEXPAND); 
-
-    row1sizer->Add(output  = new wxGauge(aPanel, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
-	  wxGA_VERTICAL,  wxDefaultValidator, wxString("output level")),0, wxEXPAND); 
 
     topsizer->Add(row1sizer,1,wxEXPAND);
 
     /* Destination */
-    topsizer->Add(iaxDest = new wxTextCtrl(aPanel, -1, wxString("guest@ast1/8068"), 
+    topsizer->Add(iaxDest = new wxTextCtrl(aPanel, -1, _T("guest@ast1/8068"), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
     /* main control buttons */    
-    row3sizer->Add(dialButton = new wxButton(aPanel, ID_DIAL, wxString("Dial"),
+    row3sizer->Add(dialButton = new wxButton(aPanel, ID_DIAL, _T("Dial"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
-    row3sizer->Add(new wxButton(aPanel, ID_HANG, wxString("Hang Up"),
+    row3sizer->Add(new wxButton(aPanel, ID_HANG, _T("Hang Up"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
     /* make dial the default button */
@@ -406,18 +420,28 @@ void IAXClient::OnInitCmdLine(wxCmdLineParser& p)
 {
      // declare our CmdLine options and stuff.
      p.AddSwitch(_T("d"),_T("disable-dialpad"),_T("Disable Dial Pad"));
+     p.AddParam(_T("destination"),wxCMD_LINE_VAL_STRING,wxCMD_LINE_PARAM_OPTIONAL);
+
 }
 
 bool IAXClient::OnCmdLineParsed(wxCmdLineParser& p)
 {
-    if(p.Found(_T("d"))) 
-	fprintf(stderr, "found -d switch\n");
+    if(p.Found(_T("d"))) { 
+	optNoDialPad = true;
+	fprintf(stderr, "-d option found\n");
+    }
+    if(p.GetParamCount() >= 1) {
+	optDestination=p.GetParam(0);
+	fprintf(stderr, "dest is %s\n", optDestination.c_str());
+    }
 
     return true;
 }
 
 bool IAXClient::OnInit() 
 { 
+	optNoDialPad = false;
+
 	if(!wxApp::OnInit())
 	  return false;
 
@@ -430,13 +454,16 @@ bool IAXClient::OnInit()
         iaxc_initialize(AUDIO_INTERNAL_PA);
 
         iaxc_set_encode_format(IAXC_FORMAT_GSM);
-        iaxc_set_silence_threshold(0);
+        iaxc_set_silence_threshold(-99);
 	iaxc_set_levels_callback(levels_callback);
 	iaxc_set_error_callback(status_callback);
 	iaxc_set_status_callback(status_callback);
 
         iaxc_start_processing_thread();
 
+	if(!optDestination.IsEmpty()) 
+	    iaxc_call((char *)optDestination.c_str());
+    
 
 	return true; 
 }
