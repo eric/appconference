@@ -7,8 +7,10 @@
 
 # This is my name
 set appname "tkiaxphone"
-set version "0.1"
+set version "0.2"
 
+# items saved in preferences
+set pref_vars "server user pass ext preferred_codec"
 
 # debugging, enable with "debug" environment variable or "-d".
 
@@ -30,6 +32,7 @@ proc real_path {file} {
     } else {
 	set base [file dirname [file join [pwd] $argv0]]
     }
+    debug "$base / $file"
     file join $base $file
 }
 
@@ -41,10 +44,10 @@ proc getrcfile {{name ""}} {
 	global appname
 	set name $appname
     }
-    if {$tcl_platform(platform) == "windows"} {
-	set fmt "%s.ini"
-    } else {
+    if {$tcl_platform(platform) == "unix"} {
 	set fmt ".%src"
+    } else {
+	set fmt "%s.ini"
     }
     set result [file join $env(HOME) [format $fmt $name]]
     debug $result
@@ -64,6 +67,19 @@ proc do_button {win} {
       phone_command "p $digit"
       status "sending $digit"
   }
+}
+
+# accept a number remotely, and dial it
+# use from send
+
+proc make_call {num} {
+    global number
+
+    debug $num
+    set number $num
+    do_send
+    wm deiconify .
+    raise .
 }
 
 # dial the number
@@ -109,9 +125,31 @@ proc do_hangup {} {
 
 # set the status line text
 
-proc status {text {max 25}} {
+proc status {text {max 20}} {
     global status
-    set status  [string range $text 0 $max]
+    set status  [wrap $text $max]
+}
+
+# wrap text, try to use word boundaries
+
+proc wrap {text max} {
+   set result ""
+   set len [string length $text]
+   while {$len > $max} {
+       set index [string wordstart $text $max]
+       if {$index == 0} {
+           lappend result [string range $text 0 [expr {$max - 1}]]
+           set text [string range $text $max end]
+       } else {
+           lappend result [string range $text 0 [expr {$index - 1}]]
+           set text [string range $text $index end]
+       }
+       set len [string length $text]
+   }
+   if {$len > 0} {
+       lappend result $text
+   }
+   return [join $result \n]
 }
 
 # initialize the phone interface
@@ -130,11 +168,14 @@ proc phone_setup {} {
 
 proc register {} {
     global prefs
+    if {[info exists prefs(preferred_codec)]} {
+         phone_command "set codec $prefs(preferred_codec)"
+    }
     if {[info exists prefs(server)]} {
         phone_command "register $prefs(user) $prefs(pass) $prefs(server)"
+	status "registering..."
 	if {$prefs(ext) != ""} {
             phone_command "set name $prefs(ext)"
-	    status "registering..."
 	}
     }
 }
@@ -175,7 +216,7 @@ proc phone_event {args} {
 	exit 0
     }
     set line [split [gets $phone] !]
-    # debug "got: ($line) 1=([lindex $line 1]) 2=([lindex $line 2])"
+    debug $line
     set cmd [lindex $line 0] 
     switch $cmd {
        T {
@@ -261,6 +302,7 @@ proc ring_answered {} {
 # The call was terminated
 
 proc call_done {} {
+    debug
     stop_ringing .phone.status
    .phone.send configure -text send -command do_send -state normal
    .phone.hangup configure -command do_clear -text clear
@@ -281,7 +323,7 @@ proc do_state {new {num ""} {name ""}} {
     if {$state == $new} return
     set state $new
     debug $state
-    switch $state {
+    switch -glob $state {
         active,ringing {
 	    ring_on
 	    if {$name != ""} {
@@ -300,7 +342,7 @@ proc do_state {new {num ""} {name ""}} {
 	    call_done
 	}
 	* {
-	    debug "uniplemented"
+	    debug "unimplemented"
 	}
     }
 }
@@ -396,8 +438,8 @@ proc pref_cancel {} {
 # initialize the settings form
 
 proc pref_setup {} {
-   global prefs
-   foreach i {server user pass ext} {
+   global prefs pref_vars
+   foreach i $pref_vars {
        upvar #0 input_$i value
        set value $prefs($i)
    }
@@ -408,8 +450,8 @@ proc pref_setup {} {
 set prefs_saved 1
 proc pref_ok {} {
    global prefs	;# preferences array
-   global prefs_saved
-   foreach i {server user pass ext} {
+   global prefs_saved pref_vars
+   foreach i $pref_vars {
        upvar #0 input_$i value
        set prefs($i) $value
    }

@@ -61,7 +61,7 @@
 	s i <devno>	set current input device to devno
 	s o <devno>	set current output device to devno
 	s f <filters>	set audio filters (as defined in iaxclient.h)
-
+	s c u|g|s	set preferred codec: (u)law, (g)sm, (s)peex
 
 	# ??		call transfer (not implemented)
    Status is returned by reading stdin.  tokens in the return value are
@@ -352,6 +352,7 @@ int main(int argc, char **argv) {
 
     report("? Ready");
     while (fgets(line,sizeof(line),stdin)) {
+	/* fprintf(stderr, "GOT: %s\n", line); */
 	char *cmd = strtok(line, DELIM);	/* 1st token */
 	char *token = strtok(NULL, DELIM);	/* 2nd token */
 	char *arg;				/* another token */
@@ -523,6 +524,23 @@ int main(int argc, char **argv) {
 		    } else {
 			nak();
 		    }
+		break;
+		case 'c':	/* set preferred codec */
+		    arg = strtok(NULL, DELIM);	/* 3rd token */
+		    if (!arg) {
+			break;
+		        nak();
+		    }
+		    if (*arg == 's') {
+			value = IAXC_FORMAT_SPEEX;
+		    } else if (*arg == 'u') {
+			value = IAXC_FORMAT_ULAW;
+		    } else {
+			value = IAXC_FORMAT_GSM;
+		    }
+		    iaxc_set_formats(value,
+			    IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
+		    ack();
 		break;
 		case 'd':	/* set delimiter */
 		    arg = strtok(NULL, DELIM);	/* 3rd token */

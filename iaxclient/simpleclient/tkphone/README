@@ -49,16 +49,21 @@ NOTES
      notransfer=yes
      disallow=all
      allow=gsm
+     allow=ulaw
+     allow=speex
 
 * Make sure all the files stay in the same directory
 
 * the environment variable DEBUG (or tkiaxphone -d) causes
   diagnostic information on stderr
 
-
 * The environment variable IAXPHONEHOME is used to locate the
   user interface files.  If not set, they are assumed to be in
   the same directory as "tkiaxphone"
+
+* Other TK applications may place calls using the TK "send" command as in:
+     send tkiaxphone "make_call XXXX"
+  where XXXX is the number to call.
 
 FILES:
   iaxcli.c:		command line interface to the IAX VOIP protocol

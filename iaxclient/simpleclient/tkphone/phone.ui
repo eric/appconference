@@ -1,168 +1,277 @@
-WidGet file, version 1.1, created:  Thu Aug 26 14:42:04  2004
+WidGet file, version 1.2, created:  Mon Oct 25 12:05:09 PDT 2004
 Widget button#1
-	geometry row 3
-	other error {}
-	other type button
-	other master {}
-	configure text 1
-	other pathname button#1
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
+	other ActionCommand {}
+	other ActionListener {}
 	geometry column 1
+	other comments {}
+	other error {}
+	other help {}
 	other item_name b1
-	other tabbing {}
+	other level {}
+	other master {}
+	other pathname button#1
+	geometry row 3
 	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 1
+	other type button
 Widget button#10
-	geometry row 6
-	other error {}
-	other type button
-	other master {}
-	configure text *
-	other pathname button#10
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
+	other ActionCommand {}
+	other ActionListener {}
 	geometry column 1
+	other comments {}
+	other error {}
+	other help {}
 	other item_name bstar
-	other tabbing {}
-	geometry sticky nesw
-Widget button#2
-	geometry row 3
-	other error {}
-	other type button
-	other master {}
-	configure text 2
-	other pathname button#2
-	other tags {}
 	other level {}
-	other help {}
-	other comments {}
-	geometry column 2
-	other item_name b2
-	other tabbing {}
+	other master {}
+	other pathname button#10
+	geometry row 6
 	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text *
+	other type button
 Widget button#11
-	geometry row 6
-	other error {}
-	other type button
-	other master {}
-	configure text 0
-	other pathname button#11
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
+	other ActionCommand {}
+	other ActionListener {}
 	geometry column 2
+	other comments {}
+	other error {}
+	other help {}
 	other item_name b0
-	other tabbing {}
-	geometry sticky nesw
-Widget button#3
-	geometry row 3
-	other error {}
-	other type button
-	other master {}
-	configure text 3
-	other pathname button#3
-	other tags {}
 	other level {}
-	other help {}
-	other comments {}
-	geometry column 3
-	other item_name b3
-	other tabbing {}
-	geometry sticky nesw
-Widget button#12
+	other master {}
+	other pathname button#11
 	geometry row 6
-	other error {}
-	other type button
-	other master {}
-	configure text #
-	other pathname button#12
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
 	other tags {}
-	other level {}
-	other help {}
-	other comments {}
+	configure text 0
+	other type button
+Widget button#12
+	other ActionCommand {}
+	other ActionListener {}
 	geometry column 3
+	other comments {}
+	other error {}
+	other help {}
 	other item_name bsharp
-	other tabbing {}
+	other level {}
+	other master {}
+	other pathname button#12
+	geometry row 6
 	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text #
+	other type button
 Widget button#13
-	geometry row 1
-	other error {}
-	other type button
-	other master .frame#1
-	configure text hangup
-	other pathname button#13
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
+	other ActionCommand {}
+	other ActionListener {}
 	geometry column 1
+	other comments {}
+	other error {}
+	other help {}
 	other item_name hangup
-	other tabbing {}
-Widget button#4
-	geometry row 4
-	other error {}
-	other type button
-	other master {}
-	configure text 4
-	other pathname button#4
-	other tags {}
 	other level {}
-	other help {}
-	other comments {}
-	geometry column 1
-	other item_name b4
-	other tabbing {}
-	geometry sticky nesw
-Widget button#14
-	geometry row 1
-	other error {}
-	other type button
 	other master .frame#1
-	configure text send
-	other pathname button#14
+	other pathname button#13
+	geometry row 1
+	other subclass {}
+	other tabbing {}
 	other tags {}
-	other level {}
-	other help {}
-	other comments {}
+	configure text hangup
+	other type button
+Widget button#14
+	other ActionCommand {}
+	other ActionListener {}
 	geometry column 2
+	other comments {}
+	other error {}
+	other help {}
 	other item_name send
-	other tabbing {}
-Widget button#5
-	geometry row 4
-	other error {}
-	other type button
-	other master {}
-	configure text 5
-	other pathname button#5
-	other tags {}
 	other level {}
-	other help {}
-	other comments {}
+	other master .frame#1
+	other pathname button#14
+	geometry row 1
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text send
+	other type button
+Widget button#2
+	other ActionCommand {}
+	other ActionListener {}
 	geometry column 2
-	other item_name b5
-	other tabbing {}
-	geometry sticky nesw
-Widget button#6
-	geometry row 4
-	other error {}
-	other type button
-	other master {}
-	configure text 6
-	other pathname button#6
-	other tags {}
-	other level {}
-	other help {}
 	other comments {}
-	geometry column 3
-	other item_name b6
-	other tabbing {}
+	other error {}
+	other help {}
+	other item_name b2
+	other level {}
+	other master {}
+	other pathname button#2
+	geometry row 3
 	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 2
+	other type button
+Widget button#3
+	other ActionCommand {}
+	other ActionListener {}
+	geometry column 3
+	other comments {}
+	other error {}
+	other help {}
+	other item_name b3
+	other level {}
+	other master {}
+	other pathname button#3
+	geometry row 3
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 3
+	other type button
+Widget button#4
+	other ActionCommand {}
+	other ActionListener {}
+	geometry column 1
+	other comments {}
+	other error {}
+	other help {}
+	other item_name b4
+	other level {}
+	other master {}
+	other pathname button#4
+	geometry row 4
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 4
+	other type button
+Widget button#5
+	other ActionCommand {}
+	other ActionListener {}
+	geometry column 2
+	other comments {}
+	other error {}
+	other help {}
+	other item_name b5
+	other level {}
+	other master {}
+	other pathname button#5
+	geometry row 4
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 5
+	other type button
+Widget button#6
+	other ActionCommand {}
+	other ActionListener {}
+	geometry column 3
+	other comments {}
+	other error {}
+	other help {}
+	other item_name b6
+	other level {}
+	other master {}
+	other pathname button#6
+	geometry row 4
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 6
+	other type button
+Widget button#7
+	other ActionCommand {}
+	other ActionListener {}
+	geometry column 1
+	other comments {}
+	other error {}
+	other help {}
+	other item_name b7
+	other level {}
+	other master {}
+	other pathname button#7
+	geometry row 5
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 7
+	other type button
+Widget button#8
+	other ActionCommand {}
+	other ActionListener {}
+	geometry column 2
+	other comments {}
+	other error {}
+	other help {}
+	other item_name b8
+	other level {}
+	other master {}
+	other pathname button#8
+	geometry row 5
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 8
+	other type button
+Widget button#9
+	other ActionCommand {}
+	other ActionListener {}
+	geometry column 3
+	other comments {}
+	other error {}
+	other help {}
+	other item_name b9
+	other level {}
+	other master {}
+	other pathname button#9
+	geometry row 5
+	geometry sticky nesw
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text 9
+	other type button
+Widget entry#1
+	other ActionCommand {}
+	other ActionListener {}
+	other TextListener {}
+	geometry column 1
+	geometry columnspan 3
+	other comments {}
+	other error {}
+	other help {}
+	other item_name entry
+	other level {}
+	other master {}
+	other pathname entry#1
+	geometry row 1
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure textvariable number
+	other type entry
 Widget f
+	other Colors {black white bisque grey red green blue magenta yellow SystemButtonFace}
+	configure background #e9e9e9
+	other comments {}
 	other generic_options {button {
 		} canvas {
 		} checkbutton {
@@ -170,6 +279,7 @@ Widget f
 		} frame {
 		} label {
 		} listbox {
+		} menu {
 		} menubutton {
 		} message {
 		} radiobutton {
@@ -178,115 +288,64 @@ Widget f
 		} text {
 		}
 	}
-	other panel {}
-	other resize_row {0 0 0 0 0 0 0}
-	other type frame
-	other min_row {30 30 30 30 30 30 30}
+	other help {}
+	other item_name f
+	other level 0
 	other master {}
+	other min_column {30 30 30}
+	other min_row {30 30 30 30 30 30 30}
+	other pad_column {0 0 0}
+	other pad_row {0 0 0 0 0 0 0}
+	other panel {}
 	other pathname f
 	other resize_column {0 0 0}
-	other tags {}
-	other level 0
-	configure background #e9e9e9
-	other min_column {30 30 30}
-	other help {}
-	other Colors {black white bisque grey red green blue magenta yellow SystemButtonFace}
-	other comments {}
-	other item_name f
+	other resize_row {0 0 0 0 0 0 0}
+	other subclass {}
 	other tabbing {}
-Widget button#7
-	geometry row 5
-	other error {}
-	other type button
-	other master {}
-	configure text 7
-	other pathname button#7
 	other tags {}
-	other level {}
-	other help {}
-	other comments {}
-	geometry column 1
-	other item_name b7
-	other tabbing {}
-	geometry sticky nesw
-Widget button#8
-	geometry row 5
-	other error {}
-	other type button
-	other master {}
-	configure text 8
-	other pathname button#8
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
-	geometry column 2
-	other item_name b8
-	other tabbing {}
-	geometry sticky nesw
-Widget button#9
-	geometry row 5
-	other error {}
-	other type button
-	other master {}
-	configure text 9
-	other pathname button#9
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
-	geometry column 3
-	other item_name b9
-	other tabbing {}
-	geometry sticky nesw
-Widget label#1
-	geometry columnspan 3
-	geometry row 7
-	other error {}
-	other type label
-	configure textvariable status
-	other master {}
-	configure text status
-	other pathname label#1
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
-	geometry column 1
-	other item_name status
-	other tabbing {}
-	geometry sticky ew
-Widget entry#1
-	geometry columnspan 3
-	geometry row 1
-	other error {}
-	other type entry
-	configure textvariable number
-	other master {}
-	other pathname entry#1
-	other tags {}
-	other level {}
-	other help {}
-	other comments {}
-	geometry column 1
-	other item_name entry
-	other tabbing {}
-Widget frame#1
-	other panel {}
-	geometry columnspan 3
-	geometry row 2
-	other resize_row 0
 	other type frame
-	other min_row 30
+	other weight_column {0 0 0}
+	other weight_row {0 0 0 0 0 0 0}
+Widget frame#1
+	geometry column 1
+	geometry columnspan 3
+	other comments {}
+	other help {}
+	other item_name frame#1
+	other level 1
 	other master {}
+	other min_column {30 30}
+	other min_row 30
+	other pad_column {0 0}
+	other pad_row 0
+	other panel {}
 	other pathname frame#1
 	other resize_column {1 0}
-	other tags {}
-	other level 1
-	other min_column {30 30}
-	other help {}
-	other comments {}
-	geometry column 1
-	other item_name frame#1
+	other resize_row 0
+	geometry row 2
+	other subclass {}
 	other tabbing {}
+	other tags {}
+	other type frame
+	other weight_column {0 0}
+	other weight_row 0
+Widget label#1
+	geometry column 1
+	geometry columnspan 3
+	other comments {}
+	other error {}
+	other help {}
+	other item_name status
+	other level {}
+	other master {}
+	other pathname label#1
+	geometry row 7
+	geometry sticky ew
+	other subclass {}
+	other tabbing {}
+	other tags {}
+	configure text status
+	configure textvariable status
+	other type label
+	configure width 20
 
