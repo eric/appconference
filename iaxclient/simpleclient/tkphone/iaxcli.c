@@ -291,7 +291,6 @@ int main(int argc, char **argv) {
 	fatal_error("cannot initialize iaxclient!");
     }
 
-    iaxc_set_encode_format(IAXC_FORMAT_GSM);
     iaxc_set_silence_threshold(-99.0); /* the default */
     iaxc_set_audio_output(0);	/* the default */
     iaxc_set_event_callback(iaxc_callback); 
