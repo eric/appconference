@@ -48,7 +48,7 @@ enum
 
     ID_PTT = 300,
     ID_MUTE,
-    ID_SUPPRESS,
+    ID_SILENCE,
 
     CALLBACK_STATUS = 1000,
     CALLBACK_LEVELS,
@@ -80,7 +80,8 @@ public:
     void IAXFrame::OnDial(wxEvent &evt);
     void IAXFrame::OnHangup(wxEvent &evt);
     void IAXFrame::OnQuit(wxEvent &evt);
-    void IAXFrame::OnPTTChange(wxEvent &evt);
+    void IAXFrame::OnPTTChange(wxCommandEvent &evt);
+    void IAXFrame::OnSilenceChange(wxCommandEvent &evt);
     void IAXFrame::OnNotify(void);
 
     bool IAXFrame::GetPTTState();
@@ -95,6 +96,7 @@ public:
 
     bool pttMode;  // are we in PTT mode?
     bool pttState; // is the PTT button pressed?
+    bool silenceMode;  // are we in silence suppression mode?
 
     // values set by callbacks
     int	      inputLevel;
@@ -174,6 +176,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     wxMenu *optionsMenu = new wxMenu();
     optionsMenu->AppendCheckItem(ID_PTT, _T("Enable &Push to Talk\tCtrl-P"));
+    optionsMenu->AppendCheckItem(ID_SILENCE, _T("Enable &Silence Suppression\tCtrl-S"));
    
 
     wxMenuBar *menuBar = new wxMenuBar();
@@ -317,21 +320,37 @@ void IAXFrame::OnQuit(wxEvent &evt)
 	exit(0);	
 }
 
-void IAXFrame::OnPTTChange(wxEvent &evt)
+void IAXFrame::OnPTTChange(wxCommandEvent &evt)
 {
-	// XXX get the actual state!
-	pttMode = !pttMode;
+	pttMode = evt.IsChecked();
 	
 	if(pttMode) {
 		SetPTT(GetPTTState());	
 	} else {
 		SetPTT(true);	
-		iaxc_set_silence_threshold(DEFAULT_SILENCE_THRESHOLD);
+		if(silenceMode) {
+			iaxc_set_silence_threshold(DEFAULT_SILENCE_THRESHOLD);
+		} else {
+			iaxc_set_silence_threshold(-99);
+		}
 		iaxc_set_audio_output(0);  // unmute output
 		muteState->SetLabel("PTT Disabled");
 	}
 }
 
+void IAXFrame::OnSilenceChange(wxCommandEvent &evt)
+{
+	// XXX get the actual state!
+	silenceMode =  evt.IsChecked();
+	
+	if(pttMode) return;
+
+	if(silenceMode) {
+		iaxc_set_silence_threshold(DEFAULT_SILENCE_THRESHOLD);
+	} else {
+		iaxc_set_silence_threshold(-99);
+	}
+}
 
 BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_BUTTON(0,IAXFrame::OnDTMF)
@@ -351,8 +370,7 @@ BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 
 	EVT_MENU(ID_QUIT,IAXFrame::OnQuit)
 	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
-
-	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
+	EVT_MENU(ID_SILENCE,IAXFrame::OnSilenceChange)
 
 END_EVENT_TABLE()
 
