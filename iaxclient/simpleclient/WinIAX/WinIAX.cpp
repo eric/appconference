@@ -44,6 +44,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	InitCommonControlsEx(&cmtcl); 
 	hBr=CreateSolidBrush(RGB(40,100,150));
 	bPTT=FALSE;
+	
 //	m_hwndMainDlg=CreateDialog(hInstance,MAKEINTRESOURCE(IDD_MAIN_DLG),NULL,(DLGPROC)DialogProc);
 	m_hwndMainDlg=CreateDialog(hInstance,MAKEINTRESOURCE(IDD_MAIN_DLG),NULL,(DLGPROC)DialogProc);
 	if(!m_hwndMainDlg)
@@ -54,8 +55,8 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 	}
 	hMenu=LoadMenu(NULL,MAKEINTRESOURCE(IDR_MENU1));
 	SetMenu(m_hwndMainDlg,hMenu);
-
 	ShowWindow(m_hwndMainDlg,SW_SHOW);
+	SendMessage(GetDlgItem(m_hwndMainDlg,IDC_RD_LINE_1),BM_SETCHECK,1,0);
 	
 //	PBM_SETRANGE(0,LEVEL_MAX-LEVEL_MIN);
 
@@ -505,7 +506,7 @@ BOOL OnInitDialog()
 	}
 	PostMessage(GetDlgItem(m_hwndMainDlg,IDC_PROG_OUTPUT),PBM_SETRANGE,0,LEVEL_MIN-LEVEL_MAX);
 	PostMessage(GetDlgItem(m_hwndMainDlg,IDC_PROG_INPUT),PBM_SETRANGE,0,LEVEL_MIN-LEVEL_MAX);
-
+	  
 //	m_iTimerId=SetTimer(NULL,0,500,(TIMERPROC)TimerProc);
 	return TRUE;
 }
@@ -594,7 +595,7 @@ int iaxc_callback(iaxc_event e)
             return status_callback(e.ev.text.message);
       case IAXC_EVENT_STATE:
             return HandleStateEvent(e.ev.call);
-//        case IAXC_EVENT_STATE:
+//		case IAXC_EVENT_STATE:
 //	    ret = status_callback(e->ev.call);
 //	    break;
 
@@ -607,7 +608,7 @@ int iaxc_callback(iaxc_event e)
 void SendDTMF(char num)
 {
 	if(iTotCalls>0) // We do have a call so just send DTMF there
-	iaxc_send_dtmf(num);
+		iaxc_send_dtmf(num);
 	else
 	{
 		char szDialStr[100];
