@@ -38,7 +38,7 @@ SYSLIBS=-Wl,--subsystem,windows -mwindows -lwinmm -lwsock32 -lwxmswd -lcomdlg32 
 endif
 
 ifeq ($(OSTYPE),LINUX)
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags`
+CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags` `gtk-config --cflags`
 SYSLIBS=-lpthread -lm `wx-config --static --libs`
 endif
 

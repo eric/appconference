@@ -1,5 +1,3 @@
-
-
 // For compilers that supports precompilation , includes  wx/wx.h  
 #include  "wx/wxprec.h"  
 
@@ -14,6 +12,10 @@
 #define LEVEL_MAX -10
 #define LEVEL_MIN -50
 
+/* for the silly key state stuff :( */
+#ifdef __WXGTK__
+#include <gdk/gdk.h>
+#endif
 
 IMPLEMENT_APP(IAXClient) 
 
@@ -72,14 +74,21 @@ public:
     void IAXFrame::OnHangup(wxEvent &evt);
     void IAXFrame::OnQuit(wxEvent &evt);
 
+    bool IAXFrame::GetPTTState();
+    void IAXFrame::CheckPTT();
+
     wxGauge *input; 
     wxGauge *output; 
     IAXTimer *timer;
     wxTextCtrl *iaxDest;
+    wxStaticText *muteState;
 
 protected:
     DECLARE_EVENT_TABLE()
 
+#ifdef __WXGTK__
+    GdkWindow *keyStateWindow;
+#endif
 };
 
 static IAXFrame *theFrame;
@@ -87,6 +96,8 @@ static IAXFrame *theFrame;
 void IAXTimer::Notify()
 {
     iaxc_process_calls();
+    // really shouldn't do this so often..
+    theFrame->CheckPTT(); 
 }
 
 
@@ -175,6 +186,9 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     topsizer->Add(row3sizer,0,wxEXPAND);
 
+    topsizer->Add(muteState = new wxStaticText(aPanel,-1,"Mute",
+	    wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
+
 
     aPanel->SetSizer(topsizer);
     topsizer->SetSizeHints(aPanel);
@@ -183,9 +197,41 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     SetSizer(panelSizer);	
     panelSizer->SetSizeHints(this);
 
+#ifdef __WXGTK__
+    // window used for getting keyboard state
+    GdkWindowAttr attr;
+    keyStateWindow = gdk_window_new(NULL, &attr, 0);
+#endif
+
     timer = new IAXTimer();
     timer->Start(10);
     //output = new wxGauge(this, -1, 100); 
+}
+
+bool IAXFrame::GetPTTState()
+{
+    bool pressed;
+#ifdef __WXMAC__
+    KeyMap theKeys;
+    GetKeys(theKeys);
+    // control's VK code is 0x3B.  
+    pressed = theKeys[1] & (1 << (0x3b-32));
+#else
+#ifdef __WXMSW__
+    pressed = GetAsyncKeyState(VK_CONTROL)|0x8000;
+#else
+    int x, y;
+    GdkModifierType modifiers;
+    gdk_window_get_pointer(keyStateWindow, &x, &y, &modifiers);
+    pressed = modifiers & GDK_CONTROL_MASK;
+#endif
+#endif
+    return pressed;
+}
+
+void IAXFrame::CheckPTT()
+{
+    muteState->SetLabel(GetPTTState() ? "Talk" : "Mute");
 }
 
 void IAXFrame::OnDTMF(wxEvent &evt)
@@ -236,6 +282,9 @@ END_EVENT_TABLE()
 
 IAXFrame::~IAXFrame()
 {
+#ifdef __WXGTK__
+    gdk_window_destroy(keyStateWindow);
+#endif
 }
 
 bool IAXClient::OnInit() 
@@ -252,6 +301,8 @@ bool IAXClient::OnInit()
 	return true; 
 
 }
+
+
 
 extern "C" {
    void status_callback(char *msg)
