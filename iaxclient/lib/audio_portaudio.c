@@ -625,7 +625,7 @@ double pa_output_level_get(struct iaxc_audio_driver *d){
 
 int pa_input_level_set(struct iaxc_audio_driver *d, double level){
     if(!iMixer) return -1;
-    fprintf(stderr, "setting input level to %f\n", level);
+    //fprintf(stderr, "setting input level to %f\n", level);
     Px_SetInputVolume(iMixer, level);
     return 0;
 }
