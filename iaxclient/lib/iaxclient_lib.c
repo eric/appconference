@@ -323,7 +323,7 @@ EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) {
     iaxc_recvfrom = rf;
 }
 
-void jb_errf(const char *fmt, ...)
+static void jb_errf(const char *fmt, ...)
 {
     va_list args;
     char buf[1024];
@@ -335,7 +335,7 @@ void jb_errf(const char *fmt, ...)
     iaxc_usermsg(IAXC_ERROR, buf);
 }
 
-void jb_warnf(const char *fmt, ...)
+static void jb_warnf(const char *fmt, ...)
 {
     va_list args;
     char buf[1024];
@@ -347,7 +347,7 @@ void jb_warnf(const char *fmt, ...)
     iaxc_usermsg(IAXC_NOTICE, buf);
 }
 
-void jb_dbgf(const char *fmt, ...)
+static void jb_dbgf(const char *fmt, ...)
 {
     va_list args;
 
@@ -357,8 +357,8 @@ void jb_dbgf(const char *fmt, ...)
 }
 
 static void setup_jb_output() {
-      jb_setoutput(jb_errf, jb_warnf, jb_dbgf);
-      //jb_setoutput(jb_errf, jb_warnf, NULL);
+      //jb_setoutput(jb_errf, jb_warnf, jb_dbgf);
+      jb_setoutput(jb_errf, jb_warnf, NULL);
 }
 
 // Parameters:
