@@ -198,13 +198,6 @@ static int sformats = 0;
 
 #define IAXERROR snprintf(iax_errstr, sizeof(iax_errstr), 
 
-#define DEBUG_SUPPORT
-#define DEBUG_DEFAULT
-#if 0
-#define EXTREME_DEBUG
-#endif
-
-
 #ifdef DEBUG_SUPPORT
 
 #ifdef DEBUG_DEFAULT
@@ -2223,9 +2216,8 @@ static struct iax_event *iax_miniheader_to_event(struct iax_session *session,
 				DEBU(G "%d bytes of voice\n", datalen);
 #endif
 				memcpy(e->data, mh->data, datalen);
+				e->datalen = datalen;
 			}
-			/* XXX SK: I think this is right! */
-			e->datalen = datalen;
 			ts = (session->last_ts & 0xFFFF0000) | ntohs(mh->ts);
 			return schedule_delivery(e, ts);
 		} else {
