@@ -66,6 +66,7 @@ all: makelib $(TARGET)
 
 clean: 
 	rm -f $(OBJS) $(PROG)
+	rm -f xrc_res.cc
 
 makelib:
 	(cd ../../lib; make libiaxclient.a)

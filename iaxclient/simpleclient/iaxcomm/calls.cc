@@ -82,6 +82,8 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
 
     m_parent = parent;
 
+    config->SetPath("/Prefs");
+
     // Column Headings
     InsertColumn( 0, _(""),       wxLIST_FORMAT_CENTER, (20));
     InsertColumn( 1, _("State"),  wxLIST_FORMAT_CENTER, (60));
@@ -112,9 +114,9 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
     CalcTone(&icomtone, 440, 960,  6000,  6000,  1);
 
     // Replace with user's tones
-    RingToneName = config->Read("/RingTone", "");
-    RingBackName = config->Read("/RingBack", "");
-    IntercomName = config->Read("/Intercom", "");
+    RingToneName = config->Read("RingTone", "");
+    RingBackName = config->Read("RingBack", "");
+    IntercomName = config->Read("Intercom", "");
 
     LoadTone(&ringtone, RingToneName, 10);
     LoadTone(&ringback, RingBackName, 10);
@@ -290,7 +292,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 }
 
                 if(strcmp(c.local_context, "intercom") == 0) {
-                    if(config->Read("/IntercomPass","s").IsSameAs(c.local)) {
+                    if(config->Read("/Prefs/IntercomPass","s").IsSameAs(c.local)) {
                         RingStart(1);
                         iaxc_millisleep(1000);
                         iaxc_select_call(c.callNo);

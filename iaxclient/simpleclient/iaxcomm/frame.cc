@@ -144,15 +144,17 @@ MyFrame::MyFrame( wxWindow *parent )
     CreateStatusBar( 2 );
     SetStatusWidths(2, widths);
 
-    nCalls      = config->Read("/nCalls", 2);
-    Speaker     = config->Read("/Speaker", 0l);
-    AGC         = config->Read("/AGC", 0l);
-    NoiseReduce = config->Read("/NoiseReduce", 0l);
-    EchoCancel  = config->Read("/EchoCancel", 0l);
+    config->SetPath("/Prefs");
+
+    nCalls      = config->Read("nCalls", 2);
+    Speaker     = config->Read("Speaker", 0l);
+    AGC         = config->Read("AGC", 0l);
+    NoiseReduce = config->Read("NoiseReduce", 0l);
+    EchoCancel  = config->Read("EchoCancel", 0l);
 
     //----Add the panel-----------------------------------------------------------------
-    Name = config->Read("/UseView", "default");
-    DefaultAccount = config->Read("/DefaultAccount", "");
+    Name = config->Read("UseView", "default");
+    DefaultAccount = config->Read("DefaultAccount", "");
     AddPanel(this, Name);
 
     pttMode = false;
@@ -161,7 +163,7 @@ MyFrame::MyFrame( wxWindow *parent )
     ApplyFilters();
 
     if(OutputSlider != NULL)
-        OutputSlider->SetValue(config->Read("/OutputLevel", 70));
+        OutputSlider->SetValue(config->Read("OutputLevel", 70));
 
 #ifdef __WXGTK__
     // window used for getting keyboard state

@@ -128,7 +128,7 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     ApplyFilters   = XRCCTRL(*this, "ApplyFilters",   wxButton);
     CancelFilters  = XRCCTRL(*this, "CancelFilters",  wxButton);
 
-    config->SetPath("/");
+    config->SetPath("/Prefs");
 
     RingTone->SetValue(wxGetApp().theFrame->Calls->RingToneName);
     RingBack->SetValue(wxGetApp().theFrame->Calls->RingBackName);
@@ -147,12 +147,12 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
         DefaultAccount->Append(str);
         bCont = config->GetNextGroup(str, dummy);
     }
-    dummy = DefaultAccount->FindString(config->Read("/DefaultAccount", ""));
+    dummy = DefaultAccount->FindString(config->Read("/Prefs/DefaultAccount", ""));
     if(dummy <= 0)
         dummy = 0;
     DefaultAccount->SetSelection(dummy);
 
-    IntercomPass->SetValue(config->Read("/IntercomPass", ""));
+    IntercomPass->SetValue(config->Read("/Prefs/IntercomPass", ""));
     nCalls->SetValue(wxGetApp().theFrame->nCalls);
 
     AGC->SetValue(wxGetApp().theFrame->AGC);
@@ -208,7 +208,7 @@ void SetCallerID(wxString name, wxString number)
 void PrefsDialog::OnSaveAudio(wxCommandEvent &event)
 {
     wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/");
+    config->SetPath("/Prefs");
 
     config->Write("RingTone",   RingTone->GetValue());
     config->Write("RingBack",   RingBack->GetValue());
@@ -247,7 +247,7 @@ void PrefsDialog::OnApplyAudio(wxCommandEvent &event)
 void PrefsDialog::OnSaveCallerID(wxCommandEvent &event)
 {
     wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/");
+    config->SetPath("/Prefs");
 
     config->Write("Name",           Name->GetValue());
     config->Write("Number",         Number->GetValue());
@@ -270,7 +270,7 @@ void PrefsDialog::OnApplyCallerID(wxCommandEvent &event)
 void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
 {
     wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/");
+    config->SetPath("/Prefs");
 
     config->Write("UseView",        UseView->GetValue());
     config->Write("DefaultAccount", DefaultAccount->GetStringSelection());
@@ -303,7 +303,7 @@ void PrefsDialog::OnApplyMisc(wxCommandEvent &event)
 void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
 {
     wxConfig *config = new wxConfig("iaxComm");
-    config->SetPath("/");
+    config->SetPath("/Prefs");
 
     config->Write("AGC",            AGC->GetValue());
     config->Write("NoiseReduce",    NoiseReduce->GetValue());

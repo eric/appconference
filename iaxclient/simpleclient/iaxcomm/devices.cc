@@ -126,7 +126,7 @@ void DevicesDialog::OnSave(wxCommandEvent &event)
 {
     wxConfig *config = new wxConfig("iaxComm");
 
-    config->SetPath("/");
+    config->SetPath("/Prefs");
 
     config->Write("Input Device",   InputDevice->GetStringSelection());
     config->Write("Output Device",  OutputDevice->GetStringSelection());

@@ -104,6 +104,8 @@ bool theApp::OnInit()
     }
 #endif
 
+    config->SetPath("/Prefs");
+
     // Load up the XML Resource handler, to be able to load XML resources..
 
     wxXmlResource::Get()->InitAllHandlers();
@@ -146,9 +148,9 @@ bool theApp::OnInit()
         wxFatalError(_("Couldn't Initialize IAX Client "));
     }
 
-    SetAudioDevices(config->Read("/Input Device", ""),
-                    config->Read("/Output Device", ""),
-                    config->Read("/Ring Device", ""));
+    SetAudioDevices(config->Read("Input Device", ""),
+                    config->Read("Output Device", ""),
+                    config->Read("Ring Device", ""));
 
     iaxc_set_encode_format(IAXC_FORMAT_GSM);
     iaxc_set_silence_threshold(-99);
@@ -247,8 +249,8 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
     }
 
     // Next, check where config points
-    if(config->Exists("/XRCDirectory")) {
-        xrc_fullname = config->Read("/XRCDirectory", "") + wxFILE_SEP_PATH + xrc_filename;
+    if(config->Exists("/Prefs/XRCDirectory")) {
+        xrc_fullname = config->Read("/Prefs/XRCDirectory", "") + wxFILE_SEP_PATH + xrc_filename;
         if ( ::wxFileExists( xrc_fullname ) ) {
             wxXmlResource::Get()->Load( xrc_fullname );
             return;

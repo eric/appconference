@@ -71,7 +71,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Dial">
-              <label>SEND</label>
+              <label>Dial</label>
             </object>
             <minsize>115,30</minsize>
           </object>
@@ -79,7 +79,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Hangup">
-              <label>END</label>
+              <label>Hang Up</label>
               <tooltip>Account/Direct Dial</tooltip>
             </object>
             <minsize>115,30</minsize>
@@ -418,13 +418,13 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Dial">
-              <label>SEND</label>
+              <label>Dial</label>
             </object>
             <minsize>115,30</minsize>
           </object>
           <object class="sizeritem">
             <object class="wxButton" name="Next">
-              <label>Next</label>
+              <label>Hold</label>
             </object>
             <border>1</border>
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
@@ -434,7 +434,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Hangup">
-              <label>END</label>
+              <label>Hang Up</label>
               <tooltip>Account/Direct Dial</tooltip>
             </object>
             <minsize>115,30</minsize>
@@ -773,7 +773,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Dial">
-              <label>SEND</label>
+              <label>Dial</label>
             </object>
             <minsize>115,30</minsize>
           </object>
@@ -781,7 +781,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Hangup">
-              <label>END</label>
+              <label>Hang Up</label>
               <tooltip>Account/Direct Dial</tooltip>
             </object>
             <minsize>115,30</minsize>
@@ -1072,7 +1072,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Dial">
-              <label>SEND</label>
+              <label>Dial</label>
             </object>
             <minsize>115,30</minsize>
           </object>
@@ -1096,7 +1096,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Hangup">
-              <label>END</label>
+              <label>Hang Up</label>
               <tooltip>Account/Direct Dial</tooltip>
             </object>
             <minsize>115,30</minsize>
@@ -1427,7 +1427,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Dial">
-              <label>SEND</label>
+              <label>Dial</label>
             </object>
             <minsize>115,30</minsize>
           </object>
@@ -1435,7 +1435,7 @@
             <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
             <border>1</border>
             <object class="wxButton" name="Hangup">
-              <label>END</label>
+              <label>Hang Up</label>
               <tooltip>Account/Direct Dial</tooltip>
             </object>
             <minsize>115,30</minsize>
