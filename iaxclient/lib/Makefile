@@ -79,8 +79,12 @@ else
 ifneq (,$(findstring WIN,$(shell uname)))
 OSTYPE=WIN32
 else
+ifneq (,$(findstring MINGW,$(shell uname)))
+OSTYPE=WIN32
+else
 $(warning OSTYPE cannot be detected, assuming Linux)
 OSTYPE=LINUX
+endif
 endif
 endif
 endif
