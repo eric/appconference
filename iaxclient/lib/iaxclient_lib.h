@@ -87,7 +87,6 @@ void os_init(void);
 void iaxc_usermsg(int type, const char *fmt, ...);
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
 void iaxc_handle_network_event(struct iax_event *e, int callNo);
-void iaxc_service_network(int netfd);
 void iaxc_do_levels_callback(float input, float output);
 
 #include "iaxclient.h"

@@ -45,7 +45,7 @@ static int nCalls;	// number of calls for this library session
 
 struct timeval lastouttm;
 
-static void do_iax_event();
+static void iaxc_service_network();
 static int service_audio();
 
 /* external global networking replacements */
@@ -424,7 +424,7 @@ void iaxc_process_calls(void) {
     }
 #endif
     MUTEXLOCK(&iaxc_lock);
-    iaxc_service_network(netfd);
+    iaxc_service_network();
     iaxc_do_pings();
     service_audio();
     iaxc_refresh_registrations();
@@ -897,32 +897,6 @@ static int iaxc_find_call_by_session(struct iax_session *session)
 	return -1;
 }
 
-/* handle all network requests, and a pending scheduled event, if any */
-void iaxc_service_network(int netfd)
-{
-	fd_set readfd;
-	struct timeval dumbtimer;
-
-	/* set up a timer that falls-through */
-	dumbtimer.tv_sec = 0;
-	dumbtimer.tv_usec = 0;
-
-
-		for(;;) /* suck everything outa network stuff */
-		{
-			FD_ZERO(&readfd);
-			FD_SET(netfd, &readfd);
-			if (select(netfd + 1, &readfd, 0, 0, &dumbtimer) > 0)
-			{
-				if (FD_ISSET(netfd,&readfd))
-				{
-					do_iax_event();
-				} else break;
-			} else break;
-		}
-		do_iax_event(); /* do pending event if any */
-}
-
 static void iaxc_handle_regreply(struct iax_event *e) {
   struct iaxc_registration *cur;
   // find the registration session
@@ -987,7 +961,7 @@ static int iaxc_choose_codec(int formats) {
     return 0;
 }
 
-static void do_iax_event() {
+static void iaxc_service_network() { 
 	struct iax_event *e = 0;
 	int callNo;
 
