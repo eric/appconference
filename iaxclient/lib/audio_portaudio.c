@@ -65,14 +65,18 @@ static int scan_devices(struct iaxc_audio_driver *d) {
 	if(pa->maxInputChannels > 0)
 	  dev->capabilities |= IAXC_AD_INPUT;
 
-	if(pa->maxOutputChannels > 0)
+	if(pa->maxOutputChannels > 0) {
 	  dev->capabilities |= IAXC_AD_OUTPUT;
+	  dev->capabilities |= IAXC_AD_RING;
+	}
 
 	if(i == Pa_GetDefaultInputDeviceID())
 	  dev->capabilities |= IAXC_AD_INPUT_DEFAULT;
 
-	if(i == Pa_GetDefaultOutputDeviceID())
+	if(i == Pa_GetDefaultOutputDeviceID()) {
 	  dev->capabilities |= IAXC_AD_OUTPUT_DEFAULT;
+	  dev->capabilities |= IAXC_AD_RING_DEFAULT;
+	}
     }
     return 0;
 }

@@ -112,8 +112,10 @@ int iaxc_select_call(int callNo);
 
 #define IAXC_AD_INPUT           (1<<0)
 #define IAXC_AD_OUTPUT          (1<<1)
-#define IAXC_AD_INPUT_DEFAULT   (1<<2)
-#define IAXC_AD_OUTPUT_DEFAULT  (1<<3)
+#define IAXC_AD_RING            (1<<2)
+#define IAXC_AD_INPUT_DEFAULT   (1<<3)
+#define IAXC_AD_OUTPUT_DEFAULT  (1<<4)
+#define IAXC_AD_RING_DEFAULT  (1<<4)
 
 struct iaxc_audio_device {
 	char *name;             /* name of the device */
