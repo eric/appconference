@@ -200,7 +200,6 @@ bool theApp::OnInit()
                     OutputDevice,
                     RingDevice);
 
-    iaxc_set_encode_format(IAXC_FORMAT_GSM);
     iaxc_set_silence_threshold(-99);
     iaxc_set_event_callback(iaxc_callback);
 
