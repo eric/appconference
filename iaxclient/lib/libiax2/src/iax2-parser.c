@@ -33,11 +33,26 @@
 #include "iax2.h"
 #include "iax2-parser.h"
 
-#include "align.h"
-
 static int frames = 0;
 static int iframes = 0;
 static int oframes = 0;
+
+#ifdef ALIGN32
+static unsigned int get_uint32(unsigned char *p)
+{
+  return (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3];
+}
+
+static unsigned short get_uint16(unsigned char *p)
+{
+  return (p[0] << 8) | p[1] ;
+}
+
+#else
+#define get_uint32(p) (*((unsigned int *)(p)))
+#define get_uint16(p) (*((unsigned short *)(p)))
+#endif
+
 
 static void internaloutput(const char *str)
 {
@@ -75,7 +90,7 @@ static void dump_string(char *output, int maxlen, void *value, int len)
 static void dump_int(char *output, int maxlen, void *value, int len)
 {
 	if (len == sizeof(unsigned int))
-		snprintf(output, maxlen, "%ld", (unsigned long)ntohl(GET_ALIGN_32(value)));
+		snprintf(output, maxlen, "%ld", (unsigned long)ntohl(get_uint32(value)));
 	else
 		snprintf(output, maxlen, "Invalid INT");
 }
@@ -83,7 +98,7 @@ static void dump_int(char *output, int maxlen, void *value, int len)
 static void dump_short(char *output, int maxlen, void *value, int len)
 {
 	if (len == sizeof(unsigned short))
-		snprintf(output, maxlen, "%d", ntohs(GET_ALIGN_16(value)));
+		snprintf(output, maxlen, "%d", ntohs(get_uint16(value)));
 	else
 		snprintf(output, maxlen, "Invalid SHORT");
 }
@@ -408,14 +423,14 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				snprintf(tmp, sizeof(tmp), "Expecting capability to be %d bytes long but was %d\n", sizeof(unsigned int), len);
 				errorf(tmp);
 			} else
-				ies->capability = ntohl(GET_ALIGN_32(data+2));
+				ies->capability = ntohl(get_uint32(data+2));
 			break;
 		case IAX_IE_FORMAT:
 			if (len != sizeof(unsigned int)) {
 				snprintf(tmp, sizeof(tmp), "Expecting format to be %d bytes long but was %d\n", sizeof(unsigned int), len);
 				errorf(tmp);
 			} else
-				ies->format = ntohl(GET_ALIGN_32(data+2));
+				ies->format = ntohl(get_uint32(data+2));
 			break;
 		case IAX_IE_LANGUAGE:
 			ies->language = data + 2;
@@ -425,14 +440,14 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				snprintf(tmp, sizeof(tmp),  "Expecting version to be %d bytes long but was %d\n", sizeof(unsigned short), len);
 				errorf(tmp);
 			} else
-				ies->version = ntohs(GET_ALIGN_16(data+2));
+				ies->version = ntohs(get_uint16(data+2));
 			break;
 		case IAX_IE_ADSICPE:
 			if (len != sizeof(unsigned short)) {
 				snprintf(tmp, sizeof(tmp), "Expecting adsicpe to be %d bytes long but was %d\n", sizeof(unsigned short), len);
 				errorf(tmp);
 			} else
-				ies->adsicpe = ntohs(GET_ALIGN_16(data+2));
+				ies->adsicpe = ntohs(get_uint16(data+2));
 			break;
 		case IAX_IE_DNID:
 			ies->dnid = data + 2;
@@ -445,7 +460,7 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				snprintf(tmp, sizeof(tmp), "Expecting authmethods to be %d bytes long but was %d\n", sizeof(unsigned short), len);
 				errorf(tmp);
 			} else
-				ies->authmethods = ntohs(GET_ALIGN_16(data+2));
+				ies->authmethods = ntohs(get_uint16(data+2));
 			break;
 		case IAX_IE_CHALLENGE:
 			ies->challenge = data + 2;
@@ -465,7 +480,7 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				snprintf(tmp, sizeof(tmp),  "Expecting refresh to be %d bytes long but was %d\n", sizeof(unsigned short), len);
 				errorf(tmp);
 			} else
-				ies->refresh = ntohs(GET_ALIGN_16(data+2));
+				ies->refresh = ntohs(get_uint16(data+2));
 			break;
 		case IAX_IE_DPSTATUS:
 			if (len != sizeof(unsigned short)) {
@@ -479,7 +494,7 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				snprintf(tmp, sizeof(tmp),  "Expecting callno to be %d bytes long but was %d\n", sizeof(unsigned short), len);
 				errorf(tmp);
 			} else
-				ies->callno = ntohs(GET_ALIGN_16(data+2));
+				ies->callno = ntohs(get_uint16(data+2));
 			break;
 		case IAX_IE_CAUSE:
 			ies->cause = data + 2;
@@ -497,7 +512,7 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				snprintf(tmp, sizeof(tmp), "Expecting msgcount to be %d bytes long but was %d\n", sizeof(unsigned short), len);
 				errorf(tmp);
 			} else
-				ies->msgcount = ntohs(GET_ALIGN_16(data+2));
+				ies->msgcount = ntohs(get_uint16(data+2));
 			break;
 		case IAX_IE_AUTOANSWER:
 			ies->autoanswer = 1;
@@ -510,14 +525,14 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				snprintf(tmp, sizeof(tmp), "Expecting transferid to be %d bytes long but was %d\n", sizeof(unsigned int), len);
 				errorf(tmp);
 			} else
-				ies->transferid = ntohl(GET_ALIGN_32(data+2));
+				ies->transferid = ntohl(get_uint32(data+2));
 			break;
 		case IAX_IE_DATETIME:
 			if (len != sizeof(unsigned int)) {
 				snprintf(tmp, sizeof(tmp), "Expecting date/time to be %d bytes long but was %d\n", sizeof(unsigned int), len);
 				errorf(tmp);
 			} else
-				ies->datetime = ntohl(GET_ALIGN_32(data+2));
+				ies->datetime = ntohl(get_uint32(data+2));
 			break;
 		default:
 			snprintf(tmp, sizeof(tmp), "Ignoring unknown information element '%s' (%d) of length %d\n", iax_ie2str(ie), ie, len);
