@@ -45,7 +45,9 @@
 
 #ifndef MACOSX
 #include <malloc.h>
+#ifndef SOLARIS
 #include <error.h>
+#endif
 #endif
 
 #endif
@@ -73,8 +75,12 @@
 #else
 #ifdef MACOSX
 #define IAX_SOCKOPTS MSG_DONTWAIT
+#else
+#ifdef SOLARIS
+#define IAX_SOCKOPTS MSG_DONTWAIT
 #else  /* Linux and others */
 #define IAX_SOCKOPTS MSG_DONTWAIT | MSG_NOSIGNAL
+#endif
 #endif
 #endif
 

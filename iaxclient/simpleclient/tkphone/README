@@ -1,0 +1,77 @@
+Simple IAX phone client for solaris version 0.01 By Stephen Uhler
+
+INSTALLATION
+
+General installation instructions:
+  The user interface files: monitor.ui.tcl, phone.ui.tcl,i and pref.ui.tcl
+  should all be in the same directory as "tkiaxphone". so should "iaxcli"
+  (or iaxcli.exe on windows)
+
+  Make sure the path name to "wish" is correct for your platform in tkiaxphone.
+  The default is "/usr/bin/wish".  Any tk version at least 8.0 should work.
+
+Mac OSX
+  Install the Aqua version of tcl/tk.
+  (http://www.apple.com/downloads/macosx/unix_open_source/tcltkaqua.html)
+  To run "tkiaxphone", double-click on it from the finder.  If you would
+  like to run in a wish shell, set the environment variable IAXPHONEHOME
+  to the location of the tcl files.
+
+Linux, Solaris
+  see: http://www.tcl.tk/ for a suitable version of tcl/tk
+
+Windows
+  see: http://www.tcl.tk/ for a suitable version of tcl/tk
+  Create a  short cut whose executable is: "<your path to wish> tkiaxphone"
+  and set the initial directory to be where the .tcl files are located.
+  double-click on the short cut to start the phone.
+
+Using the GUI
+  - phone extensions may be entered using either the buttons or keypad.
+    alphabetic characters are auctomatically converted to digits
+  - the phone must be "registered" to receive calls; to place calls
+    "unregistered", leave the user and password empty in the settings panel
+
+NOTES
+
+* To receive calls on the phone, it needs to be registered.  Here is
+   a sample asterisk iax.conf entry:
+     [joe]
+     type=friend
+     auth=md5,plaintext,rsa
+     username=joe
+     secret=joe
+     context=local
+     host=dynamic
+     mailbox=1098
+     nat=no
+     qualify=no
+     notransfer=yes
+     disallow=all
+     allow=gsm
+
+* Make sure all the files stay in the same directory
+
+* the environment variable DEBUG (or tkiaxphone -d) causes
+  diagnostic information on stderr
+
+
+* The environment variable IAXPHONEHOME is used to locate the
+  user interface files.  If not set, they are assumed to be in
+  the same directory as "tkiaxphone"
+
+FILES:
+  iaxcli.c:		command line interface to the IAX VOIP protocol
+  phone.tk:		Main tcl/tk GUI
+  monitor.ui.tcl	The audio monitor panel
+  phone.ui.tcl		The main GUI
+  pref.ui.tcl		The preferences
+  *.ui			the SpecTcl project files
+
+
+BUGS/LIMITATIONS
+ - only one call appearance is supported
+ - the local audio signaling support is incomplete
+
+Stephen Uhler
+8/30/04

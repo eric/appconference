@@ -7,7 +7,7 @@ The library itself is in the directory "lib", located in the same
 directory as this README file.
 
 The library is designed to build for multiple platforms, and currently
-supports Linux, MacOSX, and Win32 platforms.  It is designed to handle
+supports Linux, MacOSX, Solaris, and Win32 platforms.  It is designed to handle
 the "backend" of IAX telephony operations, including call handling,
 network protocols, audio encoding/decoding, and audio capture/playback.
 In it's future, it may be extended to also handle video encode, decode,
@@ -29,6 +29,10 @@ simpleclient/wx:	A wxWindows (see wxwindows.org) based GUI
 simpleclient/WinIAX:  	A MSVC/Win32 client.  This only works with
 			Win32, obviously, and was contributed by
 			Faizan "Tili" Naqvi <faizan@tilizone.com>
+
+simpleclient/tkiaxphone	A command-line client, with a Tcl/Tk GUI
+			client that drives it.  It should work on
+			all the platforms
 
 
 The home page for iaxclient is "http://iaxclient.sourceforge.net/"
@@ -89,8 +93,10 @@ Steve Kann <stevek@stevek.com>
 Shawn Lawrence <shawn.lawrence@terracecomm.com>
 Faizan "Tili" Naqvi <faizan@tilizone.com> [Win32 VC++ build/client]
 Scott Lambert <lambert@lambertfam.org> [FreeBSD build changes]
-Michael Van Donselaar <mvand@vandonselaar.org> [Win32/MinGW build directions, UI changes ]
+Michael Van Donselaar <mvand@vandonselaar.org> [Win32/MinGW build directions, UI changes, IAXComm phone ]
 Steven Sokol <ssokol@sokol-associates.com> [ Debugging, Blind Transfer ]
+Stephan Kauss <Stephan@kauss.org> [ 32-bit alignment for IAX2 ]
+Stephen Uhler <suhler@sun.com> [Solaris build, tkiaxphone]
 
 
 
@@ -110,6 +116,7 @@ Linux: type "make" using standard gnu make/gcc
 FreeBSD: type "gmake" using standard gnu make/gcc
 MacOSX: type "make" using Apple Dev Tools (gnu make/gcc)
 Win32: type "make" using Cygwin/MinGW (see below)
+Solaris: type "gmake" using standard gnu make/gcc
 
 
 Cygwin/MinGW:

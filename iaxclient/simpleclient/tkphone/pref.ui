@@ -1,0 +1,224 @@
+WidGet file, version 1.1, created:  Mon Aug 23 15:06:26  2004
+Widget entry#3
+	geometry row 4
+	configure show *
+	other error {}
+	other type entry
+	configure textvariable input_pass
+	other master {}
+	other pathname entry#3
+	other tags {}
+	other level {}
+	configure width 8
+	other help {}
+	geometry column 2
+	other comments {}
+	geometry sticky w
+	other item_name entry#3
+	other tabbing {}
+Widget label#6
+	geometry columnspan 2
+	geometry row 1
+	other type label
+	other master {}
+	configure text Settings
+	other pathname label#6
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 1
+	other comments {}
+	other item_name label#6
+	other tabbing {}
+Widget entry#4
+	geometry row 5
+	other error {}
+	other type entry
+	configure textvariable input_ext
+	other master {}
+	other pathname entry#4
+	other tags {}
+	other level {}
+	configure width 5
+	other help {}
+	geometry column 2
+	other comments {}
+	geometry sticky w
+	other item_name entry#4
+	other tabbing {}
+Widget button#4
+	geometry row 1
+	other error {}
+	other type button
+	other master .frame#1
+	configure text ok
+	other pathname button#4
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 1
+	other comments {}
+	other item_name button#4
+	other tabbing {}
+	configure command pref_ok
+Widget button#5
+	geometry row 1
+	other error {}
+	other type button
+	other master .frame#1
+	configure text cancel
+	other pathname button#5
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 2
+	other comments {}
+	other item_name button#5
+	other tabbing {}
+	configure command pref_cancel
+Widget f
+	other generic_options {button {
+		} canvas {
+		} checkbutton {
+		} entry {
+		} frame {
+		} label {
+		} listbox {
+		} menubutton {
+		} message {
+		} radiobutton {
+		} scale {
+		} scrollbar {
+		} text {
+		}
+	}
+	other panel {}
+	other resize_row {0 0 0 0 0 0}
+	other type frame
+	other min_row {30 9 5 6 11 30}
+	other master {}
+	other pathname f
+	other resize_column {0 0}
+	other tags {}
+	other level {}
+	configure background #e9e9e9
+	other min_column {30 30}
+	other help {}
+	other Colors {black white bisque grey red green blue magenta yellow SystemButtonFace}
+	other comments {}
+	other item_name f
+	other tabbing {}
+Widget label#1
+	geometry row 2
+	other error {}
+	other type label
+	configure anchor e
+	other master {}
+	configure text {IAX server}
+	other pathname label#1
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 1
+	other comments {}
+	geometry sticky ew
+	other item_name label#1
+	other tabbing {}
+Widget label#2
+	geometry row 3
+	other error {}
+	other type label
+	configure anchor e
+	other master {}
+	configure text {authentication name}
+	other pathname label#2
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 1
+	other comments {}
+	geometry sticky ew
+	other item_name label#2
+	other tabbing {}
+Widget label#3
+	geometry row 4
+	other error {}
+	other type label
+	configure anchor e
+	other master {}
+	configure text {authentication password}
+	other pathname label#3
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 1
+	other comments {}
+	geometry sticky ew
+	other item_name label#3
+	other tabbing {}
+Widget entry#1
+	geometry row 2
+	other error {}
+	other type entry
+	configure textvariable input_server
+	other master {}
+	other pathname entry#1
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 2
+	other comments {}
+	other item_name entry#1
+	other tabbing {}
+Widget label#4
+	geometry row 5
+	other error {}
+	other type label
+	configure anchor e
+	other master {}
+	configure text {phone extension}
+	other pathname label#4
+	other tags {}
+	other level {}
+	other help {}
+	geometry column 1
+	other comments {}
+	geometry sticky ew
+	other item_name label#4
+	other tabbing {}
+Widget entry#2
+	geometry row 3
+	other error {}
+	other type entry
+	configure textvariable input_user
+	other master {}
+	other pathname entry#2
+	other tags {}
+	other level {}
+	configure width 8
+	other help {}
+	geometry column 2
+	other comments {}
+	geometry sticky w
+	other item_name entry#2
+	other tabbing {}
+Widget frame#1
+	other panel {}
+	geometry columnspan 2
+	geometry row 6
+	other resize_row 0
+	other error {- Frame configuration -}
+	other type frame
+	other min_row 30
+	other master {}
+	other pathname frame#1
+	other resize_column {0 0}
+	other tags {}
+	other level 1
+	other min_column {30 30}
+	other help {}
+	geometry column 1
+	other comments {}
+	other item_name frame#1
+	other tabbing {}
+

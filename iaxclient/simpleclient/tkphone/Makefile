@@ -2,9 +2,9 @@
 CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
 
 #debug
-CFLAGS:= $(CFLAGS) -g
+CFLAGS:= $(CFLAGS) -g -Wall
 
-OBJS=	testcall.o
+OBJS=	iaxcli.o tones.o
 
 LIBS=	../../lib/libiaxclient.a
 
@@ -71,7 +71,7 @@ SYSLIBS= -lsocket -lnsl -lpthread -lrt -lresolv -lm
 MAKE=gmake
 endif
 
-PROGS= testcall$(EXEEXT)
+PROGS= iaxcli$(EXEEXT)
 
 all: makelib $(PROGS)
 
@@ -84,5 +84,5 @@ makelib:
 ../../lib/libiaxclient.a: 
 	(cd ../../lib; $(MAKE) libiaxclient.a)
 
-testcall$(EXEEXT): $(OBJS) $(LIBS)
-	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)
+iaxcli$(EXEEXT): $(OBJS) $(LIBS)
+	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o iaxcli$(EXEEXT)

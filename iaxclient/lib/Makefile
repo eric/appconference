@@ -10,7 +10,7 @@ MEC2_EC=0
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common
 
 #CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
-CFLAGS:= $(CFLAGS) -g 
+CFLAGS:= $(CFLAGS) -g
 
 OBJS=\
 	gsm/src/add.o \
@@ -51,6 +51,12 @@ OBJS_LINUX=\
 	portaudio/pa_unix_oss/pa_unix_oss.o \
 	portaudio/pa_unix_oss/pa_unix.o 
 
+OBJS_SOLARIS=\
+	unixfuncs.o \
+	portmixer/px_solaris/px_solaris.o \
+	portaudio/pa_unix_oss/pa_unix_solaris.o \
+	portaudio/pa_unix_oss/pa_unix.o 
+
 OBJS_MACOSX=\
 	unixfuncs.o \
 	portmixer/px_mac_core/px_mac_core.o \
@@ -75,7 +81,7 @@ RANLIB= echo
 all: $(LIB)
 
 # glean the platform
-# We will define this as either Linux, Win32, or MacOSX
+# We will define this as either Linux, Win32, SOLARIS, or MacOSX
 ifneq (,$(findstring Linux,$(shell uname)))
 OSTYPE=LINUX
 else
@@ -89,8 +95,12 @@ else
 ifneq (,$(findstring MINGW,$(shell uname)))
 OSTYPE=WIN32
 else
+ifneq (,$(findstring SunOS,$(shell uname)))
+OSTYPE=SOLARIS
+else
 $(warning OSTYPE cannot be detected, assuming Linux)
 OSTYPE=LINUX
+endif
 endif
 endif
 endif
@@ -103,6 +113,12 @@ endif
 
 ifeq ($(OSTYPE),LINUX)
 OBJS:= $(OBJS) $(OBJS_LINUX) 
+endif
+
+ifeq ($(OSTYPE),SOLARIS)
+OBJS:= $(OBJS) $(OBJS_SOLARIS) 
+CFLAGS:= $(CFLAGS) -DALIGN32 
+CC=gcc
 endif
 
 ifeq ($(OSTYPE),MACOSX)
