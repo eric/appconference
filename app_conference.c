@@ -39,6 +39,13 @@ static char *descrip =
 STANDARD_LOCAL_USER;
 LOCAL_USER_DECL;
 
+static long usecdiff( struct timeval *timeA, struct timeval *timeB ){
+    long secs = timeA->tv_sec - timeB->tv_sec;
+    long usecs = secs * 1000000;
+    usecs += (timeA->tv_usec - timeB->tv_usec);
+    return usecs;
+}
+
 void remove_conf(struct ast_conference *conf) {
 	struct ast_conference *confl,*conftmp;
 	ast_pthread_mutex_lock(&conflock);
@@ -116,11 +123,13 @@ int add_buffer(struct ast_conf_member *member, struct ast_channel *chan)
 	struct ast_conf_audiobuffer *newbuffer;
 
 	newbuffer = malloc(sizeof(struct ast_conf_audiobuffer));
+	memset(newbuffer,0x0,sizeof(struct ast_conf_audiobuffer));
 	if (newbuffer == NULL) {
 	    ast_log(LOG_ERROR,"unable to malloc ast_conf_audiobuffer!\n");
 	    return -1;
 	}
 	newbuffer->ring = ast_onering_new();
+	newbuffer->ringfails = 0;
 	newbuffer->chan = chan;
 	newbuffer->next = member->bufferlist;
 	pthread_mutex_init(&newbuffer->lock,NULL);
@@ -202,6 +211,7 @@ struct ast_conf_member *create_member(struct ast_channel *chan, char type, int p
 	pthread_mutex_init(&member->bufferlock,NULL);
 	member->bufferlist = NULL;
 	member->next = NULL;
+	member->smoother = NULL;
 	// XXX add us to all bufferlists!!!
 	ast_log(LOG_NOTICE,"created member (type=%c, priority=%d)\n",member->type,member->priority);
 	return member;
@@ -239,6 +249,10 @@ int remove_member(struct ast_conf_member *member,struct ast_conference *conf) {
 	memberl = conf->memberlist;
 	membertmp = NULL;
 	buffertmp = NULL;
+	
+	if (member->smoother) {
+	    ast_smoother_free(member->smoother);
+	}
 
 	// XXX fixme this is inefficient
 
@@ -389,8 +403,11 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 			ast_frfree(f);
 		    } else {
 			// remember that this member didnt give us data
-			// bufferl->fails++;
-			 // ast_log(LOG_NOTICE,"No audio available for conference member %#x in conference %s\n", bufferl->chan, conference->name);
+			bufferl->ringfails++;
+			if (bufferl->ringfails > 100) {
+			    ast_log(LOG_NOTICE,"No audio available for conference member %#x in conference %s\n", bufferl->chan, conference->name);
+			    bufferl->ringfails = 0;
+			}
 			// was BUG: break;
 		    }
 		} else {
@@ -417,8 +434,6 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->src = NULL;
 	    return fout;
 	} else {
-	    free(databuf);
-	    return NULL;
 	    fout = malloc(sizeof(struct ast_frame));
 	    fout->frametype = AST_FRAME_VOICE;
 	    fout->subclass = AST_FORMAT_SLINEAR;
@@ -438,15 +453,26 @@ static int send_audio(struct ast_conference *conference, struct ast_conf_member 
 	if (ms <= 0) return 0;
 	cf = read_audio(conference,member,ms*8);
 	if (cf != NULL) {
-	    ast_write(member->chan,cf);
-	    if (cf->data) {
-    		free(cf->data);
+	    if (member->smoother != NULL) {
+		ast_smoother_feed(member->smoother,cf);
+		if (cf->data) {
+    		    free(cf->data);
+		}
+		free(cf);
+		while (cf = ast_smoother_read(member->smoother)) {
+		    ast_write(member->chan,cf);
+		}
+	    } else {
+		ast_write(member->chan,cf);
+		if (cf->data) {
+    		    free(cf->data);
+		}
+		free(cf);
 	    }
-	    free(cf);
 	    return 0;
 	} else {
 	    /* kaboom */
-//	    ast_log(LOG_NOTICE,"silence is golden...\n");
+	    ast_log(LOG_NOTICE,"silence is golden...\n");
 //	    return -1;
 //	    nf.frametype == AST_FRAME_NULL;
 //	    ast_write(member->chan,cf);
@@ -544,11 +570,11 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		    // first loop
 		    first = 0;
 		    dms = (time2.tv_sec * 1000 + time2.tv_usec / 1000) - (time1.tv_sec * 1000 + time1.tv_usec / 1000);
-		    dus = (time2.tv_sec * 1000000 + time2.tv_usec) - (time1.tv_sec * 1000000 + time1.tv_usec);
+		    dus = usecdiff(&time2,&time1);
 		} else {
 		    // and all the others...
 		    dms = (time1.tv_sec * 1000 + time1.tv_usec / 1000) - (oldtimer.tv_sec * 1000 + oldtimer.tv_usec / 1000);
-		    dus = (time1.tv_sec * 1000000 + time1.tv_usec) - (oldtimer.tv_sec * 1000000 + oldtimer.tv_usec);
+		    dus = usecdiff(&time1,&oldtimer);
 		    dus += urest;
 		}
 
@@ -566,6 +592,10 @@ static int conference_exec(struct ast_channel *chan, void *data)
 			continue;
 		    }
 		    if (f->frametype == AST_FRAME_VOICE) { 
+			if (member->smoother == NULL) {
+			    member->smoother = ast_smoother_new(f->samples);
+			    member->samplesperframe = f->samples;
+			}
 			if (member->type != 'L') {
 			    write_audio(f,conference,member);
 			}
@@ -590,10 +620,10 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		urest = dus % 1000;
 		dms = dus / 1000;
 		// lets find that missing 1ms
-	/*	if (urest > 500) {
+		if (urest > 500) {
 		    urest = 0;
 		    dms++;
-		} */
+		} 
 	    if (dms >= AST_CONF_MIN_MS) {
 		send_audio(conference,member,dms);
 		if (member->priority == 3) {

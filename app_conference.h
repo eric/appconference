@@ -32,7 +32,9 @@ struct ast_conf_audiobuffer {
     struct ast_channel *chan;
 
     struct ast_onering *ring;
-    
+
+    int ringfails;
+        
     /* next */
     struct ast_conf_audiobuffer *next;
 };
@@ -62,8 +64,10 @@ struct ast_conf_member {
     /* audiobuffers */
     struct ast_conf_audiobuffer *bufferlist;
 
-    struct ast_ringbuffer *echo;
+//    struct ast_ringbuffer *echo;
 
+    struct ast_smoother *smoother;
+    
     /* next member */
     struct ast_conf_member *next;    
 };

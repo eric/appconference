@@ -53,7 +53,7 @@ struct ast_frame *ast_onering_read(struct ast_onering *s,int samples)
 {
 	/* Make sure we have enough data */
 	if (s->len < (samples * 2)) {
-		ast_log(LOG_NOTICE,"s->len = %d, samples = %d\n",s->len,samples);
+	//	ast_log(LOG_NOTICE,"s->len = %d, samples = %d\n",s->len,samples);
 		return NULL;
 	}
 	/* Make frame */
