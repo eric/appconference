@@ -3,8 +3,8 @@ CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portau
 
 #debug
 CFLAGS:= $(CFLAGS) -g
-
 OBJS= wx.o testcall.o	
+REZ=echo
 
 
 LIBS=	../../lib/libiaxclient.a
@@ -45,6 +45,8 @@ endif
 ifeq ($(OSTYPE),MACOSX)
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags`
 SYSLIBS=-framework CoreAudio -framework AudioToolbox `wx-config --libs`
+CXX=`wx-config --cxx`
+REZ=`wx-config --rezflags`
 endif
 
 CPPFLAGS = $(CFLAGS)
@@ -64,4 +66,5 @@ makelib:
 
 wx$(EXEEXT): $(OBJS) $(LIBS)
 	c++ $(OBJS) $(LIBS) $(SYSLIBS) -o wx$(EXEEXT)
+	$(REZ) wx$(EXEEXT)
 
