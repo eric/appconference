@@ -40,7 +40,7 @@ static SpeexEchoState *ec;
 #define EC_RING_SZ  8192 /* must be pow(2) */
 
 
-static PortAudioStream *iStream, *oStream;
+static PortAudioStream *iStream, *oStream, *aStream;
 static PxMixer *iMixer = NULL, *oMixer = NULL;
 
 static int selectedInput, selectedOutput, selectedRing;
@@ -49,10 +49,11 @@ static int selectedInput, selectedOutput, selectedRing;
 #define ECHO_TAIL	  4096 /* echo_tail length, in frames must be pow(2) for mec/span ? */
 
 #define RBSZ 1024 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
-static char inRingBuf[RBSZ], outRingBuf[RBSZ]; 
+static char inRingBuf[RBSZ], outRingBuf[RBSZ];
 static RingBuffer inRing, outRing;
 
 static int oneStream;
+static int auxStream;
 static int virtualMono;
 
 static int running;
@@ -153,7 +154,7 @@ static void mix_slin(short *dst, short *src, int samples) {
     }
 }
 
-int pa_mix_sounds (void *outputBuffer, unsigned long frames) {
+int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel) {
     struct iaxc_sound *s;
     struct iaxc_sound **sp;
     unsigned long outpos;
@@ -163,9 +164,10 @@ int pa_mix_sounds (void *outputBuffer, unsigned long frames) {
     /* mix each sound into the outputBuffer */
     sp = &sounds;
     while(sp && *sp)  {
-	s = *sp;
-	outpos = 0;
-
+      s = *sp;
+      outpos = 0;
+      
+      if(s->channel == channel) {
 	/* loop over the sound until we've played it enough times, or we've filled the outputBuffer */
 	for(;;) {
 	  int n;
@@ -193,6 +195,7 @@ int pa_mix_sounds (void *outputBuffer, unsigned long frames) {
 	  s->pos += n;
 	  outpos += n;
 	}
+      }
 	if((*sp)) /* don't advance if we removed this member */
 	  sp = &((*sp)->next);
     }
@@ -209,9 +212,10 @@ int pa_play_sound(struct iaxc_sound *inSound, int ring) {
   *sound = *inSound;
   
   MUTEXLOCK(&sound_lock);
+  sound->channel = ring;
   sound->id = nextSoundId++; 
   sound->pos = 0;
-
+    
   sound->next = sounds;
   sounds = sound;
   MUTEXUNLOCK(&sound_lock);
@@ -360,7 +364,10 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 
 	/* zero underflowed space [ silence might be more golden than garbage? ] */
 
-	pa_mix_sounds(outputBuffer, framesPerBuffer);
+	pa_mix_sounds(outputBuffer, framesPerBuffer, 0);
+
+	if(!auxStream)
+	    pa_mix_sounds(outputBuffer, framesPerBuffer, 1);
     }
 
 
@@ -382,8 +389,28 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
     return 0; 
 }
 
+int pa_aux_callback(void *inputBuffer, void *outputBuffer,
+	    unsigned long framesPerBuffer, PaTimestamp outTime, void *userData ) {
 
-/* some commentaty here:
+    int totBytes = framesPerBuffer * sizeof(SAMPLE);
+
+    short virtualOutBuffer[FRAMES_PER_BUFFER * 2];
+
+    if(virtualMono && framesPerBuffer > FRAMES_PER_BUFFER) {
+	fprintf(stderr, "ERROR: buffer in callback is too big!\n");
+	exit(1);
+    }
+
+    if(outputBuffer)
+    {  
+        memset((char *)outputBuffer, 0, totBytes);
+	pa_mix_sounds(outputBuffer, framesPerBuffer, 1);
+    }
+    return 0; 
+}
+
+
+/* some commentary here:
  * 1: MacOSX: MacOSX needs "virtual mono" and a single stream.  That's
  * really the only choice there, and it should always work (Famous last
  * words).
@@ -485,6 +512,28 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
+int pa_openauxstream (struct iaxc_audio_driver *d ) {
+    PaError err;
+
+    err = Pa_OpenStream ( &aStream, 
+	      paNoDevice, 0, paInt16, NULL,  /* input info */
+	      selectedRing,  virtualMono+1, paInt16, NULL,  /* output info */
+	      8000.0, 
+	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
+	      0,   /* numbuffers */  /* use default */
+	      0,   /* flags */
+	      pa_aux_callback, 
+	      NULL /* userdata */
+      );
+    if( err != paNoError ) 
+    {
+	handle_paerror(err, "opening separate ring stream");
+	return -1;
+    }
+
+    return 0;
+}
+
 int pa_start (struct iaxc_audio_driver *d ) {
     PaError err;
 
@@ -522,6 +571,20 @@ int pa_start (struct iaxc_audio_driver *d ) {
 	    return -1;
 	}
     }
+    
+    if(selectedRing != selectedOutput) {
+        auxStream = 1;
+    } else {
+        auxStream = 0;
+    }
+
+    if(auxStream){ 
+        pa_openauxstream(d); 
+	err = Pa_StartStream(aStream);
+	if(err != paNoError) {
+	    auxStream = 0;
+	}
+    }
 
     running = 1;
     return 0;
@@ -542,6 +605,11 @@ int pa_stop (struct iaxc_audio_driver *d ) {
 	err = Pa_CloseStream(oStream);
     }
 
+    if(auxStream){ 
+	err = Pa_AbortStream(aStream);
+	err = Pa_CloseStream(aStream);
+    }
+
     running = 0;
     return 0;
 }
@@ -549,6 +617,7 @@ int pa_stop (struct iaxc_audio_driver *d ) {
 void pa_shutdown_audio() {
     CloseAudioStream( iStream );
     if(!oneStream) CloseAudioStream( oStream );
+    if(auxStream) CloseAudioStream( aStream );
 }
 
 void handle_paerror(PaError err, char * where) {
@@ -641,8 +710,6 @@ int pa_output_level_set(struct iaxc_audio_driver *d, double level){
     Px_SetPCMOutputVolume(mix, level);
     return 0;
 }
-
-
 
 /* initialize audio driver */
 int pa_initialize (struct iaxc_audio_driver *d ) {

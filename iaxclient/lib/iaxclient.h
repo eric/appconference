@@ -153,6 +153,7 @@ struct iaxc_sound {
 	short 	*data;          /* sound data */
 	long 	len;            /* length of sample */
 	int 	malloced;	/* should the library free() the data after it is played? */
+	int	channel;	/* 0 for outputSelected, 1 for ringSelected */
 	int 	repeat;      	/* number of times to repeat (-1 = infinite) */
 	long	pos;		/* internal use: current play position */
 	int 	id;		/* internal use: sound ID */
