@@ -364,6 +364,7 @@ void DirectoryDialog::OnRemoveOTList(wxCommandEvent &event)
             OTList->DeleteItem(sel);
         }
     }
+    delete config;
 }
 
 void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
@@ -380,6 +381,7 @@ void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
             PhoneList->DeleteItem(sel);
         }
     }
+    delete config;
 }
 
 void DirectoryDialog::OnRemoveServerList(wxCommandEvent &event)
@@ -396,6 +398,7 @@ void DirectoryDialog::OnRemoveServerList(wxCommandEvent &event)
             ServerList->DeleteItem(sel);
         }
     }
+    delete config;
 }
 
 //----------------------------------------------------------------------------------------
@@ -409,6 +412,7 @@ void AddOTListDialog::OnAdd(wxCommandEvent &event)
     config->SetPath(Path);
     config->Write("Name",      Name->GetValue());
     config->Write("Extension", Extension->GetValue());
+    delete config;
 
     Name->SetValue("");
     Extension->SetValue("");
@@ -422,6 +426,7 @@ void AddPhoneListDialog::OnAdd(wxCommandEvent &event)
 
     config->SetPath("/PhoneBook/" + Name->GetValue());
     config->Write("Extension", Extension->GetValue());
+    delete config;
 
     Name->SetValue("");
     Extension->SetValue("");
@@ -443,12 +448,12 @@ void AddServerDialog::OnAdd(wxCommandEvent &event)
     config->Write("Host",     HostName->GetValue());
     config->Write("Username", UserName->GetValue());
     config->Write("Password", Password->GetValue());
+    delete config;
 
     ServerName->SetValue("");
     HostName->SetValue("");
     UserName->SetValue("");
     HostName->SetValue("");
     Confirm->SetValue("");
-
 }
 
