@@ -41,32 +41,32 @@ ifneq (,$(findstring Linux,$(shell uname)))
 OSTYPE=Linux
 else
 ifneq (,$(findstring Darwin,$(shell uname)))
-OSTYPE=MacOSX
+OSTYPE=MACOSX
 else
 # CYGWIN reports CYGWIN_NT-5.0 under Win2K
 ifneq (,$(findstring WIN,$(shell uname)))
-OSTYPE=Win32
+OSTYPE=WIN32
 else
 $(warning OSTYPE cannot be detected, assuming Linux)
-OSTYPE=Linux
+OSTYPE=LINUX
 endif
 endif
 endif
 
 # Setup platform-specific stuff based on gleaning
-ifeq ($(OSTYPE),Win32)
+ifeq ($(OSTYPE),WIN32)
 OBJS:= $(OBJS) $(OBJS_WIN32) 
 endif
 
-ifeq ($(OSTYPE),Linux)
+ifeq ($(OSTYPE),LINUX)
 OBJS:= $(OBJS) $(OBJS_LINUX) 
 endif
 
-ifeq ($(OSTYPE),MacOSX)
+ifeq ($(OSTYPE),MACOSX)
 OBJS:= $(OBJS) $(OBJS_WIN32) 
 endif
 
-CFLAGS:= $(CFLAGS) -DOSTYPE=$(OSTYPE)
+CFLAGS:= $(CFLAGS) -D$(OSTYPE)
 
 
 $(LIB): $(OBJS)

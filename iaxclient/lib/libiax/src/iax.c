@@ -39,17 +39,19 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <error.h>
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <time.h>
+#ifdef LINUX
+#include <malloc.h>
+#include <error.h>
+#endif
 #endif
 
 #include "frame.h" 
@@ -196,13 +198,26 @@ struct iax_frame {
 	struct iax_frame *next;
 };
 
+
 #ifdef	WIN32
 
 void gettimeofday(struct timeval *tv, struct timezone *tz);
-
+#define SENDSOCKOPTS 0
 #define	snprintf _snprintf
 
+#else
+#ifdef MACOSX
+#define SENDSOCKOPTS MSG_DONTWAIT
+
+#else
+/* Linux, and others */
+#define SENDSOCKOPTS MSG_DONTWAIT | MSG_NOSIGNAL
+
 #endif
+#endif
+
+
+
 
 char iax_errstr[256];
 
@@ -227,7 +242,7 @@ void iax_disable_debug()
 {
 	debug = 0;
 }
-/* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ \
+/* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ 
 #ifdef	WIN32
 #define G __FILE__, __LINE__,
 #else
@@ -550,14 +565,9 @@ static int iax_xmit_frame(struct iax_frame *f)
 #endif
 
 	return sendto(netfd, (const char *) f->data, f->datalen,
-#ifdef	WIN32
-		0,
-#else
-		MSG_DONTWAIT | MSG_NOSIGNAL,
-#endif
-					f->transferpacket ? 
-						(struct sockaddr *)&(f->session->transfer) :
-					(struct sockaddr *)&(f->session->peeraddr), sizeof(f->session->peeraddr));
+		SENDSOCKOPTS, f->transferpacket ? 
+				(struct sockaddr *)&(f->session->transfer) :
+				(struct sockaddr *)&(f->session->peeraddr), sizeof(f->session->peeraddr));
 }
 
 static int iax_reliable_xmit(struct iax_frame *f)
