@@ -423,17 +423,16 @@ THREADFUNCDECL(iaxc_processor)
     THREADFUNCRET(ret);
     /* Increase Priority */
 #ifdef WIN32
-    /* Increasing the Process Priority is pretty effective; I'm not sure if simply increasing
-     * the thread priority will cause this thread to be prioritized higher against other processes,
-     * or just against other threads in this process.  
+    /* Increasing the Thread Priority.  See
+     * http://msdn.microsoft.com/library/default.asp?url=/library/en-us/dllproc/base/scheduling_priorities.asp
+     * for discussion on Win32 scheduling priorities.
      */
-
-      if ( SetPriorityClass( GetCurrentProcess(), HIGH_PRIORITY_CLASS ) != TRUE ) {
-            fprintf(stderr, "SetPriorityClass failed: %ld.\n", GetLastError());
+      if ( !SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_TIME_CRITICAL)  ) {
+            fprintf(stderr, "SetThreadPriority failed: %ld.\n", GetLastError());
       }
 #endif
 #ifdef MACOSX
-    /* presently, OSX allows user-level processes to request RT
+    /* Presently, OSX allows user-level processes to request RT
      * priority.  The API is nice, but the scheduler presently ignores
      * the parameters (but the API validates that you're not asking for
      * too much).  See
