@@ -208,6 +208,8 @@ int post_event_callback(iaxc_event e);
 extern void * post_event_handle;
 extern int post_event_id;
 
-
+/* Priority boost support */
+extern int iaxc_prioboostbegin(void);
+extern int iaxc_prioboostend(void);
 
 #endif

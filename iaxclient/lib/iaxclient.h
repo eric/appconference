@@ -143,6 +143,7 @@ struct iaxc_ev_netstats {
 };
 
 typedef struct iaxc_event_struct {
+	struct iaxc_event_struct *next;
 	int type;
 	union {
 		struct iaxc_ev_levels 		levels;

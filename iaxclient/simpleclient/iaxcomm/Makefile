@@ -1,5 +1,5 @@
 PROVIDER=asterisk
-VERSION=0.99pre11
+VERSION=1.0rc1
 CFLAGS=-I../../lib 
 
 #debug

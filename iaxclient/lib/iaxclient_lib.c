@@ -49,7 +49,7 @@ int post_event_id = 0;
 
 static int minimum_outgoing_framesize = 160; /* 20ms */
 
-MUTEX iaxc_lock;
+static MUTEX iaxc_lock;
 
 int netfd;
 int port;
@@ -80,8 +80,38 @@ static THREADID procThreadID;
 static int procThreadQuitFlag = -1;
 
 static void iaxc_do_pings(void);
+static void iaxc_post_event(iaxc_event e);
 
-iaxc_event_callback_t iaxc_event_callback = NULL;
+static iaxc_event_callback_t iaxc_event_callback = NULL;
+
+// Internal queue of events, waiting to be posted once the library
+// lock is released.
+static iaxc_event *event_queue = NULL;
+
+// Record whether lock is held, so we know whether to send events now
+// or queue them until the lock is released.
+static int iaxc_locked = 0;
+
+// Lock the library
+static void get_iaxc_lock() {
+    MUTEXLOCK(&iaxc_lock);
+    iaxc_locked = 1;
+}
+
+// Unlock the library and post any events that were queued in the meantime
+static void put_iaxc_lock() {
+    iaxc_event *prev, *event = event_queue;
+    event_queue = NULL;
+    iaxc_locked = 0;
+    MUTEXUNLOCK(&iaxc_lock);
+    while (event) {
+	iaxc_post_event(*event);
+	prev = event;
+	event = event->next;
+	free(prev);
+    }
+}
+
 
 EXPORT void iaxc_set_silence_threshold(double thr) {
     iaxc_silence_threshold = thr;
@@ -144,7 +174,20 @@ static void default_message_callback(char *message) {
 }
 
 // Post Events back to clients
-EXPORT void iaxc_post_event(iaxc_event e) {
+static void iaxc_post_event(iaxc_event e) {
+    // If the library is locked then just queue the event to be posted
+    // once the lock is released.
+    if (iaxc_locked)
+    {
+	iaxc_event **tail = &event_queue;
+	e.next = NULL;
+	while (*tail)
+	    tail = &((*tail)->next);
+	*tail = malloc(sizeof(iaxc_event));
+	memcpy(*tail, &e, sizeof(iaxc_event));
+	return;
+    }
+    // Library is not locked, so process event now.
     if(iaxc_event_callback)
     {
 	int rv;
@@ -388,9 +431,9 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 EXPORT void iaxc_shutdown() {
 	iaxc_dump_all_calls();
 
-	MUTEXLOCK(&iaxc_lock);
+	get_iaxc_lock();
 	audio.destroy(&audio);
-	MUTEXUNLOCK(&iaxc_lock);
+	put_iaxc_lock();
 
 	MUTEXDESTROY(&iaxc_lock);
 }
@@ -498,13 +541,13 @@ EXPORT void iaxc_process_calls(void) {
 	    win_prepare_audio_buffers();
     }
 #endif
-    MUTEXLOCK(&iaxc_lock);
+    get_iaxc_lock();
     iaxc_service_network();
     iaxc_do_pings();
     service_audio();
     iaxc_refresh_registrations();
 
-    MUTEXUNLOCK(&iaxc_lock);
+    put_iaxc_lock();
 }
 
 THREADFUNCDECL(iaxc_processor)
@@ -707,7 +750,6 @@ EXPORT int iaxc_get_netstats(int call, int *rtt, struct iaxc_netstat *local, str
 /* handle IAX text events */
 static void generate_netstat_event(int callNo) {
     iaxc_event ev;
-    int i = 0;
 
     if(callNo < 0)
        return;
@@ -855,7 +897,7 @@ EXPORT void iaxc_call(char *num)
 	struct iax_session *newsession;
 	char *ext = strstr(num, "/");
 
-	MUTEXLOCK(&iaxc_lock);
+	get_iaxc_lock();
 
         // if no call is selected, get a new appearance
         if(selected_call < 0) {
@@ -911,7 +953,7 @@ EXPORT void iaxc_call(char *num)
 	iaxc_select_call(callNo);
 
 iaxc_call_bail:
-	MUTEXUNLOCK(&iaxc_lock);
+	put_iaxc_lock();
 }
 
 EXPORT void iaxc_answer_call(int callNo) 
@@ -945,40 +987,40 @@ static void iaxc_dump_one_call(int callNo)
 EXPORT void iaxc_dump_all_calls(void)
 {
       int callNo;
-      MUTEXLOCK(&iaxc_lock);
+      get_iaxc_lock();
 	for(callNo=0; callNo<nCalls; callNo++)
 	    iaxc_dump_one_call(callNo);
-      MUTEXUNLOCK(&iaxc_lock);
+      put_iaxc_lock();
 }
 
 
 EXPORT void iaxc_dump_call(void)
 {
     if(selected_call >= 0) {
-	MUTEXLOCK(&iaxc_lock);
+	get_iaxc_lock();
 	iaxc_dump_one_call(selected_call);
-	MUTEXUNLOCK(&iaxc_lock);
+	put_iaxc_lock();
     }
 }
 
 EXPORT void iaxc_reject_call(void)
 {
     if(selected_call >= 0) {
-	MUTEXLOCK(&iaxc_lock);
+	get_iaxc_lock();
 	// XXX should take callNo?
 	iax_reject(calls[selected_call].session, "Call rejected manually.");
 	iaxc_clear_call(selected_call);
-	MUTEXUNLOCK(&iaxc_lock);
+	put_iaxc_lock();
     }
 }
 
 EXPORT void iaxc_send_dtmf(char digit)
 {
     if(selected_call >= 0) {
-	MUTEXLOCK(&iaxc_lock);
+	get_iaxc_lock();
 	if(calls[selected_call].state & IAXC_CALL_STATE_ACTIVE)
 		iax_send_dtmf(calls[selected_call].session,digit);
-	MUTEXUNLOCK(&iaxc_lock);
+	put_iaxc_lock();
     }
 }
 
@@ -1156,9 +1198,9 @@ EXPORT int iaxc_audio_devices_get(struct iaxc_audio_device **devs, int *nDevs, i
 
 EXPORT int iaxc_audio_devices_set(int input, int output, int ring) {
     int ret = 0;
-    MUTEXLOCK(&iaxc_lock);
+    get_iaxc_lock();
     ret = audio.select_devices(&audio, input, output, ring);
-    MUTEXUNLOCK(&iaxc_lock);
+    put_iaxc_lock();
     return ret;
 }
 
