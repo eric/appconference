@@ -797,6 +797,52 @@ static int send_command_transfer(struct iax_session *i, char type, int command, 
 	return __send_command(i, type, command, ts, data, datalen, 0, 0, 1, 0);
 }
 
+int iax_transfer(struct iax_session *session, char *number)
+{	
+	static int res;				//Return Code
+	struct iax_ie_data ied;			//IE Data Structure (Stuff To Send)
+
+	// Clear The Memory Used For IE Buffer
+	memset(&ied, 0, sizeof(ied));
+	
+	// Copy The Transfer Destination Into The IE Structure
+	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, number);
+	
+	// Send The Transfer Command - Asterisk Will Handle The Rest!			
+	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_TRANSFER, 0, ied.buf, ied.pos, -1);
+	
+	// Return Success
+	return 0;	
+}
+
+int try_transfer(struct iax_session *session, struct iax_ies *ies)
+{
+	int newcall = 0;
+	char newip[256] = "";
+	struct iax_ie_data ied;
+	struct sockaddr_in new;
+	
+	memset(&ied, 0, sizeof(ied));
+	if (ies->apparent_addr)
+		memcpy(&new, ies->apparent_addr, sizeof(new));
+	if (ies->callno)
+		newcall = ies->callno;
+	if (!newcall || !new.sin_addr.s_addr || !new.sin_port) {
+		return -1;
+	}
+	session->transfercallno = newcall;
+	memcpy(&session->transfer, &new, sizeof(session->transfer));
+	inet_aton(newip, &session->transfer.sin_addr);
+	session->transfer.sin_family = AF_INET;
+	session->transferring = TRANSFER_BEGIN;
+	session->transferid = ies->transferid;
+	if (ies->transferid)
+		iax_ie_append_int(&ied, IAX_IE_TRANSFERID, ies->transferid);
+	send_command_transfer(session, AST_FRAME_IAX, IAX_COMMAND_TXCNT, 0, ied.buf, ied.pos);
+	return 0; 
+}
+
+
 #if 0
 int iax_do_event(struct iax_session *session, struct iax_event *event)
 {

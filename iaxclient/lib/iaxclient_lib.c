@@ -719,6 +719,11 @@ void iaxc_answer_call(int callNo)
 	iaxc_do_state_callback(callNo);
 }
 
+void iaxc_blind_transfer_call(int callNo, char *DestExtn)
+{
+	iax_transfer(calls[callNo].session, DestExtn);
+}
+
 static void iaxc_dump_one_call(int callNo)
 {
       if(callNo < 0)

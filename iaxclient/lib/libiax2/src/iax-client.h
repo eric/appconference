@@ -148,6 +148,7 @@ extern int iax_dial(struct iax_session *session, char *number);	/* Dial on a TBD
 extern int iax_dialplan_request(struct iax_session *session, char *number);	/* Request dialplan status for number */
 extern int iax_quelch(struct iax_session *session);
 extern int iax_unquelch(struct iax_session * session);
+extern int iax_transfer(struct iax_session *session, char *number);  
 
 extern void iax_destroy(struct iax_session  * session);
 

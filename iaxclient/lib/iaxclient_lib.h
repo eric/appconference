@@ -118,10 +118,6 @@ struct iaxc_audio_driver {
 
 }; 
 
-
-
-
-
 struct iaxc_call {
 	/* to be replaced with codec-structures, with codec-private data  */
 	gsm gsmin;
