@@ -74,13 +74,32 @@ static int pa_scan_devices() {
     }
 }
 
+
+/* some commentaty here:
+ * 1: MacOSX: MacOSX needs "virtual mono" and a single stream.  That's
+ * really the only choice there, and it should always work (Famous last
+ * words).
+ *
+ * 2: Unix/OSS: most cards are OK with real mono, and a single stream.
+ * Except some.  For those, a single open with real mono will succeed,
+ * but execution will fail.  Maybe others will open OK with a single
+ * stream, and real mono, but fail later?
+ *
+ * The failure mode I saw with a volunteer was that reads/writes would
+ * return -enodev (down in the portaudio code).  Bummer.
+ *
+ * Win32 works fine, in all cases, with a single stream and real mono,
+ * so far.
+ * */
+
 int pa_initialize_audio() {
     PaError  err;
 
-//#if 0
-#ifndef MACOSX
     /* Open simplified blocking I/O layer on top of PortAudio. */
+
+#ifndef MACOSX
     /* first, try opening one stream for in/out, Mono */
+    /* except for MacOSX, which needs virtual stereo */
     err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
                            (PABLIO_READ  | PABLIO_WRITE | PABLIO_MONO) );
     
@@ -93,8 +112,9 @@ int pa_initialize_audio() {
     }
 #endif
 
-    /* Open simplified blocking I/O layer on top of PortAudio. */
-    /* first, try opening one stream for in/out, Mono */
+#ifndef LINUX
+    /* then, we try a single stream, virtual stereo.  Except on linux,
+     * see note above */
     err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
                            (PABLIO_READ  | PABLIO_WRITE | PABLIO_STEREO) );
     
@@ -105,22 +125,25 @@ int pa_initialize_audio() {
 	virtualMono = 1;
 	return 0;
     }
+#endif
 
-#if TRY_TWO_OPENS
+    /* finally, we go to the worst case.  Two opens, virtual mono */
     oneStream = 0;
+    virtualMono = 1;
     err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_READ  | PABLIO_MONO) );
+                           (PABLIO_READ  | PABLIO_STEREO) );
+    if( err != paNoError ) 
     {
 	handle_paerror(err, "opening separate input stream");
 	return -1;
     }
     err = OpenAudioStream( &oStream, SAMPLE_RATE, paInt16,
-                           (PABLIO_READ  | PABLIO_MONO) );
+                           (PABLIO_WRITE  | PABLIO_STEREO) );
+    if( err != paNoError ) 
     {
 	handle_paerror(err, "opening separate output stream");
 	return -1;
     }
-#endif
 
     return 0;
 }
