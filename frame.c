@@ -383,7 +383,7 @@ struct ast_frame* convert_frame( struct ast_trans_pvt* trans, struct ast_frame* 
 	// check for errors
 	if ( translated_frame == NULL ) 
 	{
-		ast_log( LOG_ERROR, "unable to translate frame" ) ;
+		ast_log( LOG_ERROR, "unable to translate frame\n" ) ;
 		return NULL ;
 	}
 
