@@ -164,7 +164,6 @@ void theApp::RegisterByName(wxString RegName)
     wxConfig    *config = new wxConfig("iaxComm");
     wxChar      KeyPath[256];
     wxListItem  item;
-    long        index;
 
     wxStringTokenizer tok(RegName, _T(":@"));
     char user[256], pass[256], host[256];
