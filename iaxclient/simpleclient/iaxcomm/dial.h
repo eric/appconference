@@ -30,8 +30,8 @@
 #include "app.h"
 #include "frame.h"
 
-void DialEntry( wxString& name );
-void DialDirect( wxString& server, wxString& ext );
+void DialEntry( wxString &name );
+void Dial( wxString DialStr);
     
 #endif  //_DIAL_H_
 

@@ -62,9 +62,6 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
 
     EVT_MENU    (XRCID("PTT"),         MyFrame::OnPTTChange)
     EVT_MENU    (XRCID("Silence"),     MyFrame::OnSilenceChange)
-    EVT_MENU    (XRCID("AGC"),         MyFrame::OnFilterChange)
-    EVT_MENU    (XRCID("DeNoise"),     MyFrame::OnFilterChange)
-    EVT_MENU    (XRCID("EchoCan"),     MyFrame::OnFilterChange)
 
     EVT_MENU    (XRCID("Prefs"),       MyFrame::OnPrefs)
     EVT_MENU    (XRCID("Directory"),   MyFrame::OnDirectory)
@@ -73,18 +70,18 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
 #ifdef __WXMSW__
     EVT_ICONIZE (                      MyTaskBarIcon::OnHide)
 #endif
-    EVT_BUTTON  (XRCID("OT0"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT1"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT2"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT3"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT4"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT5"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT6"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT7"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT8"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT9"),         MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT10"),        MyFrame::OnOneTouch)
-    EVT_BUTTON  (XRCID("OT11"),        MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("0"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("1"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("2"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("3"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("4"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("5"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("6"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("7"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("8"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("9"),           MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("10"),          MyFrame::OnOneTouch)
+    EVT_BUTTON  (XRCID("11"),          MyFrame::OnOneTouch)
     EVT_BUTTON  (XRCID("KP0"),         MyFrame::OnKeyPad)
     EVT_BUTTON  (XRCID("KP1"),         MyFrame::OnKeyPad)
     EVT_BUTTON  (XRCID("KP2"),         MyFrame::OnKeyPad)
@@ -99,6 +96,9 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_BUTTON  (XRCID("KPPOUND"),     MyFrame::OnKeyPad)
     EVT_BUTTON  (XRCID("Dial"),        MyFrame::OnDialDirect)
     EVT_BUTTON  (XRCID("Hangup"),      MyFrame::OnHangup)
+
+    EVT_COMMAND_SCROLL(XRCID("OutputSlider"), MyFrame::OnSlider)
+    EVT_TEXT_ENTER    (XRCID("Extension"),    MyFrame::OnDialDirect)
 END_EVENT_TABLE()
 
 //----------------------------------------------------------------------------------------
@@ -113,8 +113,8 @@ MyFrame::MyFrame( wxWindow* parent )
     wxConfig   *config = new wxConfig("iaxComm");
     wxButton   *ot;
     wxString    OTName;
-    wxString    EntryName;
-    wxString    ShortName;
+    wxString    DialString;
+    wxString    Name;
     wxString    Label;
     long        dummy;
     bool        bCont;
@@ -147,46 +147,51 @@ MyFrame::MyFrame( wxWindow* parent )
 
     //----Add the panel-----------------------------------------------------------------
     aPanel = new wxPanel(this);
-    if(config->Read("/ShowKeyPad",  0l) == 0) {
-        aPanel = wxXmlResource::Get()->LoadPanel(this, wxT("Panel"));
-    } else {
-        aPanel = wxXmlResource::Get()->LoadPanel(this, wxT("FullPanel"));
-    }
+    Name = config->Read("/UseView", "default");
+    aPanel = wxXmlResource::Get()->LoadPanel(this, Name);
+    if(aPanel == NULL)
+        aPanel = wxXmlResource::Get()->LoadPanel(this, wxT("default"));
 
     //----Reach in for our controls-----------------------------------------------------
-    Input      = XRCCTRL(*aPanel, "Input",      wxGauge);
-    Output     = XRCCTRL(*aPanel, "Output",     wxGauge);
-    Server     = XRCCTRL(*aPanel, "Server",     wxChoice);
-    Extension  = XRCCTRL(*aPanel, "Extension",  wxTextCtrl);
+    Input        = XRCCTRL(*aPanel, "Input",        wxGauge);
+    Output       = XRCCTRL(*aPanel, "Output",       wxGauge);
+    OutputSlider = XRCCTRL(*aPanel, "OutputSlider", wxSlider);
+    Server       = XRCCTRL(*aPanel, "Server",       wxChoice);
+    Extension    = XRCCTRL(*aPanel, "Extension",    wxTextCtrl);
 
     //----Insert the Calls listctrl into it's "unknown" placeholder---------------------
     Calls = new CallList(aPanel);
+
+    if(Calls == NULL)
+        wxFatalError(_("Can't Load CallList in frame.cc"));
+
+
     wxXmlResource::Get()->AttachUnknownControl("Calls", Calls);
 
     //----Add Servers-------------------------------------------------------------------
     config->SetPath("/Servers");
-    bCont = config->GetFirstGroup(EntryName, dummy);
+    bCont = config->GetFirstGroup(Name, dummy);
     while ( bCont ) {
-        Server->Append(EntryName);
-        bCont = config->GetNextGroup(EntryName, dummy);
+        Server->Append(Name);
+        bCont = config->GetNextGroup(Name, dummy);
     }
     Server->SetSelection(Server->FindString(config->Read("/DefaultServer", "")));
 
     //----Load up One Touch Keys--------------------------------------------------------
-    config->SetPath("/OneTouch");
+    config->SetPath("/OT");
     bCont = config->GetFirstGroup(OTName, dummy);
     while ( bCont ) {
         ot = XRCCTRL(*aPanel, OTName, wxButton);
         if(ot != NULL) {
-            ShortName = OTName + "/ShortName";
-            Label = config->Read(ShortName, "");
+            Name = OTName + "/Name";
+            Label = config->Read(Name, "");
             if(!Label.IsEmpty()) {
                 ot->SetLabel(Label);
             } else {
                 ot->SetLabel(OTName);
             }
-            EntryName = OTName + "/EntryName";
-            Label = config->Read(EntryName, "");
+            DialString = OTName + "/Extension";
+            Label = config->Read(DialString, "");
             if(!Label.IsEmpty()) {
                 ot->SetToolTip(Label);
             }
@@ -202,8 +207,8 @@ MyFrame::MyFrame( wxWindow* parent )
 
     pttMode = false;
 
-    int flag = IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO;
-    iaxc_set_filters(iaxc_get_filters() | flag);
+    if(OutputSlider != NULL)
+        OutputSlider->SetValue(config->Read("/OutputLevel", 70));
 
 #ifdef __WXGTK__
     // window used for getting keyboard state
@@ -247,6 +252,13 @@ void MyFrame::OnQuit(wxEvent &event)
     Close(TRUE);
 }
 
+void MyFrame::OnSlider(wxScrollEvent &event)
+{
+    int      pos = event.GetPosition();
+
+    iaxc_output_level_set((double)pos/100.0);
+}
+
 void MyFrame::OnPTTChange(wxCommandEvent &event)
 {
     pttMode = event.IsChecked();
@@ -280,29 +292,6 @@ void MyFrame::OnSilenceChange(wxCommandEvent &event)
         iaxc_set_silence_threshold(-99);
         SetStatusText(_(""),1);
     }
-}
-
-void MyFrame::OnFilterChange(wxCommandEvent &event)
-{
-    bool checked =  event.IsChecked();
-    int  id      = event.GetId();
-    int  flag;    
-
-    // these all toggle a flag in the library; first, figure out which flag.
-
-    if(id == XRCID("AGC"))
-            flag = IAXC_FILTER_AGC;
-
-    if(id == XRCID("DeNoise"))
-            flag = IAXC_FILTER_DENOISE;
-
-    if(id == XRCID("EchoCan"))
-            flag = IAXC_FILTER_ECHO;
-
-    if(checked)
-        iaxc_set_filters(iaxc_get_filters() | flag);
-    else
-        iaxc_set_filters(iaxc_get_filters() & ~flag);
 }
 
 bool MyFrame::GetPTTState()
@@ -448,17 +437,23 @@ void MyFrame::OnOneTouch(wxCommandEvent &event)
     wxString  Message;
     int       OTNo;
     wxString  PathName;
-    wxString  EntryName;
+    wxString  DialString;
 
-    OTNo = event.GetId() - XRCID("OT0");
+    OTNo = event.GetId() - XRCID("0");
 
-    PathName.Printf("/OneTouch/OT%d", OTNo);
+    PathName.Printf("/OT/%d", OTNo);
     config->SetPath(PathName);
-    EntryName = config->Read("EntryName", "");
+    DialString = config->Read("Extension", "");
 
-    if(!EntryName.IsEmpty()) {
-        DialEntry(EntryName);
+    if(DialString.IsEmpty())
+        return;
+
+    // A DialString in quotes means look up name in phone book
+    if(DialString.StartsWith("\"")) {
+        DialString = DialString.Mid(1, DialString.Len() -2);
+        DialString = config->Read("/PhoneBook/" + DialString + "/Extension", "");
     }
+    Dial(DialString);
 }
 
 void MyFrame::OnKeyPad(wxCommandEvent &event)
@@ -482,16 +477,7 @@ void MyFrame::OnKeyPad(wxCommandEvent &event)
 
 void MyFrame::OnDialDirect(wxCommandEvent &event)
 {
-    if(IsEmpty(Server->GetStringSelection())) {
-        // Shouldn't ever get here: we selected Server[0]
-        SetStatusText(_T("Please select a server"));
-        return;
-    }
-
-    wxString S = Server->GetStringSelection();
-    wxString E = Extension->GetValue();
-    DialDirect(S, E);
-
+    Dial(Extension->GetValue());
 }
 
 void MyTimer::Notify()

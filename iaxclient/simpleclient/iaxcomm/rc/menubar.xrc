@@ -26,21 +26,6 @@
         <help>Suppress Silence</help>
         <checkable>1</checkable>
       </object>
-      <object class="wxMenuItem" name="AGC">
-        <label>Automatic Gain Control</label>
-        <checkable>1</checkable>
-        <checked>1</checked>
-      </object>
-      <object class="wxMenuItem" name="DeNoise">
-        <label>Noise Reduction</label>
-        <checkable>1</checkable>
-        <checked>1</checked>
-      </object>
-      <object class="wxMenuItem" name="EchoCan">
-        <label>Echo Cancellation</label>
-        <checkable>1</checkable>
-        <checked>1</checked>
-      </object>
       <object class="separator"/>
       <object class="wxMenuItem" name="Prefs">
         <label>_Preferences ...</label>

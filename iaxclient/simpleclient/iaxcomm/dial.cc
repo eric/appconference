@@ -46,6 +46,7 @@
 #include "app.h"
 #include "frame.h"
 #include "main.h"
+#include "wx/tokenzr.h"
 
 void DialEntry( wxString& EntryName )
 {
@@ -68,47 +69,48 @@ void DialEntry( wxString& EntryName )
     wxString ServerName = config->Read("Server", "");
     wxString Extension  = config->Read("Extension", "s");
 
-    DialDirect(ServerName, Extension);
+    Dial(ServerName + "/" + Extension);
 }
 
-void DialDirect( wxString& ServerName, wxString& Extension )
+void Dial( wxString DialStr )
 {
-    wxString Msg;
-    wxString FQIN;
-
     wxConfig *config = new wxConfig("iaxComm");
-    wxString  val;
-    wxString  KeyPath;
+    wxString  FQIN;
 
-    if(Extension.IsEmpty()) {
-        Extension = "s";
+    wxString  ServerInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
+    wxString  Extension  = DialStr.AfterLast('/');     // dialstr if no '/'
+
+    if(ServerInfo.IsEmpty()) {
+        ServerInfo = wxGetApp().theFrame->Server->GetStringSelection();
+
+        // Dialstr has no "/" and no default server: add default extension
+        if(ServerInfo.IsEmpty()) {
+            ServerInfo = Extension;
+            Extension  = "s";
+        }
     }
 
-    KeyPath = "/Servers/" + ServerName;
-    config->SetPath(KeyPath);
+    wxString  RegInfo    = ServerInfo.BeforeLast('@'); // Empty   if no '@'
+    wxString  Server     = ServerInfo.AfterLast('@');
 
-    if(!config->Exists(KeyPath)) {
-        ServerName << " unknown";
-        wxMessageBox(KeyPath, ServerName);
-        return;
+    wxString  Username   = RegInfo.BeforeFirst(':');
+    wxString  Password   = RegInfo.AfterFirst(':');     // Empty if no ':'
+
+
+    if(RegInfo.IsEmpty()) {
+        config->SetPath("/Servers/" + Server);
+        Server   = config->Read("Host",     Server);
+        Username = config->Read("Username", "");
+        Password = config->Read("Password", "");
     }
 
-    wxString HostName = config->Read("Host", "");
-    wxString UserName = config->Read("Username", "");
-    wxString Password = config->Read("Password", "");
-
-    Msg.Printf("User:\t%s\nPassword:\t%s\nHost:\t%s\nExt:\t%s", UserName.c_str(),
-                                                                Password.c_str(),
-                                                                HostName.c_str(),
-                                                                Extension.c_str());
-
-    FQIN.Printf("%s:%s@%s/%s", UserName.c_str(),
+    FQIN.Printf("%s:%s@%s/%s", Username.c_str(),
                                Password.c_str(),
-                               HostName.c_str(),
+                               Server.c_str(),
                                Extension.c_str());
 
-    Msg << "\n\n"<<FQIN;
 
-//    wxMessageBox(Msg, _("Dialing"));
+//  wxMessageBox(FQIN, "Fake Dial");
     iaxc_call((char *)FQIN.c_str());
 }
+

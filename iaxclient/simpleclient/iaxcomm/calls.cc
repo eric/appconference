@@ -71,27 +71,32 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
                     const wxSize& size, long style)
                   : wxListCtrl( parent, id, pos, size, style)
 {
-    long       i;
-    wxListItem item;
+    wxConfig   *config = new wxConfig("iaxComm");
+    long        i;
+    int         nCalls;
+    wxListItem  item;
 
     m_parent = parent;
 
     // Column Headings
-    InsertColumn( 0, _(""),       wxLIST_FORMAT_CENTER, (16));
+    InsertColumn( 0, _(""),       wxLIST_FORMAT_CENTER, (20));
     InsertColumn( 1, _("State"),  wxLIST_FORMAT_CENTER, (60));
     InsertColumn( 2, _("Remote"), wxLIST_FORMAT_LEFT,  (200));
 
     Hide();
-    for(i=0;i<MAX_CALLS;i++) {
+    nCalls = config->Read("/nCalls", 2);
+    for(i=0;i<nCalls;i++) {
         InsertItem(i,wxString::Format("%ld", i+1), 0);
         SetItem(i, 2, _T(""));
         item.m_itemId=i;
         item.m_mask = 0;
         SetItem(item);
     }
+
     Refresh();
     Show();
     AutoSize();
+
 
     ringback.len = 6*8000;
     ringtone.len = 6*8000;
@@ -107,15 +112,25 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
       ringtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*880*M_PI/8000));
       ringtone.data[i] += (short)(0x7fff*0.4*sin((double)i*960*M_PI/8000));
     }
-    ringback.repeat = 1;
-    ringtone.repeat = 1;
+    ringback.repeat = 10;
+    ringtone.repeat = 10;
+
+    icomtone.len = 6000;
+    icomtone.data = (short *)calloc(icomtone.len , sizeof(short));
+    for( int i=0;i < 3000; i++ )
+    {
+      if(i<3000) {
+          icomtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*440*M_PI/8000));
+          if((i>1000) && (i<2000))
+              icomtone.data[i] =  (short)(0x7fff*0.4*sin((double)i*880*M_PI/8000));
+      }
+    }
+    icomtone.repeat = 1;
 }
 
 void CallList::AutoSize()
 {
-    SetColumnWidth(2, GetClientSize().x - 77);
-    // Stupid boundary condition.  Avoid unwanted HScroller
-    SetColumnWidth(2, GetClientSize().x - 76);
+    SetColumnWidth(2, GetClientSize().x - 85);
 }
 
 void CallList::OnSize(wxSizeEvent &event)
@@ -141,9 +156,10 @@ void CallList::OnDClick(wxListEvent &event)
 
 int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 {
-    wxListItem stateItem; // for all the state color
-
-    stateItem.m_itemId = c.callNo;
+    wxConfig  *config = new wxConfig("iaxComm");
+    wxString   str;
+    long       dummy;
+    bool       bCont;
 
     if(c.state & IAXC_CALL_STATE_RINGING) {
       wxGetApp().theFrame->Show();
@@ -165,8 +181,11 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         bool     complete = c.state & IAXC_CALL_STATE_COMPLETE;
         bool     selected = c.state & IAXC_CALL_STATE_SELECTED;
         wxString info;
+        wxString fullname;
 
-        info.Printf("%s <%s>", c.remote_name, c.remote);
+        fullname.Printf("%s", c.remote_name);
+        info = fullname.AfterLast('@');  // Hide username:password
+
         SetItem(c.callNo, 2, info );
 
         if(outgoing) {
@@ -185,6 +204,33 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         } else {
             if(ringing) {
                 SetItem(c.callNo, 1, _T("ring in") );
+
+                // Look for the caller in our phonebook
+                config->SetPath("/PhoneBook");
+                bCont = config->GetFirstGroup(str, dummy);
+                while ( bCont ) {
+                    if(str.IsSameAs(c.remote_name))
+                        break;
+                    bCont = config->GetNextGroup(str, dummy);
+                }
+                // Add to phone book if not there already
+                if(!str.IsSameAs(c.remote_name)) {
+                    str.Printf("%s/Extension", c.remote_name);
+                    config->Write(str, c.remote);
+                }
+
+
+
+
+                if(strcmp(c.local_context, "intercom") == 0)
+                    if(config->Read("/Intercom","s").IsSameAs(c.local)) {
+                        iaxc_stop_sound(ringtone.id);
+                        iaxc_play_sound(&icomtone, 1);
+                        iaxc_millisleep(1000);
+                        iaxc_select_call(c.callNo);
+                    }
+
+
             } else {
                 if(complete) {
                     SetItem(c.callNo, 1, _T("ACTIVE") );
@@ -196,8 +242,6 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         } 
     // XXX do something more noticable if it's incoming, ringing!
     }
-   
-    SetItem( stateItem ); 
     
     // select if necessary
     if((c.state & IAXC_CALL_STATE_SELECTED) &&

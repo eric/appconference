@@ -34,31 +34,73 @@ class DirectoryDialog : public wxDialog
 public: 
     DirectoryDialog( wxWindow* parent );
 
-    wxComboBox  *ServerName;
-    wxTextCtrl  *HostName;
-    wxTextCtrl  *UserName;
-    wxTextCtrl  *Password;
-    wxTextCtrl  *Confirm;
-    wxCheckBox  *Default;
-    wxComboBox  *EntryName;
-    wxChoice    *ChooseServer;
-    wxTextCtrl  *Extension;
-    wxSpinCtrl  *OTNo;
-    wxTextCtrl  *ShortName;
-    wxChoice    *ChooseEntry;
-    wxButton    *SaveButton;
-    wxButton    *ApplyButton;
+    wxListCtrl  *OTList;
+    wxListCtrl  *PhoneList;
+    wxListCtrl  *ServerList;
         
 private:
 
     wxNotebook  *DirectoryNotebook;
-    void         OnServerName(wxCommandEvent &event);
-    void         OnEntryName(wxCommandEvent &event);
-    void         OnOTNo(wxCommandEvent &event);
-    void         OnDone(wxCommandEvent &event);
-    void         OnSave(wxCommandEvent &event);
-    void         OnRemove(wxCommandEvent &event);
-    void         OnDial(wxCommandEvent &event);
+    void         OnAddOTList(wxCommandEvent &event);
+    void         OnRemoveOTList(wxCommandEvent &event);
+    void         OnDialOTList(wxCommandEvent &event);
+    void         OnAddPhoneList(wxCommandEvent &event);
+    void         OnRemovePhoneList(wxCommandEvent &event);
+    void         OnDialPhoneList(wxCommandEvent &event);
+    void         OnAddServerList(wxCommandEvent &event);
+    void         OnRemoveServerList(wxCommandEvent &event);
+
+    DECLARE_EVENT_TABLE()
+
+};
+
+class AddOTListDialog : public wxDialog
+{
+public: 
+    AddOTListDialog( wxWindow* parent, wxString selection );
+
+    wxSpinCtrl  *OTNo;
+    wxTextCtrl  *Name;
+    wxTextCtrl  *Extension;
+        
+private:
+
+    void         OnAdd(wxCommandEvent &event);
+
+    DECLARE_EVENT_TABLE()
+
+};
+
+class AddPhoneListDialog : public wxDialog
+{
+public: 
+    AddPhoneListDialog( wxWindow* parent, wxString selection );
+
+    wxTextCtrl  *Name;
+    wxTextCtrl  *Extension;
+        
+private:
+
+    void         OnAdd(wxCommandEvent &event);
+
+    DECLARE_EVENT_TABLE()
+
+};
+
+class AddServerDialog : public wxDialog
+{
+public: 
+    AddServerDialog( wxWindow* parent, wxString selection );
+
+    wxTextCtrl  *ServerName;
+    wxTextCtrl  *HostName;
+    wxTextCtrl  *UserName;
+    wxTextCtrl  *Password;
+    wxTextCtrl  *Confirm;
+        
+private:
+
+    void         OnAdd(wxCommandEvent &event);
 
     DECLARE_EVENT_TABLE()
 

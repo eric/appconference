@@ -52,6 +52,7 @@ public:
 
     struct iaxc_sound ringback;
     struct iaxc_sound ringtone;
+    struct iaxc_sound icomtone;
 
 private:
     wxWindow         *m_parent;

@@ -43,7 +43,13 @@ private:
     wxChoice    *RingDevice;
     wxTextCtrl  *Name;
     wxTextCtrl  *Number;
-    wxCheckBox  *ShowKeyPad;
+    wxChoice    *UseView;
+    wxChoice    *DefaultServer;
+    wxTextCtrl  *Intercom;
+    wxSpinCtrl  *nCalls;
+    wxCheckBox  *AGC;
+    wxCheckBox  *NoiseReduce;
+    wxCheckBox  *EchoCancel;
     wxButton    *SaveButton;
     wxButton    *ApplyButton;
     wxButton    *CancelButton;

@@ -66,7 +66,7 @@ public:
     void        OnQuit(wxEvent &event);
     void        OnPTTChange(wxCommandEvent &event);
     void        OnSilenceChange(wxCommandEvent &event);
-    void        OnFilterChange(wxCommandEvent &event);
+    void        OnSlider(wxScrollEvent &event);
     bool        GetPTTState();
     void        CheckPTT();
     void        SetPTT(bool state);
@@ -79,6 +79,7 @@ public:
 
     wxGauge    *Input;
     wxGauge    *Output;
+    wxSlider   *OutputSlider;
     wxChoice   *Server;
     wxTextCtrl *Extension;
     CallList   *Calls;

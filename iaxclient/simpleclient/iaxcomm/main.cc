@@ -47,6 +47,7 @@
 
 #include "app.h"
 #include "frame.h"
+#include "wx/dirdlg.h"
 
 //----------------------------------------------------------------------------------------
 // forward decls for callbacks
@@ -89,7 +90,7 @@ bool theApp::OnInit()
 // XXX this seems broken on mac with wx-2.4.2
     m_single_instance_checker = new wxSingleInstanceChecker( GetAppName() );
 
-	
+
     // And if a copy is alreay running, then abort...
     if ( m_single_instance_checker->IsAnotherRunning() ) {
         wxMessageDialog second_instance_messagedialog( (wxWindow*)NULL,
@@ -127,9 +128,6 @@ bool theApp::OnInit()
 
     SetTopWindow( theFrame );
 
-    // Load up the rest of the XML resources
-    //load_xrc_resource( "preferences_dialog.xrc" );
-
     // Show the main frame. Unlike most controls, frames don't show immediately upon
     // construction, but instead wait for a specific Show() function.
 
@@ -139,7 +137,10 @@ bool theApp::OnInit()
     theTaskBarIcon.SetIcon(wxICON(application));
   #endif
 
-    iaxc_initialize(AUDIO_INTERNAL_PA, MAX_CALLS);
+    int nCalls = config->Read("/nCalls", 2);
+    if(iaxc_initialize(AUDIO_INTERNAL_PA, nCalls)) {
+        wxFatalError(_("Couldn't Initialize IAX Client "));
+    }
 
     SetAudioDevices(config->Read("/Input Device", ""),
                     config->Read("/Output Device", ""),
@@ -166,7 +167,7 @@ bool theApp::OnInit()
     return TRUE;
 }
 
-void theApp::RegisterByName(wxString RegName) 
+void theApp::RegisterByName(wxString RegName)
 {
     wxConfig    *config = new wxConfig("iaxComm");
     wxChar      KeyPath[256];
@@ -205,7 +206,7 @@ int theApp::OnExit(void)
     wxLogDebug( "Deleting the single instance checker." );
 #ifndef __WXMAC__
     delete m_single_instance_checker;
-#endif    
+#endif
     return 0;
 }
 
@@ -215,31 +216,69 @@ int theApp::OnExit(void)
 
 void theApp::load_xrc_resource( const wxString& xrc_filename )
 {
-    wxString xrc_subdirectory = "rc";
-    wxString xrc_fullname;
+    wxConfig        *config = new wxConfig("iaxComm");
+    wxString         xrc_fullname;
+    static wxString  xrc_subdirectory = "";
+
 #ifdef __WXMAC__
     {
-	CFBundleRef mainBundle = CFBundleGetMainBundle ();
-	CFURLRef resDir = CFBundleCopyResourcesDirectoryURL (mainBundle);
-	CFURLRef resDirAbs = CFURLCopyAbsoluteURL (resDir);
-	CFStringRef resPath = CFURLCopyFileSystemPath(resDirAbs, kCFURLPOSIXPathStyle);
-	char path[1024];
-	CFStringGetCString(resPath, path, 1024, kCFStringEncodingASCII);
-	xrc_subdirectory = wxString(path) + wxFILE_SEP_PATH + xrc_subdirectory;
-
+        CFBundleRef mainBundle = CFBundleGetMainBundle ();
+        CFURLRef resDir = CFBundleCopyResourcesDirectoryURL (mainBundle);
+        CFURLRef resDirAbs = CFURLCopyAbsoluteURL (resDir);
+        CFStringRef resPath = CFURLCopyFileSystemPath(resDirAbs, kCFURLPOSIXPathStyle);
+        char path[1024];
+        CFStringGetCString(resPath, path, 1024, kCFStringEncodingASCII);
+        xrc_subdirectory = wxString(path) + wxFILE_SEP_PATH + xrc_subdirectory;
     }
 #endif
-    xrc_fullname << xrc_subdirectory << "/" << xrc_filename;
-    //xrc_fullname = wxGetCwd() + wxFILE_SEP_PATH + xrc_subdirectory +
-    //		      wxFILE_SEP_PATH + xrc_filename;
 
+    // First, look where we got the last xrc
+    if(!xrc_subdirectory.IsEmpty()) {
+        xrc_fullname = xrc_subdirectory + wxFILE_SEP_PATH + xrc_filename;
+        if ( ::wxFileExists( xrc_fullname ) ) {
+            wxXmlResource::Get()->Load( xrc_fullname );
+            return;
+        }
+    }
 
+    // Next, check where config points
+    if(config->Exists("/XRCDirectory")) {
+        xrc_fullname = config->Read("/XRCDirectory", "") + wxFILE_SEP_PATH + xrc_filename;
+        if ( ::wxFileExists( xrc_fullname ) ) {
+            wxXmlResource::Get()->Load( xrc_fullname );
+            return;
+        }
+    }
+
+    // Third, check in cwd
+    xrc_fullname = wxGetCwd() + wxFILE_SEP_PATH + "rc" + wxFILE_SEP_PATH + xrc_filename;
     if ( ::wxFileExists( xrc_fullname ) ) {
         wxXmlResource::Get()->Load( xrc_fullname );
-    } else {
-	wxMessageBox(_("XRC To load is ")+ xrc_fullname);
-	wxFatalError(_("Can't Load XRC ") + xrc_fullname);
+        return;
     }
+
+    wxString dirHome;
+    wxGetHomeDir(&dirHome);
+
+    // Next, look in ~/rc
+    xrc_fullname = dirHome + wxFILE_SEP_PATH + xrc_filename;
+    if ( ::wxFileExists( xrc_fullname ) ) {
+        wxXmlResource::Get()->Load( xrc_fullname );
+        return;
+    }
+
+    // Last, ask the user
+    wxDirDialog where(NULL, _("Where are the rc files?"), dirHome );
+    where.ShowModal();
+    xrc_subdirectory = where.GetPath();
+
+    xrc_fullname = xrc_subdirectory + wxFILE_SEP_PATH + xrc_filename;
+    if ( ::wxFileExists( xrc_fullname ) ) {
+        wxXmlResource::Get()->Load( xrc_fullname );
+        return;
+    }
+
+    wxFatalError(_("Can't Load XRC ") + xrc_fullname);
 }
 
 #ifdef __WXMSW__
@@ -264,7 +303,7 @@ void MyTaskBarIcon::OnExit(wxCommandEvent&)
     wxGetApp().theFrame->Close(TRUE);
     wxGetApp().ProcessIdle();
 }
- 
+
 void MyTaskBarIcon::OnLButtonDClick(wxEvent&)
 {
     wxGetApp().theFrame->Close(TRUE);
@@ -283,7 +322,7 @@ void MyTaskBarIcon::OnLButtonDown(wxEvent&)
 #endif
 
 //----------------------------------------------------------------------------------------
-// 
+//
 //----------------------------------------------------------------------------------------
 
 extern "C" {
@@ -303,7 +342,7 @@ extern "C" {
     */
 
     // handle events via posting.
-  #ifdef USE_GUILOCK 
+  #ifdef USE_GUILOCK
     static int iaxc_callback(iaxc_event e)
     {
         int ret;

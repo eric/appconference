@@ -44,6 +44,7 @@
 
 #include "app.h"
 #include "frame.h"
+#include "main.h"
 
 //----------------------------------------------------------------------------------------
 // Event table: connect the events to the handler functions to process them
@@ -54,7 +55,6 @@ BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
     EVT_CHOICE(  XRCID("InputDevice"),   PrefsDialog::OnDirty)
     EVT_CHOICE(  XRCID("OutputDevice"),  PrefsDialog::OnDirty)
     EVT_CHOICE(  XRCID("RingDevice"),    PrefsDialog::OnDirty)
-    EVT_CHECKBOX(XRCID("ShowKeyPad"),    PrefsDialog::OnDirty)
     EVT_TEXT(    XRCID("Name"),          PrefsDialog::OnDirty)
     EVT_TEXT(    XRCID("Number"),        PrefsDialog::OnDirty)
 END_EVENT_TABLE()
@@ -66,37 +66,69 @@ END_EVENT_TABLE()
 PrefsDialog::PrefsDialog(wxWindow* parent)
 {    
     wxConfig *config = new wxConfig("iaxComm");
+    long      dummy;
+    bool      bCont;
     wxString  str;
 
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("Prefs"));
 
     // Reach in for our controls
 
-    InputDevice  = XRCCTRL(*this, "InputDevice",  wxChoice);
-    OutputDevice = XRCCTRL(*this, "OutputDevice", wxChoice);
-    RingDevice   = XRCCTRL(*this, "RingDevice",   wxChoice);
+    InputDevice   = XRCCTRL(*this, "InputDevice",   wxChoice);
+    OutputDevice  = XRCCTRL(*this, "OutputDevice",  wxChoice);
+    RingDevice    = XRCCTRL(*this, "RingDevice",    wxChoice);
 
-    Name         = XRCCTRL(*this, "Name",         wxTextCtrl);
-    Number       = XRCCTRL(*this, "Number",       wxTextCtrl);
+    Name          = XRCCTRL(*this, "Name",          wxTextCtrl);
+    Number        = XRCCTRL(*this, "Number",        wxTextCtrl);
 
-    ShowKeyPad   = XRCCTRL(*this, "ShowKeyPad",   wxCheckBox);
+    UseView       = XRCCTRL(*this, "UseView",       wxChoice);
+    DefaultServer = XRCCTRL(*this, "DefaultServer", wxChoice);
+    Intercom      = XRCCTRL(*this, "Intercom",      wxTextCtrl);
+    nCalls        = XRCCTRL(*this, "nCalls",        wxSpinCtrl);
 
-    SaveButton   = XRCCTRL(*this, "wxID_SAVE",    wxButton);
-    ApplyButton  = XRCCTRL(*this, "wxID_APPLY",   wxButton);
-    CancelButton = XRCCTRL(*this, "wxID_CANCEL",  wxButton);
+    AGC           = XRCCTRL(*this, "AGC",           wxCheckBox);
+    NoiseReduce   = XRCCTRL(*this, "NoiseReduce",   wxCheckBox);
+    EchoCancel    = XRCCTRL(*this, "EchoCancel",    wxCheckBox);
+
+    SaveButton    = XRCCTRL(*this, "wxID_SAVE",     wxButton);
+    ApplyButton   = XRCCTRL(*this, "wxID_APPLY",    wxButton);
+    CancelButton  = XRCCTRL(*this, "wxID_CANCEL",   wxButton);
 
     GetAudioDevices();
 
     config->SetPath("/");
 
-    Name->SetValue(config->Read("Name", "Caller Name"));
-    Number->SetValue(config->Read("Number", "700000000"));
-
     SetAudioDevices(config->Read("Input Device",  ""),
                     config->Read("Output Device", ""),
                     config->Read("Ring Device",   ""));
 
-    ShowKeyPad->SetValue(config->Read("ShowKeyPad", 0l) != 0);
+    Name->SetValue(config->Read("Name", "Caller Name"));
+    Number->SetValue(config->Read("Number", "700000000"));
+
+    UseView->Append("default");
+    UseView->Append("compact");
+    UseView->Append("expanded");
+    UseView->SetStringSelection(config->Read("UseView", "default"));
+
+    config->SetPath("/Servers");
+    bCont = config->GetFirstGroup(str, dummy);
+    while ( bCont ) {
+        DefaultServer->Append(str);
+        bCont = config->GetNextGroup(str, dummy);
+    }
+    dummy = DefaultServer->FindString(config->Read("/DefaultServer", ""));
+    if(dummy <= 0)
+        dummy = 0;
+    DefaultServer->SetSelection(dummy);
+
+    Intercom->SetValue(config->Read("/Intercom", ""));
+    nCalls->SetValue(config->Read("/nCalls", 2));
+
+    AGC->SetValue(config->Read("/AGC", 0l));
+    NoiseReduce->SetValue(config->Read("/NoiseReduce", 0l));
+    EchoCancel->SetValue(config->Read("/EchoCancel", 0l));
+
+    delete config;
 }
 
 //----------------------------------------------------------------------------------------
@@ -146,16 +178,21 @@ void PrefsDialog::OnSave(wxCommandEvent &event)
 
     config->SetPath("/");
 
-    config->Write("Input Device",  InputDevice->GetStringSelection());
-    config->Write("Output Device", OutputDevice->GetStringSelection());
-    config->Write("Ring Device",   RingDevice->GetStringSelection());
+    config->Write("Input Device",   InputDevice->GetStringSelection());
+    config->Write("Output Device",  OutputDevice->GetStringSelection());
+    config->Write("Ring Device",    RingDevice->GetStringSelection());
 
-    config->Write("Name",          Name->GetValue());
-    config->Write("Number",        Number->GetValue());
+    config->Write("Name",           Name->GetValue());
+    config->Write("Number",         Number->GetValue());
 
-    iaxc_set_callerid((char *)Name->GetValue().c_str(), (char *)Number->GetValue().c_str());
+    config->Write("UseView",        UseView->GetStringSelection());
+    config->Write("DefaultServer",  DefaultServer->GetStringSelection());
+    config->Write("Intercom",       Intercom->GetValue());
+    config->Write("nCalls",         nCalls->GetValue());
 
-    config->Write("ShowKeyPad",    ShowKeyPad->GetValue());
+    config->Write("AGC",            AGC->GetValue());
+    config->Write("NoiseReduce",    NoiseReduce->GetValue());
+    config->Write("EchoCancel",     EchoCancel->GetValue());
 
     delete config;
     SaveButton->Disable();
@@ -167,7 +204,29 @@ void PrefsDialog::OnApply(wxCommandEvent &event)
                     OutputDevice->GetStringSelection(),
                     RingDevice->GetStringSelection());
 
-//    OnSave(event);
+    iaxc_set_callerid((char *)Name->GetValue().c_str(), (char *)Number->GetValue().c_str());
+
+    // Update the main frame
+    int which = wxGetApp().theFrame->Server->FindString(DefaultServer->GetStringSelection());
+    wxGetApp().theFrame->Server->SetSelection(which);
+
+    // Clear these filters
+    int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
+    iaxc_set_filters(iaxc_get_filters() & flag);
+
+    flag = 0;
+    if(AGC->GetValue())
+       flag = IAXC_FILTER_AGC;
+
+    if(NoiseReduce->GetValue())
+       flag |= IAXC_FILTER_DENOISE;
+
+    if(EchoCancel->GetValue())
+       flag |= IAXC_FILTER_ECHO;
+
+    iaxc_set_filters(iaxc_get_filters() | flag);
+
+
     Close();
 }
 
