@@ -677,6 +677,52 @@ void handle_text_event(struct iax_event *e, int callNo) {
     iaxc_post_event(ev);
 }
 
+/* handle IAX URL events */
+void handle_url_event( struct iax_event *e, int callNo ) {
+	iaxc_event ev;
+
+	if(callNo < 0) return;
+
+	ev.ev.url.callNo = callNo;
+	ev.type = IAXC_EVENT_URL;
+	strcpy( ev.ev.url.url, "" );
+
+	switch( e->subclass ) {
+		case AST_HTML_URL:
+			ev.ev.url.type = IAXC_URL_URL;
+			if( e->datalen ) {
+				if( e->datalen > IAXC_EVENT_BUFSIZ ) {
+					fprintf( stderr, "ERROR: URL too long %d > %d\n", 
+							e->datalen, IAXC_EVENT_BUFSIZ );
+				} else {
+					strncpy( ev.ev.url.url, e->data, e->datalen );
+				}
+			}
+			/* fprintf( stderr, "URL:%s\n", ev.ev.url.url ); */
+			break;
+		case AST_HTML_LINKURL:
+			ev.ev.url.type = IAXC_URL_LINKURL;
+			/* fprintf( stderr, "LINKURL event\n" ); */
+			break;
+		case AST_HTML_LDCOMPLETE:
+			ev.ev.url.type = IAXC_URL_LDCOMPLETE;
+			/* fprintf( stderr, "LDCOMPLETE event\n" ); */
+			break;
+		case AST_HTML_UNLINK:
+			ev.ev.url.type = IAXC_URL_UNLINK;
+			/* fprintf( stderr, "UNLINK event\n" ); */
+			break;
+		case AST_HTML_LINKREJECT:
+			ev.ev.url.type = IAXC_URL_LINKREJECT;
+			/* fprintf( stderr, "LINKREJECT event\n" ); */
+			break;
+		default:
+			fprintf( stderr, "Unknown URL event %d\n", e->subclass );
+			break;
+	}
+    iaxc_post_event( ev );
+}
+
 /* DANGER: bad things can happen if iaxc_netstat != iax_netstat.. */
 EXPORT int iaxc_get_netstats(int call, int *rtt, struct iaxc_netstat *local, struct iaxc_netstat *remote) {
     return iax_get_netstats(calls[call].session, rtt, (struct iax_netstat *)local, (struct iax_netstat *)remote);
@@ -782,6 +828,9 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		case IAX_EVENT_PONG:  /* we got a pong */
 			//fprintf(stderr, "**********GOT A PONG!\n");
 			generate_netstat_event(callNo);
+			break;
+		case IAX_EVENT_URL:
+			handle_url_event(e, callNo);
 			break;
 		case IAX_EVENT_CNG:
 			/* ignore? */
@@ -941,10 +990,16 @@ EXPORT void iaxc_dump_call(void)
 EXPORT void iaxc_reject_call(void)
 {
     if(selected_call >= 0) {
+	iaxc_reject_call_number(selected_call);
+    }
+}
+
+EXPORT void iaxc_reject_call_number( int callNo )
+{
+    if(callNo >= 0) {
 	get_iaxc_lock();
-	// XXX should take callNo?
-	iax_reject(calls[selected_call].session, "Call rejected manually.");
-	iaxc_clear_call(selected_call);
+	iax_reject(calls[callNo].session, "Call rejected manually.");
+	iaxc_clear_call(callNo);
 	put_iaxc_lock();
     }
 }

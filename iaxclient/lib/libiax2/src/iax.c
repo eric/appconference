@@ -2441,6 +2441,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 			case AST_HTML_URL:
 				if (!e->etype)
 					e->etype = IAX_EVENT_URL;
+				e->subclass = fh->csub;
+				e->datalen = datalen;
 				if (datalen) {
 					memcpy(e->data, fh->iedata, datalen);
 				}

@@ -86,6 +86,7 @@ extern "C" {
 #define IAXC_EVENT_LEVELS		2
 #define IAXC_EVENT_STATE		3
 #define IAXC_EVENT_NETSTAT		4
+#define IAXC_EVENT_URL			5	/* URL push via IAX(2) */
 
 #define IAXC_CALL_STATE_FREE 		0
 #define IAXC_CALL_STATE_ACTIVE 		(1<<1)
@@ -102,6 +103,12 @@ extern "C" {
 #define IAXC_TEXT_TYPE_IAX		5
 
 
+#define IAXC_URL_URL				1	/* URL received */
+#define IAXC_URL_LDCOMPLETE	2	/* URL loading complete */
+#define IAXC_URL_LINKURL		3	/* URL link request */
+#define IAXC_URL_LINKREJECT	4	/* URL link reject */
+#define IAXC_URL_UNLINK			5	/* URL unlink */
+ 
 
 #define IAXC_EVENT_BUFSIZ	256
 struct iaxc_ev_levels {
@@ -142,6 +149,12 @@ struct iaxc_ev_netstats {
 	struct iaxc_netstat remote;
 };
 
+struct iaxc_ev_url {
+	int callNo;
+	int type;
+	char url[IAXC_EVENT_BUFSIZ];
+};
+
 typedef struct iaxc_event_struct {
 	struct iaxc_event_struct *next;
 	int type;
@@ -150,6 +163,7 @@ typedef struct iaxc_event_struct {
 		struct iaxc_ev_text 		text;
 		struct iaxc_ev_call_state 	call;
 		struct iaxc_ev_netstats 	netstats;
+		struct iaxc_ev_url		url;
 	} ev;
 } iaxc_event;
 
@@ -184,6 +198,7 @@ EXPORT void iaxc_blind_transfer_call(int callNo, char *number);
 EXPORT void iaxc_dump_all_calls(void);
 EXPORT void iaxc_dump_call(void);
 EXPORT void iaxc_reject_call(void);
+EXPORT void iaxc_reject_call_number(int callNo);
 EXPORT void iaxc_send_dtmf(char digit);
 EXPORT int iaxc_was_call_answered();
 EXPORT void iaxc_millisleep(long ms);
