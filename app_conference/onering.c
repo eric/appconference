@@ -78,6 +78,7 @@ struct ast_frame *ast_onering_read(struct ast_onering *s,int samples)
 	f->mallocd =  AST_MALLOCD_HDR | AST_MALLOCD_DATA;
 	f->datalen = samples * 2;
 	f->samples = samples;
+	f->src = NULL;
 	/* Fill Data */
 	memcpy(f->data, s->data, samples * 2);
 	s->len -= samples * 2;
