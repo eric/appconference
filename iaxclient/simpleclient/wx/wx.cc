@@ -17,6 +17,33 @@
 
 IMPLEMENT_APP(IAXClient) 
 
+// event constants
+enum
+{
+    ID_DTMF_1 = 0,
+    ID_DTMF_2,
+    ID_DTMF_3,
+    ID_DTMF_4,
+    ID_DTMF_5,
+    ID_DTMF_6,
+    ID_DTMF_7,
+    ID_DTMF_8,
+    ID_DTMF_9,
+    ID_DTMF_STAR,
+    ID_DTMF_O,
+    ID_DTMF_POUND,
+
+    ID_DIAL = 100,
+    ID_HANG,
+
+    ID_QUIT = 200,
+
+    ID_PTT = 300,
+    ID_MUTE,
+    ID_SUPPRESS,
+
+    ID_MAX
+};
 
 static int inputLevel = 0;
 static int outputLevel = 0;
@@ -40,7 +67,10 @@ public:
 
     ~IAXFrame();
 
-    void IAXFrame::ButtonHandler(wxEvent &evt);
+    void IAXFrame::OnDTMF(wxEvent &evt);
+    void IAXFrame::OnDial(wxEvent &evt);
+    void IAXFrame::OnHangup(wxEvent &evt);
+    void IAXFrame::OnQuit(wxEvent &evt);
 
     wxGauge *input; 
     wxGauge *output; 
@@ -78,6 +108,28 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
      * account */
     CreateStatusBar();
     SetStatusText("Welcome to IAXClient!");
+
+
+    /* Set up Menus */
+    wxMenu *fileMenu = new wxMenu();
+#ifndef WXMAC
+    fileMenu->Append(ID_QUIT, _T("E&xit\tCtrl-X"));
+#else
+    fileMenu->Append(ID_QUIT, _T("&Quit\tCtrl-Q"));
+#endif
+
+    wxMenu *optionsMenu = new wxMenu();
+    optionsMenu->AppendCheckItem(ID_PTT, _T("Enable &Push to Talk"));
+    optionsMenu->AppendCheckItem(ID_MUTE, _T("&Mute"));
+    optionsMenu->AppendCheckItem(ID_SUPPRESS, _T("&Disable Silence Suppression"));
+   
+
+    wxMenuBar *menuBar = new wxMenuBar();
+    menuBar->Append(fileMenu, _T("&File"));
+    menuBar->Append(optionsMenu, _T("&Options"));
+
+    SetMenuBar(menuBar);
+
    
     /* DialPad Buttons */
     wxGridSizer *dialpadsizer = new wxGridSizer(3);
@@ -104,10 +156,10 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
     /* main control buttons */    
-    row3sizer->Add(dialButton = new wxButton(aPanel, 101, wxString("Dial"),
+    row3sizer->Add(dialButton = new wxButton(aPanel, ID_DIAL, wxString("Dial"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
-    row3sizer->Add(new wxButton(aPanel, 102, wxString("Hang Up"),
+    row3sizer->Add(new wxButton(aPanel, ID_HANG, wxString("Hang Up"),
 	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
     /* make dial the default button */
@@ -118,6 +170,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 #endif
 
     topsizer->Add(row3sizer,0,wxEXPAND);
+
 
     aPanel->SetSizer(topsizer);
     topsizer->SetSizeHints(aPanel);
@@ -131,53 +184,48 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     //output = new wxGauge(this, -1, 100); 
 }
 
-void IAXFrame::ButtonHandler(wxEvent &evt)
+void IAXFrame::OnDTMF(wxEvent &evt)
 {
-	int buttonNo = evt.m_id;	
+	iaxc_send_dtmf(evt.m_id);
+}
 
-	switch(buttonNo) {
-		case 0: case 1: case 2: case 3: case 4: case 5:
-		case 6: case 7: case 8: case 9: case 10: case 11:
-			iaxc_send_dtmf(*buttonlabels[buttonNo]);
-			break;
-		case 101:
-			// dial the number
-			iaxc_call(stderr,
-			   (char *)(theFrame->iaxDest->GetValue().c_str()));
-			break;
-		case 102:
-		        iaxc_dump_call();
-			break;
-		case 100:
-		        iaxc_dump_call();
-			iaxc_process_calls();
-			for(int i=0;i<10;i++) {
-			  iaxc_millisleep(100);
-			  iaxc_process_calls();
-			}
-			exit(0);	
-			break;
-		default:
-			break;
+void IAXFrame::OnDial(wxEvent &evt)
+{
+	iaxc_call(stderr, (char *)(theFrame->iaxDest->GetValue().c_str()));
+}
+
+void IAXFrame::OnHangup(wxEvent &evt)
+{
+	iaxc_dump_call();
+}
+
+void IAXFrame::OnQuit(wxEvent &evt)
+{
+	iaxc_dump_call();
+	iaxc_process_calls();
+	for(int i=0;i<10;i++) {
+	  iaxc_millisleep(100);
+	  iaxc_process_calls();
 	}
+	exit(0);	
 }
 
 BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
-	EVT_BUTTON(0,IAXFrame::ButtonHandler)
-	EVT_BUTTON(1,IAXFrame::ButtonHandler)
-	EVT_BUTTON(2,IAXFrame::ButtonHandler)
-	EVT_BUTTON(3,IAXFrame::ButtonHandler)
-	EVT_BUTTON(4,IAXFrame::ButtonHandler)
-	EVT_BUTTON(5,IAXFrame::ButtonHandler)
-	EVT_BUTTON(6,IAXFrame::ButtonHandler)
-	EVT_BUTTON(7,IAXFrame::ButtonHandler)
-	EVT_BUTTON(8,IAXFrame::ButtonHandler)
-	EVT_BUTTON(9,IAXFrame::ButtonHandler)
-	EVT_BUTTON(10,IAXFrame::ButtonHandler)
-	EVT_BUTTON(11,IAXFrame::ButtonHandler)
-	EVT_BUTTON(100,IAXFrame::ButtonHandler)
-	EVT_BUTTON(101,IAXFrame::ButtonHandler)
-	EVT_BUTTON(102,IAXFrame::ButtonHandler)
+	EVT_BUTTON(0,IAXFrame::OnDTMF)
+	EVT_BUTTON(1,IAXFrame::OnDTMF)
+	EVT_BUTTON(2,IAXFrame::OnDTMF)
+	EVT_BUTTON(3,IAXFrame::OnDTMF)
+	EVT_BUTTON(4,IAXFrame::OnDTMF)
+	EVT_BUTTON(5,IAXFrame::OnDTMF)
+	EVT_BUTTON(6,IAXFrame::OnDTMF)
+	EVT_BUTTON(7,IAXFrame::OnDTMF)
+	EVT_BUTTON(8,IAXFrame::OnDTMF)
+	EVT_BUTTON(9,IAXFrame::OnDTMF)
+	EVT_BUTTON(10,IAXFrame::OnDTMF)
+	EVT_BUTTON(11,IAXFrame::OnDTMF)
+	EVT_BUTTON(ID_DIAL,IAXFrame::OnDial)
+	EVT_BUTTON(ID_HANG,IAXFrame::OnHangup)
+	EVT_BUTTON(ID_QUIT,IAXFrame::OnQuit)
 END_EVENT_TABLE()
 
 IAXFrame::~IAXFrame()
