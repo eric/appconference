@@ -180,11 +180,7 @@ void iaxc_usermsg(int type, const char *fmt, ...)
     e.ev.text.type=type;
 
     va_start(args, fmt);
-#ifdef WIN32
-    _vsnprintf(e.ev.text.message, IAXC_EVENT_BUFSIZ, fmt, args);
-#else
     vsnprintf(e.ev.text.message, IAXC_EVENT_BUFSIZ, fmt, args);
-#endif
     va_end(args);
 
     iaxc_post_event(e);
@@ -290,11 +286,7 @@ void jb_errf(const char *fmt, ...)
     char buf[1024];
 
     va_start(args, fmt);
-#ifdef WIN32
-    _vsnprintf(buf, 1024, fmt, args);
-#else
     vsnprintf(buf, 1024, fmt, args);
-#endif
     va_end(args);
 
     iaxc_usermsg(IAXC_ERROR, buf);
@@ -306,11 +298,7 @@ void jb_warnf(const char *fmt, ...)
     char buf[1024];
 
     va_start(args, fmt);
-#ifdef WIN32
-    _vsnprintf(buf, 1024, fmt, args);
-#else
     vsnprintf(buf, 1024, fmt, args);
-#endif
     va_end(args);
 
     iaxc_usermsg(IAXC_NOTICE, buf);
@@ -321,11 +309,7 @@ void jb_dbgf(const char *fmt, ...)
     va_list args;
 
     va_start(args, fmt);
-#ifdef WIN32
-    _vfprintf(stderr, fmt, args);
-#else
     vfprintf(stderr, fmt, args);
-#endif
     va_end(args);
 }
 
@@ -1224,4 +1208,10 @@ EXPORT int iaxc_mic_boost_get( void )
 EXPORT int iaxc_mic_boost_set( int enable )
 {
 	return audio.mic_boost_set( &audio, enable ) ;
+}
+
+EXPORT char* iaxc_version()
+{
+	char* ver;
+	strncpy(ver,   LIBVER,   IAXC_EVENT_BUFSIZ);
 }

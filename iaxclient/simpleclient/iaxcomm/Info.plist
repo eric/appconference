@@ -8,7 +8,9 @@
         <key>CFBundleExecutable</key>
         <string>iaxcomm</string>
         <key>CFBundleGetInfoString</key>
-        <string>iaxcomm</string>
+        <string>iaxcomm @VERSION@</string>
+	<key>CFBundleIconFile</key>
+	<string>iaxcomm.icns</string>
         <key>CFBundleInfoDictionaryVersion</key>
         <string>6.0</string>
         <key>CFBundleName</key>
@@ -16,11 +18,11 @@
         <key>CFBundlePackageType</key>
         <string>APPL</string>
         <key>CFBundleShortVersionString</key>
-        <string>iaxcomm</string>
+        <string>@VERSION@</string>
         <key>CFBundleSignature</key>
-        <string>????</string>
+        <string>iaxc</string>
         <key>CFBundleVersion</key>
-        <string>1.1.1</string>
+        <string>@VERSION@</string>
         <key>CSResourcesFileMapped</key>
         <true/>
 </dict>

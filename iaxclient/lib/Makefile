@@ -32,6 +32,8 @@ CFLAGS= -I. -Igsm/inc \
 #CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
 CFLAGS:= $(CFLAGS) -g -O2 
 
+CFLAGS:= $(CFLAGS) -DLIBVER='"CVS-$(shell date +%Y/%m/%d-%H:%M)"'
+
 ifeq ($(SPEEX_PREPROCESS),1)
 CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
 endif
@@ -236,9 +238,9 @@ endif
 ifeq ($(OSTYPE),MACOSX)
 OBJS:= $(OBJS) $(OBJS_MACOSX) 
 RANLIB= ranlib
-# comment these lines to build against current OS, and not 10.2.7.
-CC=MACOSX_DEPLOYMENT_TARGET=10.2 NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk cc
-CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.2.7.sdk/usr/include
+# comment these lines in to build against version  10.2.7.
+#CC=MACOSX_DEPLOYMENT_TARGET=10.2 NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk cc
+#CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.2.7.sdk/usr/include
 DYNLIB=libiaxclient.dylib
 endif
 

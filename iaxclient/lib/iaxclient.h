@@ -195,6 +195,7 @@ EXPORT int iaxc_quelch(int callNo, int MOH);
 EXPORT int iaxc_unquelch(int call);
 EXPORT int iaxc_mic_boost_get( void ) ;
 EXPORT int iaxc_mic_boost_set( int enable ) ;
+EXPORT char* iaxc_version();
 
 /* application-defined networking; give substiture sendto and recvfrom functions,
  * must be called before iaxc_initialize! */

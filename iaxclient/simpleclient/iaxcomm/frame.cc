@@ -615,8 +615,11 @@ void MyFrame::OnExit(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
-    wxString msg;
-    msg.Printf("Version: %s", VERSION);
+    wxString  msg;
+    char*     libver = (char *)malloc(256);
+    
+    libver = iaxc_version();
+    msg.Printf("iaxComm version:\t%s\nlibiaxclient version:\t%s", VERSION, libver);
     wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
 }
 
