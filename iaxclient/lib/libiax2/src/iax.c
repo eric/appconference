@@ -494,7 +494,7 @@ int iax_get_netstats(struct iax_session *session, int *rtt, struct iax_netstat *
 
       local->jitter = stats.jitter;
       /* XXX: should be short-term loss pct.. */
-      if(stats.frames_in == 0) stats.frames_in = LONG_MAX;
+      if(stats.frames_in == 0) stats.frames_in = 1;
       local->losspct = stats.frames_lost * 100 / stats.frames_in;
       local->losscnt = stats.frames_lost;
       local->packets = stats.frames_in;
