@@ -3,11 +3,12 @@
 
 #ifdef WIN32
 
-#include <stdio.h>
 #include "winpoop.h" // Win32 Support Functions
 
 #endif
 
+#include <stdio.h>
+#include <sys/types.h>
 #include "gsm.h"
 
 #define RBUFSIZE 256

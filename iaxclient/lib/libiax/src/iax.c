@@ -595,7 +595,9 @@ static int iax_reliable_xmit(struct iax_frame *f)
 
 int iax_init(int preferredportno)
 {
+#ifdef WIN32
 	WSADATA foop;
+#endif
 	int portno = preferredportno;
 	struct sockaddr_in sin;
 	int sinlen;
