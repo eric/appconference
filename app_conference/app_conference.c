@@ -348,7 +348,7 @@ void write_audio(struct ast_frame *f, struct ast_conference *conference, struct 
 	    ast_pthread_mutex_lock(&(bufferl->lock));
 			if (bufferl->ring != NULL) {
 			    if (ast_onering_write(bufferl->ring,f) != 0) {
-//			    ast_log(LOG_ERROR,"failed to write audio\n");
+			    ast_log(LOG_ERROR,"failed to write audio\n");
 //			ast_log(LOG_NOTICE,"written %d bytes from chan %#x to buffer %#x\n",f->datalen,member->chan,bufferl->ring);
 			    } else {
 //			    ast_log(LOG_NOTICE,"+\n");
@@ -370,10 +370,24 @@ void write_audio(struct ast_frame *f, struct ast_conference *conference, struct 
 }
 
 void mix_slin(char *dst, char *src, int samples) {
-    int i=0;
+    int i=0,val=0;
 //    printf("mixing\n");
     for (i=0;i<samples;i++) {
-	    ((short *)dst)[i] += ((short *)src)[i];
+	val =  ((short *)dst)[i] + ((short *)src)[i];
+	if(val > 0x7fff) {
+	    ((short *)dst)[i] = 0x7fff;
+	    continue;
+	} else {
+	    ((short *)dst)[i] = val;
+	    continue;
+	} 
+	if (val < -0x7fff) {
+	    ((short *)dst)[i] = -0x7fff;
+	    continue;
+	} else {
+	    ((short *)dst)[i] = val;
+	    continue;
+	}
     }
 //    printf("mixed\n");
 }
@@ -601,7 +615,7 @@ static int conference_exec(struct ast_channel *chan, void *data)
 			if (res == 1) { member = NULL; break };
 		    }
 #endif
-		send_audio(conference,member,f->samples / 8);
+	//	send_audio(conference,member,f->samples / 8);
 		    if (f) {
 			ast_frfree(f);
 		    }
@@ -620,7 +634,7 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		//} 
 
 	    if (dms >= AST_CONF_MIN_MS) {
-//		send_audio(conference,member,dms);
+		send_audio(conference,member,dms);
 		if (member->priority == 3) {
     		//    ast_log(LOG_NOTICE,"urest=%d dms=%d dus=%d\n",urest,dms,dus);
 		}
