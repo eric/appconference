@@ -604,7 +604,7 @@ int pa_start (struct iaxc_audio_driver *d ) {
 		int n = Px_GetNumInputSources( iMixer ) - 1 ;
 		for ( ; n > 0 ; --n )
 		{
-			if ( stricmp( "microphone", Px_GetInputSourceName( iMixer, n ) ) == 0 )
+			if ( strcasecmp( "microphone", Px_GetInputSourceName( iMixer, n ) ) == 0 )
 			{
 				Px_SetCurrentInputSource( iMixer, n ) ;
 			}
