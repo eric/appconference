@@ -640,6 +640,10 @@ int pa_start (struct iaxc_audio_driver *d ) {
 	/* select the microphone as the input source */
 	if ( iMixer != NULL )
 	{
+#ifdef WIN32 // temporary until other impl have this function
+		_Px_SetCurrentInputSourceByName( iMixer, "microphone" ) ;
+		_Px_SetMicrophoneBoost( iMixer, 0 ) ;
+#else
 		int n = Px_GetNumInputSources( iMixer ) - 1 ;
 		for ( ; n > 0 ; --n )
 		{
@@ -648,6 +652,7 @@ int pa_start (struct iaxc_audio_driver *d ) {
 				Px_SetCurrentInputSource( iMixer, n ) ;
 			}
 		}
+#endif
 	}
 
     running = 1;
@@ -793,6 +798,30 @@ int pa_output_level_set(struct iaxc_audio_driver *d, double level){
     return 0;
 }
 
+int pa_mic_boost_get( struct iaxc_audio_driver* d )
+{
+	int enable = -1 ;
+#ifdef WIN32
+	if ( iMixer != NULL )
+	{
+		enable = _Px_GetMicrophoneBoost( iMixer ) ;
+	}
+#endif
+	return enable ;
+}
+
+int pa_mic_boost_set( struct iaxc_audio_driver* d, int enable )
+{
+	int err = -1 ;
+#ifdef WIN32
+	if ( iMixer != NULL )
+	{
+		err = _Px_SetMicrophoneBoost( iMixer, enable ) ;
+	}
+#endif
+	return err ;
+}
+
 /* initialize audio driver */
 int pa_initialize (struct iaxc_audio_driver *d ) {
     PaError  err;
@@ -819,6 +848,8 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     d->output_level_set = pa_output_level_set;
     d->play_sound = pa_play_sound;
     d->stop_sound = pa_stop_sound;
+    d->mic_boost_get = pa_mic_boost_get;
+    d->mic_boost_set = pa_mic_boost_set;
 
     /* setup private data stuff */
     selectedInput  = Pa_GetDefaultInputDeviceID();

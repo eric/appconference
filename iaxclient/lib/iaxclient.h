@@ -122,6 +122,8 @@ int iaxc_first_free_call();
 int iaxc_selected_call();
 int iaxc_quelch(int callNo, int MOH);
 int iaxc_unquelch(int call);
+int iaxc_mic_boost_get( void ) ;
+int iaxc_mic_boost_set( int enable ) ;
 
 #define IAXC_AD_INPUT           (1<<0)
 #define IAXC_AD_OUTPUT          (1<<1)

@@ -117,6 +117,10 @@ struct iaxc_audio_driver {
 	int (*play_sound)(struct iaxc_sound *s, int ring);
 	int (*stop_sound)(int id);
 
+	/* mic boost */
+	int (*mic_boost_get)(struct iaxc_audio_driver *d ) ;
+	int (*mic_boost_set)(struct iaxc_audio_driver *d, int enable);
+
 }; 
 
 struct iaxc_call {

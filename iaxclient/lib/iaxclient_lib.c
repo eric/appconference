@@ -1016,3 +1016,13 @@ int iaxc_unquelch(int call)
 {
 	return iax_unquelch(calls[call].session);
 }
+
+int iaxc_mic_boost_get( void )
+{
+	return audio.mic_boost_get( &audio ) ;
+}
+
+int iaxc_mic_boost_set( int enable )
+{
+	return audio.mic_boost_set( &audio, enable ) ;
+}
