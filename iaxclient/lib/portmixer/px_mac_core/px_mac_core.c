@@ -63,8 +63,8 @@ typedef struct PaHostInOut_s
     void              *converterBuffer;
     int                numChannels;
     /** Used for interleaving or de-interleaving multiple streams for devices like MOTU828. */
-    int                streamInterleavingBufferLen; /**< size in bytes */
-    Float32           *streamInterleavingBuffer;
+//    int                streamInterleavingBufferLen; /**< size in bytes */
+//    Float32           *streamInterleavingBuffer;
 } PaHostInOut;
 
 /**************************************************************

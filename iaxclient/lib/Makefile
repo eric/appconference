@@ -21,6 +21,10 @@ CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
 endif
 
 
+# debug flags
+# CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -DEXTREME_DEBUG -D_DEBUG 
+CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG 
+
 OBJS=\
 	gsm/src/add.o \
 	gsm/src/code.o \
@@ -208,9 +212,9 @@ endif
 ifeq ($(OSTYPE),MACOSX)
 OBJS:= $(OBJS) $(OBJS_MACOSX) 
 RANLIB= ranlib
-# comment these lines to build against current OS, and not 10.1.5.
-#CC=MACOSX_DEPLOYMENT_TARGET=10.1 NEXT_ROOT=/Developer/SDKs/MacOSX10.1.5.sdk cc
-#CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.1.5.sdk/usr/include
+# comment these lines to build against current OS, and not 10.2.7.
+CC=MACOSX_DEPLOYMENT_TARGET=10.2 NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk cc
+CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.2.7.sdk/usr/include
 endif
 
 
