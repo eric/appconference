@@ -30,7 +30,6 @@
 /*! \file */
 
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -56,7 +55,7 @@ static inline int16_t fsaturate(double damp)
 	return  INT16_MAX;
     if (damp < -32768.0)
 	return  INT16_MIN;
-    return lrint(damp);
+    return (int16_t) rint(damp);
 }
 
 static void save_history(plc_state_t *s, int16_t *buf, int len)

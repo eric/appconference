@@ -32,7 +32,11 @@
 #if !defined(_PLC_H_)
 #define _PLC_H_
 
+#ifdef SOLARIS
+#include <sys/int_types.h>
+#else
 #include <stdint.h>
+#endif
 
 /*! \page plc_page Packet loss concealment
 \section plc_page_sec_1 What does it do?
