@@ -583,7 +583,8 @@ static void update_noise_prob(SpeexPreprocessState *st)
          st->Smin[i] = st->Stmp[i] = st->S[i]+100;
    }
 
-   if (st->nb_preprocess%100==0)
+   /* adjust modulo higher for slower noise adaptation; lower for faster; original was 100 */
+   if (st->nb_preprocess%250==0)
    {
       for (i=1;i<N-1;i++)
       {
