@@ -25,10 +25,17 @@ which is certainly good enough for our purposes. */
 /* for original, lores_gettimeofday() */
 static long startuptime;
 
+/* The current implementation of "hires time", based on QueryPerformanceCounter
+ * is demonstratably broken.  I've seen it break on about 10% of the machines out there.
+ * See http://support.microsoft.com/?id=274323 
+ * So, leave this undefined unless/until we can work around this 
+ */
+#ifdef HIRES_TIME
 /* for new, hires_gettimeofday() */
 static __int64 freq, start ;
 static int hires_gettimeofday_inited = 0 ;
 static int hires_gettimeofday_available = 0 ;
+#endif
 
 /* 
  * functions implementations
@@ -36,6 +43,7 @@ static int hires_gettimeofday_available = 0 ;
 
 void gettimeofday( struct timeval* tv, void* tz )
 {
+#ifdef HIRES_TIME
 	if ( hires_gettimeofday_available == 1 )
 	{
 		/* http://sourceforge.net/mailarchive/message.php?msg_id=7252124 */
@@ -52,11 +60,14 @@ void gettimeofday( struct timeval* tv, void* tz )
 	}
 	else
 	{
+#endif
 		long l = startuptime + GetTickCount();
 	
 		tv->tv_sec = l / 1000;
 		tv->tv_usec = (l % 1000) * 1000;
+#ifdef HIRES_TIME
 	}
+#endif
 
 	return ;
 }
@@ -77,6 +88,7 @@ void os_init(void)
 	time(&t);
 	startuptime = ((t % 86400) * 1000) - GetTickCount();
 
+#ifdef HIRES_TIME
 	/* try to initialized hires gettimeofday() implementation */
 	if ( hires_gettimeofday_inited == 0 )
 	{
@@ -100,6 +112,7 @@ void os_init(void)
 			fflush( stderr ) ;
 		}
 	}
+#endif
 }
 
 /* yes, it could have just been a #define, but that makes linking trickier */
