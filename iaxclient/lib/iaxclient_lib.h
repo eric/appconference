@@ -129,7 +129,13 @@ struct iaxc_call {
 	/* the "state" of this call */
 	int state;
 	char remote[IAXC_EVENT_BUFSIZ];
+	char remote_name[IAXC_EVENT_BUFSIZ];
 	char local[IAXC_EVENT_BUFSIZ];
+	char local_context[IAXC_EVENT_BUFSIZ];
+
+	/* Outbound CallerID */
+	char callerid_name[IAXC_EVENT_BUFSIZ];
+	char callerid_number[IAXC_EVENT_BUFSIZ];
 
 	/* reset whenever we receive packets from remote */
 	struct 	 timeval 	last_activity;

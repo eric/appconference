@@ -78,7 +78,9 @@ struct iaxc_ev_call_state {
 	int callNo;
 	int state;
 	char remote[IAXC_EVENT_BUFSIZ];
+	char remote_name[IAXC_EVENT_BUFSIZ];
 	char local[IAXC_EVENT_BUFSIZ];
+	char local_context[IAXC_EVENT_BUFSIZ];
 };
 
 typedef struct iaxc_event_struct {
@@ -96,6 +98,7 @@ void iaxc_set_event_callback(iaxc_event_callback_t func);
 int iaxc_initialize(int audType, int nCalls);
 void iaxc_shutdown();
 void iaxc_set_encode_format(int fmt);
+void iaxc_set_callerid(char *name, char *number);
 void iaxc_process_calls();
 int iaxc_service_audio();
 int iaxc_start_processing_thread();

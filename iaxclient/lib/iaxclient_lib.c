@@ -6,6 +6,9 @@
 #include <varargs.h>
 #endif
 
+#define DEFAULT_CALLERID_NAME    "Not Available"
+#define DEFAULT_CALLERID_NUMBER  "7005551212"
+
 struct iaxc_registration {
     struct iax_session *session;
     int firstpass;
@@ -155,7 +158,10 @@ void iaxc_do_state_callback(int callNo)
       e.type = IAXC_EVENT_STATE;
       e.ev.call.callNo = callNo;
       e.ev.call.state = calls[callNo].state;
-      strncpy(e.ev.call.remote, calls[callNo].remote, IAXC_EVENT_BUFSIZ);
+      strncpy(e.ev.call.remote,        calls[callNo].remote,        IAXC_EVENT_BUFSIZ);
+      strncpy(e.ev.call.remote_name,   calls[callNo].remote_name,   IAXC_EVENT_BUFSIZ);
+      strncpy(e.ev.call.local,         calls[callNo].local,         IAXC_EVENT_BUFSIZ);
+      strncpy(e.ev.call.local_context, calls[callNo].local_context, IAXC_EVENT_BUFSIZ);
       iaxc_post_event(e);
 }
 
@@ -219,6 +225,8 @@ int iaxc_selected_call() {
 // Parameters:
 // audType - Define whether audio is handled by library or externally
 int iaxc_initialize(int audType, int inCalls) {
+	int i;
+
 	/* os-specific initializations: init gettimeofday fake stuff in
 	 * Win32, etc) */
 	os_init();
@@ -244,6 +252,11 @@ int iaxc_initialize(int audType, int inCalls) {
 	}
 	iAudioType = audType;
 	selected_call = 0;
+
+	for(i=0; i<nCalls; i++) {
+	    strncpy(calls[i].callerid_name,   DEFAULT_CALLERID_NAME,   IAXC_EVENT_BUFSIZ);
+	    strncpy(calls[i].callerid_number, DEFAULT_CALLERID_NUMBER, IAXC_EVENT_BUFSIZ);
+	}
 
 	gettimeofday(&lastouttm,NULL);
 	switch (iAudioType) {
@@ -281,6 +294,15 @@ void iaxc_set_encode_format(int fmt)
 {
 	iEncodeType = fmt;
 	iax_set_formats(fmt);
+}
+
+void iaxc_set_callerid(char *name, char *number) {
+    int i;
+    
+    for(i=0; i<nCalls; i++) {
+        strncpy(calls[i].callerid_name,   name,   IAXC_EVENT_BUFSIZ);
+        strncpy(calls[i].callerid_number, number, IAXC_EVENT_BUFSIZ);
+    }
 }
 
 static void iaxc_note_activity(int callNo) {
@@ -621,7 +643,19 @@ void iaxc_call(char *num)
 	calls[callNo].gsmin = 0;
 	calls[callNo].gsmout = 0;
 
-	strncpy(calls[callNo].remote,num,IAXC_EVENT_BUFSIZ);
+	char *ext = strstr(num, "/");
+
+	if(ext) {
+	    strncpy(calls[callNo].remote_name, num, IAXC_EVENT_BUFSIZ); 
+    	    strncpy(calls[callNo].remote,    ++ext, IAXC_EVENT_BUFSIZ);
+    	} else {
+	    strncpy(calls[callNo].remote_name, num, IAXC_EVENT_BUFSIZ);
+    	    strncpy(calls[callNo].remote,      "" , IAXC_EVENT_BUFSIZ);
+     	}
+
+ 	strncpy(calls[callNo].local        , calls[callNo].callerid_name, IAXC_EVENT_BUFSIZ);
+	strncpy(calls[callNo].local_context, "default", IAXC_EVENT_BUFSIZ);
+
 	calls[callNo].state = IAXC_CALL_STATE_ACTIVE | IAXC_CALL_STATE_OUTGOING;
 
 	/* reset activity and ping "timers" */
@@ -629,9 +663,10 @@ void iaxc_call(char *num)
 	calls[callNo].last_ping = calls[callNo].last_activity;
 
 #ifdef IAXC_IAX2
-	iax_call(calls[callNo].session, "7001234567", "IAXClient User", num, NULL, 0);
+	iax_call(calls[callNo].session, calls[callNo].callerid_number,
+	                                calls[callNo].callerid_name, num, NULL, 0);
 #else
-	iax_call(calls[callNo].session, "7001234567", num, NULL, 10);
+	iax_call(calls[callNo].session, calls[callNo].callerid_number, num, NULL, 0);
 #endif
 
 	// does state stuff also
@@ -822,12 +857,26 @@ static void do_iax_event() {
 			    strncpy(calls[callNo].local,"unknown",
 				IAXC_EVENT_BUFSIZ);
 
+			if(e->ies.called_context)
+			    strncpy(calls[callNo].local_context,e->ies.called_context,
+				IAXC_EVENT_BUFSIZ);
+			else
+			    strncpy(calls[callNo].local_context,"",
+    				IAXC_EVENT_BUFSIZ);
+
 			if(e->ies.calling_number)
 			    strncpy(calls[callNo].remote,
-				e->ies.calling_number, IAXC_EVENT_BUFSIZ);
+  				e->ies.calling_number, IAXC_EVENT_BUFSIZ);
 			else
 			    strncpy(calls[callNo].remote,
-				"unknown", IAXC_EVENT_BUFSIZ);
+    				"unknown", IAXC_EVENT_BUFSIZ);
+
+			if(e->ies.calling_name)
+			    strncpy(calls[callNo].remote_name,
+    				e->ies.calling_name, IAXC_EVENT_BUFSIZ);
+			else
+			    strncpy(calls[callNo].remote_name,
+    				"unknown", IAXC_EVENT_BUFSIZ);
 #endif
 			iaxc_note_activity(callNo);
 			iaxc_usermsg(IAXC_STATUS, "Call from (%s)", calls[callNo].remote);
