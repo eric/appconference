@@ -33,9 +33,10 @@
 //#define _CRTDBG_MAP_ALLOC
 //#include <crtdbg.h>
 
-#include "gsm.h"
+//#include "gsm.h"
 #include "iaxclient_lib.h"
 #include "audio_win32.h"
+#include "audio_encode.h"
 #include "frame.h"
 #include "miniphone.h"
 
@@ -71,8 +72,7 @@ NOTE: If all this isnt done, the system doesnt not handle this
 cleanly and has to be rebooted. What a pile of doo doo!! */
 void killem(void)
 {
-	shutdown_audio();
-	iax_shutdown();
+	shutdown_client();
 
 	// VC++ Memory Leak Detection
 	//_CrtDumpMemoryLeaks();
@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 	atexit(killem);
 	
 	initialize_client(AUDIO_INTERNAL, f);
-	iax_set_formats(AST_FORMAT_GSM);
+	set_encode_format(AST_FORMAT_GSM);
 
 	fprintf(f, "Text Based Telephony Client.\n\n");
 	issue_prompt(f);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 	/* main tight loop */
 	while(1) {
 
-		process_calls();
+//		process_calls();
 		answered_call = was_call_answered();
 		/* if key pressed, do command stuff */
 		if(_kbhit())
@@ -149,6 +149,7 @@ int main(int argc, char *argv[])
 
 				issue_prompt(f);
 		}
+		Sleep(10);
 	}
 
 	return 0;
@@ -269,13 +270,13 @@ void parse_cmd(FILE *f, int argc, char **argv)
 			fprintf(f, "Too many arguements for command dtmf\n");
 			return;
 		}
-		if(most_recent_answer)
-				iax_send_dtmf(most_recent_answer->session,*argv[1]);
+		client_send_dtmf(*argv[1]);
 	} else if(!strcmp(argv[0], "QUIT")) {
 		if(argc > 1)
 			fprintf(f, "Too many arguements for command quit\n");
 		else {
 			fprintf(f, "Good bye!\n");
+			dump_call();
 			exit(1);
 		}
 	} else fprintf(f, "Unknown command of %s\n", argv[0]);
