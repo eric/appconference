@@ -9,8 +9,8 @@ MEC2_EC=0
 
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common
 
-#CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
-CFLAGS:= $(CFLAGS) -g
+CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
+#CFLAGS:= $(CFLAGS) -g -O2
 
 OBJS=\
 	gsm/src/add.o \
@@ -37,6 +37,8 @@ OBJS=\
 	audio_encode.o \
 	audio_portaudio.o \
 	audio_file.o \
+	codec_gsm.o \
+	codec_ulaw.o \
 	iaxclient_lib.o 
 
 OBJS_WIN32=\

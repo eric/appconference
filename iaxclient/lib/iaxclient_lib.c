@@ -670,9 +670,9 @@ void iaxc_call(char *num)
 
 	calls[callNo].session = newsession;
 
-	/* XXX ??? */
-	calls[callNo].gsmin = 0;
-	calls[callNo].gsmout = 0;
+	/* XXX leak???? */
+	calls[callNo].encoder = 0;
+	calls[callNo].decoder = 0;
 
 	if(ext) {
 	    strncpy(calls[callNo].remote_name, num, IAXC_EVENT_BUFSIZ); 
@@ -927,8 +927,9 @@ static void do_iax_event() {
 			iaxc_note_activity(callNo);
 			iaxc_usermsg(IAXC_STATUS, "Call from (%s)", calls[callNo].remote);
 
-			calls[callNo].gsmin = 0;
-			calls[callNo].gsmout = 0;
+			/* XXX leak? */
+			calls[callNo].encoder = 0;
+			calls[callNo].decoder = 0;
 			calls[callNo].session = e->session;
 			calls[callNo].state = IAXC_CALL_STATE_ACTIVE|IAXC_CALL_STATE_RINGING;
 

@@ -1,5 +1,7 @@
 
 #include "iaxclient_lib.h"
+#include "codec_gsm.h"
+#include "codec_ulaw.h"
 
 double iaxc_silence_threshold = -9e99;
 
@@ -115,30 +117,56 @@ static int output_postprocess(void *audio, int len)
     return 0;
 }
 
-int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEncodeType)
+int send_encoded_audio(struct iaxc_call *call, void *data, int iEncodeType)
 {
-	gsm_frame fo;
+	char outbuf[1024];
+	int outsize = 1024;
+	int insize = 160; /* currently always 20ms */
 	int silent;
-	int samples = 160; /* currently always 20ms */
 
 	/* update last input timestamp */
 	gettimeofday( &timeLastInput, NULL ) ;
 
-	silent = input_postprocess(data,samples);	
+	silent = input_postprocess(data,insize);	
 
 	if(silent) return 0;  /* poof! no encoding! */
 
-	switch (iEncodeType) {
-		case AST_FORMAT_GSM:
-			if(!most_recent_answer->gsmout)
-				most_recent_answer->gsmout = gsm_create();
-
-			// encode the audio from the buffer into GSM format and send
-			gsm_encode(most_recent_answer->gsmout, (short *) data, (void *)&fo);
-			break;
+	/* destroy encoder if it is incorrect type */
+	if(call->encoder && call->encoder->format != iEncodeType)
+	{
+	    call->encoder->destroy(call->encoder);
+	    call->encoder = NULL;
 	}
-	if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, 
-				(char *)&fo, sizeof(gsm_frame), samples) == -1) 
+
+	/* create encoder if necessary */
+	if(!call->encoder) {
+	    switch (iEncodeType) {
+		case AST_FORMAT_GSM:
+		  call->encoder = iaxc_audio_codec_gsm_new();
+		break;
+		case AST_FORMAT_ULAW:
+		  call->encoder = iaxc_audio_codec_ulaw_new();
+		break;
+		default:
+		  /* ERROR: codec not supported */
+		  fprintf(stderr, "ERROR: Codec not supported: %d\n", iEncodeType);
+		  return 0;
+	    }
+	}
+
+	if(!call->encoder) {
+		  /* ERROR: no codec */
+		  fprintf(stderr, "ERROR: Codec could not be created: %d\n", iEncodeType);
+		  return 0;
+	}
+
+	if(call->encoder->encode(call->encoder, &insize, (short *)data, &outsize, outbuf)) {
+		  /* ERROR: codec error */
+		  fprintf(stderr, "ERROR: encode error: %d\n", iEncodeType);
+		  return 0;
+	}
+	    
+	if(iax_send_voice(call->session,iEncodeType, outbuf, 1024-outsize, 160-insize) == -1) 
 	{
 	      puts("Failed to send voice!");
 	      return -1;
@@ -152,6 +180,9 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
  * XXX out MUST be 160 bytes */
 int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEncodeType)
 {
+	int insize = len;
+	int outsize = 160;
+      
 	/* update last output timestamp */
 	gettimeofday( &timeLastOutput, NULL ) ;
 
@@ -160,24 +191,44 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEn
 		return -1;
 	}
 
-	switch (iEncodeType) {
-	case AST_FORMAT_GSM:
-		if(len % 33) {
-			fprintf(stderr, "Weird gsm frame, not a multiple of 33 (len = %d.\n", len);
-			return -1;
-		}
-		if (!call->gsmin)
-		    call->gsmin = gsm_create();
-
-		if(gsm_decode(call->gsmin, data, out))
-		    return -1;
-		output_postprocess(out, 160);	
-		return 33;
-		break;
+	/* destroy decoder if it is incorrect type */
+	if(call->decoder && call->decoder->format != iEncodeType)
+	{
+	    call->decoder->destroy(call->decoder);
+	    call->decoder = NULL;
 	}
 
-	/* unknown type */
-	return -1;
+	/* create encoder if necessary */
+	if(!call->decoder) {
+	    switch (iEncodeType) {
+		case AST_FORMAT_GSM:
+		  call->decoder = iaxc_audio_codec_gsm_new();
+		break;
+		case AST_FORMAT_ULAW:
+		  call->decoder = iaxc_audio_codec_ulaw_new();
+		break;
+		default:
+		  /* ERROR: codec not supported */
+		  fprintf(stderr, "ERROR: Codec not supported: %d\n", iEncodeType);
+		  return -1;
+	    }
+	}
+
+	if(!call->decoder) {
+		  /* ERROR: no codec */
+		  fprintf(stderr, "ERROR: Codec could not be created: %d\n", iEncodeType);
+		  return -1;
+	}
+
+	if(call->decoder->decode(call->decoder, &insize, data, &outsize, out)) {
+		  /* ERROR: codec error */
+		  fprintf(stderr, "ERROR: decode error: %d\n", iEncodeType);
+		  return -1;
+	}
+
+	output_postprocess(out, 160-outsize);	
+
+	return len-insize;
 }
 
 

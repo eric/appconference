@@ -75,7 +75,6 @@ pthread_create(&thread, NULL, func, args)
 #define IAXC_CALL_TIMEOUT 30000
 
 #include "iax-client.h" // LibIAX functions
-#include "gsm.h"
 
 
 void iaxc_usermsg(int type, const char *fmt, ...);
@@ -125,10 +124,21 @@ struct iaxc_audio_driver {
 
 }; 
 
+struct iaxc_audio_codec {
+	char name[256];
+	int format;
+	void *encstate;
+	void *decstate;
+	int (*encode) ( struct iaxc_audio_codec *codec, int *inlen, short *in, int *outlen, char *out );
+	int (*decode) ( struct iaxc_audio_codec *codec, int *inlen, char *in, int *outlen, short *out );
+	void (*destroy) ( struct iaxc_audio_codec *codec);
+};
+
+
 struct iaxc_call {
 	/* to be replaced with codec-structures, with codec-private data  */
-	gsm gsmin;
-	gsm gsmout;
+	struct iaxc_audio_codec *encoder;
+	struct iaxc_audio_codec *decoder;
 
 	/* the "state" of this call */
 	int state;
