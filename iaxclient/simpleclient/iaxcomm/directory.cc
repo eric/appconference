@@ -305,8 +305,8 @@ void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
     int        isOK;
 
     if((sel=PhoneList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0) {
-        isOK = wxMessageBox("Really remove " + PhoneList->GetItemText(sel) + "?",
-                            "Remove from Phone Book", wxOK|wxCANCEL|wxCENTRE);
+        isOK = wxMessageBox(_T("Really remove ") + PhoneList->GetItemText(sel) + _T("?"),
+                            _T("Remove from Phone Book"), wxOK|wxCANCEL|wxCENTRE);
         if(isOK == wxOK) {
             config->DeleteGroup(_T("/PhoneBook/") + PhoneList->GetItemText(sel));
             PhoneList->DeleteItem(sel);
