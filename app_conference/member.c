@@ -126,7 +126,7 @@ int member_exec( struct ast_channel* chan, void* data )
 	struct timeval fs_base, fs_curr ;
 	gettimeofday( &fs_base, NULL ) ;
 
-/*
+#ifdef DEBUG_OUTPUT_PCM
 	// !!! TESTING !!!
 	char* incoming_fn = malloc( 512 ) ;
 	snprintf( incoming_fn, 512, "/tmp/ac_%s_%ld.gsm", chan->dnid, fr_base.tv_usec ) ;
@@ -149,7 +149,7 @@ int member_exec( struct ast_channel* chan, void* data )
 
 	// !!! TESTING !!!
 	free( incoming_fn ) ;
-*/
+#endif
 
 	//
 	// process loop for new member ( this runs in it's own thread
@@ -228,14 +228,14 @@ int member_exec( struct ast_channel* chan, void* data )
 				// accounting: count the incoming frame
 				member->frames_in++ ;
 
-/*
+#ifdef DEBUG_OUTPUT_PCM
 				// !!! TESTING !!!
 				if ( incoming_fh != NULL )
 				{
 					fwrite( f->data, f->datalen, 1, incoming_fh ) ;
 					fflush( incoming_fh ) ;
 				}
-*/
+#endif
 						
 #if ( SILDET == 2 )
 				// 
@@ -248,7 +248,7 @@ int member_exec( struct ast_channel* chan, void* data )
 				)
 				{
 					// send the frame to the preprocessor
-#if 1
+#ifdef DEBUG_USE_TIMELOG
 					int spx_ret;
 					TIMELOG(spx_ret = speex_preprocess( member->dsp, f->data, NULL ), 3, "speex_preprocess"); 
 					if ( spx_ret == 0 )
@@ -400,8 +400,16 @@ int member_exec( struct ast_channel* chan, void* data )
 
 			// if there's no frames exit the loop.
 			if(!cf) break;
-			
-			
+
+#ifdef DEBUG_FRAME_TIMESTAMPS	
+			// !!! TESTING !!!
+			int delivery_diff = usecdiff( &cf->fr->delivery, &member->lastsent_timeval ) ;
+			if ( delivery_diff != AST_CONF_FRAME_INTERVAL )
+			{		
+				ast_log( AST_CONF_DEBUG, "unanticipated delivery time, delivery_diff => %d, delivery.tv_usec => %ld\n", 
+					delivery_diff, cf->fr->delivery.tv_usec ) ;
+			}
+
 			// !!! TESTING !!!
 			if ( 	
 				cf->fr->delivery.tv_sec < member->lastsent_timeval.tv_sec 
@@ -416,9 +424,9 @@ int member_exec( struct ast_channel* chan, void* data )
 					member->lastsent_timeval.tv_sec, member->lastsent_timeval.tv_usec ) ;
 			}
 			member->lastsent_timeval = cf->fr->delivery ;
+#endif
 
-
-#if 1
+#ifdef DEBUG_USE_TIMELOG
 			TIMELOG( ast_write( member->chan, cf->fr ), 10, "member: ast_write");
 #else
 			// send the voice frame
@@ -438,7 +446,6 @@ int member_exec( struct ast_channel* chan, void* data )
 				member->frames_out_dropped++ ;
 			}
 #endif
-
 
 			// clean up frame
 			delete_conf_frame( cf ) ;
@@ -486,11 +493,11 @@ int member_exec( struct ast_channel* chan, void* data )
 	// clean up
 	//
 
-/*
+#ifdef DEBUG_OUTPUT_PCM
 	// !!! TESTING !!!	
 	if ( incoming_fh != NULL )
 		fclose( incoming_fh ) ;
-*/
+#endif
 
 	if ( member != NULL ) member->remove_flag = 1 ;
 
@@ -626,8 +633,10 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->inFramesTail = NULL ;
 	member->inFramesCount = 0 ;
 
+	// last frame caching
 	member->inFramesRepeatLast = 0 ;
 	member->inFramesLast = NULL ; 
+	member->okayToCacheLast = 0 ;
 
 	// outgoing frame queue
 	member->outFrames = NULL ;
@@ -967,7 +976,7 @@ conf_frame* get_incoming_frame( struct ast_conf_member *member )
 
 		if ( member->inFramesRepeatLast >= AST_CONF_CACHE_LAST_FRAME )
 		{
-			// alreay used this frame AST_CONF_CACHE_LAST_FRAME times
+			// already used this frame AST_CONF_CACHE_LAST_FRAME times
 		
 			// reset repeat count
 			member->inFramesRepeatLast = 0 ;
@@ -1013,7 +1022,7 @@ conf_frame* get_incoming_frame( struct ast_conf_member *member )
 	// get first frame in line
 	cfr = member->inFramesTail ;
 
-	// if it's the only frame, reset the queu,
+	// if it's the only frame, reset the queue,
 	// else, move the second frame to the front
 	if ( member->inFramesTail == member->inFrames )
 	{

@@ -69,6 +69,16 @@
 #define AST_CONF_CACHE_LAST_FRAME 1
 
 //
+// debug defines
+//
+
+#define DEBUG_USE_TIMELOG
+
+#define DEBUG_FRAME_TIMESTAMPS
+
+// #define DEBUG_OUTPUT_PCM
+
+//
 // !!! THESE CONSTANTS SHOULD BE CLEANED UP AND CLARIFIED !!!
 //
 
@@ -112,7 +122,7 @@
 #define AST_CONF_BUFFER_SIZE ( AST_CONF_FRAME_DATA_SIZE + AST_FRIENDLY_OFFSET )
 
 // maximum number of frames queued per member
-#define AST_CONF_MAX_QUEUE 25
+#define AST_CONF_MAX_QUEUE 100
 
 // minimum number of frames queued per member
 #define AST_CONF_MIN_QUEUE 0

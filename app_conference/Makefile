@@ -20,7 +20,7 @@
 INSTALL_PREFIX := /opt/horizon
 INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/lib/asterisk/modules
 
-ASTERISK_INCLUDE_DIR := $(HOME)/src/asteriskCVS/asterisk/include
+ASTERISK_INCLUDE_DIR := $(HOME)/local/asterisk/asterisk/include
 
 # turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
 APP_CONFERENCE_DEBUG := 1
@@ -53,7 +53,8 @@ CFLAGS = -pipe -std=c99 -Wall -Wmissing-prototypes -Wmissing-declarations $(DEBU
 # PERF: below is 10% faster than -O2 or -O3 alone.
 #CFLAGS += -O3 -ffast-math -funroll-loops
 # below is another 5% faster or so.
-CFLAGS += -O3 -ffast-math -funroll-all-loops -march=pentium3 -fprefetch-loop-arrays -fsingle-precision-constant
+CFLAGS += -O3 -ffast-math -funroll-all-loops -fprefetch-loop-arrays -fsingle-precision-constant
+CFLAGS += -mcpu=7450 -faltivec -mabi=altivec -mdynamic-no-pic
 # adding -msse -mfpmath=sse has little effect.
 #CFLAGS += -O3 -msse -mfpmath=sse
 #CFLAGS += $(shell if $(CC) -march=$(PROC) -S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo "-march=$(PROC)"; fi)
@@ -77,6 +78,13 @@ ifeq ($(SILDET), 1)
 CFLAGS += -DSILDET=1
 endif
 
+OSARCH=$(shell uname -s)
+ifeq (${OSARCH},Darwin)
+SOLINK=-dynamic -bundle -undefined suppress -force_flat_namespace
+else
+SOLINK=-shared -Xlinker -x
+endif
+
 #
 # targets
 #
@@ -94,6 +102,7 @@ vad_test: vad_test.o libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
 
 install: all
 	for x in $(SHAREDOS); do $(INSTALL) -m 755 $$x $(INSTALL_MODULES_DIR) ; done
+	/var/horizon/mojo/lib/horizoncmd restart asterisk
 
 # config: all
 # 	cp conf.conf /etc/asterisk/
