@@ -9,6 +9,8 @@
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
+ *
+ * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
  */
 
 #include "jitterbuf.h"
@@ -38,7 +40,13 @@ void jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output
     dbgf = dbg;
 }
 
+static void increment_losspct(jitterbuf *jb) {
+    jb->info.losspct = (100000 + 499 * jb->info.losspct)/500;    
+}
 
+static void decrement_losspct(jitterbuf *jb) {
+    jb->info.losspct = (499 * jb->info.losspct)/500;    
+}
 
 
 static void jb_dbginfo(jitterbuf *jb);
@@ -407,6 +415,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	/* rewind last_voice, since we're just dumping */
 	jb->info.last_voice_ts -= jb->info.last_voice_ms;
 	jb->info.frames_out++;
+	decrement_losspct(jb);
 	jb->info.frames_late++;
 	jb->info.frames_lost--;
 	jb_dbg("l");
@@ -433,6 +442,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	if(frame)  {
 	  *frameout = *frame;
 	  jb->info.frames_out++;
+	  decrement_losspct(jb);
 	  jb->info.frames_dropped++;
 	  jb_dbg("s");
 	  return JB_DROP;
@@ -466,6 +476,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	      return JB_INTERP;
 	  } */
 	  jb->info.frames_lost++;
+	  increment_losspct(jb);
 	  jb_dbg("L");
 	  return JB_INTERP;
       }
@@ -473,6 +484,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
       /* normal case; return the frame, increment stuff */
       *frameout = *frame;
       jb->info.frames_out++;
+      decrement_losspct(jb);
       jb_dbg("v");
       return JB_OK;
   } else {     

@@ -9,6 +9,8 @@
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
+ *
+ * Copyright on this file is disclaimed to Digium for inclusion in Asterisk
  */
 
 #ifndef _JITTERBUF_H_
@@ -50,6 +52,7 @@ typedef struct jb_info {
 	long min;		/* minimum lateness within current history interval */
 	long current; 		/* the present jitterbuffer adjustment */
 	long target; 		/* the target jitterbuffer adjustment */
+	long losspct; 		/* recent lost frame percentage (* 1000) */
 	long last_voice_ts;	/* the last ts that was read from the jb - in receiver's time */
 	long last_voice_ms;	/* the duration of the last voice frame */
 	long silence;		/* we are presently playing out silence */

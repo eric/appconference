@@ -117,14 +117,17 @@
 #define IAX_IE_CALLINGTNS                       40              /* Calling transit network select (u16) */
 #define IAX_IE_SAMPLINGRATE                     41              /* Supported sampling rates (u16) */
 #define IAX_IE_CAUSECODE                        42              /* Hangup cause (u8) */
+#define IAX_IE_ENCRYPTION                       43              /* Encryption format (u16) */
+#define IAX_IE_ENCKEY                           44              /* Encryption key (raw) */
+#define IAX_IE_CODEC_PREFS          45      /* Codec Negotiation */
 
+#define IAX_IE_RR_JITTER                        46              /* Received jitter (as in RFC1889) u32 */
+#define IAX_IE_RR_LOSS                          47              /* Received loss (high byte loss pct, low 24 bits loss count, as in rfc1889 */
+#define IAX_IE_RR_PKTS                          48              /* Received frames (total frames received) u32 */
+#define IAX_IE_RR_DELAY                         49              /* Max playout delay for received frames (in ms) u16 */
+#define IAX_IE_RR_DROPPED                       50              /* Dropped frames (presumably by jitterbuf) u32 */
+#define IAX_IE_RR_OOO                           51              /* Frames received Out of Order u32 */
 
-#define IAX_IE_RR_JITTER			64		/* Received jitter (as in RFC1889) u32 */
-#define IAX_IE_RR_LOSS				65		/* Received loss (high byte loss pct, low 24 bits loss count, as in rfc1889 */
-#define IAX_IE_RR_PKTS				66		/* Received frames (total frames received) u32 */
-#define IAX_IE_RR_DELAY				67		/* Max playout delay for received frames (in ms) u16 */
-#define IAX_IE_RR_DROPPED			68		/* Dropped frames (presumably by jitterbuf) u32 */
-#define IAX_IE_RR_OOO				69		/* Frames received Out of Order u32 */
 
 
 #define IAX_AUTH_PLAINTEXT			(1 << 0)

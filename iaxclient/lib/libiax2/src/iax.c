@@ -496,7 +496,7 @@ int iax_get_netstats(struct iax_session *session, int *rtt, struct iax_netstat *
       local->jitter = stats.jitter;
       /* XXX: should be short-term loss pct.. */
       if(stats.frames_in == 0) stats.frames_in = 1;
-      local->losspct = stats.frames_lost * 100 / stats.frames_in;
+      local->losspct = stats.losspct/1000;
       local->losscnt = stats.frames_lost;
       local->packets = stats.frames_in;
       local->delay = stats.current - stats.min;
@@ -1429,7 +1429,7 @@ static int iax_send_pong(struct iax_session *session, unsigned int ts)
 	    /* XXX: should be short-term loss pct.. */
 	    if(stats.frames_in == 0) stats.frames_in = 1;
 	    iax_ie_append_int(&ied,IAX_IE_RR_LOSS, 
-		((0xff & (stats.frames_lost * 100 / stats.frames_in)) << 24 | (stats.frames_lost & 0x00ffffff)));
+		((0xff & (stats.losspct/1000)) << 24 | (stats.frames_lost & 0x00ffffff)));
 	    iax_ie_append_int(&ied,IAX_IE_RR_PKTS, stats.frames_in);
 	    iax_ie_append_short(&ied,IAX_IE_RR_DELAY, stats.current - stats.min);
 	    iax_ie_append_int(&ied,IAX_IE_RR_DROPPED, stats.frames_dropped);
@@ -2273,7 +2273,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				session->remote_netstats.packets = e->ies.rr_pkts;
 				session->remote_netstats.delay = e->ies.rr_delay;
 				session->remote_netstats.dropped = e->ies.rr_dropped;
-				session->remote_netstats.ooo = e->ies.rr_dropped;
+				session->remote_netstats.ooo = e->ies.rr_ooo;
 				break;
 			case IAX_COMMAND_ACCEPT:
 				if (e->ies.format & session->capability) {
