@@ -1,8 +1,8 @@
 
-CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude -I$(WXWIN)/contrib/include
+CFLAGS=-I../../lib 
 
 #debug
-CFLAGS:= $(CFLAGS) -g
+CFLAGS:= $(CFLAGS) -g -Wall
 OBJS = main.o prefs.o calls.o directory.o dial.o frame.o
 REZ=echo
 
@@ -34,7 +34,7 @@ ifeq ($(OSTYPE),WIN32)
 #include $(WXWIN)/src/makeprog.g95
 PROG=iaxcomm.exe
 TARGET=iaxcomm.exe
-CFLAGS:= $(CFLAGS) -I$(WXWIN)/include -I$(WXWIN)/lib/mswd -fno-rtti -fno-exceptions -fno-pcc-struct-return -fstrict-aliasing -Wall -D__WXMSW__ -D__GNUWIN32__ -DWINVER=0x400 -D__WIN95__ -DSTRICT -D__WXDEBUG__
+CFLAGS:= $(CFLAGS) -I$(WXWIN)/include -I$(WXWIN)/contrib/include -I$(WXWIN)/lib/mswd -fno-rtti -fno-exceptions -fno-pcc-struct-return -fstrict-aliasing -Wall -D__WXMSW__ -D__GNUWIN32__ -DWINVER=0x400 -D__WIN95__ -DSTRICT -D__WXDEBUG__
 WINSYSFLAGS=-Wl,--subsystem,windows -mwindows
 #WINSYSFLAGS=
 EXTRALIBS = -lwxxrc
@@ -45,7 +45,7 @@ endif
 ifeq ($(OSTYPE),LINUX)
 PROG=iaxcomm
 TARGET=iaxcomm
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags` `gtk-config --cflags`
+CFLAGS:= $(CFLAGS) `wx-config --cflags` `gtk-config --cflags`
 EXTRALIBS = -lwx_gtk_xrc-2.4
 SYSLIBS=$(EXTRALIBS) -lpthread -lm `wx-config --static --libs`
 endif
@@ -53,7 +53,7 @@ endif
 ifeq ($(OSTYPE),MACOSX)
 PROG=iaxcomm
 TARGET=iaxcomm.app
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags`
+CFLAGS:= $(CFLAGS) `wx-config --cflags`
 SYSLIBS=$(EXTRALIBS) -framework CoreAudio -framework AudioToolbox `wx-config --libs`
 CXX=`wx-config --cxx`
 REZ=`wx-config --rezflags`
