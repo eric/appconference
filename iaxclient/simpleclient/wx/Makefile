@@ -51,12 +51,12 @@ endif
 
 CPPFLAGS = $(CFLAGS)
 
-PROGS= wx$(EXEEXT)
+PROG= wx$(EXEEXT)
 
-all: makelib $(PROGS)
+all: makelib $(PROG)
 
 clean: 
-	rm -f $(OBJS) $(PROGS)
+	rm -f $(OBJS) $(PROG)
 
 makelib:
 	(cd ../../lib; make libiaxclient.a)
@@ -66,5 +66,12 @@ makelib:
 
 wx$(EXEEXT): $(OBJS) $(LIBS)
 	c++ $(OBJS) $(LIBS) $(SYSLIBS) -o wx$(EXEEXT)
-	$(REZ) wx$(EXEEXT)
+#	$(REZ) wx$(EXEEXT)
+
+$(PROG).app: $(PROG)
+	mkdir -p $(PROG).app/Contents/MacOS wx.app/Contents/Resources
+	mv $(PROG) $(PROG).app/Contents/MacOS
+	cp `wx-config --prefix`/lib/*.rsrc $(PROG).app/Contents/Resources
+	echo -n "APPL????" > $(PROG).app/Contents/PkgInfo
+	cp Info.plist $(PROG).app/Contents/Info.plist 
 
