@@ -40,7 +40,10 @@ int ast_onering_write(struct ast_onering *s, struct ast_frame *f)
 	} else {
 //		ast_log(LOG_WARNING, "written space s->len = %d in %#x s->size = %d f->datalen = %d\n",s->len,(int)s,s->size,f->datalen);
 	}
-// ast_log(LOG_NOTICE, "s->len = %d, f->datalen = %d\n",s->len,f->datalen);
+	if (s->len > ONERING_SIZE/2) {
+	     ast_log(LOG_NOTICE, "s->len = %d, f->datalen = %d f->offset = %d\n",s->len,f->datalen,f->offset);
+	}
+// ast_log(LOG_NOTICE, "s->len = %d, f->datalen = %d f->offset = %d\n",s->len,f->datalen,f->offset);
 	memcpy(s->data + s->len, f->data, f->datalen);
 	s->len += f->datalen;
 	return 0;
@@ -50,6 +53,7 @@ struct ast_frame *ast_onering_read(struct ast_onering *s,int samples)
 {
 	/* Make sure we have enough data */
 	if (s->len < (samples * 2)) {
+		ast_log(LOG_NOTICE,"s->len = %d, samples = %d\n",s->len,samples);
 		return NULL;
 	}
 	/* Make frame */

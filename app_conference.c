@@ -156,7 +156,7 @@ void add_member(struct ast_conf_member *member, struct ast_conference *conf) {
 		    ast_pthread_mutex_unlock(&conf->lock);
 		    return;
 		}
-		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d) to memberlist (type=%c, priority=%d)\n",member->type,member->priority,memberlist->type,memberlist->priority);		
+		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to memberlist (type=%c, priority=%d, chan=%#x)\n",member->type,member->priority,member->chan,memberlist->type,memberlist->priority,memberlist->chan);		
 	    }
 
 	    if (memberlist->type != 'L') {
@@ -168,7 +168,7 @@ void add_member(struct ast_conf_member *member, struct ast_conference *conf) {
 		    ast_pthread_mutex_unlock(&conf->lock);
 		    return;
 		}
-		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d) to member (type=%c, priority=%d)\n",memberlist->type,memberlist->priority,member->type,member->priority);		
+		ast_log(LOG_NOTICE,"added audiobuffer for member (type=%c, priority=%d, chan=%#x) to member (type=%c, priority=%d, chan=%#x)\n",memberlist->type,memberlist->priority,memberlist->chan,member->type,member->priority,member->chan);		
 	    }
 
 	    ast_pthread_mutex_unlock(&memberlist->lock);
@@ -390,7 +390,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 		    } else {
 			// remember that this member didnt give us data
 			// bufferl->fails++;
-			// ast_log(LOG_NOTICE,"No audio available for conference member in conference %s\n", conference->name);
+			 // ast_log(LOG_NOTICE,"No audio available for conference member %#x in conference %s\n", bufferl->chan, conference->name);
 			// was BUG: break;
 		    }
 		} else {
@@ -417,6 +417,8 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->src = NULL;
 	    return fout;
 	} else {
+	    free(databuf);
+	    return NULL;
 	    fout = malloc(sizeof(struct ast_frame));
 	    fout->frametype = AST_FRAME_VOICE;
 	    fout->subclass = AST_FORMAT_SLINEAR;
@@ -484,6 +486,8 @@ static int conference_exec(struct ast_channel *chan, void *data)
 	char *stringp,*confID,*type,*prio;
 	int ms=20,dms;
 	int rest=0;
+	long dus=0,urest=0;
+	int first=1;
 	struct timeval time1, time2, time3, oldtimer; /* <--- got lots of time ;-) */
 
 	LOCAL_USER_ADD(u);
@@ -527,8 +531,6 @@ static int conference_exec(struct ast_channel *chan, void *data)
 	    return -1;
 	}
 	
-	oldtimer.tv_sec = 0;
-	
 	for (;;) {
 		if (ast_check_hangup(chan) == 1) {
 		    break;
@@ -538,14 +540,16 @@ static int conference_exec(struct ast_channel *chan, void *data)
 		rest = ast_waitfor(chan, ms);
 		gettimeofday(&time2,NULL);
 
-		if (oldtimer.tv_sec == 0) {
+		if (first == 1) {
 		    // first loop
-		    dms = (time2.tv_sec - time1.tv_sec) * 1000;
-		    dms += (time2.tv_usec - time1.tv_usec) / 1000;
+		    first = 0;
+		    dms = (time2.tv_sec * 1000 + time2.tv_usec / 1000) - (time1.tv_sec * 1000 + time1.tv_usec / 1000);
+		    dus = (time2.tv_sec * 1000000 + time2.tv_usec) - (time1.tv_sec * 1000000 + time1.tv_usec);
 		} else {
 		    // and all the others...
-		    dms = (time1.tv_sec - oldtimer.tv_sec) * 1000;
-		    dms += (time1.tv_usec - oldtimer.tv_usec) / 1000;
+		    dms = (time2.tv_sec * 1000 + time2.tv_usec / 1000) - (oldtimer.tv_sec * 1000 + oldtimer.tv_usec / 1000);
+		    dus = (time2.tv_sec * 1000000 + time2.tv_usec) - (oldtimer.tv_sec * 1000000 + oldtimer.tv_usec);
+		    dus += urest;
 		}
 
 
@@ -562,10 +566,10 @@ static int conference_exec(struct ast_channel *chan, void *data)
 			continue;
 		    }
 		    if (f->frametype == AST_FRAME_VOICE) { 
-//		    dms = f->samples / 8;
 			if (member->type != 'L') {
 			    write_audio(f,conference,member);
 			}
+		//	ast_log(LOG_NOTICE,"wrote %d ms into conference, rest = %d\n",f->samples/8,rest);
 		    }
 #ifdef CONF_HANDLE_DTMF
 		     else if (f->frametype == AST_FRAME_DTMF) {
@@ -578,17 +582,28 @@ static int conference_exec(struct ast_channel *chan, void *data)
 			ast_frfree(f);
 		    }
 		    gettimeofday(&time3,NULL);
-		    dms += (time3.tv_sec - time2.tv_sec) * 1000;
-		    dms += (time3.tv_usec - time2.tv_usec) / 1000;
+//		    dms += (time3.tv_sec * 1000 + time3.tv_usec / 1000) - (time2.tv_sec * 1000 + time2.tv_usec / 1000);
+//		    dus += (time3.tv_sec * 1000000 + time3.tv_usec) - (time2.tv_sec * 1000000 + time2.tv_usec);
 		//    ast_log(LOG_NOTICE,"mod = %d\n",(time3.tv_usec - time2.tv_usec));
 		} else {
 		}
 		    oldtimer.tv_sec = time1.tv_sec;
 		    oldtimer.tv_usec = time1.tv_usec;
-    if (member->priority > 1) {
-     ast_log(LOG_NOTICE,"dms=%d\n",dms);
-    }
+		urest = dus % 1000;
+		dms = dus / 1000;
+		// lets find that missing 1ms
+		if (urest > 500) {
+		    urest = 0;
+		    dms++;
+		}
+	    if (dms >= AST_CONF_MIN_MS) {
 		send_audio(conference,member,dms);
+		if (member->priority == 3) {
+    		//    ast_log(LOG_NOTICE,"urest=%d dms=%d dus=%d\n",urest,dms,dus);
+		}
+	    } else {
+		urest += dms * 1000;
+	    }
 	} // for
 	
 	if (member != NULL) {
