@@ -479,12 +479,38 @@ THREADFUNCDECL(iaxc_processor)
       }    
     }
 #endif
+#ifdef LINUX
+    iaxc_prioboostbegin(); 
+#endif
+
+#if 0 /* test canary/watchdog */
+	{ int i;
+	  struct timeval then;
+	  struct timeval now;
+		gettimeofday(&then,NULL);
+		sleep(2);
+		for(i=0;i<5000000;i++) {
+		  getpid();
+		  gettimeofday(&now,NULL) ;
+		  if(now.tv_sec != then.tv_sec) {
+		      fprintf(stderr, "tick\n");
+		      then = now;
+		  }
+		  fprintf(stderr, "");
+		  getpid();
+		}
+	}
+	fprintf(stderr, "DONE\n");
+#endif
     while(1) { 
 	iaxc_process_calls();
 	iaxc_millisleep(5);	
 	if(procThreadQuitFlag)
 	  break;
     }
+#ifdef LINUX
+    iaxc_prioboostend(); 
+#endif
     return ret;
 }
 

@@ -1109,9 +1109,6 @@ static void iax_handle_txreject(struct iax_session *s)
 {
 	struct iax_session *s0, *s1;
 
-	complete_transfer(s, s->peercallno, 0, 1);
-	s->svoiceformat = -1;
-
 	s0 = s;
 	s1 = iax_find_session2(s0->transferpeer);
 	if (s1 != NULL &&
@@ -1126,6 +1123,11 @@ static void iax_handle_txreject(struct iax_session *s)
 		s0->transfer_moh = 0;
 		send_command_immediate(s0, AST_FRAME_IAX, IAX_COMMAND_UNQUELCH, 0, NULL, 0, s0->iseqno);
 	}
+
+	memset(&s->transfer, 0, sizeof(s->transfer));
+	s->transferring = TRANSFER_NONE;
+	s->transferpeer = 0;
+	s->transfer_moh = 0;
 }
 
 static void destroy_session(struct iax_session *session)

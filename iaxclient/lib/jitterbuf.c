@@ -595,12 +595,13 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
     jb_frame *frame;
     long diff;
 
+    if((now - jb_next(jb)) > 2 * jb->info.last_voice_ms) jb_warn("SCHED: %ld", (now - jb_next(jb)));
     /* get jitter info */
     jb->info.jitter = history_get(jb, &jb->info.min);
 
 
     /* target */
-    jb->info.target = jb->info.jitter + jb->info.min + jb->info.last_voice_ms; 
+    jb->info.target = jb->info.jitter + jb->info.min + 2 * jb->info.last_voice_ms; 
 	//now - jb->info.last_voice_ts;
 
     diff = jb->info.target - jb->info.current;
@@ -651,7 +652,7 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 	jb->info.frames_late++;
 	jb->info.frames_lost--;
 	jb_warn("l");
-	jb_warn("\nlate: this=%ld, next=%ld\n", frame->ts, queue_next(jb));
+	jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
 	return JB_DROP;
       }
 
