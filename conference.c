@@ -56,6 +56,9 @@ void conference_exec( struct ast_conference *conf )
 
 	// holds differences of curr and base
 	long time_diff = 0 ;
+	long time_sleep = 0 ;
+	
+	int since_last_slept = 0 ;
 	
 	//
 	// variables for checking thread frequency
@@ -73,6 +76,7 @@ void conference_exec( struct ast_conference *conf )
 	// main conference thread loop
 	//
 
+ 
 	while ( 42 == 42 )
 	{
 		// update the current timestamp
@@ -81,21 +85,42 @@ void conference_exec( struct ast_conference *conf )
 		// calculate difference in timestamps
 		time_diff = usecdiff( &curr, &base ) ;
 
-		// long sleep warning
-		if ( time_diff > AST_CONF_CONFERENCE_SLEEP * 2 )
-		{
-			ast_log( AST_CONF_DEBUG, "long scheduling delay, time_diff => %ld, AST_CONF_FRAME_INTERVAL => %d\n",
-				time_diff, AST_CONF_FRAME_INTERVAL ) ;
-		}
+		// calculate time we should sleep
+		time_sleep = AST_CONF_FRAME_INTERVAL - time_diff ;
+		
+		if ( time_sleep > 0 ) 
+		{		
+			// sleep for sleep_time ( as milliseconds )
+			usleep( time_sleep * 1000 ) ;
 
-		// sleep if not enough time has passed
-		if ( time_diff < AST_CONF_FRAME_INTERVAL )
-		{
-			// convert constant to microseconds for usleep()
-			TIMELOG(usleep( AST_CONF_CONFERENCE_SLEEP * 1000 ), AST_CONF_CONFERENCE_SLEEP * 2, "overslept") ;
+			// reset since last slept counter
+			since_last_slept = 0 ;
+
 			continue ;
 		}
-						
+		else
+		{
+			// long sleep warning
+			if ( 
+				since_last_slept == 0
+				&& time_diff > AST_CONF_CONFERENCE_SLEEP * 2 
+			)
+			{
+				ast_log( 
+					AST_CONF_DEBUG, 
+					"long scheduling delay, time_diff => %ld, AST_CONF_FRAME_INTERVAL => %d\n",
+					time_diff, AST_CONF_FRAME_INTERVAL 
+				) ;
+			}
+
+			// increment times since last slept
+			++since_last_slept ;
+
+			// sleep every other time
+			if ( since_last_slept % 2 )
+				usleep( 0 ) ;
+		}
+
 		// adjust the timer base ( it will be used later to timestamp outgoing frames )
 		add_milliseconds( &base, AST_CONF_FRAME_INTERVAL ) ;
 		
@@ -141,7 +166,7 @@ void conference_exec( struct ast_conference *conf )
 		// acquire conference mutex
 		TIMELOG(ast_mutex_lock( &conf->lock ),1,"conf thread conf lock");
 
-		// save the current delivery time
+		// update the current delivery time
 		conf->delivery_time = base ;
 
 		//
@@ -390,6 +415,9 @@ if ( conf->debug_flag == 1 )
 
 		// release conference mutex
 		ast_mutex_unlock( &conf->lock ) ;
+		
+		// !!! TESTING !!!
+		// usleep( 1 ) ;
 	} 
 	// end while ( 42 == 42 )
 
