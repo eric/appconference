@@ -421,6 +421,16 @@ THREADFUNCDECL(iaxc_processor)
 {
     THREADFUNCRET(ret);
     /* Increase Priority */
+#ifdef WIN32
+    /* Increasing the Process Priority is pretty effective; I'm not sure if simply increasing
+     * the thread priority will cause this thread to be prioritized higher against other processes,
+     * or just against other threads in this process.  
+     */
+
+      if ( SetPriorityClass( GetCurrentProcess(), HIGH_PRIORITY_CLASS ) != TRUE ) {
+            fprintf(stderr, "SetPriorityClass failed: %ld.\n", GetLastError());
+      }
+#endif
 #ifdef MACOSX
     /* presently, OSX allows user-level processes to request RT
      * priority.  The API is nice, but the scheduler presently ignores
