@@ -13,6 +13,7 @@
 
 #ifdef WIN32
 #include <winsock.h>
+#define snprintf _snprintf
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -68,7 +69,7 @@ static void dump_string(char *output, int maxlen, void *value, int len)
 static void dump_int(char *output, int maxlen, void *value, int len)
 {
 	if (len == sizeof(unsigned int))
-		snprintf(output, maxlen, "%d", ntohl(*((unsigned int *)value)));
+		snprintf(output, maxlen, "%ld", (long)ntohl(*((unsigned int *)value)));
 	else
 		snprintf(output, maxlen, "Invalid INT");
 }
@@ -96,7 +97,7 @@ static struct iax2_ie {
 } ies[] = {
 	{ IAX_IE_CALLED_NUMBER, "CALLED NUMBER", dump_string },
 	{ IAX_IE_CALLING_NUMBER, "CALLING NUMBER", dump_string },
-	{ IAX_IE_CALLING_NUMBER, "ANI", dump_string },
+	{ IAX_IE_CALLING_ANI, "ANI", dump_string },
 	{ IAX_IE_CALLING_NAME, "CALLING NAME", dump_string },
 	{ IAX_IE_CALLED_CONTEXT, "CALLED CONTEXT", dump_string },
 	{ IAX_IE_USERNAME, "USERNAME", dump_string },
@@ -121,6 +122,9 @@ static struct iax2_ie {
 	{ IAX_IE_AUTOANSWER, "AUTO ANSWER REQ" },
 	{ IAX_IE_TRANSFERID, "TRANSFER ID", dump_int },
 	{ IAX_IE_RDNIS, "REFERRING DNIS", dump_string },
+	{ IAX_IE_PROVISIONING, "PROVISIONING" },
+	{ IAX_IE_AESPROVISIONING, "AES PROVISIONING" },
+	{ IAX_IE_DATETIME, "DATE TIME", dump_int },
 };
 
 const char *iax_ie2str(int ie)
@@ -223,6 +227,7 @@ void iax_showframe(struct iax_frame *f, struct ast_iax2_full_hdr *fhi, int rx, s
 		"MWI",
 		"UNSUPPORTED",
 		"TRANSFER",
+		"PROVISION",
 	};
 	char *cmds[] = {
 		"(0?)",
@@ -287,8 +292,8 @@ snprintf(tmp, sizeof(tmp),
 	retries, fh->oseqno, fh->iseqno, class, subclass);
 	outputf(tmp);
 snprintf(tmp, sizeof(tmp), 
-"   Timestamp: %05dms  SCall: %5.5d  DCall: %5.5d [%s:%d]\n",
-	ntohl(fh->ts),
+"   Timestamp: %05ldms  SCall: %5.5d  DCall: %5.5d [%s:%d]\n",
+	(long)ntohl(fh->ts),
 	ntohs(fh->scallno) & ~IAX_FLAG_FULL, ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS,
 		inet_ntoa(sin->sin_addr), ntohs(sin->sin_port));
 	outputf(tmp);
@@ -499,6 +504,13 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				errorf(tmp);
 			} else
 				ies->transferid = ntohl(*((unsigned int *)(data + 2)));
+			break;
+		case IAX_IE_DATETIME:
+			if (len != sizeof(unsigned int)) {
+				snprintf(tmp, sizeof(tmp), "Expecting date/time to be %d bytes long but was %d\n", sizeof(unsigned int), len);
+				errorf(tmp);
+			} else
+				ies->datetime = ntohl(*((unsigned int *)(data + 2)));
 			break;
 		default:
 			snprintf(tmp, sizeof(tmp), "Ignoring unknown information element '%s' (%d) of length %d\n", iax_ie2str(ie), ie, len);

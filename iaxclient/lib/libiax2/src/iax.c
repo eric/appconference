@@ -764,7 +764,11 @@ static int __send_command(struct iax_session *i, char type, int command, unsigne
 	f.samples = 0;
 	f.mallocd = 0;
 	f.offset = 0;
+#ifdef __GNUC__
 	f.src = __FUNCTION__;
+#else
+	f.src = __FILE__;
+#endif
 	f.data = data;
 	return iax_send(i, &f, ts, seqno, now, transfer, final);
 }
@@ -1832,7 +1836,10 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts)
 			   too late, or if it's not voice (believe me, you don't want to
 			   just drop a hangup frame because it's late, or a ping, or some such.
 			   That kinda ruins retransmissions too ;-) */
-			return e;
+			/* Queue for immediate delivery */
+			iax_sched_event(e, NULL, 0);
+			return NULL;
+			//return e;
 		}
 		DEBU(G "(not so) Silently dropping a packet (ms = %d)\n", ms);
 		/* Silently discard this as if it were to be delivered */
@@ -1891,7 +1898,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 	int updatehistory = 1;
 	ts = ntohl(fh->ts);
 	session->last_ts = ts;
-	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen);
+	e = (struct iax_event *)malloc(sizeof(struct iax_event) + datalen + 1);
 
 #ifdef DEBUG_SUPPORT
 	iax_showframe(NULL, fh, 1, sin, datalen);
@@ -1995,7 +2002,11 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 			return schedule_delivery(e, ts);
 		case AST_FRAME_IAX:
 			/* Parse IE's */
-			if (iax_parse_ies(&e->ies, fh->iedata, datalen)) {
+			if (datalen) {
+				memcpy(e->data, fh->iedata, datalen);
+				e->datalen = datalen;
+			}
+			if (iax_parse_ies(&e->ies, e->data, e->datalen)) {
 				IAXERROR "Unable to parse IE's");
 				free(e);
 				e = NULL;
@@ -2033,7 +2044,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				e = schedule_delivery(e, ts);
 				break;
 			case IAX_COMMAND_ACK:
-				e =  NULL;
+				e = NULL;
 				break;
 			case IAX_COMMAND_LAGRQ:
 				/* Pass this along for later handling */

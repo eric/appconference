@@ -143,7 +143,7 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEn
 	switch (iEncodeType) {
 	case AST_FORMAT_GSM:
 		if(len % 33) {
-			fprintf(stderr, "Weird gsm frame, not a multiple of 33.\n");
+			fprintf(stderr, "Weird gsm frame, not a multiple of 33 (len = %d.\n", len);
 			return -1;
 		}
 		if (!call->gsmin)

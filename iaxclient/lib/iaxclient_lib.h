@@ -11,6 +11,7 @@
 #include <process.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <time.h>
 
 #else
 /* not win32 */

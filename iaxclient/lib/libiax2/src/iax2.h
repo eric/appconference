@@ -64,6 +64,7 @@
 #define IAX_COMMAND_MWI	32	/* Stand-alone message waiting indicator */
 #define IAX_COMMAND_UNSUPPORT	33	/* Unsupported message received */
 #define IAX_COMMAND_TRANSFER	34	/* Request remote transfer */
+#define IAX_COMMAND_PROVISION	35	/* Provision device */
 
 #define IAX_DEFAULT_REG_EXPIRE  60	/* By default require re-registration once per minute */
 
@@ -100,6 +101,9 @@
 #define IAX_IE_MUSICONHOLD			26		/* Request musiconhold with QUELCH -- none or string */
 #define IAX_IE_TRANSFERID			27		/* Transfer Request Identifier -- int */
 #define IAX_IE_RDNIS				28		/* Referring DNIS -- string */
+#define IAX_IE_PROVISIONING			29		/* Provisioning info */
+#define IAX_IE_AESPROVISIONING			30		/* AES Provisioning info */
+#define IAX_IE_DATETIME				31		/* Date/Time */
 
 #define IAX_AUTH_PLAINTEXT			(1 << 0)
 #define IAX_AUTH_MD5				(1 << 1)
@@ -114,6 +118,13 @@
 #define IAX_DPSTATUS_IGNOREPAT		(1 << 14)
 #define IAX_DPSTATUS_MATCHMORE		(1 << 15)
 
+#if defined(_MSC_VER)
+#pragma pack(push,1)
+#define __PACKED
+#else
+#define __PACKED __attribute__ ((__packed__))
+#endif
+
 /* Full frames are always delivered reliably */
 struct ast_iax2_full_hdr {
 	unsigned short scallno;	/* Source call number -- high bit must be 1 */
@@ -124,7 +135,7 @@ struct ast_iax2_full_hdr {
 	char type;				/* Frame type */
 	unsigned char csub;		/* Compressed subclass */
 	unsigned char iedata[0];
-} __attribute__ ((__packed__));
+} __PACKED;
 
 /* Mini header is used only for voice frames -- delivered unreliably */
 struct ast_iax2_mini_hdr {
@@ -133,23 +144,36 @@ struct ast_iax2_mini_hdr {
 							/* Frametype implicitly VOICE_FRAME */
 							/* subclass implicit from last ast_iax2_full_hdr */
 	unsigned char data[0];
-} __attribute__ ((__packed__));
+} __PACKED;
 
 struct ast_iax2_meta_hdr {
 	unsigned short zeros;			/* Zeros field -- must be zero */
 	unsigned char metacmd;			/* Meta command */
 	unsigned char cmddata;			/* Command Data */
 	unsigned char data[0];
-} __attribute__ ((__packed__));
+} __PACKED;
+
+struct ast_iax2_video_hdr {
+	unsigned short zeros;			/* Zeros field -- must be zero */
+	unsigned short callno;			/* Video call number */
+	unsigned short ts;				/* Timestamp and mark if present */
+	unsigned char data[0];
+} __PACKED;
 
 struct ast_iax2_meta_trunk_hdr {
 	unsigned int ts;				/* 32-bit timestamp for all messages */
 	unsigned char data[0];
-} __attribute__ ((__packed__));
+} __PACKED;
 
 struct ast_iax2_meta_trunk_entry {
 	unsigned short callno;			/* Call number */
 	unsigned short len;				/* Length of data for this callno */
-} __attribute__ ((__packed__));
+} __PACKED;
+
+#if defined(_MSC_VER)
+#pragma pack(pop)
+#endif
+
+#undef __PACKED
 
 #endif

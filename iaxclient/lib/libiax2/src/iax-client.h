@@ -74,7 +74,11 @@ struct iax_session;
 
 #define IAX_SCHEDULE_FUZZ 0			/* ms of fuzz to drop */
 
+#ifdef WIN32
+typedef int PASCAL (*sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+#else
 typedef int (*sendto_t)(int, const void *, size_t, int, const struct sockaddr *, socklen_t);
+#endif
 
 struct iax_event {
 	int etype;						/* Type of event */

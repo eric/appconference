@@ -12,6 +12,12 @@
 #ifndef _winpoop_h
 #define _winpoop_h
 
+#if defined(_MSC_VER)
+#define INLINE __inline
+#else
+#define INLINE inline
+#endif
+
 #include <winsock.h>
 
 static inline int inet_aton(char *cp, struct in_addr *inp)
