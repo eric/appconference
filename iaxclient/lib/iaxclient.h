@@ -57,6 +57,7 @@ extern "C" {
 #define IAXC_TEXT_TYPE_STATUS		1
 #define IAXC_TEXT_TYPE_NOTICE		2
 #define IAXC_TEXT_TYPE_ERROR		3
+#define IAXC_TEXT_TYPE_IAX		4
 
 
 
@@ -68,6 +69,7 @@ struct iaxc_ev_levels {
 
 struct iaxc_ev_text {
 	int type;
+	int callNo; /* call number for IAX text */
 	char message[IAXC_EVENT_BUFSIZ];
 };
 

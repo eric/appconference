@@ -378,6 +378,18 @@ int service_audio()
 	return 0;
 }
 
+/* handle IAX text events */
+void handle_text_event(struct iax_event *e, int callNo) {
+    iaxc_event ev;
+
+    ev.type=IAXC_EVENT_TEXT;
+    ev.ev.text.type=IAXC_TEXT_TYPE_IAX;
+    ev.ev.text.callNo = callNo;
+
+    strncpy(ev.ev.text.message, e->data, IAXC_EVENT_BUFSIZ);
+
+    iaxc_post_event(ev);
+}
 
 void handle_audio_event(struct iax_event *e, int callNo) {
 	int total_consumed = 0;
@@ -452,6 +464,9 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
  			break;
 		case IAX_EVENT_VOICE:
 			handle_audio_event(e, callNo);
+			break;
+		case IAX_EVENT_TEXT:
+			handle_text_event(e, callNo);
 			break;
 		case IAX_EVENT_RINGA:
 			break;
