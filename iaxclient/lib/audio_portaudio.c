@@ -22,7 +22,7 @@
 #include "iaxclient_lib.h"
 
 #ifdef USE_MEC2
-#include "mec2.h"
+#include "mec3.h"
 static echo_can_state_t *ec;
 #endif
 
@@ -44,7 +44,7 @@ static PortAudioStream *iStream, *oStream;
 static selectedInput, selectedOutput, selectedRing;
 
 #define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
-#define ECHO_TAIL	  1024 /* echo_tail length, in frames must be pow(2) for mec/span ? */
+#define ECHO_TAIL	  4096 /* echo_tail length, in frames must be pow(2) for mec/span ? */
 
 #define RBSZ 1024 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
 static char inRingBuf[RBSZ], outRingBuf[RBSZ]; 
@@ -245,7 +245,16 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 {
     static RingBuffer outRing;
     static outRingBuf[EC_RING_SZ];
+    static long bias = 0;
     short  delayedBuf[160];
+    int i;
+
+    /* remove bias -- whether ec is on or not. */
+    for(i = 0; i < n; i++) {
+	bias +=  ((((long)inputBuffer[i]) << 15) - bias) >> 14;
+	inputBuffer[i] -= (bias >> 15);
+    }
+
 
     /* if ec is off, clear ec state -- this way, we start fresh if/when
      * it's turned back on. */
@@ -265,6 +274,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
     }
 
     /* we want echo cancellation */
+
     if(!ec) {
 	RingBuffer_Init(&outRing, EC_RING_SZ, &outRingBuf);
 #if defined(USE_MEC2) || defined(SPAN_EC)
@@ -291,7 +301,6 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
     {
       /* convert buffers to float, echo cancel, convert back */
       float finBuffer[1024], foutBuffer[1024], fcancBuffer[1024];
-      int i;
       for(i=0;i<n;i++)
       {
 	  finBuffer[i] = inputBuffer[i];
@@ -309,11 +318,8 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 #endif
 
 #if defined(USE_MEC2) || defined(SPAN_EC)
-    {
-      int i;
-      for(i=0;i<n;i++) 
+      for(i=0;i<n;i++)  
 	inputBuffer[i] = echo_can_update(ec, delayedBuf[i], inputBuffer[i]);
-    }
 #endif
 
 }
