@@ -71,12 +71,20 @@ int main(int argc, char *argv[])
 	iaxc_initialize(AUDIO_INTERNAL_PA, f);
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 
-	fprintf(f, "TestCall \n\n");
-	fprintf(f, "Calling %s\n 'q' to quit\n", dest);
+	fprintf(f, "\n\
+	    TestCall accept some keyboard input while it's running.\n\
+	    You must hit 'enter' for your keypresses to be recognized,\n\ 
+	    although you can type more than one key on a line\n\
+\n\
+	    q: drop the call and hangup.\n\
+	    0-9 * or #: dial those DTMF digits.\n\
+	");
+	fprintf(f, "Calling %s\n", dest);
 	
 	iaxc_call(f,dest);
 
 	iaxc_start_processing_thread();
+	printf("ready for keyboard input\n");
 		
 	while(c = getc(stdin)) {
 	    switch (tolower(c)) {
@@ -91,6 +99,7 @@ int main(int argc, char *argv[])
 	      case '1': case '2': case '3': case '4': case '5':
 	      case '6': case '7': case '8': case '9': case '0':
 	      case '#': case '*':
+		printf ("sending %c\n", c);
 		iaxc_send_dtmf(c);
 	      break;
 	    }

@@ -284,8 +284,8 @@ void iaxc_call(FILE *f, char *num)
 
 	most_recent_answer = peer;
 
-	iax_call(peer->session, "WinIAX", num, NULL, 10);
-	start_call_processing();
+	iax_call(peer->session, "IAXCLIENT", num, NULL, 10);
+	/* start_call_processing(); */
 }
 
 void iaxc_answer_call(void) 
