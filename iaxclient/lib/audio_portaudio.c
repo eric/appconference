@@ -129,7 +129,7 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 
 	/* zero underflowed space [ silence might be more golden than garbage? ] */
 	if(bWritten < totBytes)
-	    memset(outputBuffer + bWritten, 0, totBytes - bWritten);
+	    memset((char *)outputBuffer + bWritten, 0, totBytes - bWritten);
     }
     return 0; 
 }
