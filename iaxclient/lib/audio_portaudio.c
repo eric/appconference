@@ -761,15 +761,16 @@ int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 	/* if we've got a big output buffer, drop this */
 	if(outRingLen > (RBOUTTARGET_BYTES) && outRingLenAvg > RBOUTTARGET_BYTES)  {
 	  //fprintf(stderr, "*O*");
-	  return 0;
+	  return outRingLen/2;
 	}
 
 
-	if(RingBuffer_GetWriteAvailable(&outRing) < bytestowrite)  fprintf(stderr, "O");
+	//if(RingBuffer_GetWriteAvailable(&outRing) < bytestowrite)  fprintf(stderr, "O");
 
 	RingBuffer_Write(&outRing, samples, bytestowrite);
 
-	return 0;
+	return (outRingLen + bytestowrite)/2;
+
 }
 
 int pa_select_devices (struct iaxc_audio_driver *d, int input, int output, int ring) {
