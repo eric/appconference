@@ -165,7 +165,7 @@ void iaxc_do_state_callback(int callNo)
       iaxc_post_event(e);
 }
 
-static int iaxc_first_free_call()  {
+int iaxc_first_free_call()  {
 	int i;
 	for(i=0;i<nCalls;i++) 
 	    if(calls[i].state == IAXC_CALL_STATE_FREE) 
