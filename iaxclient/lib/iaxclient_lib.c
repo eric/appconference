@@ -288,7 +288,7 @@ int iaxc_initialize(int audType, int inCalls) {
 			break;
 	}
 
-	audio_format_capability = IAXC_FORMAT_ULAW | IAXC_FORMAT_GSM | IAXC_FORMAT_SPEEX;
+	audio_format_capability = IAXC_FORMAT_ULAW | IAXC_FORMAT_ALAW | IAXC_FORMAT_GSM | IAXC_FORMAT_SPEEX;
 	audio_format_preferred = IAXC_FORMAT_SPEEX;
 
 	return 0;

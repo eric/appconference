@@ -2,6 +2,7 @@
 #include "iaxclient_lib.h"
 #include "codec_gsm.h"
 #include "codec_ulaw.h"
+#include "codec_alaw.h"
 #include "codec_speex.h"
 
 double iaxc_silence_threshold = -9e99;
@@ -157,6 +158,9 @@ static struct iaxc_audio_codec *create_codec(int format) {
 	break;
 	case IAXC_FORMAT_ULAW:
 	  return iaxc_audio_codec_ulaw_new();
+	break;
+	case IAXC_FORMAT_ALAW:
+	  return iaxc_audio_codec_alaw_new();
 	break;
 	case IAXC_FORMAT_SPEEX:
 	  return iaxc_audio_codec_speex_new();

@@ -48,6 +48,7 @@ OBJS=\
 	audio_file.o \
 	codec_gsm.o \
 	codec_ulaw.o \
+	codec_alaw.o \
 	codec_speex.o \
 	iaxclient_lib.o 
 
