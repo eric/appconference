@@ -286,12 +286,12 @@ int iaxc_initialize(int audType, int inCalls) {
 }
 
 void iaxc_shutdown() {
-	MUTEXLOCK(&iaxc_lock);
 	iaxc_dump_all_calls();
 
+	MUTEXLOCK(&iaxc_lock);
 	audio.destroy(&audio);
-
 	MUTEXUNLOCK(&iaxc_lock);
+
 	MUTEXDESTROY(&iaxc_lock);
 }
 

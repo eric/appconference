@@ -316,10 +316,17 @@ PxVolume Px_GetPCMOutputVolume( PxMixer *mixer )
   unsigned short mono_vol = 0;
   PxInfo *info = (PxInfo *)mixer;
 
-  result = waveOutGetVolume(info->muxID, &vol);
+  /* first, try to use the proper device id ( speakerID ) */
+  result = waveOutGetVolume(info->speakerID, &vol);
 
-  if (result != MMSYSERR_NOERROR)
-     return 0.0;
+	/* if that fails, try the muxID */
+	if ( result != MMSYSERR_NOERROR )
+	{
+		result = waveOutGetVolume( (HWAVEOUT)( info->muxID ), &vol ) ;
+
+		if ( result != MMSYSERR_NOERROR )
+			return 0.0 ;
+	}
 
   mono_vol = (unsigned short)vol;
   return (PxVolume)mono_vol/65535.0;
@@ -330,7 +337,12 @@ void Px_SetPCMOutputVolume( PxMixer *mixer, PxVolume volume )
   MMRESULT result;
   PxInfo *info = (PxInfo *)mixer;
 
-  result = waveOutSetVolume(info->muxID, MAKELONG(volume*0xFFFF, volume*0xFFFF));
+  /* first, try to use the proper device id ( speakerID ) */
+  result = waveOutSetVolume(info->speakerID, MAKELONG(volume*0xFFFF, volume*0xFFFF));
+
+	/* if that fails, try the muxID */
+	if ( result != MMSYSERR_NOERROR )
+		result = waveOutSetVolume( (HWAVEOUT)( info->muxID ), MAKELONG(volume*0xFFFF, volume*0xFFFF) ) ;
 
   if (result != MMSYSERR_NOERROR)
       return;

@@ -428,6 +428,7 @@ int pa_aux_callback(void *inputBuffer, void *outputBuffer,
  * */
 int pa_openstreams (struct iaxc_audio_driver *d ) {
     PaError err;
+    
 #ifndef MACOSX
     /* first, try opening one stream for in/out, Mono */
     /* except for MacOSX, which needs virtual stereo */
@@ -680,10 +681,10 @@ double pa_input_level_get(struct iaxc_audio_driver *d){
 double pa_output_level_get(struct iaxc_audio_driver *d){
     PxMixer *mix;
 
-    if(iMixer)
-      mix = iMixer;
-    else if (oMixer)
+    if(oMixer)
       mix = oMixer;
+    else if (iMixer)
+      mix = iMixer;
     else
       return -1;
 
@@ -700,10 +701,10 @@ int pa_input_level_set(struct iaxc_audio_driver *d, double level){
 int pa_output_level_set(struct iaxc_audio_driver *d, double level){
     PxMixer *mix;
 
-    if(iMixer)
-      mix = iMixer;
-    else if (oMixer)
+    if(oMixer)
       mix = oMixer;
+    else if (iMixer)
+      mix = iMixer;
     else
       return -1;
 

@@ -1419,7 +1419,7 @@ static OSStatus PAOSX_DevicePropertyListener (AudioDeviceID					inDevice,
 
     if(inPropertyID == kAudioDevicePropertyStreamFormat)
     {    
-        AudioConverterRef oldConverter; 
+            
         /* Get target device format */
         dataSize = sizeof(hardwareStreamFormat);
         err = AudioDeviceGetProperty(inDevice, 0, isInput,
@@ -1464,7 +1464,7 @@ static OSStatus PAOSX_DevicePropertyListener (AudioDeviceID					inDevice,
         
         // Don't delete old converter until we create new one so we don't pull
         // the rug out from under other audio threads.
-        oldConverter = hostInOut->converter;
+        AudioConverterRef oldConverter = hostInOut->converter;
         
         // Make converter to change sample rate.
         err = AudioConverterNew (

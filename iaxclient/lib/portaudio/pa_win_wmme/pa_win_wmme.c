@@ -663,7 +663,8 @@ static PaError Pa_TimeSlice( internalPortAudioStream *stream )
         {
             if((wmmeStreamData->outputBuffers[ wmmeStreamData->currentOutputBuffer ].dwFlags & WHDR_DONE) == 0)
             {
-                break;  /* If none empty then bail and try again later. */
+            	/* don't break: this stream may also have input channels */
+                /* break; */  /* If none empty then bail and try again later. */
             }
             else
             {
