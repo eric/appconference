@@ -114,7 +114,7 @@ static  gUnderCallbackCounter = 0;
 #endif
 
 #define PRINT(x) { printf x; fflush(stdout); }
-#define ERR_RPT(x) PRINT(x)
+#define ERR_RPT(x) /* PRINT(x) */
 #define DBUG(x)  /* PRINT(x) */
 #define DBUGX(x) /* PRINT(x) */
 /************************************************* Definitions ********/
