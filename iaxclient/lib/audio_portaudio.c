@@ -36,12 +36,15 @@ static echo_can_state_t *ec;
 static SpeexEchoState *ec;
 #endif
 
+#define EC_RING_SZ  8192 /* must be pow(2) */
+
+
 static PortAudioStream *iStream, *oStream;
 
 static selectedInput, selectedOutput, selectedRing;
 
 #define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
-#define ECHO_TAIL	  2048   /* echo_tail length, in frames */
+#define ECHO_TAIL	  1024 /* echo_tail length, in frames must be pow(2) for mec/span ? */
 
 #define RBSZ 1024 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
 static char inRingBuf[RBSZ], outRingBuf[RBSZ]; 
@@ -240,14 +243,59 @@ int pa_stop_sound(int soundID) {
 
 static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 {
+    static RingBuffer outRing;
+    static outRingBuf[EC_RING_SZ];
+    short  delayedBuf[160];
+
+    /* if ec is off, clear ec state -- this way, we start fresh if/when
+     * it's turned back on. */
+    if(!(iaxc_filters & IAXC_FILTER_ECHO)) {
+	if(ec)  {
+#if defined(USE_MEC2) || defined(SPAN_EC)
+	  echo_can_free(ec); 
+	  ec = NULL;
+#endif
 #if defined(SPEEX_EC)
+	  speex_echo_state_destroy(ec);
+	  ec = NULL;
+#endif
+	}
+	    
+	return;
+    }
+
+    /* we want echo cancellation */
+    if(!ec) {
+	RingBuffer_Init(&outRing, EC_RING_SZ, &outRingBuf);
+#if defined(USE_MEC2) || defined(SPAN_EC)
+	ec = echo_can_create(ECHO_TAIL, 0);
+#endif
+#if defined(SPEEX_EC)
+	ec = speex_echo_state_init(FRAMES_PER_BUFFER, ECHO_TAIL); 
+#endif
+    }
+
+    /* fill outRing */
+    RingBuffer_Write(&outRing, outputBuffer, n * 2);
+
+    // Make sure we have enough buffer.
+    // Currently, just one FRAMES_PER_BUFFER's worth.
+    if(RingBuffer_GetReadAvailable(&outRing) < ((n + 80) * 2) ) 
+      return;
+
+    RingBuffer_Read(&outRing, delayedBuf, n * 2);
+
+    
+    
+#if defined(SPEEX_EC)
+    {
       /* convert buffers to float, echo cancel, convert back */
       float finBuffer[1024], foutBuffer[1024], fcancBuffer[1024];
       int i;
       for(i=0;i<n;i++)
       {
 	  finBuffer[i] = inputBuffer[i];
-	  foutBuffer[i] = outputBuffer[i];
+	  foutBuffer[i] = delayedBuf[i];
       }
 
       speex_echo_cancel(ec, finBuffer, foutBuffer, fcancBuffer, NULL);
@@ -255,14 +303,17 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
       for(i=0;i<n;i++)
       {
 	  inputBuffer[i] =  fcancBuffer[i];
+//	  inputBuffer[i] =  (short)(finBuffer[i] + fcancBuffer[i]);
       }
-
+    }
 #endif
 
 #if defined(USE_MEC2) || defined(SPAN_EC)
+    {
       int i;
       for(i=0;i<n;i++) 
-	inputBuffer[i] = echo_can_update(ec, outputBuffer[i], inputBuffer[i]);
+	inputBuffer[i] = echo_can_update(ec, delayedBuf[i], inputBuffer[i]);
+    }
 #endif
 
 }
@@ -307,14 +358,12 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	/* input overflow might happen here */
 	if(virtualMono) {
 	  stereo2mono(virtualInBuffer, inputBuffer, framesPerBuffer);
-	  if(iaxc_filters & IAXC_FILTER_ECHO)
-	      iaxc_echo_can(virtualInBuffer, virtualOutBuffer, framesPerBuffer);
+	  iaxc_echo_can(virtualInBuffer, virtualOutBuffer, framesPerBuffer);
 
 	  RingBuffer_Write(&inRing, virtualInBuffer, totBytes);
 	} else {
 
-	  if(iaxc_filters & IAXC_FILTER_ECHO)
-	      iaxc_echo_can(inputBuffer, outputBuffer, framesPerBuffer);
+	  iaxc_echo_can(inputBuffer, outputBuffer, framesPerBuffer);
 
 	  RingBuffer_Write(&inRing, inputBuffer, totBytes);
 	}
@@ -590,13 +639,6 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
 
     RingBuffer_Init(&inRing, RBSZ, inRingBuf);
     RingBuffer_Init(&outRing, RBSZ, outRingBuf);
-
-#if defined(USE_MEC2) || defined(SPAN_EC)
-    ec = echo_can_create(ECHO_TAIL, 0);
-#endif
-#if defined(SPEEX_EC)
-    ec = speex_echo_state_init(FRAMES_PER_BUFFER, ECHO_TAIL); /* in frames */
-#endif
 
     running = 0;
 
