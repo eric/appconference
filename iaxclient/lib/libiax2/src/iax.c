@@ -609,6 +609,45 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	return ms;
 }
 
+static int get_sample_cnt(struct iax_event *e)
+{
+	int cnt = 0;
+	switch (e->subclass) {
+	  case AST_FORMAT_SPEEX:
+	    cnt = 160;		/* FIXME Not always the case */
+	    break;
+	  case AST_FORMAT_G723_1:
+	    cnt = 240;		/* FIXME Not always the case */
+	    break;
+	  case AST_FORMAT_ILBC:
+	    cnt = 240 * (e->datalen / 50);
+	    break;
+	  case AST_FORMAT_GSM:
+	    cnt = 160 * (e->datalen / 33);
+	    break;
+	  case AST_FORMAT_G729A:
+	    cnt = 160 * (e->datalen / 20);
+	    break;
+	  case AST_FORMAT_SLINEAR:
+	    cnt = e->datalen / 2;
+	    break;
+	  case AST_FORMAT_LPC10:
+	    cnt = 22 * 8 + (((char *)(e->data))[7] & 0x1) * 8;
+	    break;
+	  case AST_FORMAT_ULAW:
+	  case AST_FORMAT_ALAW:
+	    cnt = e->datalen;
+	    break;
+	  case AST_FORMAT_ADPCM:
+	  case AST_FORMAT_G726:
+	    cnt = e->datalen * 2;
+	    break;
+	  default:
+	    return 0;
+	}
+	return cnt;
+}
+
 static int iax_xmit_frame(struct iax_frame *f)
 {
 	struct ast_iax2_full_hdr *h = (f->data);
@@ -1886,10 +1925,7 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 
 	    if(e->etype == IAX_EVENT_VOICE) {
 	      type = JB_TYPE_VOICE;
-	      /* XXX: Should probably parse this in full frames, then
-	       * store that, and use this for miniframes, instead of
-	       * hardcoding this guess here */
-	      len = (e->subclass == AST_FORMAT_ILBC) ? 30 : 20; 
+	      len = get_sample_cnt(e) / 8;
 	    } else if(e->etype == IAX_EVENT_CNG) {
 	      type = JB_TYPE_SILENCE;	
 	    }
