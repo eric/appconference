@@ -213,14 +213,14 @@ bool theApp::OnInit()
     iaxc_start_processing_thread();
 
     // Callerid from wxConfig
-    Name   = config->Read(_T("Name"), _T("IaxComm User"));
+    Name   = config->Read(_T("Name"),   _T("iaxComm User"));
     Number = config->Read(_T("Number"), _T("700000000"));
     SetCallerID(Name, Number);
 
     // Register from wxConfig
     config->SetPath(_T("/Accounts"));
     bCont = config->GetFirstGroup(str, dummy);
-    while (bCont) {
+    while ( bCont ) {
         RegisterByName(str);
         bCont = config->GetNextGroup(str, dummy);
     }
@@ -251,6 +251,7 @@ void theApp::RegisterByName(wxString RegName)
         return;
 
     if(tok.CountTokens() == 3) {
+
 #if defined(__UNICODE__)
         utf8.WC2MB(user, tok.GetNextToken().c_str(), 256);
         utf8.WC2MB(pass, tok.GetNextToken().c_str(), 256);
@@ -262,8 +263,8 @@ void theApp::RegisterByName(wxString RegName)
 #endif
     } else {
         // Check if it's a Speed Dial
-        wxStrcpy(KeyPath, _T("/Accounts/"));
-        wxStrcat(KeyPath, RegName);
+        wxStrcpy(KeyPath,     _T("/Accounts/"));
+        wxStrcat(KeyPath,     RegName);
         config->SetPath(KeyPath);
         if(!config->Exists(KeyPath)) {
             theFrame->SetStatusText(_T("Register format error"));

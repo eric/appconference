@@ -148,7 +148,7 @@ void CallList::OnRClick(wxListEvent &event)
 #if defined(__UNICODE__)
     wxMBConvUTF8 utf8;
 #endif
-
+  
     Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
                              _T("Target Extension:"),
@@ -157,11 +157,13 @@ void CallList::OnRClick(wxListEvent &event)
                              wxOK | wxCANCEL);
 
     if(dialog.ShowModal() != wxID_CANCEL) {
+
 #if defined(__UNICODE__)
         utf8.WC2MB(ext, dialog.GetValue().c_str(), 256);
 #else
         strncpy(ext, dialog.GetValue().c_str(), 256);
 #endif
+
         iaxc_blind_transfer_call(selected, ext);
     }
 }

@@ -33,6 +33,7 @@
 #include "accounts.h"
 #include "ringer.h"
 #include "wx/menu.h"
+#include "wx/html/helpctrl.h"
 
 #define LEVEL_MAX -40
 #define LEVEL_MIN -50
@@ -95,6 +96,8 @@ public:
     wxComboBox *Extension;
     CallList   *Calls;
 
+    wxHtmlHelpController* help;
+
     wxString    IntercomPass;
 
     bool        RingOnSpeaker;
@@ -134,6 +137,7 @@ private:
     void        OnDirectory(wxCommandEvent& event);
     void        OnExit(wxCommandEvent& event);
     void        OnAbout(wxCommandEvent& event);
+    void        OnHelp(wxCommandEvent& event);
     void        OnOneTouch(wxCommandEvent& event);
     void        OnKeyPad(wxCommandEvent& event);
     void        OnDialDirect(wxCommandEvent& event);

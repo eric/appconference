@@ -46,7 +46,7 @@
           <hgap>4</hgap>
           <growablecols>1</growablecols>
           <object class="sizeritem">
-            <object class="wxComboBox" name="Extension ">
+            <object class="wxComboBox" name="Extension">
               <content/>
               <tooltip>Dial this number</tooltip>
             </object>
@@ -208,16 +208,16 @@
                 <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
                 <minsize>92,30</minsize>
               </object>
+              <cols>1</cols>
+              <growablecols>0</growablecols>
               <object class="sizeritem">
                 <object class="wxButton" name="2">
                   <label></label>
                 </object>
                 <border>1</border>
                 <flag>wxALL|wxGROW|wxALIGN_CENTRE</flag>
-                <minsize>92,33</minsize>
+                <minsize>92,30</minsize>
               </object>
-              <cols>1</cols>
-              <growablecols>0</growablecols>
               <object class="sizeritem">
                 <flag>wxEXPAND|wxALL|wxALIGN_LEFT</flag>
                 <border>3</border>
@@ -241,16 +241,6 @@
                         </object>
                         <flag>wxEXPAND</flag>
                         <minsize>30,13</minsize>
-                      </object>
-                      <object class="sizeritem">
-                        <object class="wxSlider" name="InputSlider">
-                          <value></value>
-                          <min></min>
-                          <max></max>
-                          <size>30,20</size>
-                        </object>
-                        <flag>wxEXPAND</flag>
-                        <minsize>30,20</minsize>
                       </object>
                     </object>
                     <border>2</border>
@@ -941,96 +931,96 @@
             <border>2</border>
             <object class="wxGridSizer">
               <object class="sizeritem">
-                <object class="wxButton" name="KP1">
-                  <label>1</label>
+                <object class="wxBitmapButton" name="KP1">
+                  <bitmap>bitmaps\KP1.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP2">
-                  <label>2</label>
+                <object class="wxBitmapButton" name="KP2">
+                  <bitmap>bitmaps\KP2.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP3">
-                  <label>3</label>
+                <object class="wxBitmapButton" name="KP3">
+                  <bitmap>bitmaps\KP3.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP4">
-                  <label>4</label>
+                <object class="wxBitmapButton" name="KP4">
+                  <bitmap>bitmaps\KP4.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP5">
-                  <label>5</label>
+                <object class="wxBitmapButton" name="KP5">
+                  <bitmap>bitmaps\KP5.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP6">
-                  <label>6</label>
+                <object class="wxBitmapButton" name="KP6">
+                  <bitmap>bitmaps\KP6.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP7">
-                  <label>7</label>
+                <object class="wxBitmapButton" name="KP7">
+                  <bitmap>bitmaps\KP7.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP8">
-                  <label>8</label>
+                <object class="wxBitmapButton" name="KP8">
+                  <bitmap>bitmaps\KP8.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP9">
-                  <label>9</label>
+                <object class="wxBitmapButton" name="KP9">
+                  <bitmap>bitmaps\KP9.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KPSTAR">
-                  <label>*</label>
+                <object class="wxBitmapButton" name="KPSTAR">
+                  <bitmap>bitmaps\KPSTAR.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KP0">
-                  <label>0</label>
+                <object class="wxBitmapButton" name="KP0">
+                  <bitmap>bitmaps\KP0.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>
                 <minsize>37,37</minsize>
               </object>
               <object class="sizeritem">
-                <object class="wxButton" name="KPPOUND">
-                  <label>#</label>
+                <object class="wxBitmapButton" name="KPPOUND">
+                  <bitmap>bitmaps\KPPOUND.bmp</bitmap>
                 </object>
                 <border>2</border>
                 <flag>wxALL|wxALIGN_CENTER</flag>

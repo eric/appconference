@@ -51,7 +51,11 @@
 #include "accounts.h"
 #include "calls.h"
 #include "dial.h"
+#include "wx/image.h"
 #include "wx/statusbr.h"
+#include "wx/filesys.h"
+#include "wx/fs_zip.h"
+#include "wx/html/helpctrl.h"
 
 static bool pttMode;      // are we in PTT mode?
 static bool pttState;     // is the PTT button pressed?
@@ -72,6 +76,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU    (XRCID("Directory"),   MyFrame::OnDirectory)
     EVT_MENU    (XRCID("Exit"),        MyFrame::OnExit)
     EVT_MENU    (XRCID("About"),       MyFrame::OnAbout)
+    EVT_MENU    (XRCID("Help"),        MyFrame::OnHelp)
     EVT_SIZE    (                      CallList::OnSize)  
 #ifdef __WXMSW__
     EVT_ICONIZE (                      MyTaskBarIcon::OnHide)
@@ -214,6 +219,11 @@ MyFrame::MyFrame(wxWindow *parent)
     timer->Start(100);
 
     RePanel(Name);
+
+    wxImage::AddHandler(new wxPNGHandler);
+    wxFileSystem::AddHandler(new wxZipFSHandler);
+    help = new wxHtmlHelpController;
+    help->AddBook(wxFileName("iaxcomm.htb"));
 }
 
 void MyFrame::RePanel(wxString Name)
@@ -339,6 +349,9 @@ MyFrame::~MyFrame()
     }
     iaxc_stop_processing_thread();
     
+    if(help != NULL)
+        help->Quit();
+
     aPanel->Destroy();
 }
 
@@ -645,6 +658,11 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
     wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
 }
 
+void MyFrame::OnHelp(wxCommandEvent& WXUNUSED(event))
+{
+    help->DisplayContents();
+}
+
 void MyFrame::OnAccounts(wxCommandEvent& WXUNUSED(event))
 {
     AccountsDialog dialog(this);
@@ -747,7 +765,7 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
 #if defined(__UNICODE__)
     wxMBConvUTF8 utf8;
 #endif
-
+  
     Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
                              _T("Target Extension:"),
@@ -756,11 +774,13 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
                              wxOK | wxCANCEL);
 
     if(dialog.ShowModal() != wxID_CANCEL) {
+
 #if defined(__UNICODE__)
         utf8.WC2MB(ext, dialog.GetValue().c_str(), 256);
 #else
         strncpy(ext, dialog.GetValue().c_str(), 256);
 #endif
+
         iaxc_blind_transfer_call(selected, ext);
     }
 }

@@ -51,6 +51,10 @@
         <label>_About</label>
         <help>Display version number and copyright notice</help>
       </object>
+      <object class="wxMenuItem" name="Help">
+        <label>iaxComm H_elp...</label>
+        <help>Online manual</help>
+      </object>
     </object>
   </object>
 </resource>

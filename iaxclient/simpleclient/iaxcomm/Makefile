@@ -1,5 +1,5 @@
 PROVIDER=asterisk
-VERSION=1.0rc1
+VERSION=1.0rc3
 CFLAGS=-I../../lib 
 
 #debug
@@ -41,7 +41,7 @@ CFLAGS:= $(CFLAGS) -I$(WXWIN)/include -I$(WXWIN)/contrib/include -I$(WXWIN)/lib/
 WINSYSFLAGS=-Wl,--subsystem,windows -mwindows
 #WINSYSFLAGS=
 EXTRALIBS = -lwxxrc
-SYSLIBS=$(EXTRALIBS) $(WINSYSFLAGS) -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib
+SYSLIBS=$(EXTRALIBS) $(WINSYSFLAGS) $(WXWIN)/lib/libwxmswd.a -lpng -lzlib -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib -L$(WXWIN)/contrib/lib
 OBJS:=$(OBJS) iaxcomm_resources.o
 endif
 
