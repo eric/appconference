@@ -613,8 +613,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	   or delayed, with retransmission */
 	struct ast_iax2_full_hdr *fh;
 	struct ast_iax2_mini_hdr *mh;
-	unsigned char buffer[4096];		/* Buffer -- must preceed fr2 */
-	struct iax_frame fr2;
+	double buffer[4096];   /* Buffer -- we use this for a frame later, double might ensure proper alignment?  */
 	struct iax_frame *fr;
 	int res;
 	int sendmini=0;
@@ -646,7 +645,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	}
 	/* Allocate an iax_frame */
 	if (now) {
-		fr = &fr2;
+		fr = (struct iax_frame *)&buffer;
 	} else
 		fr = iax_frame_new(DIRECTION_OUTGRESS, f->datalen);
 	if (!fr) {
