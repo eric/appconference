@@ -26,10 +26,12 @@
 static struct ast_conference *conflist = NULL ;
 
 // mutex for synchronizing access to conflist
-static ast_mutex_t conflist_lock = AST_MUTEX_INITIALIZER ;
+AST_MUTEX_DEFINE_STATIC(conflist_lock);
+//static ast_mutex_t conflist_lock = AST_MUTEX_INITIALIZER ;
 
 // mutex for synchronizing calls to start_conference() and remove_conf()
-static ast_mutex_t start_stop_conf_lock = AST_MUTEX_INITIALIZER ;
+AST_MUTEX_DEFINE_STATIC(start_stop_conf_lock);
+//static ast_mutex_t start_stop_conf_lock = AST_MUTEX_INITIALIZER ;
 
 static int conference_count = 0 ;
 
@@ -578,9 +580,14 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	ast_mutex_init( &conf->lock ) ;
 	
 	// build translation paths	
-	conf->from_slinear_paths[ AC_SLINEAR_INDEX ] = NULL ;
-	conf->from_slinear_paths[ AC_ULAW_INDEX ] = ast_translator_build_path( AST_FORMAT_ULAW, AST_FORMAT_SLINEAR ) ;
-	conf->from_slinear_paths[ AC_GSM_INDEX ] = ast_translator_build_path( AST_FORMAT_GSM, AST_FORMAT_SLINEAR ) ;
+	
+	for ( int c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
+	{
+		if ( c == AC_SLINEAR_INDEX )
+			conf->from_slinear_paths[ c ] = NULL;
+		else 
+			conf->from_slinear_paths[ c ] =ast_translator_build_path( 1 << c, AST_FORMAT_SLINEAR);
+	}
 
 	// add the initial member
 	add_member( member, conf ) ;
@@ -1019,6 +1026,16 @@ int queue_frame_for_listener(
 
 		// first, try for a pre-converted frame
 		qf = frame->converted[ member->write_format_index ] ;
+
+		/*
+		if ( qf != NULL && (member->smooth_size_out > 0)) {
+			if (qf->datalen != member->smooth_size_out ) {
+//ast_log (AST_CONF_DEBUG, "ignoring and freeing previously stored frame, with datalen=>%d != smooth_size_out=>%d\n",qf->datalen,member->smooth_size_out);
+				ast_frfree( qf ) ;
+				qf = NULL ;
+			}
+		}
+		*/
 	
 		// convert ( and store ) the frame
 		if ( qf == NULL )
@@ -1034,10 +1051,13 @@ int queue_frame_for_listener(
 			
 			// convert using the conference's translation path
 			qf = convert_frame_from_slinear( conf->from_slinear_paths[ member->write_format_index ], qf ) ;
+			if ( qf == NULL )
+				ast_log( LOG_WARNING, "unable to translate frame for listener, channel => %s , member->write_format => %d , member->write_format_index %d , qf->frametype -> %d , qf->subclass -> %d, qf->datalen=> %d, qf->samples =>%d\n", member->channel_name , member->write_format, member->write_format_index, qf->frametype, qf->subclass , qf->datalen, qf->samples) ;
 			
 			// store the converted frame
 			// ( the frame will be free'd next time through the loop )
 			frame->converted[ member->write_format_index ] = qf ;
+//ast_log (AST_CONF_DEBUG, "storing converted frame into index=>%d, qf->frametype=>%d, qf->subclass=%d, qf->datalen=%d \n",member->write_format_index, qf->frametype, qf->subclass, qf->datalen);
 		}
 
 		if ( qf != NULL )

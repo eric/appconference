@@ -58,6 +58,13 @@ struct ast_conf_member
 	conf_frame* inFramesTail ;	
 	unsigned int inFramesCount ;
 
+	// input/output smoother
+	struct ast_smoother *inSmoother;
+	struct ast_packer *outPacker;
+	int smooth_size_in;
+	int smooth_size_out;
+	int smooth_multiple;
+
 	// frames needed by conference_exec
 	unsigned int inFramesNeeded ;
 
@@ -140,11 +147,12 @@ struct ast_conf_member* create_member( struct ast_channel* chan, const char* dat
 struct ast_conf_member* delete_member( struct ast_conf_member* member ) ;
 
 // incoming queue
-int queue_incoming_frame( struct ast_conf_member* member, const struct ast_frame* fr ) ;
+int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr ) ;
 conf_frame* get_incoming_frame( struct ast_conf_member* member ) ;
 
 // outgoing queue
 int queue_outgoing_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
+int __queue_outgoing_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
 conf_frame* get_outgoing_frame( struct ast_conf_member* member ) ;
 
 void send_state_change_notifications( struct ast_conf_member* member ) ;
@@ -159,5 +167,19 @@ short memberIsSIPClient( struct ast_conf_member* member ) ;
 
 short memberIsModerator( struct ast_conf_member* member ) ;
 short memberIsListener( struct ast_conf_member* member ) ;
+
+//
+// packer functions
+// 
+
+struct ast_packer;
+
+extern struct ast_packer *ast_packer_new(int bytes);
+extern void ast_packer_set_flags(struct ast_packer *packer, int flags);
+extern int ast_packer_get_flags(struct ast_packer *packer);
+extern void ast_packer_free(struct ast_packer *s);
+extern void ast_packer_reset(struct ast_packer *s, int bytes);
+extern int ast_packer_feed(struct ast_packer *s, const struct ast_frame *f);
+extern struct ast_frame *ast_packer_read(struct ast_packer *s);
 
 #endif

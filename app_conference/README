@@ -8,7 +8,8 @@ It has several design goals which are different than meetme:
 	detection/discontinuous transmission).
 
     * It can do VAD on channels which do not support DTX (although this 
-	is probably more expensive than just mixing them).
+	is more expensive than just mixing them, but less expensive then encoding; therefore
+	it might still be a win). 
     * It presents messages on the Monitor interface for determine which 
 	speakers are active. 
 
@@ -20,6 +21,8 @@ pretty rigid, and cases outside of this aren't tested:
 	via uLaw.
     * Other callers come from iaxclient based softphones using GSM via 
 	IAX2 (with DTX). 
+    * In the latest version, there is code to work with iaxclient softphones using 40ms speex frames,
+    	but the packing of speex frames is non-standard (no terminator in the middle of the frame).
 
 
 Mixing design
@@ -78,7 +81,8 @@ app_conference doesn't have DTMF-activated features or anything like that.
 Benchmarking
 It would be nice to have solid benchmarks to present, but a good size 
 machine should be able to handle many callers when either (a) they are 
-using DTX, or (b) they are listen-only. Probably hundreds.
+using DTX, or (b) they are listen-only.  It's used often with hundreds of
+simultaneous callers.
 
 Discussion
 The iaxclient-devel mailing list is probably as good a place as any to discuss.

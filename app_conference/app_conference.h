@@ -30,7 +30,6 @@
 #include <asterisk/translate.h>
 #include <asterisk/channel.h>
 #include <asterisk/file.h>
-#include <asterisk/channel_pvt.h>
 #include <asterisk/cli.h>
 
 /* standard includes */
@@ -181,9 +180,9 @@
 // format translation values
 //
 
-#define AC_SUPPORTED_FORMATS 3
-
-enum { AC_SLINEAR_INDEX = 0, AC_ULAW_INDEX, AC_GSM_INDEX } ;
+// AST_FORMAT_MAX_AUDIO is 1 << 15, so we support 0..15
+#define AC_SUPPORTED_FORMATS 16 
+#define AC_SLINEAR_INDEX 6
 
 //
 // app_conference functions
