@@ -446,7 +446,9 @@ static int speex_compute_vad(SpeexPreprocessState *st, float *ps, float mean_pri
       st->speech_prob = p0/(1e-25f+p1+p0);
       /*fprintf (stderr, "%f %f %f ", tot_loudness, st->loudness2, st->speech_prob);*/
 
-      if (st->speech_prob>.35 || (st->last_speech < 20 && st->speech_prob>.1))
+      /* IAXCLIENT: Make things a bit more sensitive */
+/*      if (st->speech_prob>.35 || (st->last_speech < 20 && st->speech_prob>.1)) */
+      if (st->speech_prob> .30 || (st->last_speech < 20 && st->speech_prob>.07))
       {
          is_speech = 1;
          st->last_speech = 0;
