@@ -118,7 +118,6 @@ int doTestCall(int argc, char **argv)
 	    0-9 * or #: dial those DTMF digits.\n");
 	fprintf(f, "Calling %s\n", dest);
 	
-	iaxc_call(f,dest);
 
 	printf("ready for keyboard input\n");
 #if 0		

@@ -21,10 +21,10 @@ static char *buttonlabels[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "*"
 
 
 
-class LevelTimer : public wxTimer
+class IAXTimer : public wxTimer
 {
   public:
-    void LevelTimer::Notify(); 
+    void IAXTimer::Notify(); 
 };
 
 
@@ -49,18 +49,23 @@ public:
 
     ~IAXFrame();
 
+    void IAXFrame::ButtonHandler(wxEvent &evt);
+
     wxGauge *input; 
     wxGauge *output; 
     DialPad *dialPad;
-    LevelTimer *timer;
+    IAXTimer *timer;
+    wxTextCtrl *iaxDest;
+    wxButton *dialButton, *quitButton;
 
-private:
+protected:
+    DECLARE_EVENT_TABLE()
 
 };
 
 static IAXFrame *theFrame;
 
-void LevelTimer::Notify()
+void IAXTimer::Notify()
 {
     iaxc_process_calls();
 }
@@ -81,8 +86,8 @@ DialPad::DialPad(wxFrame *parent, wxPoint pos, wxSize size)
     for(int i=0; i<12;)
     {
 	fprintf(stderr, "creating button at %d,%d, %d by %d\n", x,y,dX,dY);
-	buttons[i] = new wxButton(this, wxID_HIGHEST+i, wxString(buttonlabels[i]),
-	    wxPoint(x,y), wxSize(dX-3,dY-3),
+	buttons[i] = new wxButton(this, i, wxString(buttonlabels[i]),
+	    wxPoint(x,y), wxSize(dX-5,dY-5),
 	    0, wxDefaultValidator, wxString(buttonlabels[i]));	      
 
 	i++;
@@ -96,25 +101,25 @@ DialPad::DialPad(wxFrame *parent, wxPoint pos, wxSize size)
 
 void DialPad::ButtonHandler(wxEvent &evt)
 {
-	int buttonNo = evt.m_id - wxID_HIGHEST;	
+	int buttonNo = evt.m_id;	
 	char *button = buttonlabels[buttonNo];
 	fprintf(stderr, "got Button Event for button %s\n", button);
 	iaxc_send_dtmf(*button);
 }
 
 BEGIN_EVENT_TABLE(DialPad, wxPanel)
-	EVT_BUTTON(wxID_HIGHEST+0,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+1,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+2,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+3,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+4,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+5,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+6,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+7,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+8,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+9,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+10,DialPad::ButtonHandler)
-	EVT_BUTTON(wxID_HIGHEST+11,DialPad::ButtonHandler)
+	EVT_BUTTON(0,DialPad::ButtonHandler)
+	EVT_BUTTON(1,DialPad::ButtonHandler)
+	EVT_BUTTON(2,DialPad::ButtonHandler)
+	EVT_BUTTON(3,DialPad::ButtonHandler)
+	EVT_BUTTON(4,DialPad::ButtonHandler)
+	EVT_BUTTON(5,DialPad::ButtonHandler)
+	EVT_BUTTON(6,DialPad::ButtonHandler)
+	EVT_BUTTON(7,DialPad::ButtonHandler)
+	EVT_BUTTON(8,DialPad::ButtonHandler)
+	EVT_BUTTON(9,DialPad::ButtonHandler)
+	EVT_BUTTON(10,DialPad::ButtonHandler)
+	EVT_BUTTON(11,DialPad::ButtonHandler)
 END_EVENT_TABLE()
 
 
@@ -123,16 +128,49 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 {
     dialPad = new DialPad(this, wxPoint(0,0), wxSize(100,120));
 
-    input  = new wxGauge(this, -1, 50, wxPoint(100,0), wxSize(10,200), 
+    input  = new wxGauge(this, -1, 50, wxPoint(100,0), wxSize(10,120), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("input level")); 
-    output  = new wxGauge(this, -1, 50, wxPoint(110,0), wxSize(10,200), 
+    output  = new wxGauge(this, -1, 50, wxPoint(110,0), wxSize(10,120), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("output level")); 
 
-    timer = new LevelTimer();
+    iaxDest = new wxTextCtrl(this, -1, wxString("guest@server"), 
+	wxPoint(0,120), wxSize(110,20) /*, wxTE_MULTILINE */);
+	
+    dialButton = new wxButton(this, 100, wxString("Dial"),
+	    wxPoint(0,150), wxSize(55,25));
+
+    quitButton = new wxButton(this, 101, wxString("Quit"),
+	    wxPoint(60,150), wxSize(55,25));
+
+    timer = new IAXTimer();
     timer->Start(10);
     //output = new wxGauge(this, -1, 100); 
-    //text = new wxTextCtrl(this, -1, wxString("Type some text..."), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE);
 }
+
+void IAXFrame::ButtonHandler(wxEvent &evt)
+{
+	int buttonNo = evt.m_id;	
+
+	fprintf(stderr, "got Button Event for button %d\n", buttonNo);
+
+	switch(buttonNo) {
+		case 100:
+			// dial the number
+			iaxc_call(stderr,
+			   (char *)(theFrame->iaxDest->GetValue().c_str()));
+			break;
+		case 101:
+			exit(0);	
+			break;
+		default:
+			break;
+	}
+}
+
+BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
+	EVT_BUTTON(100,IAXFrame::ButtonHandler)
+	EVT_BUTTON(101,IAXFrame::ButtonHandler)
+END_EVENT_TABLE()
 
 IAXFrame::~IAXFrame()
 {
@@ -140,7 +178,7 @@ IAXFrame::~IAXFrame()
 
 bool IAXClient::OnInit() 
 { 
-	theFrame = new IAXFrame("IAXTest", 0,0,300,400);
+	theFrame = new IAXFrame("IAXTest", 0,0,120,300);
 	theFrame->CreateStatusBar(); 
 	theFrame->SetStatusText("Hello World"); 
 

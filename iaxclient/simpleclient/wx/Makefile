@@ -40,8 +40,8 @@ SYSLIBS=-lpthread -lm `wxgtk-2.4-config --libs`
 endif
 
 ifeq ($(OSTYPE),MACOSX)
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
-SYSLIBS=-framework CoreAudio -framework AudioToolbox
+CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags`
+SYSLIBS=-framework CoreAudio -framework AudioToolbox `wx-config --libs`
 endif
 
 CPPFLAGS = $(CFLAGS)
@@ -60,6 +60,6 @@ makelib:
 	(cd ../../lib; make libiaxclient.a)
 
 wx$(EXEEXT): $(OBJS) $(LIBS)
-	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o wx$(EXEEXT)
+	c++ $(OBJS) $(LIBS) $(SYSLIBS) -o wx$(EXEEXT)
 
 
