@@ -1,7 +1,5 @@
-#
-# CiC
-#
-# Channel independent Conferencing
+# $Id$
+
 #
 # Makefile, based on the Asterisk Makefile, Coypright (C) 1999, Mark Spencer
 #
@@ -15,50 +13,80 @@
 
 .EXPORT_ALL_VARIABLES:
 
-INSTALL_PREFIX=
-ASTERISK_SOURCE_DIR=/root/octobri/asterisk
+#
+# app_conference defines which can be passed on the command-line
+#
 
-MODULES_DIR=$(INSTALL_PREFIX)/usr/lib/asterisk/modules
+INSTALL_PREFIX := /opt/horizon
+INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/lib/asterisk/modules
 
-PROC=$(shell uname -m)
-#PROC=i486
+ASTERISK_INCLUDE_DIR := $(HOME)/local/asterisk/asterisk/include
 
-DEBUG=-g #-pg
-INCLUDE=-I$(ASTERISK_SOURCE_DIR)/include -I$(ASTERISK_SOURCE_DIR)
-CFLAGS=-pipe  -Wall -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
-#CFLAGS+=-O6
-CFLAGS+=$(shell if $(CC) -march=$(PROC) -S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo "-march=$(PROC)"; fi)
-CFLAGS+=$(shell if uname -m | grep -q ppc; then echo "-fsigned-char"; fi)
+# turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
+APP_CONFERENCE_DEBUG := 1
 
-LIBS=-ldl -lpthread -lm
-CC=gcc
-INSTALL=install
+# 0 = OFF 1 = astdsp 2 = speex
+SILDET := 2
 
-SHAREDOS=app_conference.so
+#
+# app_conference objects to build
+#
 
-CFLAGS+=-Wno-missing-prototypes -Wno-missing-declarations
+OBJS = app_conference.o member.o conference.o frame.o 
+SHAREDOS = app_conference.so
 
-CFLAGS+=-DCRYPTO
+#
+# standard compile settings
+#
 
-# to allow # and *
-#CFLAGS+=-DCONF_HANDLE_DTMF
+PROC = $(shell uname -m)
+INSTALL = install
+CC = gcc
+
+INCLUDE = -I$(ASTERISK_INCLUDE_DIR) 
+LIBS = -ldl -lpthread -lm
+DEBUG := -g -pg
+
+CFLAGS = -pipe -std=c99 -Wall -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
+# CFLAGS+=-O6
+CFLAGS += $(shell if $(CC) -march=$(PROC) -S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo "-march=$(PROC)"; fi)
+CFLAGS += $(shell if uname -m | grep -q ppc; then echo "-fsigned-char"; fi)
+CFLAGS += -DCRYPTO
+
+ifeq ($(APP_CONFERENCE_DEBUG), 1)
+CFLAGS += -DAPP_CONFERENCE_DEBUG
+endif
+
+#
+# additional flag values for silence detection
+#
+
+ifeq ($(SILDET), 2)
+OBJS += libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
+CFLAGS += -Ilibspeex -DSILDET=2
+endif
+
+ifeq ($(SILDET), 1)
+CFLAGS += -DSILDET=1
+endif
+
+#
+# targets
+#
+
 all: $(SHAREDOS) 
 
 clean:
-	rm -f *.so *.o
+	rm -f *.so *.o $(OBJS)
 
-app_conference.so : app_conference.o ringbuffer.o
-	$(CC) -shared -Xlinker -x -o $@ app_conference.o ringbuffer.o
-
-app_onering.so : app_onering.o onering.o
-	$(CC) -shared -Xlinker -x -o $@ app_onering.o onering.o
-
-onering:
-	$(CC) -o onering onering.c
+app_conference.so : $(OBJS)
+	$(CC) -pg -shared -Xlinker -x -o $@ $(OBJS)
 
 install: all
-	for x in $(SHAREDOS); do $(INSTALL) -m 755 $$x $(MODULES_DIR) ; done
+	for x in $(SHAREDOS); do $(INSTALL) -m 755 $$x $(INSTALL_MODULES_DIR) ; done
+	killall asterisk
 
-config: all
-	cp conf.conf /etc/asterisk/
+# config: all
+# 	cp conf.conf /etc/asterisk/
 	
+
