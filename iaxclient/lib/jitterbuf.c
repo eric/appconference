@@ -601,7 +601,7 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 
 
     /* target */
-    jb->info.target = jb->info.jitter + jb->info.min + 2 * jb->info.last_voice_ms; 
+    jb->info.target = jb->info.jitter + jb->info.min + 3 * jb->info.last_voice_ms; 
 	//now - jb->info.last_voice_ts;
 
     diff = jb->info.target - jb->info.current;
@@ -615,7 +615,7 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
     /* let's work on non-silent case first */
     if(!jb->info.silence) { 
 	  /* we want to grow */
-      if( (diff > jb->info.last_voice_ms) && 
+      if( (diff > 0) && 
 	  /* we haven't grown in a frames' length */
 	  (((jb->info.last_adjustment + jb->info.last_voice_ms ) < now) || 
 	   /* we need to grow more than the "length" we have left */
@@ -700,14 +700,12 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 	   * But, this still seemed like a good idea, except that it ended up making a single actual
 	   * lost frame get interpolated two or more times, when there was "room" to grow, so it might
 	   * be a bit of a bad idea overall */
-	  /*
-	  if(0 && diff > -1 * jb->info.last_voice_ms) { 
+	  if(diff > -1 * jb->info.last_voice_ms) { 
 	      jb->info.current += jb->info.last_voice_ms;
 	      jb->info.last_adjustment = now;
 	      jb_warn("g");
 	      return JB_INTERP;
 	  }
-	  */
 	  jb->info.frames_lost++;
 	  jb_warn("L");
 	  return JB_INTERP;
