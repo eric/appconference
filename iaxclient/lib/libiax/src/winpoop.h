@@ -14,6 +14,7 @@
 
 #include <time.h>
 #include <winsock.h>
+#include <stdio.h>
 
 /* holder of the time, relative to startup in system ticks. See our
 gettimeofday() implementation */
