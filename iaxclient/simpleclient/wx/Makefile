@@ -35,8 +35,8 @@ SYSLIBS=-lwinmm -lwsock32
 endif
 
 ifeq ($(OSTYPE),LINUX)
-CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wxgtk-2.4-config --cflags`
-SYSLIBS=-lpthread -lm `wxgtk-2.4-config --libs`
+CFLAGS:= $(CFLAGS) -DPOSIXSLEEP `wx-config --cflags`
+SYSLIBS=-lpthread -lm `wx-config --libs`
 endif
 
 ifeq ($(OSTYPE),MACOSX)
