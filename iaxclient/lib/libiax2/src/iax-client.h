@@ -90,8 +90,10 @@ struct iax_session;
 #ifdef WIN32
 #if defined(_MSC_VER)
 typedef int (__stdcall *sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+typedef int (__stdcall *recvfrom_t)(SOCKET, char *, int, int, struct sockaddr *, int *);
 #else
 typedef int PASCAL (*sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+typedef int PASCAL (*recvfrom_t)(SOCKET, char *buf, int len, int flags, struct sockaddr *from, int *fromlen);
 #endif
 #else
 typedef int (*sendto_t)(int, const void *, size_t, int, const struct sockaddr *, socklen_t);

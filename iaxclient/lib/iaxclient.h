@@ -24,8 +24,10 @@ extern "C" {
 #ifdef WIN32
 #if defined(_MSC_VER)
 	typedef int (__stdcall *iaxc_sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+	typedef int (__stdcall *iaxc_recvfrom_t)(SOCKET, char *, int, int, struct sockaddr *, int *);
 #else
 	typedef int PASCAL (*iaxc_sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
+	typedef int PASCAL (*iaxc_recvfrom_t)(SOCKET, char *buf, int len, int flags, struct sockaddr *from, int *fromlen);
 #endif
 #else
 	typedef int (*iaxc_sendto_t)(int, const void *, size_t, int, const struct sockaddr *, socklen_t);
