@@ -10,7 +10,7 @@ static double input_level = 0, output_level = 0;
 
 static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
-int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC;
+int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC|IAXC_FILTER_CN;
 
 /* use to measure time since last audio was processed */
 static struct timeval timeLastInput ;
@@ -187,9 +187,9 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int format, int sampl
 
 	if(silent) { 
 	  if(!call->tx_silent) {  /* send a Comfort Noise Frame */
-	    fprintf(stderr, "sending a CNG frame\n");
 	    call->tx_silent = 1;
-	    iax_send_cng(call->session, 10, NULL, 0);
+	    if(iaxc_filters & IAXC_FILTER_CN)
+		iax_send_cng(call->session, 10, NULL, 0);
 	  }
 	  return 0;  /* poof! no encoding! */
 	}

@@ -183,6 +183,7 @@ int iaxc_stop_sound(int id);
 #define IAXC_FILTER_AGC 	(1<<1)
 #define IAXC_FILTER_ECHO 	(1<<2)
 #define IAXC_FILTER_AAGC 	(1<<3) /* Analog (mixer-based) AGC */
+#define IAXC_FILTER_CN 		(1<<4) /* Send CN frames when silence detected */
 int iaxc_get_filters(void);
 void iaxc_set_filters(int filters);
 
