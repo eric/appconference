@@ -103,9 +103,10 @@ int iaxc_input_postprocess(void *audio, int len, int rate)
 {
     double volume;
     static double lowest_volume = 1;
-    int silent;
+    int silent=0;
 
     if(!st || (speex_state_size != len) || (speex_state_rate != rate)) {
+	if(st) speex_preprocess_state_destroy(st);
 	st = speex_preprocess_state_init(len,rate);
 	speex_state_size = len;
 	speex_state_rate = rate;
