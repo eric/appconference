@@ -8,12 +8,12 @@ CFG=iaxclient_lib - Win32 Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "iaxclient_lib.mak".
+!MESSAGE NMAKE /f "iax1lib.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "iaxclient_lib.mak" CFG="iaxclient_lib - Win32 Debug"
+!MESSAGE NMAKE /f "iax1lib.mak" CFG="iaxclient_lib - Win32 Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "Release"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MT /W3 /GX /O2 /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
+# ADD CPP /nologo /MT /w /W0 /GX /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D "WIN32" /D SPEEX_PREPROCESS=1 /D SPEEX_EC=1 /D "NDEBUG" /D "_LIB" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -49,7 +49,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /out:"Release\iaxclient1.lib"
 
 !ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 Debug"
 
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "Debug"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
+# ADD CPP /nologo /MTd /w /W0 /Gm /GX /ZI /Od /I ".\libiax\src" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /I ".\libspeex" /D "WIN32" /D SPEEX_PREPROCESS=1 /D SPEEX_EC=1 /D "_DEBUG" /D "_MBCS" /D "_LIB" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -72,7 +72,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo
+# ADD LIB32 /nologo /out:"Debug\iaxclient1.lib"
 
 !ENDIF 
 
@@ -93,6 +93,10 @@ SOURCE=.\audio_encode.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\audio_file.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\audio_portaudio.c
 # End Source File
 # Begin Source File
@@ -106,6 +110,10 @@ SOURCE=.\gsm\src\code.c
 # Begin Source File
 
 SOURCE=.\sox\compand.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\gsm\src\debug.c
 # End Source File
 # Begin Source File
 
@@ -165,6 +173,10 @@ SOURCE=.\libiax\src\md5.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\libspeex\misc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\portaudio\pa_common\pa_lib.c
 # End Source File
 # Begin Source File
@@ -178,6 +190,21 @@ SOURCE=.\portaudio\pablio\pablio.c
 # Begin Source File
 
 SOURCE=.\gsm\src\preprocess.c
+
+!IF  "$(CFG)" == "iaxclient_lib - Win32 Release"
+
+# PROP Intermediate_Dir "Release\gsm"
+
+!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 Debug"
+
+# PROP Intermediate_Dir "Debug\gsm"
+
+!ENDIF 
+
+# End Source File
+# Begin Source File
+
+SOURCE=.\libspeex\preprocess.c
 # End Source File
 # Begin Source File
 
@@ -190,6 +217,10 @@ SOURCE=.\gsm\src\rpe.c
 # Begin Source File
 
 SOURCE=.\gsm\src\short_term.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\libspeex\smallft.c
 # End Source File
 # Begin Source File
 
@@ -225,14 +256,6 @@ SOURCE=.\audio_win32.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\libiax\src\busy.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\libiax\src\dialtone.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\libiax\src\frame.h
 # End Source File
 # Begin Source File
@@ -257,15 +280,19 @@ SOURCE=.\libiax\src\md5.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\libiax\src\ring10.h
+SOURCE=.\libspeex\misc.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\libiax\src\ringtone.h
+SOURCE=.\libspeex\smallft.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\sox\sox.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\libspeex\speex_preprocess.h
 # End Source File
 # Begin Source File
 
