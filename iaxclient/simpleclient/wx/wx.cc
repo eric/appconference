@@ -9,6 +9,8 @@
 #include "wx/listctrl.h"
 #include "wx/combobox.h"
 #include "wx/tokenzr.h"
+#include "wx/stattext.h"
+#include "wx/string.h"
 #include "iaxclient.h"
 
 
@@ -174,7 +176,12 @@ void IAXCalls::AutoSize() {
 
     // first columns are auto-sized
     for(int i=0;i<=1;i++) {
+#if defined(__WXMSW__)
+      // wxLIST_AUTOSIZE makes it too small for headings
+      SetColumnWidth(i,35+i*15);
+#else
       SetColumnWidth(i,wxLIST_AUTOSIZE);
+#endif
       width+=GetColumnWidth(i);
     }
 
@@ -292,6 +299,9 @@ public:
     wxGauge *input; 
     wxGauge *output; 
     IAXTimer *timer;
+    wxStaticText *iaxServLabel;
+    wxComboBox *iaxServ;
+    wxStaticText *iaxDestLabel;
     wxComboBox *iaxDest;
     wxStaticText *muteState;
 
@@ -411,15 +421,24 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
       topsizer->SetItemMinSize(calls, -1, calls->GetTotalHeight()+5);
     }
 
-
-    /* Destination */
-    topsizer->Add(iaxDest = new wxComboBox(aPanel, -1, _T("guest@misery.digium.com/s@default"), 
+    /* Server */
+    topsizer->Add(iaxServLabel = new wxStaticText(aPanel, -1, _T("Server:")));
+    topsizer->Add(iaxServ = new wxComboBox(aPanel, -1, _T("guest@misery.digium.com"), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
-    iaxDest->Append("guest@misery.digium.com/s@default");
-    iaxDest->Append("guest@ast1/8068");
-    iaxDest->Append("guest@asterisk/208");
-    iaxDest->Append("guest@asterisk/600");
+    iaxServ->Append("guest@misery.digium.com");
+    iaxServ->Append("guest@ast1");
+    iaxServ->Append("guest@asterisk");
+
+    /* Destination */
+    topsizer->Add(iaxDestLabel = new wxStaticText(aPanel, -1, _T("Number:")));
+    topsizer->Add(iaxDest = new wxComboBox(aPanel, -1, _T("s@default"), 
+	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
+
+    iaxDest->Append("s@default");
+    iaxDest->Append("8068");
+    iaxDest->Append("208");
+    iaxDest->Append("600");
 
     /* main control buttons */    
     row3sizer->Add(dialButton = new wxButton(aPanel, ID_DIAL, _T("Dial"),
@@ -511,7 +530,13 @@ void IAXFrame::OnDTMF(wxEvent &evt)
 
 void IAXFrame::OnDial(wxEvent &evt)
 {
-	iaxc_call((char *)(theFrame->iaxDest->GetValue().c_str()));
+	wxChar Destination[128];
+
+	wxStrcpy(Destination, theFrame->iaxServ->GetValue());
+        wxStrcat(Destination, _T("/"));
+	wxStrcat(Destination, theFrame->iaxDest->GetValue());
+
+	iaxc_call(Destination);
 }
 
 void IAXFrame::OnHangup(wxEvent &evt)
@@ -536,6 +561,9 @@ void IAXFrame::RegisterFromString(wxString value) {
 	strncpy( user , tok.GetNextToken().c_str(), 256);
 	strncpy( pass , tok.GetNextToken().c_str(), 256);
 	strncpy( host , tok.GetNextToken().c_str(), 256);
+
+	theFrame->iaxServ->Append(value);
+	theFrame->iaxServ->SetValue(value);
 
 	//fprintf(stderr, "Registering user %s pass %s host %s\n", user, pass, host);
 	iaxc_register(user, pass, host);
