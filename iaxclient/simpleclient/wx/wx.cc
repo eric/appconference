@@ -335,9 +335,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     wxMenuBar *menuBar = new wxMenuBar();
 
-#ifndef __WXMAC__
     menuBar->Append(fileMenu, _T("&File"));
-#endif
     menuBar->Append(optionsMenu, _T("&Options"));
 
     SetMenuBar(menuBar);
