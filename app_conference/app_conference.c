@@ -398,8 +398,8 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	char *databuf;
 	int res=-1;
 	
-	databuf = malloc(samples * 2);
-	memset(databuf,0x0,samples * 2);
+	databuf = malloc((samples * 2) + AST_FRIENDLY_OFFSET);
+	memset(databuf,0x0,(samples * 2) + AST_FRIENDLY_OFFSET);
 	// sum it up ..sum it up...
 	ast_pthread_mutex_lock(&(conference->lock));
 	ast_pthread_mutex_lock(&(conference->memberlock));
@@ -412,7 +412,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 		    f = ast_onering_read(bufferl->ring,samples);
 		    if (f != NULL) {
     //  ast_log(LOG_NOTICE,"%d samples\n",f->samples);
-			mix_slin(databuf,f->data, samples);
+			mix_slin(databuf + AST_FRIENDLY_OFFSET,f->data, samples);
 			res = 0;
 			ast_frfree(f);
 		    } else {
@@ -444,7 +444,7 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->datalen = samples * 2;
 	    fout->offset = AST_FRIENDLY_OFFSET;
 	    fout->mallocd = AST_MALLOCD_HDR | AST_MALLOCD_DATA;
-	    fout->data = databuf;
+	    fout->data = databuf + AST_FRIENDLY_OFFSET;
 	    fout->src = NULL;
 	    return fout;
 	} else {
@@ -455,9 +455,9 @@ struct ast_frame *read_audio(struct ast_conference *conference, struct ast_conf_
 	    fout->datalen = samples * 2;
 	    fout->offset = AST_FRIENDLY_OFFSET;
 	    fout->mallocd =  AST_MALLOCD_HDR | AST_MALLOCD_DATA;
-	    fout->data = databuf;
+	    fout->data = databuf + AST_FRIENDLY_OFFSET;
 	    fout->src = NULL;
-	    memset(databuf,0,samples * 2);
+	    memset(databuf,0,(samples * 2) + AST_FRIENDLY_OFFSET);
 	    return fout;
 	}
 }
