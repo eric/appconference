@@ -433,9 +433,7 @@ int iaxc_stop_processing_thread()
     if(procThreadQuitFlag >= 0)
     {
 	procThreadQuitFlag = 1;
-	// It will die eventually on it's own?
-	// causes deadlock with wx GUI on MSW.. XXX FixME?
-	//THREADJOIN(procThread);
+	THREADJOIN(procThread);
     }
     procThreadQuitFlag = -1;
     return 0;

@@ -40,7 +40,9 @@
 #define THREADCREATE_ERROR NULL
 #define THREADFUNCDECL(func) unsigned __stdcall func(PVOID args)
 #define THREADFUNCRET(r) int r = 0
-#define THREADJOIN(t) WaitForSingleObject(t, INFINITE)
+#define THREADJOIN(t)
+/* causes deadlock with wx GUI on MSW */
+/* #define THREADJOIN(t) WaitForSingleObject(t, INFINITE) */
 #define MUTEX CRITICAL_SECTION
 #define MUTEXINIT(m) InitializeCriticalSection(m)
 #define MUTEXLOCK(m) EnterCriticalSection(m)
