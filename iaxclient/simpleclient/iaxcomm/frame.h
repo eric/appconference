@@ -90,6 +90,7 @@ public:
     CallList   *Calls;
 
     // From wxConfig
+    int         nCalls;
     wxString    Name;
     wxString    Number;
     wxString    RingToneName;

@@ -72,13 +72,12 @@ END_EVENT_TABLE()
 // Public methods
 //----------------------------------------------------------------------------------------
 
-CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos, 
+CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& pos, 
                     const wxSize& size, long style)
                   : wxListCtrl( parent, id, pos, size, style)
 {
     wxConfig   *config = new wxConfig("iaxComm");
     long        i;
-    int         nCalls;
     wxListItem  item;
 
     m_parent = parent;
@@ -89,7 +88,7 @@ CallList::CallList(wxWindow *parent, wxWindowID id, const wxPoint& pos,
     InsertColumn( 2, _("Remote"), wxLIST_FORMAT_LEFT,  (200));
 
     Hide();
-    nCalls = config->Read("/nCalls", 2);
+
     for(i=0;i<nCalls;i++) {
         InsertItem(i,wxString::Format("%ld", i+1), 0);
         SetItem(i, 2, _T(""));
@@ -185,6 +184,19 @@ void CallList::OnDClick(wxListEvent &event)
     iaxc_dump_call();
 }
 
+#ifdef __WXGTK__
+static void Beep(int freq, int dur)
+{
+   int fd;
+   int arg;
+
+   fd = open("/dev/tty0", O_RDONLY);
+   arg = (dur<<16)+(1193180/freq);
+   ioctl(fd,KDMKTONE,arg);
+}
+
+#endif
+
 void CallList::RingStart(int type)
 {
     if(type == 1)
@@ -199,7 +211,7 @@ void CallList::RingStart(int type)
           Beep(220,300);
         #endif
         #ifdef __WXGTK__
-          int fd = open("/dev/console", O_WRONLY)
+          int fd = open("/dev/console", O_WRONLY);
           if(fd >= 0) 
               ioctl(fd, KDMKTONE, (long)(1193180/2) << 16 + (1193180/440));
         #endif

@@ -139,8 +139,7 @@ bool theApp::OnInit()
     theTaskBarIcon.SetIcon(wxICON(application));
   #endif
 
-    int nCalls = config->Read("/nCalls", 2);
-    if(iaxc_initialize(AUDIO_INTERNAL_PA, nCalls)) {
+    if(iaxc_initialize(AUDIO_INTERNAL_PA, theFrame->nCalls)) {
         wxFatalError(_("Couldn't Initialize IAX Client "));
     }
 

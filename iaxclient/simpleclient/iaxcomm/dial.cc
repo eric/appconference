@@ -80,6 +80,9 @@ void Dial( wxString DialStr )
     wxString  AccountInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
     wxString  Extension  = DialStr.AfterLast('/');     // dialstr if no '/'
 
+    if(DialStr.IsEmpty())
+        return;
+
     if(AccountInfo.IsEmpty()) {
         AccountInfo = wxGetApp().theFrame->Account->GetStringSelection();
 

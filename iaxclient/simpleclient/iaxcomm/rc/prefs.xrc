@@ -123,6 +123,7 @@
                       <border>5</border>
                       <object class="wxButton" name="SaveAudio">
                         <label>Save</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
@@ -130,13 +131,14 @@
                       <border>5</border>
                       <object class="wxButton" name="ApplyAudio">
                         <label>Apply</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
                       <flag>wxALIGN_CENTRE|wxALL</flag>
                       <border>5</border>
-                      <object class="wxButton" name="wxID_CANCEL">
-                        <label>Cancel</label>
+                      <object class="wxButton" name="CancelAudio">
+                        <label>Done</label>
                       </object>
                     </object>
                     <orient></orient>
@@ -208,6 +210,7 @@
                       <border>5</border>
                       <object class="wxButton" name="SaveCallerID">
                         <label>Save</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
@@ -215,13 +218,14 @@
                       <border>5</border>
                       <object class="wxButton" name="ApplyCallerID">
                         <label>Apply</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
                       <flag>wxALIGN_CENTRE|wxALL</flag>
                       <border>5</border>
-                      <object class="wxButton" name="wxID_CANCEL">
-                        <label>Cancel</label>
+                      <object class="wxButton" name="CancelCallerID">
+                        <label>Done</label>
                       </object>
                     </object>
                     <orient></orient>
@@ -351,6 +355,7 @@
                       <border>5</border>
                       <object class="wxButton" name="SaveMisc">
                         <label>Save</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
@@ -358,13 +363,14 @@
                       <border>5</border>
                       <object class="wxButton" name="ApplyMisc">
                         <label>Apply</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
                       <flag>wxALIGN_CENTRE|wxALL</flag>
                       <border>5</border>
-                      <object class="wxButton" name="wxID_CANCEL">
-                        <label>Cancel</label>
+                      <object class="wxButton" name="CancelMisc">
+                        <label>Done</label>
                       </object>
                     </object>
                     <orient></orient>
@@ -463,6 +469,7 @@
                       <border>5</border>
                       <object class="wxButton" name="SaveFilters">
                         <label>Save</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
@@ -470,13 +477,14 @@
                       <border>5</border>
                       <object class="wxButton" name="ApplyFilters">
                         <label>Apply</label>
+                        <enabled>0</enabled>
                       </object>
                     </object>
                     <object class="sizeritem">
                       <flag>wxALIGN_CENTRE|wxALL</flag>
                       <border>5</border>
-                      <object class="wxButton" name="wxID_CANCEL">
-                        <label>Cancel</label>
+                      <object class="wxButton" name="CancelFilters">
+                        <label>Done</label>
                       </object>
                     </object>
                     <orient></orient>

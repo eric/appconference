@@ -51,21 +51,37 @@
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
 BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
-    EVT_BUTTON( XRCID("BrowseRingTone"),     PrefsDialog::OnBrowse)
-    EVT_BUTTON( XRCID("BrowseIntercom"),     PrefsDialog::OnBrowse)
-    EVT_BUTTON( XRCID("BrowseRingBack"),     PrefsDialog::OnBrowse)
+    EVT_BUTTON  ( XRCID("BrowseRingTone"),     PrefsDialog::OnBrowse)
+    EVT_BUTTON  ( XRCID("BrowseIntercom"),     PrefsDialog::OnBrowse)
+    EVT_BUTTON  ( XRCID("BrowseRingBack"),     PrefsDialog::OnBrowse)
+    EVT_TEXT    ( XRCID("RingBack"),           PrefsDialog::OnAudioDirty)
+    EVT_TEXT    ( XRCID("RingTone"),           PrefsDialog::OnAudioDirty)
+    EVT_TEXT    ( XRCID("Intercom"),           PrefsDialog::OnAudioDirty)
+    EVT_BUTTON  ( XRCID("SaveAudio"),          PrefsDialog::OnSaveAudio)
+    EVT_BUTTON  ( XRCID("ApplyAudio"),         PrefsDialog::OnApplyAudio)
 
-    EVT_BUTTON( XRCID("SaveAudio"),          PrefsDialog::OnSaveAudio)
-    EVT_BUTTON( XRCID("ApplyAudio"),         PrefsDialog::OnApplyAudio)
+    EVT_BUTTON  ( XRCID("SaveCallerID"),       PrefsDialog::OnSaveCallerID)
+    EVT_BUTTON  ( XRCID("ApplyCallerID"),      PrefsDialog::OnApplyCallerID)
+    EVT_TEXT    ( XRCID("Name"),               PrefsDialog::OnCallerIDDirty)
+    EVT_TEXT    ( XRCID("Number"),             PrefsDialog::OnCallerIDDirty)
 
-    EVT_BUTTON( XRCID("SaveCallerID"),       PrefsDialog::OnSaveCallerID)
-    EVT_BUTTON( XRCID("ApplyCallerID"),      PrefsDialog::OnApplyCallerID)
+    EVT_BUTTON  ( XRCID("SaveMisc"),           PrefsDialog::OnSaveMisc)
+    EVT_BUTTON  ( XRCID("ApplyMisc"),          PrefsDialog::OnApplyMisc)
+    EVT_TEXT    ( XRCID("UseView"),            PrefsDialog::OnMiscDirty)
+    EVT_CHOICE  ( XRCID("DefaultAccount"),     PrefsDialog::OnMiscDirty)
+    EVT_TEXT    ( XRCID("IntercomPass"),       PrefsDialog::OnMiscDirty)
+    EVT_SPINCTRL( XRCID("nCalls"),             PrefsDialog::OnMiscDirty)
 
-    EVT_BUTTON( XRCID("SaveMisc"),           PrefsDialog::OnSaveMisc)
-    EVT_BUTTON( XRCID("ApplyMisc"),          PrefsDialog::OnApplyMisc)
+    EVT_BUTTON  ( XRCID("SaveFilters"),        PrefsDialog::OnSaveFilters)
+    EVT_BUTTON  ( XRCID("ApplyFilters"),       PrefsDialog::OnApplyFilters)
+    EVT_CHECKBOX( XRCID("AGC"),                PrefsDialog::OnFiltersDirty)
+    EVT_CHECKBOX( XRCID("NoiseReduce"),        PrefsDialog::OnFiltersDirty)
+    EVT_CHECKBOX( XRCID("EchoCancel"),         PrefsDialog::OnFiltersDirty)
 
-    EVT_BUTTON( XRCID("SaveFilters"),        PrefsDialog::OnSaveFilters)
-    EVT_BUTTON( XRCID("ApplyFilters"),       PrefsDialog::OnApplyFilters)
+    EVT_BUTTON  ( XRCID("CancelAudio"),        PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelCallerID"),     PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelMisc"),         PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelFilters"),      PrefsDialog::OnCancel)
 
 END_EVENT_TABLE()
 
@@ -87,18 +103,30 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     RingBack       = XRCCTRL(*this, "RingBack",       wxTextCtrl);
     RingTone       = XRCCTRL(*this, "RingTone",       wxTextCtrl);
     Intercom       = XRCCTRL(*this, "Intercom",       wxTextCtrl);
+    SaveAudio      = XRCCTRL(*this, "SaveAudio",      wxButton);
+    ApplyAudio     = XRCCTRL(*this, "ApplyAudio",     wxButton);
+    CancelAudio    = XRCCTRL(*this, "CancelAudio",    wxButton);
 
     Name           = XRCCTRL(*this, "Name",           wxTextCtrl);
     Number         = XRCCTRL(*this, "Number",         wxTextCtrl);
+    SaveCallerID   = XRCCTRL(*this, "SaveCallerID",   wxButton);
+    ApplyCallerID  = XRCCTRL(*this, "ApplyCallerID",  wxButton);
+    CancelCallerID = XRCCTRL(*this, "CancelCallerID", wxButton);
 
     UseView        = XRCCTRL(*this, "UseView",        wxComboBox);
     DefaultAccount = XRCCTRL(*this, "DefaultAccount", wxChoice);
     IntercomPass   = XRCCTRL(*this, "IntercomPass",   wxTextCtrl);
     nCalls         = XRCCTRL(*this, "nCalls",         wxSpinCtrl);
+    SaveMisc       = XRCCTRL(*this, "SaveMisc",       wxButton);
+    ApplyMisc      = XRCCTRL(*this, "ApplyMisc",      wxButton);
+    CancelMisc     = XRCCTRL(*this, "CancelMisc",     wxButton);
 
     AGC            = XRCCTRL(*this, "AGC",            wxCheckBox);
     NoiseReduce    = XRCCTRL(*this, "NoiseReduce",    wxCheckBox);
     EchoCancel     = XRCCTRL(*this, "EchoCancel",     wxCheckBox);
+    SaveFilters    = XRCCTRL(*this, "SaveFilters",    wxButton);
+    ApplyFilters   = XRCCTRL(*this, "ApplyFilters",   wxButton);
+    CancelFilters  = XRCCTRL(*this, "CancelFilters",  wxButton);
 
     config->SetPath("/");
 
@@ -125,13 +153,27 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     DefaultAccount->SetSelection(dummy);
 
     IntercomPass->SetValue(config->Read("/IntercomPass", ""));
-    nCalls->SetValue(config->Read("/nCalls", 2));
+    nCalls->SetValue(wxGetApp().theFrame->nCalls);
 
     AGC->SetValue(wxGetApp().theFrame->AGC);
     NoiseReduce->SetValue(wxGetApp().theFrame->NoiseReduce);
     EchoCancel->SetValue(wxGetApp().theFrame->EchoCancel);
 
     delete config;
+
+    //Populating wxTextCtrls makes EVT_TEXT, just as if user did it
+
+    SaveAudio->Disable();
+    ApplyAudio->Disable();
+    CancelAudio->SetLabel("Done");
+
+    SaveCallerID->Disable();
+    ApplyCallerID->Disable();
+    CancelCallerID->SetLabel("Done");
+
+    SaveMisc->Disable();
+    ApplyMisc->Disable();
+    CancelMisc->SetLabel("Done");
 }
 
 //----------------------------------------------------------------------------------------
@@ -173,6 +215,7 @@ void PrefsDialog::OnSaveAudio(wxCommandEvent &event)
     config->Write("Intercom",   Intercom->GetValue());
 
     delete config;
+    SaveAudio->Disable();
     OnApplyAudio(event);
 }
 
@@ -196,6 +239,9 @@ void PrefsDialog::OnApplyAudio(wxCommandEvent &event)
     wxGetApp().theFrame->Calls->RingToneName = RingTone->GetValue();
     wxGetApp().theFrame->Calls->RingBackName = RingBack->GetValue();
     wxGetApp().theFrame->Calls->IntercomName = Intercom->GetValue();
+
+    ApplyAudio->Disable();
+    CancelAudio->SetLabel("Done");
 }
 
 void PrefsDialog::OnSaveCallerID(wxCommandEvent &event)
@@ -207,6 +253,7 @@ void PrefsDialog::OnSaveCallerID(wxCommandEvent &event)
     config->Write("Number",         Number->GetValue());
 
     delete config;
+    SaveCallerID->Disable();
     OnApplyCallerID(event);
 }
 
@@ -215,6 +262,9 @@ void PrefsDialog::OnApplyCallerID(wxCommandEvent &event)
     wxGetApp().theFrame->Name   = Name->GetValue();
     wxGetApp().theFrame->Number = Number->GetValue();
     SetCallerID(wxGetApp().theFrame->Name, wxGetApp().theFrame->Number);
+
+    ApplyCallerID->Disable();
+    CancelCallerID->SetLabel("Done");
 }
 
 void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
@@ -228,6 +278,7 @@ void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
     config->Write("nCalls",         nCalls->GetValue());
 
     delete config;
+    SaveMisc->Disable();
     OnApplyMisc(event);
 }
 
@@ -238,8 +289,15 @@ void PrefsDialog::OnApplyMisc(wxCommandEvent &event)
     wxGetApp().theFrame->ShowDirectoryControls();
 
     wxGetApp().theFrame->IntercomPass = IntercomPass->GetValue();
+//  wxGetApp().theFrame->nCalls       = nCalls->GetValue();
 
+  #ifdef __WXMSW__
+    // This segfaults on Linux, need to look into this
     wxGetApp().theFrame->RePanel(UseView->GetValue());
+  #endif
+
+    ApplyMisc->Disable();
+    CancelMisc->SetLabel("Done");
 }
 
 void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
@@ -252,6 +310,7 @@ void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
     config->Write("EchoCancel",     EchoCancel->GetValue());
 
     delete config;
+    SaveFilters->Disable();
     OnApplyFilters(event);
 }
 
@@ -261,10 +320,13 @@ void PrefsDialog::OnApplyFilters(wxCommandEvent &event)
     wxGetApp().theFrame->NoiseReduce = NoiseReduce->GetValue();
     wxGetApp().theFrame->EchoCancel  = EchoCancel->GetValue();
 
-    ApplyFilters();
+    DoApplyFilters();
+
+    ApplyFilters->Disable();
+    CancelFilters->SetLabel("Done");
 }
 
-void PrefsDialog::ApplyFilters()
+void PrefsDialog::DoApplyFilters()
 {
     // Clear these filters
     int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
@@ -281,4 +343,32 @@ void PrefsDialog::ApplyFilters()
        flag |= IAXC_FILTER_ECHO;
 
     iaxc_set_filters(iaxc_get_filters() | flag);
+}
+
+void PrefsDialog::OnAudioDirty(wxCommandEvent &event)
+{
+    ApplyAudio->Enable();
+    SaveAudio->Enable();
+    CancelAudio->SetLabel("Cancel");
+}
+
+void PrefsDialog::OnCallerIDDirty(wxCommandEvent &event)
+{
+    ApplyCallerID->Enable();
+    SaveCallerID->Enable();
+    CancelCallerID->SetLabel("Cancel");
+}
+
+void PrefsDialog::OnMiscDirty(wxCommandEvent &event)
+{
+    ApplyMisc->Enable();
+    SaveMisc->Enable();
+    CancelMisc->SetLabel("Cancel");
+}
+
+void PrefsDialog::OnFiltersDirty(wxCommandEvent &event)
+{
+    ApplyFilters->Enable();
+    SaveFilters->Enable();
+    CancelFilters->SetLabel("Cancel");
 }

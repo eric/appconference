@@ -41,7 +41,7 @@ class CallList : public wxListCtrl
 
 public:
 
-    CallList        ( wxWindow *parent,
+    CallList        ( wxWindow *parent, int nCalls,
                       wxWindowID id = -1,
                       const wxPoint &pos = wxDefaultPosition,
                       const wxSize &size = wxDefaultSize,

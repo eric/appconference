@@ -144,6 +144,12 @@ MyFrame::MyFrame( wxWindow *parent )
     CreateStatusBar( 2 );
     SetStatusWidths(2, widths);
 
+    nCalls      = config->Read("/nCalls", 2);
+    Speaker     = config->Read("/Speaker", 0l);
+    AGC         = config->Read("/AGC", 0l);
+    NoiseReduce = config->Read("/NoiseReduce", 0l);
+    EchoCancel  = config->Read("/EchoCancel", 0l);
+
     //----Add the panel-----------------------------------------------------------------
     Name = config->Read("/UseView", "default");
     DefaultAccount = config->Read("/DefaultAccount", "");
@@ -151,10 +157,6 @@ MyFrame::MyFrame( wxWindow *parent )
 
     pttMode = false;
 
-    Speaker     = config->Read("Speaker", 0l);
-    AGC         = config->Read("/AGC", 0l);
-    NoiseReduce = config->Read("/NoiseReduce", 0l);
-    EchoCancel  = config->Read("/EchoCancel", 0l);
 
     ApplyFilters();
 
@@ -198,7 +200,7 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
     Extension    = XRCCTRL(*aPanel, "Extension",    wxTextCtrl);
 
     //----Insert the Calls listctrl into it's "unknown" placeholder---------------------
-    Calls = new CallList(aPanel);
+    Calls = new CallList(aPanel, nCalls);
 
     if(Calls == NULL)
         wxFatalError(_("Can't Load CallList in frame.cc"));

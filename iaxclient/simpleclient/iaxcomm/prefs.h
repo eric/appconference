@@ -41,18 +41,30 @@ private:
     wxTextCtrl  *RingBack;
     wxTextCtrl  *RingTone;
     wxTextCtrl  *Intercom;
+    wxButton    *SaveAudio;
+    wxButton    *ApplyAudio;
+    wxButton    *CancelAudio;
 
     wxTextCtrl  *Name;
     wxTextCtrl  *Number;
+    wxButton    *SaveCallerID;
+    wxButton    *ApplyCallerID;
+    wxButton    *CancelCallerID;
+
     wxComboBox  *UseView;
     wxChoice    *DefaultAccount;
     wxTextCtrl  *IntercomPass;
     wxSpinCtrl  *nCalls;
+    wxButton    *SaveMisc;
+    wxButton    *ApplyMisc;
+    wxButton    *CancelMisc;
+
     wxCheckBox  *AGC;
     wxCheckBox  *NoiseReduce;
     wxCheckBox  *EchoCancel;
-    wxButton    *SaveButton;
-    wxButton    *ApplyButton;
+    wxButton    *SaveFilters;
+    wxButton    *ApplyFilters;
+    wxButton    *CancelFilters;
 
     void         OnBrowse(wxCommandEvent &event);
     void         OnSaveAudio(wxCommandEvent &event);
@@ -63,7 +75,12 @@ private:
     void         OnApplyCallerID(wxCommandEvent &event);
     void         OnApplyMisc(wxCommandEvent &event);
     void         OnApplyFilters(wxCommandEvent &event);
-    void         ApplyFilters(void);
+    void         DoApplyFilters(void);
+
+    void         OnAudioDirty(wxCommandEvent &event);
+    void         OnCallerIDDirty(wxCommandEvent &event);
+    void         OnMiscDirty(wxCommandEvent &event);
+    void         OnFiltersDirty(wxCommandEvent &event);
 
     DECLARE_EVENT_TABLE()
 
