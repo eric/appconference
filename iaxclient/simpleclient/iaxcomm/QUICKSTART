@@ -1,0 +1,64 @@
+INTRODUCTION
+
+This is iaxComm, a portable IAX2 protocol telephony client.
+
+=======================================================================
+INSTALLATION
+
+After unzipping, click on the iaxComm icon.
+
+iaxComm needs to be able to see the rc directory.  If you've moved the
+executable without moving the rc directory, iaxComm will look for it.
+If it can't find them, it will ask you where they are.
+
+To test, type a destination in the text box above the Dial button and
+click Dial. NOTE:  If you haven't yet configured servers, you'll need 
+to include a username and hostname as well as extension, for example
+"guest@misery.digiumcom/s"
+
+You only need to configure a server if you want to register with it
+for inbound calls, or simplify your dialling.  If you add a server
+called asterisk and set it as your default then dialling "100" would
+connect you to "user:password@asterisk/100"
+
+After you've added a couple of Entries in the directory, you can make
+them One Touch keys that show up on the main panel.
+
+To use, the intercom feature, set a password in the misc tab of the
+Preferences dialog. Any calls to thishost/password@intercom will be answered
+automatically.
+=======================================================================
+PEER TO PEER CONFIGURATION EXAMPLE
+
+This example assumes that you wish to call between two PCs that are PC1
+at 192.168.1.1 and PC2 at 192.168.1.2
+
+Just install iaxComm. No need to configure anything.
+
+From PC1, enter 192.168.1.2/s and click Dial.
+=======================================================================
+ASTERISK CONFIGURATION EXAMPLE
+
+Assume asterisk server at 192.168.1.1
+iaxComm user is extension 100, with intercom at extension 200.
+
+Put this in extensions.conf on the asterisk server:
+
+  exten => 100,1,Dial(IAX2/100)
+  exten => 200,1,Dial(IAX2/100/password@intercom)
+
+
+Put this in iax.conf:
+
+  [100]
+  type=friend
+  host=dynamic
+  secret=secret
+  context=default
+
+Configure the default server in iaxComm, and set the intercom password to
+password.
+
+Now any calls to extension 100 or extension 200 ring to iaxComm on the PC. 
+Calls to extension 200 are answered automatically.
+
