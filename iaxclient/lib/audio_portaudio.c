@@ -255,7 +255,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
     static RingBuffer outRing;
     static char outRingBuf[EC_RING_SZ];
     static long bias = 0;
-    short  delayedBuf[160];
+    short  delayedBuf[1024];
     int i;
 
     /* remove bias -- whether ec is on or not. */

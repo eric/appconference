@@ -120,6 +120,9 @@ struct iaxc_audio_codec *iaxc_audio_codec_ulaw_new() {
   c->decode = decode;
   c->destroy = destroy;
 
+  /* really, we can use less, but don't want to */
+  c->minimum_frame_size = 160;
+
   return c;
 }
 

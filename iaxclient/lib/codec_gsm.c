@@ -91,6 +91,8 @@ struct iaxc_audio_codec *iaxc_audio_codec_gsm_new() {
   c->decode = decode;
   c->destroy = destroy;
 
+  c->minimum_frame_size = 160;
+
   c->encstate = calloc(sizeof(struct state),1);
   c->decstate = calloc(sizeof(struct state),1);
 

@@ -2,6 +2,8 @@
 # set to 2 for IAX2
 IAXVER=2
 
+CODEC_ILBC=0
+
 SPEEX_PREPROCESS=1
 SPAN_EC=0
 SPEEX_EC=1
@@ -86,8 +88,38 @@ OBJS_LIBSPEEX=\
         libspeex/jitter.o \
         libspeex/mdf.o
 
+OBJS_ILBC=\
+	iLBC/anaFilter.o\
+	iLBC/iCBSearch.o\
+	iLBC/packing.o\
+	iLBC/constants.o\
+	iLBC/gainquant.o\
+	iLBC/iLBC_decode.o\
+	iLBC/StateConstructW.o \
+	iLBC/createCB.o\
+	iLBC/getCBvec.o\
+	iLBC/iLBC_encode.o\
+	iLBC/StateSearchW.o\
+	iLBC/doCPLC.o\
+	iLBC/helpfun.o\
+	iLBC/syntFilter.o\
+	iLBC/enhancer.o\
+	iLBC/hpInput.o\
+	iLBC/LPCdecode.o\
+	iLBC/filter.o\
+	iLBC/hpOutput.o\
+	iLBC/LPCencode.o\
+	iLBC/FrameClassify.o\
+	iLBC/iCBConstruct.o\
+	iLBC/lsf.o
+
 
 OBJS:= $(OBJS) $(OBJS_LIBSPEEX) 
+
+ifeq ($(CODEC_ILBC),1)
+OBJS:= $(OBJS) $(OBJS_ILBC) codec_ilbc.o
+CFLAGS:= $(CFLAGS) -DCODEC_ILBC
+endif
 
 OBJS_WIN32=\
 	winfuncs.o \

@@ -457,8 +457,7 @@ int service_audio()
 	if( (calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) 
 	    || (calls[selected_call].state & IAXC_CALL_STATE_COMPLETE)) 
 	{
-	    /* FIXME: frame size should be variable? */
-	    short buf[160];
+	    short buf[1024];
 	    int toRead;
 
 	    // make sure audio is running
@@ -468,7 +467,21 @@ int service_audio()
 	    }
 
 	    for(;;) {
-		toRead = 160;
+	        /* find mimumum frame size */
+	        toRead = 160; /* default */
+
+		/* use codec minimum if higher */
+		if(calls[selected_call].encoder &&
+		    calls[selected_call].encoder->minimum_frame_size > toRead) {
+		    toRead = calls[selected_call].encoder->minimum_frame_size;
+		}
+
+		if(toRead > sizeof(buf)/sizeof(short))
+		{
+		    fprintf(stderr, "internal error: toRead > sizeof(buf)\n");
+		    exit(1);
+		}
+
 		if(audio.input(&audio,buf,&toRead))
 		{
 		    iaxc_usermsg(IAXC_ERROR, "ERROR reading audio\n");
@@ -478,7 +491,7 @@ int service_audio()
 		/* currently, pa will always give us 0 or what we asked
 		 * for samples */
 
-		send_encoded_audio(&calls[selected_call], buf, iEncodeType);
+		send_encoded_audio(&calls[selected_call], buf, iEncodeType, toRead);
 	    }
 
 	} else {
@@ -510,7 +523,7 @@ void handle_text_event(struct iax_event *e, int callNo) {
 void handle_audio_event(struct iax_event *e, int callNo) {
 	int total_consumed = 0;
 	int cur;
-	short fr[160];
+	short fr[1024];
 	struct iaxc_call *call;
 
         if(callNo < 0)
@@ -527,12 +540,12 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 	while(total_consumed < e->datalen) {
 		cur = decode_audio(call, fr,
 		    e->data+total_consumed,e->datalen-total_consumed,
-		    iEncodeType);
+		    iEncodeType, sizeof(fr)/sizeof(short));
 #else
 	while(total_consumed < e->event.voice.datalen) {
 		cur = decode_audio(call, fr,
 		    e->event.voice.data+total_consumed,e->event.voice.datalen-total_consumed,
-		    iEncodeType);
+		    iEncodeType, sizeof(fr)/sizeof(short));
 #endif
 		if(cur < 0) {
 			iaxc_usermsg(IAXC_STATUS, "Bad or incomplete voice packet.  Unable to decode. dropping");
@@ -550,10 +563,6 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 
 void iaxc_handle_network_event(struct iax_event *e, int callNo)
 {
-//	int len,n;
-//	WHOUT *wh,*wh1;
-//	short fr[160];
-//	static paused_xmit = 0;
 
         if(callNo < 0)
             return;

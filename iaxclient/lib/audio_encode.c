@@ -9,6 +9,7 @@ double iaxc_silence_threshold = -9e99;
 static double input_level = 0, output_level = 0;
 
 static SpeexPreprocessState *st = NULL;
+static int speex_state_size = 0;
 int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE;
 
 /* use to measure time since last audio was processed */
@@ -79,8 +80,9 @@ static int input_postprocess(void *audio, int len)
     static double lowest_volume = 1;
     int silent;
 
-    if(!st) {
-	st = speex_preprocess_state_init(160,8000);
+    if(!st || (speex_state_size != len)) {
+	st = speex_preprocess_state_init(len,8000);
+	speex_state_size = len;
 	iaxc_set_speex_filters();
     }
 
@@ -129,6 +131,11 @@ static struct iaxc_audio_codec *create_codec(int format) {
 	case IAXC_FORMAT_SPEEX:
 	  return iaxc_audio_codec_speex_new();
 	break;
+#ifdef CODEC_ILBC
+	case IAXC_FORMAT_ILBC:
+	  return iaxc_audio_codec_ilbc_new();
+	break;
+#endif
 	default:
 	  /* ERROR: codec not supported */
 	  fprintf(stderr, "ERROR: Codec not supported: %d\n", format);
@@ -136,12 +143,12 @@ static struct iaxc_audio_codec *create_codec(int format) {
     }
 }
 
-int send_encoded_audio(struct iaxc_call *call, void *data, int iEncodeType)
+int send_encoded_audio(struct iaxc_call *call, void *data, int format, int samples)
 {
 	char outbuf[1024];
 	int outsize = 1024;
-	int insize = 160; /* currently always 20ms */
 	int silent;
+	int insize = samples;
 
 	/* update last input timestamp */
 	gettimeofday( &timeLastInput, NULL ) ;
@@ -151,7 +158,7 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int iEncodeType)
 	if(silent) return 0;  /* poof! no encoding! */
 
 	/* destroy encoder if it is incorrect type */
-	if(call->encoder && call->encoder->format != iEncodeType)
+	if(call->encoder && call->encoder->format != format)
 	{
 	    call->encoder->destroy(call->encoder);
 	    call->encoder = NULL;
@@ -159,22 +166,28 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int iEncodeType)
 
 	/* create encoder if necessary */
 	if(!call->encoder) {
-	    call->encoder = create_codec(iEncodeType);
+	    call->encoder = create_codec(format);
 	}
 
 	if(!call->encoder) {
 		  /* ERROR: no codec */
-		  fprintf(stderr, "ERROR: Codec could not be created: %d\n", iEncodeType);
+		  fprintf(stderr, "ERROR: Codec could not be created: %d\n", format);
 		  return 0;
 	}
 
 	if(call->encoder->encode(call->encoder, &insize, (short *)data, &outsize, outbuf)) {
 		  /* ERROR: codec error */
-		  fprintf(stderr, "ERROR: encode error: %d\n", iEncodeType);
+		  fprintf(stderr, "ERROR: encode error: %d\n", format);
 		  return 0;
 	}
-	    
-	if(iax_send_voice(call->session,iEncodeType, outbuf, 1024-outsize, 160-insize) == -1) 
+	
+	if(samples-insize == 0)
+	{
+	    fprintf(stderr, "ERROR encoding (no samples output (samples=%d)\n", samples);
+	    return -1;
+	}
+
+	if(iax_send_voice(call->session,format, outbuf, 1024-outsize, samples-insize) == -1) 
 	{
 	      puts("Failed to send voice!");
 	      return -1;
@@ -184,12 +197,11 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int iEncodeType)
 }
 
 /* decode encoded audio; return the number of bytes decoded 
- * negative indicates error 
- * XXX out MUST be 160 bytes */
-int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEncodeType)
+ * negative indicates error */
+int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int format, int samples)
 {
 	int insize = len;
-	int outsize = 160;
+	int outsize = samples;
       
 	/* update last output timestamp */
 	gettimeofday( &timeLastOutput, NULL ) ;
@@ -200,7 +212,7 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEn
 	}
 
 	/* destroy decoder if it is incorrect type */
-	if(call->decoder && call->decoder->format != iEncodeType)
+	if(call->decoder && call->decoder->format != format)
 	{
 	    call->decoder->destroy(call->decoder);
 	    call->decoder = NULL;
@@ -208,22 +220,22 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEn
 
 	/* create encoder if necessary */
 	if(!call->decoder) {
-	    call->decoder = create_codec(iEncodeType);
+	    call->decoder = create_codec(format);
 	}
 
 	if(!call->decoder) {
 		  /* ERROR: no codec */
-		  fprintf(stderr, "ERROR: Codec could not be created: %d\n", iEncodeType);
+		  fprintf(stderr, "ERROR: Codec could not be created: %d\n", format);
 		  return -1;
 	}
 
 	if(call->decoder->decode(call->decoder, &insize, data, &outsize, out)) {
 		  /* ERROR: codec error */
-		  fprintf(stderr, "ERROR: decode error: %d\n", iEncodeType);
+		  fprintf(stderr, "ERROR: decode error: %d\n", format);
 		  return -1;
 	}
 
-	output_postprocess(out, 160-outsize);	
+	output_postprocess(out, samples-outsize);	
 
 	return len-insize;
 }

@@ -162,4 +162,32 @@ the same as for the library itself.
 See README files in the other sample clients for directions for building
 these.
 
+=========================================================================
+
+CODECS
+
+The codec API is pretty straightforward; just use any of the existing
+available codecs as a guide.  The only place in the main code they
+interface is the switch in audio_encode.c:create_codec
+
+ILBC
+
+There is glue to build iaxclient with iLBC available in the source, but
+the source to iLBC itself is _not_ included.  This is primarily because
+of licensing issues.
+
+I'm not a lawyer, but it appears that iLBC's license would make it
+impossible to build iaxclient and link it with a GPL front-end, meaning
+a library built this way is no longer something that could be considered
+LGPL.  However, you could probably build a client using iLBC and
+distribute it legally, if you follow the rules in the LGPL.  So, this is
+an issue for you and your legal counsel to figure out.
+
+To actually build iaxclient with iLBC, though is very easy.  Just make a
+directory under lib named iLBC, and drop the iLBC reference sources into
+it, then change CODEC_ILBC=0 to CODEC_ILBC=1 in the Makefile, and away
+you go.
+
+
+
 

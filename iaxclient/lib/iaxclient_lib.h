@@ -127,6 +127,7 @@ struct iaxc_audio_driver {
 struct iaxc_audio_codec {
 	char name[256];
 	int format;
+	int minimum_frame_size;
 	void *encstate;
 	void *decstate;
 	int (*encode) ( struct iaxc_audio_codec *codec, int *inlen, short *in, int *outlen, char *out );
