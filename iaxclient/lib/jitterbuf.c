@@ -138,7 +138,7 @@ static void history_get(jitterbuf *jb) {
     long min = JB_LONGMAX;
     long jitter = 0;
 
-    if(jb->hist_shortcur > 2) {
+    if(jb->hist_shortcur > 0) {
       qsort(jb->hist_short,jb->hist_shortcur,sizeof(long),longcmp);
       min = jb->hist_short[0];
       max = jb->hist_short[jb->hist_shortcur-1-(JB_HISTORY_DROPPCT*jb->hist_shortcur/100)];
@@ -163,7 +163,7 @@ static void history_get(jitterbuf *jb) {
     }
 
     /* not enough history.. */
-    if(n == 0 && jb->hist_shortcur <= 2) {
+    if(n == 0 && jb->hist_shortcur == 0) {
 	min = max = jitter = 0;
     }
 
@@ -488,6 +488,8 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 	  return JB_NOFRAME;
        }
        if(frame && frame->type == JB_TYPE_VOICE) {
+	  /* try setting current to target right away here */
+	  jb->info.current = jb->info.target;
 	  jb->info.silence = 0;
 	  jb->info.last_voice_ts = frame->ts + jb->info.current + frame->ms;
 	  jb->info.last_voice_ms = frame->ms;
@@ -504,7 +506,10 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
 long jb_next(jitterbuf *jb) {
     if(jb->info.silence) {
       long next = queue_next(jb);
-      if(next > 0) return next + jb->info.current;
+      if(next > 0) { 
+	history_get(jb);
+	return next + jb->info.target;
+      }
       else return JB_LONGMAX;
     } else {
       return jb->info.last_voice_ts + jb->info.last_voice_ms;
