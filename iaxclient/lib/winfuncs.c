@@ -21,9 +21,19 @@ void gettimeofday(struct timeval *tv, struct timezone *tz)
 void os_init(void)
 {
 	time_t t;
+#ifdef IAXC_IAX2
+	WSADATA wsd;
+
+	if(WSAStartup(0x0101,&wsd))
+	{   // Error message?
+	    exit(1);
+	}
+#endif
+
 	time(&t);
 	startuptime = ((t % 86400) * 1000) - GetTickCount();
 }
+
 
 /* yes, it could have just been a #define, but that makes linking trickier */
 void iaxc_millisleep(long ms)
