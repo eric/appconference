@@ -519,7 +519,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 		    add_ms(&session->offset, (int)(ms - session->nextpred)/10);
 		    
 		    if(!session->nextpred)		
-			session->nextpred = f->samples; 
+			session->nextpred = ms; 
 		    ms = session->nextpred; 
 		} else {
 		    /* in this case, just use the actual time, since

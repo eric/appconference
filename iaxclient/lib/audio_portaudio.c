@@ -48,11 +48,42 @@ static int selectedInput, selectedOutput, selectedRing;
 #define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
 #define ECHO_TAIL	  4096 /* echo_tail length, in frames must be pow(2) for mec/span ? */
 
-#define RBSZ 1024 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
-//#define RBSZ 2048 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
-//#define RBLEN 80 * 16 /* 80ms */
+#define RBSZ 8192 /* Needs to be Pow(2), 1024 = 512 samples = 64ms */
+
+/* TUNING:  The following constants may help in tuning for situations
+ * where you are getting audio-level under/overruns.
+ *
+ * If you are running iaxclient on a system where you cannot get
+ * low-latency scheduling, you may need to increase these.  This tends
+ * to be an issue on non-MacOSX unix systems, when you are not running
+ * as root, and cannot ask the OS for higher priority.  
+ *
+ * RBOUTMAXSZ:  This a target size of the output ringbuffer, where audio
+ * for your speakers goes after being decoded and mixed, and before the
+ * audio callback asks for it.  It can get larget than this (up to RBSZ,
+ * above), but when it does, for a bit, we will start dropping some
+ * frames.  For no drops at all, this needs to be set to contain the
+ * number of samples in your largest scheduling gap
+ *
+ * PA_NUMBUFFERS:  This is the number of buffers that the low-level
+ * operating system driver will use, for buffering our output (and also
+ * our input) between the soundcard and portaudio.  This should also be
+ * set to the maximum scheduling delay.  Some drivers, though, will
+ * callback _into_ portaudio with a higher priority, so this doesn't
+ * necessarily need to be as big as RBOUTMAXSZ, although on linux, it
+ * does.  The default is to leave this up to portaudio..
+ */
+
+#define RBOUTMAXSZ 80 * 16 /* 16 = bytes/ms -- if average outRing length is more than this many bytes, start dropping */
+
+#define PA_NUMBUFFERS 0
+// try setting this to our RBOUTMAXSZ?
+//#define PA_NUMBUFFERS (RBOUTMAXSZ / (2*FRAMES_PER_BUFFER))
+//
 static char inRingBuf[RBSZ], outRingBuf[RBSZ];
 static RingBuffer inRing, outRing;
+
+static int outRingLenAvg;
 
 static int oneStream;
 static int auxStream;
@@ -352,14 +383,14 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	   * yes, because we use virtualOutBuffer for ec below */
 	  if(bWritten < totBytes) {
 	      memset(((char *)virtualOutBuffer) + bWritten, 0, totBytes - bWritten);
-	      //fprintf(stderr, "U");
+	      //fprintf(stderr, "*U*");
 	  }
 	  mono2stereo(outputBuffer, virtualOutBuffer, framesPerBuffer);
 	} else {
 	  bWritten = RingBuffer_Read(&outRing, outputBuffer, totBytes);
 	  if(bWritten < totBytes) {
 	      memset((char *)outputBuffer + bWritten, 0, totBytes - bWritten);
-	      //fprintf(stderr, "U");
+	      //fprintf(stderr, "*U*");
 	  }
 	}
 
@@ -442,7 +473,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
 	      selectedOutput, 1, paInt16, NULL,  /* output info */
 	      8000.0, 
 	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
-	      0,   /* numbuffers */  /* use default */
+	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
 	      0,   /* flags */
 	      pa_callback, 
 	      NULL /* userdata */
@@ -465,7 +496,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
 	      selectedOutput, 2, paInt16, NULL,  /* output info */
 	      8000.0, 
 	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
-	      0,   /* numbuffers */  /* use default */
+	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
 	      0,   /* flags */
 	      pa_callback, 
 	      NULL /* userdata */
@@ -486,7 +517,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
 	      selectedOutput, 2, paInt16, NULL,  /* output info */
 	      8000.0, 
 	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
-	      0,   /* numbuffers */  /* use default */
+	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
 	      0,   /* flags */
 	      pa_callback, 
 	      NULL /* userdata */
@@ -510,7 +541,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
 	      paNoDevice, 0, paInt16, NULL,  /* output info */
 	      8000.0, 
 	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
-	      0,   /* numbuffers */  /* use default */
+	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
 	      0,   /* flags */
 	      pa_callback, 
 	      NULL /* userdata */
@@ -526,7 +557,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
 	      selectedOutput,  2, paInt16, NULL,  /* output info */
 	      8000.0, 
 	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
-	      0,   /* numbuffers */  /* use default */
+	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
 	      0,   /* flags */
 	      pa_callback, 
 	      NULL /* userdata */
@@ -548,7 +579,7 @@ int pa_openauxstream (struct iaxc_audio_driver *d ) {
 	      selectedRing,  virtualMonoOut+1, paInt16, NULL,  /* output info */
 	      8000.0, 
 	      FRAMES_PER_BUFFER,  /* frames per buffer -- 10ms */
-	      0,   /* numbuffers */  /* use default */
+	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
 	      0,   /* flags */
 	      pa_aux_callback, 
 	      NULL /* userdata */
@@ -699,8 +730,19 @@ int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 
 int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 	int bytestowrite = nSamples * sizeof(SAMPLE);
+	int outRingLen;
 
-//	if(RingBuffer_GetWriteAvailable(&outRing) < bytestowrite)  fprintf(stderr, "O");
+	outRingLen = RingBuffer_GetReadAvailable(&outRing);
+	outRingLenAvg = (outRingLenAvg * 9 + outRingLen ) / 10;
+
+	if(outRingLen > RBOUTMAXSZ && outRingLenAvg > RBOUTMAXSZ)  {
+	  //fprintf(stderr, "*O*");
+	  return 0;
+	}
+
+
+	if(RingBuffer_GetWriteAvailable(&outRing) < bytestowrite)  fprintf(stderr, "O");
+
 	RingBuffer_Write(&outRing, samples, bytestowrite);
 
 	return 0;
