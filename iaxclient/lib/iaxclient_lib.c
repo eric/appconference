@@ -215,11 +215,7 @@ int service_audio()
 {
 	/* do audio input stuff for buffers that have received data from audio in device already. Must
 		do them in serial number order (the order in which they were originally queued). */
-#ifdef IAXC_IAX2
-	if(1)  /* HACK ALERT! calls don't get into answered state with IAX2 FIX ME FAST */
-#else
 	if(answered_call) /* send audio only if call answered */
-#endif
 	{
 		switch (iAudioType) {
 			case AUDIO_INTERNAL:
