@@ -7,10 +7,17 @@ SPAN_EC=0
 SPEEX_EC=1
 MEC2_EC=0
 
-CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common
+CFLAGS=-Igsm/inc \
+	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \
+	-Ilibspeex/include
 
 CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
 #CFLAGS:= $(CFLAGS) -g -O2
+
+ifeq ($(SPEEX_PREPROCESS),1)
+CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
+endif
+
 
 OBJS=\
 	gsm/src/add.o \
@@ -39,7 +46,48 @@ OBJS=\
 	audio_file.o \
 	codec_gsm.o \
 	codec_ulaw.o \
+	codec_speex.o \
 	iaxclient_lib.o 
+
+OBJS_LIBSPEEX=\
+        libspeex/nb_celp.o \
+        libspeex/sb_celp.o \
+        libspeex/lpc.o \
+        libspeex/ltp.o \
+        libspeex/lsp.o \
+        libspeex/quant_lsp.o \
+        libspeex/lsp_tables_nb.o \
+        libspeex/gain_table.o \
+        libspeex/gain_table_lbr.o \
+        libspeex/cb_search.o \
+        libspeex/filters.o \
+        libspeex/bits.o \
+        libspeex/modes.o \
+        libspeex/speex.o \
+        libspeex/vq.o \
+        libspeex/high_lsp_tables.o \
+        libspeex/vbr.o \
+        libspeex/hexc_table.o \
+        libspeex/exc_5_256_table.o \
+        libspeex/exc_5_64_table.o \
+        libspeex/exc_8_128_table.o \
+        libspeex/exc_10_32_table.o \
+        libspeex/exc_10_16_table.o \
+        libspeex/exc_20_32_table.o \
+        libspeex/hexc_10_32_table.o \
+        libspeex/misc.o \
+        libspeex/speex_header.o \
+        libspeex/speex_callbacks.o \
+        libspeex/math_approx.o \
+        libspeex/stereo.o \
+        libspeex/preprocess.o \
+        libspeex/smallft.o \
+        libspeex/lbr_48k_tables.o \
+        libspeex/jitter.o \
+        libspeex/mdf.o
+
+
+OBJS:= $(OBJS) $(OBJS_LIBSPEEX) 
 
 OBJS_WIN32=\
 	winfuncs.o \
@@ -139,11 +187,6 @@ else
 OBJS:= $(OBJS) $(OBJS_IAX2)
 #CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT 
 CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX 
-endif
-
-ifeq ($(SPEEX_PREPROCESS),1)
-OBJS:= $(OBJS) libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o libspeex/mdf.o
-CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
 endif
 
 ifeq ($(SPAN_EC),1)

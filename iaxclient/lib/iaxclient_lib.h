@@ -23,7 +23,7 @@
 #endif
 
 #if (SPEEX_PREPROCESS == 1)
-#include "libspeex/speex_preprocess.h"
+#include "speex/speex_preprocess.h"
 #endif
 
 #include <stdio.h>

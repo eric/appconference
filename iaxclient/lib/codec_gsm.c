@@ -12,18 +12,15 @@
 #include "codec_gsm.h"
 #include "iaxclient_lib.h"
 
-struct encstate {
+struct state {
     gsm gsmstate;
 };
 
-struct decstate {
-    gsm gsmstate;
-};
 
 static void destroy ( struct iaxc_audio_codec *c) {
 
-    struct encstate * encstate = (struct encstate *) c->encstate;
-    struct decstate * decstate = (struct decstate *) c->decstate;
+    struct state * encstate = (struct state *) c->encstate;
+    struct state * decstate = (struct state *) c->decstate;
 
     gsm_destroy(encstate->gsmstate);
     gsm_destroy(decstate->gsmstate);
@@ -36,8 +33,7 @@ static void destroy ( struct iaxc_audio_codec *c) {
 static int decode ( struct iaxc_audio_codec *c, 
     int *inlen, char *in, int *outlen, short *out ) {
 
-    struct decstate * decstate = (struct decstate *) c->decstate;
-    int ret;
+    struct state * decstate = (struct state *) c->decstate;
 
     /* need to decode minimum of 33 bytes to 160 byte output */
     if( (*inlen < 33) || (*outlen < 160) ) {
@@ -62,7 +58,7 @@ static int decode ( struct iaxc_audio_codec *c,
 static int encode ( struct iaxc_audio_codec *c, 
     int *inlen, short *in, int *outlen, char *out ) {
 
-    struct encstate * encstate = (struct encstate *) c->encstate;
+    struct state * encstate = (struct state *) c->encstate;
 
 
     /* need to encode minimum of 160 bytes to 33 byte output */
@@ -82,8 +78,8 @@ static int encode ( struct iaxc_audio_codec *c,
 
 struct iaxc_audio_codec *iaxc_audio_codec_gsm_new() {
   
-  struct encstate * encstate;
-  struct decstate * decstate;
+  struct state * encstate;
+  struct state * decstate;
   struct iaxc_audio_codec *c = calloc(sizeof(struct iaxc_audio_codec),1);
 
   
@@ -95,15 +91,15 @@ struct iaxc_audio_codec *iaxc_audio_codec_gsm_new() {
   c->decode = decode;
   c->destroy = destroy;
 
-  c->encstate = calloc(sizeof(struct encstate),1);
-  c->decstate = calloc(sizeof(struct decstate),1);
+  c->encstate = calloc(sizeof(struct state),1);
+  c->decstate = calloc(sizeof(struct state),1);
 
   /* leaks a bit on no-memory */
   if(!(c->encstate && c->decstate)) 
       return NULL;
 
-  encstate = (struct encstate *) c->encstate;
-  decstate = (struct decstate *) c->decstate;
+  encstate = (struct state *) c->encstate;
+  decstate = (struct state *) c->decstate;
 
   encstate->gsmstate = gsm_create();
   decstate->gsmstate = gsm_create();
