@@ -10,7 +10,8 @@ int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE;
 
 static double vol_to_db(double vol)
 {
-    return log10(vol) * 20;
+    /* avoid calling log10 on zero */
+    return log10(vol + 1.0e-99) * 20;
 }
 
 static int do_level_callback()
@@ -106,9 +107,9 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
 {
 	gsm_frame fo;
 	int silent;
+	int samples = 160; /* currently always 20ms */
 
-	/* currently always 20ms */
-	silent = input_postprocess(data,160);	
+	silent = input_postprocess(data,samples);	
 
 	if(silent) return 0;  /* poof! no encoding! */
 
@@ -122,7 +123,7 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
 			break;
 	}
 	if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, 
-				(char *)&fo, sizeof(gsm_frame)) == -1) 
+				(char *)&fo, sizeof(gsm_frame), samples) == -1) 
 	{
 	      puts("Failed to send voice!");
 	      return -1;

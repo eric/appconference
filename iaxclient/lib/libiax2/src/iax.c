@@ -144,6 +144,8 @@ struct iax_session {
 	unsigned int lastsent;
 	/* Last transmitted voice timestamp */
 	unsigned int lastvoicets;
+	/* Next predicted voice ts */
+	unsigned int nextpred;
 	/* Our last measured ping time */
 	unsigned int pingtime;
 	/* Address of peer */
@@ -434,10 +436,21 @@ static int iax_session_valid(struct iax_session *session)
 	return 0;
 }
 
-static int calc_timestamp(struct iax_session *session, unsigned int ts)
+static int calc_timestamp(struct iax_session *session, unsigned int ts, struct ast_frame *f)
 {
 	int ms;
 	struct timeval tv;
+	int voice = 0;
+	int genuine = 0;
+
+	if (f) {
+                if (f->frametype == AST_FRAME_VOICE) {
+                        voice = 1;
+                } else if (f->frametype == AST_FRAME_IAX) {
+                        genuine = 1;
+                }
+	}
+	
 	
 	/* If this is the first packet we're sending, get our
 	   offset now. */
@@ -457,13 +470,34 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts)
 	ms = (tv.tv_sec - session->offset.tv_sec) * 1000 +
 		 (tv.tv_usec - session->offset.tv_usec) / 1000;
 
-	/* Never send a packet with the same timestamp since timestamps can be used
-	   to acknowledge certain packets */
-    	if ((unsigned) ms <= session->lastsent)
-		ms = session->lastsent + IAX_MIN_TIMESTAMP_INCREMENT ;
+	if (ms < 0) 
+		ms = 0;
+
+	if(voice) {
+		if(abs(ms - session->nextpred) <= 240) {
+		    if(!session->nextpred)		
+			session->nextpred = f->samples; 
+		    ms = session->nextpred; 
+		} else
+		    session->nextpred = ms;
+	} else {
+		/* On a dataframe, use last value + 3 (to accomodate jitter buffer shrinking) 
+		   if appropriate unless it's a genuine frame */
+		if (genuine) {
+			if (ms <= session->lastsent)
+				ms = session->lastsent + 3;
+		} else if (abs(ms - session->lastsent) <= 240) {
+			ms = session->lastsent + 3;
+		}
+	      
+	}
 
 	/* Record the last sent packet for future reference */
 	session->lastsent = ms;
+
+	/* set next predicted ts based on 8khz samples */
+	if(voice)
+	    session->nextpred = session->nextpred + f->samples / 8;
 
 	return ms;
 }
@@ -645,7 +679,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 	lastsent = pvt->lastsent;
 
 	/* Calculate actual timestamp */
-	fts = calc_timestamp(pvt, ts);
+	fts = calc_timestamp(pvt, ts, f);
 
 	if (((fts & 0xFFFF0000L) == (lastsent & 0xFFFF0000L))
 		/* High two bits are the same on timestamp, or sending on a trunk */ &&
@@ -767,13 +801,13 @@ static int iax_predestroy(struct iax_session *pvt)
 #endif
 
 static int __send_command(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno, 
-		int now, int transfer, int final)
+		int now, int transfer, int final, int samples)
 {
 	struct ast_frame f;
 	f.frametype = type;
 	f.subclass = command;
 	f.datalen = datalen;
-	f.samples = 0;
+	f.samples = samples;
 	f.mallocd = 0;
 	f.offset = 0;
 #ifdef __GNUC__
@@ -787,7 +821,7 @@ static int __send_command(struct iax_session *i, char type, int command, unsigne
 
 static int send_command(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno)
 {
-	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 0);
+	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 0, 0);
 }
 
 static int send_command_final(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno)
@@ -796,18 +830,24 @@ static int send_command_final(struct iax_session *i, char type, int command, uns
 	/* It is assumed that the callno has already been locked */
 	iax_predestroy(i);
 #endif	
-	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 1);
+	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 1, 0);
 }
 
 static int send_command_immediate(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno)
 {
-	return __send_command(i, type, command, ts, data, datalen, seqno, 1, 0, 0);
+	return __send_command(i, type, command, ts, data, datalen, seqno, 1, 0, 0, 0);
 }
 
 static int send_command_transfer(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen)
 {
-	return __send_command(i, type, command, ts, data, datalen, 0, 0, 1, 0);
+	return __send_command(i, type, command, ts, data, datalen, 0, 0, 1, 0, 0);
 }
+
+static int send_command_samples(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno, int samples)
+{
+	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 0, samples);
+}
+
 
 int iax_transfer(struct iax_session *session, char *number)
 {	
@@ -1339,12 +1379,11 @@ int iax_send_dtmf(struct iax_session *session, char digit)
 	return send_command(session, AST_FRAME_DTMF, digit, 0, NULL, 0, -1);
 }
 
-int iax_send_voice(struct iax_session *session, int format, char *data, int datalen)
+int iax_send_voice(struct iax_session *session, int format, char *data, int datalen, int samples)
 {
-	
 	/* Send a (possibly compressed) voice frame */
 	if (!session->quelch)
-		return send_command(session, AST_FRAME_VOICE, format, 0, data, datalen, -1);
+		return send_command_samples(session, AST_FRAME_VOICE, format, 0, data, datalen, -1, samples);
 	return 0;
 }
 
@@ -2139,7 +2178,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				break;
 			case IAX_COMMAND_LAGRP:
 				e->etype = IAX_EVENT_LAGRP;
-				nowts = calc_timestamp(session, 0);
+				nowts = calc_timestamp(session, 0, NULL);
 				e->ts = nowts - ts;
 				e->subclass = session->jitter;
 				/* Can't call schedule_delivery since timestamp is non-normal */
