@@ -2199,18 +2199,87 @@ const PaDeviceInfo* Pa_GetDeviceInfo( PaDeviceID id )
  *  double, range 0 to 1.  negative values indicate an error.
  */
 
+static double PaOSX_GetSetVolume( PortAudioStream *stream, Boolean isInput,
+     double newLevel )
+{
+    OSStatus err = noErr;
+    UInt32    dataSize;
+    int       iChannel;
+    AudioDeviceID devID = ((PaHostSoundControl *)((internalPortAudioStream *)stream)->past_DeviceData)->output.audioDeviceID;
+    int numChannels = ((PaHostSoundControl *)((internalPortAudioStream *)stream)->past_DeviceData)->output.numChannels;
+    double level = 0.0;
+    int okChannels = 0;
+
+/* The master channel is 0. Left and right are channels 1 and 2. */
+/* Fix volume. */
+    for( iChannel = 0; iChannel<=numChannels; iChannel++ )
+    {
+        Float32   fdata32;
+        dataSize = sizeof( fdata32 );
+	if(newLevel < 0) {
+	  err = AudioDeviceGetProperty( devID, iChannel, isInput, 
+	      kAudioDevicePropertyVolumeScalar, &dataSize, &fdata32 );
+	  if( err == noErr ) {
+	      level += fdata32;
+	      okChannels ++;
+	  }
+	} else {
+	  dataSize = sizeof( fdata32 );
+	  fdata32 = (Float32) newLevel;
+	  err = AudioDeviceSetProperty( devID, 0, iChannel, isInput, 
+	      kAudioDevicePropertyVolumeScalar, dataSize, &fdata32 );
+	  if( err -= noErr ) {
+	      okChannels ++;
+	  }
+        }
+    }
+    if(newLevel > 0) {
+      /* Unmute if muted. */
+      for( iChannel = 0; iChannel<=numChannels; iChannel++ )
+      {
+	  UInt32    uidata32;
+	  dataSize = sizeof( uidata32 );
+	  err = AudioDeviceGetProperty( devID, iChannel, isInput, 
+	      kAudioDevicePropertyMute, &dataSize, &uidata32 );
+	  if( err == noErr )
+	  {
+	      DBUG(("mute for channel %d = %ld\n", iChannel, uidata32));
+	      if( uidata32 == 1 ) // muted?
+	      {
+		  dataSize = sizeof( uidata32 );
+		  uidata32 = 0; // unmute
+		  err = AudioDeviceSetProperty( devID, 0, iChannel, isInput, 
+		      kAudioDevicePropertyMute, dataSize, &uidata32 );
+		  if( err != noErr )
+		  {
+		      okChannels++;
+		  }
+	      }
+	  }
+      }
+    }
+
+    if(okChannels <= 0)
+	return -1;
+
+    if(newLevel < 0) 
+	return level / okChannels;
+
+    return paNoError;
+}
+
 double Pa_GetInputLevel( PortAudioStream *stream ) {
-    fprintf(stderr, "GetInputLevel called\n");
+    return PaOSX_GetSetVolume( stream, 1, -1);
 }
 
 double Pa_GetOutputLevel( PortAudioStream *stream ) {
-    fprintf(stderr, "GetOutputLevel called\n");
+    return PaOSX_GetSetVolume( stream, 0, -1);
 } 
 
 PaError Pa_SetInputLevel( PortAudioStream *stream , double level) {
-    fprintf(stderr, "SetInputLevel called\n");
+    return PaOSX_GetSetVolume( stream, 1, level);
 }
 
 PaError Pa_SetOutputLevel( PortAudioStream *stream , double level) {
-    fprintf(stderr, "SetOutputLevel called\n");
+    return PaOSX_GetSetVolume( stream, 0, level);
 }
