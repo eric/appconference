@@ -160,7 +160,11 @@ int main(int argc, char **argv)
 
 	iaxc_start_processing_thread();
 	printf("ready for keyboard input\n");
-		
+	
+	if(output_filename) {
+	    for(;;)
+	      sleep(10);
+	}
 	while(c = getc(stdin)) {
 	    switch (tolower(c)) {
 	      case 'q':
