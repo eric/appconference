@@ -612,6 +612,7 @@ extern "C" {
 	}
 
       if (!wxThread::IsMain()) wxMutexGuiEnter();
+#if 0
 #ifdef __WXMSW__  
 	// XXX figure out why MSW has this problem figuring out which method
         // to call...
@@ -619,6 +620,8 @@ extern "C" {
 #else
 	theFrame->callBox->SetLabel(c.callNo, label);
 #endif
+#endif
+	theFrame->callBox->SetString(c.callNo, label);
 	if((c.state & IAXC_CALL_STATE_SELECTED) &&
 	    (theFrame->callBox->GetSelection() != c.callNo))
 	    theFrame->callBox->SetSelection(c.callNo);
