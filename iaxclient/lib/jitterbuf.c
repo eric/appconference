@@ -17,8 +17,8 @@
 #include <string.h>
 #include <limits.h>
 
-//#define jb_warn(...) fprintf(stderr, __VA_ARGS__)
-#define jb_warn(...) 
+#define jb_warn(...) fprintf(stderr, __VA_ARGS__)
+//#define jb_warn(...) 
 #define jb_err(...)  fprintf(stderr, __VA_ARGS__)
 //#define jb_dbg(...)  fprintf(stderr, __VA_ARGS__)
 #define jb_dbg(...)  
@@ -560,11 +560,11 @@ long jb_next(jitterbuf *jb) {
 
 int jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
     int ret = _jb_get(jb,frameout,now);
-    static int lastts=0;
-    int thists = ((ret == JB_OK) || (ret == JB_DROP)) ? frameout->ts : 0;
+//    static int lastts=0;
+ //   int thists = ((ret == JB_OK) || (ret == JB_DROP)) ? frameout->ts : 0;
 //    jb_warn("jb_get(%x,%x,%ld) = %d (%d)\n", jb, frameout, now, ret, thists);
-    if(thists && thists < lastts) jb_warn("XXXX timestamp roll-back!!!\n");
-    lastts = thists;
+//    if(thists && thists < lastts) jb_warn("XXXX timestamp roll-back!!!\n");
+//    lastts = thists;
     return ret;
 }
 

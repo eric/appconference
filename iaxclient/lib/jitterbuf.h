@@ -80,7 +80,7 @@ typedef struct jitterbuf {
 
 
 /* new jitterbuf */
-jitterbuf *		jb_new();
+jitterbuf *		jb_new(void);
 
 /* destroy jitterbuf */
 void			jb_destroy(jitterbuf *jb);
@@ -102,6 +102,9 @@ int 			jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now);
  * JB_EMPTY: The jb is empty.
  */
 int			jb_get(jitterbuf *jb, jb_frame *frame, long now);
+
+/* unconditionally get frames from jitterbuf until empty */
+int jb_getall(jitterbuf *jb, jb_frame *frameout);
 
 /* when is the next frame due out, in receiver's time (0=EMPTY) 
  * This value may change as frames are added (esp non-audio frames) */
