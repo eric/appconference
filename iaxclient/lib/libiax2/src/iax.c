@@ -676,7 +676,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 		else
 			fr->oseqno = pvt->oseqno++;
 		fr->iseqno = pvt->iseqno;
-		fh = (struct ast_iax2_full_hdr *)(fr->af.data - sizeof(struct ast_iax2_full_hdr));
+		fh = (struct ast_iax2_full_hdr *)(((char *)fr->af.data) - sizeof(struct ast_iax2_full_hdr));
 		fh->scallno = htons(fr->callno | IAX_FLAG_FULL);
 		fh->ts = htonl(fr->ts);
 		fh->oseqno = fr->oseqno;
@@ -717,7 +717,7 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 		fr->oseqno = -1;
 		fr->iseqno = -1;
 		/* Mini frame will do */
-		mh = (struct ast_iax2_mini_hdr *)(fr->af.data - sizeof(struct ast_iax2_mini_hdr));
+		mh = (struct ast_iax2_mini_hdr *)(((char *)fr->af.data) - sizeof(struct ast_iax2_mini_hdr));
 		mh->callno = htons(fr->callno);
 		mh->ts = htons(fr->ts & 0xFFFF);
 		fr->datalen = fr->af.datalen + sizeof(struct ast_iax2_mini_hdr);

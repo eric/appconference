@@ -9,7 +9,8 @@ MEC2_EC=0
 
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common
 
-CFLAGS:= $(CFLAGS) -g
+#CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
+CFLAGS:= $(CFLAGS) -g 
 
 OBJS=\
 	gsm/src/add.o \

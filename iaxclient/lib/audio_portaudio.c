@@ -43,7 +43,7 @@ static SpeexEchoState *ec;
 static PortAudioStream *iStream, *oStream;
 static PxMixer *iMixer = NULL, *oMixer = NULL;
 
-static selectedInput, selectedOutput, selectedRing;
+static int selectedInput, selectedOutput, selectedRing;
 
 #define FRAMES_PER_BUFFER 80 /* 80 frames == 10ms */
 #define ECHO_TAIL	  4096 /* echo_tail length, in frames must be pow(2) for mec/span ? */
@@ -61,6 +61,8 @@ static struct iaxc_sound *sounds;
 static int  nextSoundId = 1;
 
 static MUTEX sound_lock;
+
+int pa_start (struct iaxc_audio_driver *d ) ;
 
 /* scan devices and stash pointers to dev structures. 
  *  But, these structures only remain valid while Pa is initialized,
@@ -246,7 +248,7 @@ int pa_stop_sound(int soundID) {
 static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 {
     static RingBuffer outRing;
-    static outRingBuf[EC_RING_SZ];
+    static char outRingBuf[EC_RING_SZ];
     static long bias = 0;
     short  delayedBuf[160];
     int i;
@@ -554,8 +556,6 @@ void handle_paerror(PaError err, char * where) {
 }
 
 int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
-	static SAMPLE *stereoBuf = NULL;
-	static int stereoBufSiz = 0;
 	int bytestoread;
 
 	bytestoread = *nSamples * sizeof(SAMPLE);
@@ -572,8 +572,6 @@ int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 }
 
 int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
-	static SAMPLE *stereoBuf = NULL;
-	static int stereoBufSiz = 0;
 	int bytestowrite = nSamples * sizeof(SAMPLE);
 
 	RingBuffer_Write(&outRing, samples, bytestowrite);

@@ -41,7 +41,6 @@ struct timeval lastouttm;
 static void do_iax_event();
 
 static THREAD procThread;
-static THREADID procThreadID;
 
 /* QuitFlag: 0: Running 1: Should Quit, -1: Not Running */
 static int procThreadQuitFlag = -1;
@@ -117,7 +116,7 @@ void iaxc_post_event(iaxc_event e) {
 #define IAXC_STATUS IAXC_TEXT_TYPE_STATUS
 #define IAXC_NOTICE IAXC_TEXT_TYPE_NOTICE
 
-static iaxc_usermsg(int type, const char *fmt, ...)
+static void iaxc_usermsg(int type, const char *fmt, ...)
 {
     va_list args;
     iaxc_event e;
@@ -167,7 +166,7 @@ static int iaxc_first_free_call()  {
 }
 
 
-static int iaxc_clear_call(int toDump)
+static void iaxc_clear_call(int toDump)
 {
       // XXX libiax should handle cleanup, I think..
       calls[toDump].state = IAXC_CALL_STATE_FREE;
@@ -205,6 +204,8 @@ int iaxc_select_call(int callNo) {
 	// otherwise just update state (answer does this for us)
 	  iaxc_do_state_callback(selected_call);
 	}
+
+	return 0;
 }
 	  
 /* external API accessor */
@@ -215,8 +216,6 @@ int iaxc_selected_call() {
 // Parameters:
 // audType - Define whether audio is handled by library or externally
 int iaxc_initialize(int audType, int inCalls) {
-	int i;
-
 	/* os-specific initializations: init gettimeofday fake stuff in
 	 * Win32, etc) */
 	os_init();
@@ -341,7 +340,7 @@ void iaxc_refresh_registrations() {
     for(cur = registrations; cur != NULL; cur=cur->next) {
 	if(iaxc_usecdiff(&now, &cur->last) > cur->refresh ) {
 	    fprintf(stderr, "refreshing registration %s:%s@%s\n", 
-		cur->host, cur->user, cur->pass, 300);
+		cur->host, cur->user, cur->pass);
 
 	    cur->session = iax_session_new();
 	    if(!cur->session) {
@@ -771,7 +770,6 @@ static void iaxc_handle_regreply(struct iax_event *e) {
 static void do_iax_event() {
 	struct iax_event *e = 0;
 	int callNo;
-	struct iax_session *session;
 
 	while ( (e = iax_get_event(0))) {
 		// first, see if this is an event for one of our calls.

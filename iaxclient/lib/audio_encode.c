@@ -8,8 +8,6 @@ static double input_level = 0, output_level = 0;
 static SpeexPreprocessState *st = NULL;
 int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE;
 
-static int level_calls = 0;
-
 static double vol_to_db(double vol)
 {
     return log10(vol) * 20;
@@ -22,11 +20,13 @@ static int do_level_callback()
 
 
     gettimeofday(&now,NULL); 
-    if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000) return;
+    if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000) return 0;
 
     last = now;
 
     iaxc_do_levels_callback(vol_to_db(input_level), vol_to_db(output_level)); 
+
+    return 0;
 }
 
 
@@ -59,11 +59,9 @@ static void calculate_level(short *audio, int len, double *level) {
 
 static int input_postprocess(void *audio, int len)
 {
-    unsigned long ilen,olen;
     double volume;
     static double lowest_volume = 1;
     int silent;
-    int i;
 
     if(!st) {
 	st = speex_preprocess_state_init(160,8000);
@@ -112,7 +110,7 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
 	/* currently always 20ms */
 	silent = input_postprocess(data,160);	
 
-	if(silent) return;  /* poof! no encoding! */
+	if(silent) return 0;  /* poof! no encoding! */
 
 	switch (iEncodeType) {
 		case AST_FORMAT_GSM:
@@ -137,9 +135,6 @@ int send_encoded_audio(struct iaxc_call *most_recent_answer, void *data, int iEn
  * XXX out MUST be 160 bytes */
 int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int iEncodeType)
 {
-	int ret;
-	int datalen;
-
 	if(len == 0) {
 		fprintf(stderr, "Empty voice frame\n");
 		return -1;
