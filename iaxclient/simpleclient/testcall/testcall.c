@@ -50,6 +50,11 @@ void mysleep(void)
 
 }
 
+int levels_callback(float input, float output) {
+    fprintf(stderr, "IN: %f OUT: %f\n", input, output);
+}
+
+
 int main(int argc, char *argv[])
 {
 	FILE *f;
@@ -69,6 +74,7 @@ int main(int argc, char *argv[])
 	
 	iaxc_initialize(AUDIO_INTERNAL_PA, f);
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
+	/* iaxc_set_levels_callback(levels_callback); */
 
 	fprintf(f, "\n\
 	    TestCall accept some keyboard input while it's running.\n\

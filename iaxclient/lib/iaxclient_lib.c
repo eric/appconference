@@ -26,6 +26,12 @@ static THREADID procThreadID;
 static int procThreadQuitFlag = -1;
 
 
+iaxc_levels_callback_t iaxc_levels_callback = NULL;
+
+void iaxc_set_levels_callback(iaxc_levels_callback_t func) {
+    iaxc_levels_callback = func;
+}
+
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
       long secs = timeA->tv_sec - timeB->tv_sec;
       long usecs = secs * 1000000;
@@ -182,20 +188,26 @@ int service_audio()
 
 
 void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p) {
-	int len;
+	int total_consumed = 0;
+	int cur;
 	short fr[160];
 
-	len = 0;
 #ifdef IAXC_IAX2
-	while(len < e->datalen) {
+	while(total_consumed < e->datalen) {
+		cur = decode_audio(p, fr,
+		    e->data,e->datalen-total_consumed,
+		    iEncodeType);
 #else
-	while(len < e->event.voice.datalen) {
+	while(total_consumed < e->event.voice.datalen) {
+		cur = decode_audio(p, fr,
+		    e->event.voice.data,e->event.voice.datalen-total_consumed,
+		    iEncodeType);
 #endif
-//		if(gsm_decode(p->gsmin, (char *) e->event.voice.data + len, fr)) {
-		if(decode_audio(e,p,fr,&len,iEncodeType)) {
-			fprintf(stderr, "Bad voice packet.  Unable to decode.\n");
+		if(cur < 0) {
+			fprintf(stderr, "Bad or incomplete voice packet.  Unable to decode. dropping\n");
 			return;
 		} else {  /* its an audio packet to be output to user */
+			total_consumed += cur;
 			switch (iAudioType) {
 				case AUDIO_INTERNAL:
 #ifdef WIN32

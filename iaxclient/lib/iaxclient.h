@@ -48,4 +48,8 @@ void iaxc_dump_call(void);
 void iaxc_reject_call(void);
 void iaxc_send_dtmf(char digit);
 int iaxc_was_call_answered();
+
+typedef int (*iaxc_levels_callback_t)(float input, float output);
+void iaxc_set_levels_callback(iaxc_levels_callback_t func);
+
 #endif

@@ -83,6 +83,8 @@ long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
 void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p);
 void iaxc_service_network(int netfd, FILE *f);
 
+
+
 #include "iaxclient.h"
 #include "audio_encode.h"
 #include "audio_portaudio.h"
@@ -90,6 +92,11 @@ void iaxc_service_network(int netfd, FILE *f);
 #ifdef WIN32
 #include "audio_win32.h"
 #endif
+
+
+extern iaxc_levels_callback_t iaxc_levels_callback;
+
+
 
 #endif
 
