@@ -9,6 +9,11 @@
  *
  */
 
+#ifndef _winpoop_h
+#define _winpoop_h
+
+#include <winsock.h>
+
 static inline int inet_aton(char *cp, struct in_addr *inp)
 {
 	int res;
@@ -24,3 +29,5 @@ static inline int inet_aton(char *cp, struct in_addr *inp)
 	inp->s_addr = htonl(saddr);
 	return 1;
 }
+
+#endif

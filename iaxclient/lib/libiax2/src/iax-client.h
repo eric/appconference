@@ -14,7 +14,7 @@
 #ifndef _ASTERISK_IAX_CLIENT_H
 #define _ASTERISK_IAX_CLIENT_H
 
-#ifdef MACOSX
+#ifndef LINUX
 #define socklen_t int
 #endif
 

@@ -11,12 +11,16 @@
  * the GNU General Public License
  */
 
+#ifdef WIN32
+#include <winsock.h>
+#else
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <string.h>
 #include <netinet/in.h>
-#include "frame.h"
 #include <arpa/inet.h>
+#endif
+#include <string.h>
+#include "frame.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
