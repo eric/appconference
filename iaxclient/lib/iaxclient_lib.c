@@ -1,6 +1,6 @@
 #include "iaxclient_lib.h"
 
-#ifdef __STDC__
+#if defined(__STDC__) || defined(_MSC_VER)
 #include <stdarg.h>
 #else
 #include <varargs.h>
