@@ -3,7 +3,7 @@ CFLAGS=-I../../lib
 
 #debug
 CFLAGS:= $(CFLAGS) -g -Wall
-OBJS = main.o prefs.o calls.o directory.o dial.o frame.o devices.o
+OBJS = main.o prefs.o calls.o directory.o dial.o frame.o devices.o xrc_res.o
 REZ=echo
 
 
@@ -39,7 +39,7 @@ WINSYSFLAGS=-Wl,--subsystem,windows -mwindows
 #WINSYSFLAGS=
 EXTRALIBS = -lwxxrc
 SYSLIBS=$(EXTRALIBS) $(WINSYSFLAGS) -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib
-OBJS=main.o prefs.o calls.o directory.o dial.o frame.o devices.o iaxcomm_resources.o
+OBJS:=$(OBJS) iaxcomm_resources.o
 endif
 
 ifeq ($(OSTYPE),LINUX)
@@ -75,6 +75,13 @@ makelib:
 
 iaxcomm_resources.o: iaxcomm.rc
 	windres --use-temp-file -i iaxcomm.rc -o iaxcomm_resources.o --include-dir $(WXWIN)/include --define __WIN32__ --define __WIN95__ --define __GNUWIN32__
+
+xrc_res.cc:
+	wxrc -c rc/*xrc -o xrc_res.cc
+
+compact: all
+	strip $(TARGET)
+	upx -9 $(TARGET)
 
 $(PROG): $(OBJS) $(LIBS)
 	$(CXX) $(OBJS) $(LIBS) $(SYSLIBS) -o $(PROG)

@@ -329,12 +329,13 @@ void MyFrame::OnShow()
 
 void MyFrame::OnNextKey(wxEvent &event)
 {
-    int n = iaxc_first_free_call();
-
-    if(n < 0)
-        wxMessageBox(_("Sorry, there are no free calls"), "Oops");
-    else
-        iaxc_select_call(n);
+//    int n = iaxc_first_free_call();
+//
+//    if(n < 0)
+//        wxMessageBox(_("Sorry, there are no free calls"), "Oops");
+//    else
+//        iaxc_select_call(n);
+    iaxc_select_call(-1);
 }
 
 void MyFrame::OnHangup(wxEvent &event)

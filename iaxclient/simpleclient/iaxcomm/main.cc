@@ -117,6 +117,9 @@ bool theApp::OnInit()
     load_xrc_resource( "directory.xrc" );
     load_xrc_resource( "devices.xrc" );
 
+    extern void InitXmlResource();
+    InitXmlResource();
+
     // Create an instance of the main frame.
     // Using a pointer since behaviour will be when close the frame, it will
     // Destroy() itself, which will safely call "delete" when the time is right.
@@ -262,25 +265,12 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
     wxString dirHome;
     wxGetHomeDir(&dirHome);
 
-    // Next, look in ~/rc
+    // Last, look in ~/rc
     xrc_fullname = dirHome + wxFILE_SEP_PATH + xrc_filename;
     if ( ::wxFileExists( xrc_fullname ) ) {
         wxXmlResource::Get()->Load( xrc_fullname );
         return;
     }
-
-    // Last, ask the user
-    wxDirDialog where(NULL, _("Where are the rc files?"), dirHome );
-    where.ShowModal();
-    xrc_subdirectory = where.GetPath();
-
-    xrc_fullname = xrc_subdirectory + wxFILE_SEP_PATH + xrc_filename;
-    if ( ::wxFileExists( xrc_fullname ) ) {
-        wxXmlResource::Get()->Load( xrc_fullname );
-        return;
-    }
-
-    wxFatalError(_("Can't Load XRC ") + xrc_fullname);
 }
 
 #ifdef __WXMSW__

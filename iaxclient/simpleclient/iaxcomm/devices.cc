@@ -64,8 +64,6 @@ END_EVENT_TABLE()
 
 DevicesDialog::DevicesDialog(wxWindow* parent)
 {    
-    wxConfig *config = new wxConfig("iaxComm");
-
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("Devices"));
 
     // Reach in for our controls
