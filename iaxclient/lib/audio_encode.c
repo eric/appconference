@@ -26,6 +26,7 @@ static double input_level = 0, output_level = 0;
 
 static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
+static int speex_state_rate = 0;
 int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC|IAXC_FILTER_CN;
 
 /* use to measure time since last audio was processed */
@@ -75,9 +76,9 @@ void iaxc_set_speex_filters()
 {
     int i;
 
-    if(!st) st = speex_preprocess_state_init(160,8000); 
+    if(!st) return;
 
-    i = (iaxc_silence_threshold > 0) ? 1 : 0;
+    i = 1; /* always make VAD decision */
     speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_VAD, &i);
     i = (iaxc_filters & IAXC_FILTER_AGC) ? 1 : 0;
     speex_preprocess_ctl(st, SPEEX_PREPROCESS_SET_AGC, &i);
@@ -98,15 +99,16 @@ static void calculate_level(short *audio, int len, double *level) {
     *level += (((double)now/32767) - *level) / 5;
 }
 
-int iaxc_input_postprocess(void *audio, int len)
+int iaxc_input_postprocess(void *audio, int len, int rate)
 {
     double volume;
     static double lowest_volume = 1;
     int silent;
 
-    if(!st || (speex_state_size != len)) {
-	st = speex_preprocess_state_init(len,8000);
+    if(!st || (speex_state_size != len) || (speex_state_rate != rate)) {
+	st = speex_preprocess_state_init(len,rate);
 	speex_state_size = len;
+	speex_state_rate = rate;
 	iaxc_set_speex_filters();
     }
 
@@ -229,7 +231,7 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int format, int sampl
 	/* update last input timestamp */
 	gettimeofday( &timeLastInput, NULL ) ;
 
-	silent = iaxc_input_postprocess(data,insize);	
+	silent = iaxc_input_postprocess(data,insize,8000);	
 
 	if(silent) { 
 	  if(!call->tx_silent) {  /* send a Comfort Noise Frame */
