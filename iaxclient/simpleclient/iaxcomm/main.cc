@@ -156,6 +156,12 @@ bool theApp::OnInit()
         config->SetPath(Path);
     }
 
+    // Call initialize now, as the frame constructor might read config values
+    // and update settings (such as preferred codec).
+    if(iaxc_initialize(AUDIO_INTERNAL_PA, nCalls)) {
+        wxFatalError(_("Couldn't Initialize IAX Client "));
+    }
+
     // Create an instance of the main frame.
     // Using a pointer since behaviour will be when close the frame, it will
     // Destroy() itself, which will safely call "delete" when the time is right.
@@ -191,10 +197,6 @@ bool theApp::OnInit()
   #ifdef __WXMSW__
     theTaskBarIcon.SetIcon(wxICON(application));
   #endif
-
-    if(iaxc_initialize(AUDIO_INTERNAL_PA, nCalls)) {
-        wxFatalError(_("Couldn't Initialize IAX Client "));
-    }
 
     SetAudioDevices(InputDevice,
                     OutputDevice,

@@ -149,12 +149,33 @@ MyFrame::MyFrame( wxWindow *parent )
     CreateStatusBar( 2 );
     SetStatusWidths(2, widths);
 
+    //----Set some preferences ---------------------------------------------------------
     config->SetPath("/Prefs");
 
     RingOnSpeaker = config->Read("RingOnSpeaker", 0l);
     AGC           = config->Read("AGC", 0l);
-    NoiseReduce   = config->Read("NoiseReduce", 0l);
+    AAGC          = config->Read("AAGC", 1l);
+    CN            = config->Read("CN", 1l);
+    NoiseReduce   = config->Read("NoiseReduce", 1l);
     EchoCancel    = config->Read("EchoCancel", 0l);
+
+    config->SetPath("/Codecs");
+
+    AllowuLawVal    = config->Read("AllowuLaw",  0l);
+    AllowaLawVal    = config->Read("AllowaLaw",  0l);
+    AllowGSMVal     = config->Read("AllowGSM",   0l);
+    AllowSpeexVal   = config->Read("AllowSpeex", 1l);
+    AllowiLBCVal    = config->Read("AllowiLBC",  0l);
+    PreferredBitmap = config->Read("Preferred",  IAXC_FORMAT_SPEEX);
+
+    config->SetPath("/Codecs/SpeexTune");
+
+    SPXEnhanceVal   = config->Read("SPXEnhance",     1l);
+    SPXQualityVal   = config->Read("SPXQuality",     4l);
+    SPXBitrateVal   = config->Read("SPXBitrate",     9l);
+    SPXABRVal       = config->Read("SPXABR",         9l);
+    SPXVBRVal       = config->Read("SPXVBR",         1l);
+    SPXComplexityVal= config->Read("SPXComplexity",  4l);
 
     //----Add the panel-----------------------------------------------------------------
     Name = config->Read("UseSkin", "default");
@@ -171,6 +192,7 @@ MyFrame::MyFrame( wxWindow *parent )
     wxGetApp().RingDevice      = config->Read("Ring Device", "");
 
     ApplyFilters();
+    ApplyCodecs();
     UsingSpeaker = false;
 
     if(OutputSlider != NULL)
@@ -236,12 +258,19 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
 void MyFrame::ApplyFilters()
 {
     // Clear these filters
-    int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
+    int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_AAGC | IAXC_FILTER_CN |
+                 IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
     iaxc_set_filters(iaxc_get_filters() & flag);
 
     flag = 0;
     if(AGC)
        flag = IAXC_FILTER_AGC;
+
+    if(AAGC)
+       flag = IAXC_FILTER_AAGC;
+
+    if(CN)
+       flag = IAXC_FILTER_CN;
 
     if(NoiseReduce)
        flag |= IAXC_FILTER_DENOISE;
@@ -250,6 +279,37 @@ void MyFrame::ApplyFilters()
        flag |= IAXC_FILTER_ECHO;
 
     iaxc_set_filters(iaxc_get_filters() | flag);
+}
+
+void MyFrame::ApplyCodecs()
+{
+    wxConfig   *config = new wxConfig("iaxComm");
+
+    int  Allowed = 0;
+
+    if(AllowiLBCVal)
+        Allowed |= IAXC_FORMAT_ILBC;
+    
+    if(AllowGSMVal)
+        Allowed |= IAXC_FORMAT_GSM;
+     
+    if(AllowSpeexVal)   
+        Allowed |= IAXC_FORMAT_SPEEX;
+    
+    if(AllowuLawVal)
+        Allowed |= IAXC_FORMAT_ULAW;
+    
+    if(AllowaLawVal)
+        Allowed |= IAXC_FORMAT_ALAW;
+
+    iaxc_set_formats(PreferredBitmap, Allowed);
+
+    iaxc_set_speex_settings(   (int)SPXEnhanceVal,
+                             (float)SPXQualityVal,
+                               (int)SPXBitrateVal,
+                               (int)SPXVBRVal,
+                               (int)SPXABRVal,
+                               (int)SPXComplexityVal);
 }
 
 MyFrame::~MyFrame()
@@ -383,8 +443,7 @@ void MyFrame::OnInputSlider(wxScrollEvent &event)
     iaxc_input_level_set((double)pos/100.0);
 }
 
-void MyFrame::OnPTTChange(wxCommandEvent &event)
-{
+void MyFrame::OnPTTChange(wxCommandEvent &event) {
     pttMode = event.IsChecked();
     
     if(pttMode) {
@@ -544,7 +603,7 @@ void MyFrame::OnExit(wxCommandEvent& WXUNUSED(event))
 void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
     wxString msg;
-    msg.Printf( _T("CVS 22 Oct 2004"));
+    msg.Printf("Version: %s", VERSION);
     wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
 }
 

@@ -152,6 +152,24 @@ void CallList::OnRClick(wxListEvent &event)
     }
 }
 
+wxString CallList::GetCodec(struct iaxc_ev_call_state c)
+{
+	switch (c.format) {
+	case (1 << 0):	return(_T("G.723.1"));	/* G.723.1 compression */
+	case (1 << 1):	return(_T("GSM"));	/* GSM compression */
+	case (1 << 2):	return(_T("u-law"));	/* Raw mu-law data (G.711) */
+	case (1 << 3):	return(_T("a-law"));	/* Raw A-law data (G.711) */
+	case (1 << 4):	return(_T("G726"));	/* ADPCM, 32kbps  */
+	case (1 << 5):	return(_T("ADPCM"));	/* ADPCM IMA */
+	case (1 << 6):	return(_T("SLINEAR"));	/* Raw 16-bit Signed Linear (8000 Hz) PCM */
+	case (1 << 7):	return(_T("LPC10"));	/* LPC10, 180 samples/frame */
+	case (1 << 8):	return(_T("G.729a"));	/* G.729a Audio */
+	case (1 << 9):	return(_T("Speex"));	/* Speex Audio */
+	case (1 <<10):	return(_T("iLBC"));	/* iLBC Audio */
+	default:	return(_T(""));
+	}
+}
+
 int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 {
     wxConfig  *config = new wxConfig("iaxComm");
@@ -186,7 +204,10 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         wxString fullname;
 
         fullname.Printf("%s", c.remote_name);
-        info = fullname.AfterLast('@');  // Hide username:password
+
+        info  = fullname.AfterLast('@');	// Hide username:password
+
+        info += " ["+ GetCodec(c) + "]";	// Indicate Negotiated codec
 
         SetItem(c.callNo, 2, info );
 

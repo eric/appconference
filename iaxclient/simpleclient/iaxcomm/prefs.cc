@@ -78,13 +78,38 @@ BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
     EVT_BUTTON  ( XRCID("SaveFilters"),      PrefsDialog::OnSaveFilters)
     EVT_BUTTON  ( XRCID("ApplyFilters"),     PrefsDialog::OnApplyFilters)
     EVT_CHECKBOX( XRCID("AGC"),              PrefsDialog::OnFiltersDirty)
+    EVT_CHECKBOX( XRCID("AAGC"),             PrefsDialog::OnFiltersDirty)
+    EVT_CHECKBOX( XRCID("CN"),               PrefsDialog::OnFiltersDirty)
     EVT_CHECKBOX( XRCID("NoiseReduce"),      PrefsDialog::OnFiltersDirty)
     EVT_CHECKBOX( XRCID("EchoCancel"),       PrefsDialog::OnFiltersDirty)
+
+    EVT_BUTTON  ( XRCID("SaveCodecs"),       PrefsDialog::OnSaveCodecs)
+    EVT_BUTTON  ( XRCID("ApplyCodecs"),      PrefsDialog::OnApplyCodecs)
+
+    EVT_CHECKBOX( XRCID("AllowuLaw"),        PrefsDialog::OnCodecAllow)
+    EVT_CHECKBOX( XRCID("AllowaLaw"),        PrefsDialog::OnCodecAllow)
+    EVT_CHECKBOX( XRCID("AllowGSM"),         PrefsDialog::OnCodecAllow)
+    EVT_CHECKBOX( XRCID("AllowSpeex"),       PrefsDialog::OnCodecAllow)
+    EVT_CHECKBOX( XRCID("AllowiLBC"),        PrefsDialog::OnCodecAllow)
+
+    EVT_RADIOBUTTON(XRCID("PreferuLaw"),     PrefsDialog::OnCodecPrefer)
+    EVT_RADIOBUTTON(XRCID("PreferaLaw"),     PrefsDialog::OnCodecPrefer)
+    EVT_RADIOBUTTON(XRCID("PreferGSM"),      PrefsDialog::OnCodecPrefer)
+    EVT_RADIOBUTTON(XRCID("PreferSpeex"),    PrefsDialog::OnCodecPrefer)
+    EVT_RADIOBUTTON(XRCID("PreferiLBC"),     PrefsDialog::OnCodecPrefer)
+
+    EVT_CHECKBOX( XRCID("SPXEnhance"),       PrefsDialog::OnSpeexTune)
+    EVT_SPINCTRL( XRCID("SPXQuality"),       PrefsDialog::OnSpeexTune)
+    EVT_SPINCTRL( XRCID("SPXBitrate"),       PrefsDialog::OnSpeexTune)
+    EVT_SPINCTRL( XRCID("SPXABR"),           PrefsDialog::OnSpeexTune)
+    EVT_CHECKBOX( XRCID("SPXVBR"),           PrefsDialog::OnSpeexTune)
+    EVT_SPINCTRL( XRCID("SPXComplexity"),    PrefsDialog::OnSpeexTune)
 
     EVT_BUTTON  ( XRCID("CancelAudio"),      PrefsDialog::OnCancel)
     EVT_BUTTON  ( XRCID("CancelCallerID"),   PrefsDialog::OnCancel)
     EVT_BUTTON  ( XRCID("CancelMisc"),       PrefsDialog::OnCancel)
     EVT_BUTTON  ( XRCID("CancelFilters"),    PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelCodecs"),     PrefsDialog::OnCancel)
 
 END_EVENT_TABLE()
 
@@ -125,11 +150,36 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     CancelMisc     = XRCCTRL(*this, "CancelMisc",     wxButton);
 
     AGC            = XRCCTRL(*this, "AGC",            wxCheckBox);
+    AAGC           = XRCCTRL(*this, "AAGC",           wxCheckBox);
+    CN             = XRCCTRL(*this, "CN",             wxCheckBox);
     NoiseReduce    = XRCCTRL(*this, "NoiseReduce",    wxCheckBox);
     EchoCancel     = XRCCTRL(*this, "EchoCancel",     wxCheckBox);
     SaveFilters    = XRCCTRL(*this, "SaveFilters",    wxButton);
     ApplyFilters   = XRCCTRL(*this, "ApplyFilters",   wxButton);
     CancelFilters  = XRCCTRL(*this, "CancelFilters",  wxButton);
+
+    AllowuLaw      = XRCCTRL(*this, "AllowuLaw",      wxCheckBox);
+    AllowaLaw      = XRCCTRL(*this, "AllowaLaw",      wxCheckBox);
+    AllowGSM       = XRCCTRL(*this, "AllowGSM",       wxCheckBox);
+    AllowSpeex     = XRCCTRL(*this, "AllowSpeex",     wxCheckBox);
+    AllowiLBC      = XRCCTRL(*this, "AllowiLBC",      wxCheckBox);
+
+    PreferuLaw     = XRCCTRL(*this, "PreferuLaw",     wxRadioButton);
+    PreferaLaw     = XRCCTRL(*this, "PreferaLaw",     wxRadioButton);
+    PreferGSM      = XRCCTRL(*this, "PreferGSM",      wxRadioButton);
+    PreferSpeex    = XRCCTRL(*this, "PreferSpeex",    wxRadioButton);
+    PreferiLBC     = XRCCTRL(*this, "PreferiLBC",     wxRadioButton);
+
+    SPXEnhance     = XRCCTRL(*this, "SPXEnhance",     wxCheckBox);
+    SPXQuality     = XRCCTRL(*this, "SPXQuality",     wxSpinCtrl);
+    SPXBitrate     = XRCCTRL(*this, "SPXBitrate",     wxSpinCtrl);
+    SPXABR         = XRCCTRL(*this, "SPXABR",         wxSpinCtrl);
+    SPXVBR         = XRCCTRL(*this, "SPXVBR",         wxCheckBox);
+    SPXComplexity  = XRCCTRL(*this, "SPXComplexity",  wxSpinCtrl);
+
+    SaveCodecs     = XRCCTRL(*this, "SaveCodecs",     wxButton);
+    ApplyCodecs    = XRCCTRL(*this, "ApplyCodecs",    wxButton);
+    CancelCodecs   = XRCCTRL(*this, "CancelCodecs",   wxButton);
 
     config->SetPath("/Prefs");
 
@@ -161,8 +211,41 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     nCalls->SetValue(wxGetApp().nCalls);
 
     AGC->SetValue(wxGetApp().theFrame->AGC);
+    AAGC->SetValue(wxGetApp().theFrame->AAGC);
+    CN->SetValue(wxGetApp().theFrame->CN);
     NoiseReduce->SetValue(wxGetApp().theFrame->NoiseReduce);
     EchoCancel->SetValue(wxGetApp().theFrame->EchoCancel);
+
+    AllowuLaw->SetValue( wxGetApp().theFrame->AllowuLawVal);
+    AllowaLaw->SetValue( wxGetApp().theFrame->AllowaLawVal);
+    AllowGSM->SetValue(  wxGetApp().theFrame->AllowGSMVal);
+    AllowSpeex->SetValue(wxGetApp().theFrame->AllowSpeexVal);
+    AllowiLBC->SetValue( wxGetApp().theFrame->AllowiLBCVal);
+
+    // Our local copy, because we may play with it and not Apply it
+    LocalPreferredBitmap = wxGetApp().theFrame->PreferredBitmap;
+
+    if(LocalPreferredBitmap == IAXC_FORMAT_ILBC)
+        PreferiLBC->SetValue(TRUE);
+
+    if(LocalPreferredBitmap == IAXC_FORMAT_SPEEX)
+        PreferSpeex->SetValue(TRUE);
+
+    if(LocalPreferredBitmap == IAXC_FORMAT_GSM)
+        PreferGSM->SetValue(TRUE);
+
+    if(LocalPreferredBitmap == IAXC_FORMAT_ALAW)
+        PreferaLaw->SetValue(TRUE);
+
+    if(LocalPreferredBitmap == IAXC_FORMAT_ULAW)
+        PreferuLaw->SetValue(TRUE);
+
+    SPXEnhance->SetValue(    wxGetApp().theFrame->SPXEnhanceVal);
+    SPXQuality->SetValue(    wxGetApp().theFrame->SPXQualityVal);
+    SPXBitrate->SetValue(    wxGetApp().theFrame->SPXBitrateVal);
+    SPXABR->SetValue(        wxGetApp().theFrame->SPXABRVal);
+    SPXVBR->SetValue(        wxGetApp().theFrame->SPXVBRVal);
+    SPXComplexity->SetValue( wxGetApp().theFrame->SPXComplexityVal);
 
     delete config;
 
@@ -323,6 +406,8 @@ void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
     config->SetPath("/Prefs");
 
     config->Write("AGC",            AGC->GetValue());
+    config->Write("AAGC",           AAGC->GetValue());
+    config->Write("CN",             CN->GetValue());
     config->Write("NoiseReduce",    NoiseReduce->GetValue());
     config->Write("EchoCancel",     EchoCancel->GetValue());
 
@@ -334,32 +419,114 @@ void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
 void PrefsDialog::OnApplyFilters(wxCommandEvent &event)
 {
     wxGetApp().theFrame->AGC         = AGC->GetValue();
+    wxGetApp().theFrame->AAGC        = AAGC->GetValue();
+    wxGetApp().theFrame->CN          = CN->GetValue();
     wxGetApp().theFrame->NoiseReduce = NoiseReduce->GetValue();
     wxGetApp().theFrame->EchoCancel  = EchoCancel->GetValue();
 
-    DoApplyFilters();
+    wxGetApp().theFrame->ApplyFilters();
 
     ApplyFilters->Disable();
     CancelFilters->SetLabel("Done");
 }
 
-void PrefsDialog::DoApplyFilters()
+void PrefsDialog::OnCodecPrefer(wxCommandEvent &event)
 {
-    // Clear these filters
-    int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
-    iaxc_set_filters(iaxc_get_filters() & flag);
+    if(PreferiLBC->GetValue()) 
+        LocalPreferredBitmap = IAXC_FORMAT_ILBC;
 
-    flag = 0;
-    if(wxGetApp().theFrame->AGC)
-       flag = IAXC_FILTER_AGC;
+    if(PreferGSM->GetValue())
+        LocalPreferredBitmap = IAXC_FORMAT_GSM;
 
-    if(wxGetApp().theFrame->NoiseReduce)
-       flag |= IAXC_FILTER_DENOISE;
+    if(PreferSpeex->GetValue())
+        LocalPreferredBitmap = IAXC_FORMAT_SPEEX;
 
-    if(wxGetApp().theFrame->EchoCancel)
-       flag |= IAXC_FILTER_ECHO;
+    if(PreferuLaw->GetValue())
+        LocalPreferredBitmap = IAXC_FORMAT_ULAW;
 
-    iaxc_set_filters(iaxc_get_filters() | flag);
+    if(PreferaLaw->GetValue())
+        LocalPreferredBitmap = IAXC_FORMAT_SPEEX;
+
+    OnCodecAllow(event);
+}
+
+void PrefsDialog::OnCodecAllow(wxCommandEvent &event)
+{
+    // If a codec is preferred, then it must be allowed
+    if(PreferiLBC->GetValue())
+        AllowiLBC->SetValue(TRUE);
+
+    if(PreferGSM->GetValue())
+        AllowGSM->SetValue(TRUE);
+
+    if(PreferSpeex->GetValue())
+        AllowSpeex->SetValue(TRUE);
+
+    if(PreferuLaw->GetValue())
+        AllowuLaw->SetValue(TRUE);
+
+    if(PreferaLaw->GetValue())
+        AllowaLaw->SetValue(TRUE);
+
+    ApplyCodecs->Enable();
+    SaveCodecs->Enable();
+    CancelCodecs->SetLabel("Cancel");
+}
+
+void PrefsDialog::OnSpeexTune(wxCommandEvent &event)
+{
+    // Not sure if there's anything different to do here
+    OnCodecAllow(event);
+}
+
+void PrefsDialog::OnSaveCodecs(wxCommandEvent &event)
+{
+    wxConfig *config = new wxConfig("iaxComm");
+    config->SetPath("/Codecs");
+
+    config->Write("AllowuLaw",       AllowuLaw->GetValue());
+    config->Write("AllowaLaw",       AllowaLaw->GetValue());
+    config->Write("AllowGSM",        AllowGSM->GetValue());
+    config->Write("AllowSpeex",      AllowSpeex->GetValue());
+    config->Write("AllowiLBC",       AllowiLBC->GetValue());
+    config->Write("Preferred",       LocalPreferredBitmap);
+    
+    config->SetPath("/Codecs/SpeexTune");
+    
+    config->Write("SPXEnhance",      SPXEnhance->GetValue());
+    config->Write("SPXQuality",      SPXQuality->GetValue());
+    config->Write("SPXBitrate",      SPXBitrate->GetValue());
+    config->Write("SPXABR",          SPXABR->GetValue());
+    config->Write("SPXVBR",          SPXVBR->GetValue());
+    config->Write("SPXComplexity",   SPXComplexity->GetValue());
+
+
+    delete config;
+    SaveCodecs->Disable();
+    OnApplyCodecs(event);
+}
+
+void PrefsDialog::OnApplyCodecs(wxCommandEvent &event)
+{
+    wxGetApp().theFrame->AllowuLawVal     = AllowuLaw->GetValue();
+    wxGetApp().theFrame->AllowaLawVal     = AllowaLaw->GetValue();
+    wxGetApp().theFrame->AllowGSMVal      = AllowGSM->GetValue();
+    wxGetApp().theFrame->AllowSpeexVal    = AllowSpeex->GetValue();
+    wxGetApp().theFrame->AllowiLBCVal     = AllowiLBC->GetValue();
+
+    wxGetApp().theFrame->PreferredBitmap  = LocalPreferredBitmap;
+
+    wxGetApp().theFrame->SPXEnhanceVal    = SPXEnhance->GetValue();
+    wxGetApp().theFrame->SPXQualityVal    = SPXQuality->GetValue();
+    wxGetApp().theFrame->SPXBitrateVal    = SPXBitrate->GetValue();
+    wxGetApp().theFrame->SPXABRVal        = SPXABR->GetValue();
+    wxGetApp().theFrame->SPXVBRVal        = SPXVBR->GetValue();
+    wxGetApp().theFrame->SPXComplexityVal = SPXComplexity->GetValue();
+
+    wxGetApp().theFrame->ApplyCodecs();
+
+    ApplyCodecs->Disable();
+    CancelCodecs->SetLabel("Done");
 }
 
 void PrefsDialog::OnAudioDirty(wxCommandEvent &event)

@@ -52,6 +52,7 @@ public:
     int               HandleStateEvent(struct iaxc_ev_call_state e);
 
 private:
+    wxString          GetCodec(struct iaxc_ev_call_state e);
     wxWindow         *m_parent;
 
     

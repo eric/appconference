@@ -61,11 +61,38 @@ private:
     wxButton    *CancelMisc;
 
     wxCheckBox  *AGC;
+    wxCheckBox  *AAGC;
+    wxCheckBox  *CN;
     wxCheckBox  *NoiseReduce;
     wxCheckBox  *EchoCancel;
     wxButton    *SaveFilters;
     wxButton    *ApplyFilters;
     wxButton    *CancelFilters;
+
+    wxCheckBox     *AllowuLaw;
+    wxCheckBox     *AllowaLaw;
+    wxCheckBox     *AllowGSM;
+    wxCheckBox     *AllowSpeex;
+    wxCheckBox     *AllowiLBC;
+    
+    wxRadioButton  *PreferuLaw;
+    wxRadioButton  *PreferaLaw;
+    wxRadioButton  *PreferGSM;
+    wxRadioButton  *PreferSpeex;
+    wxRadioButton  *PreferiLBC;
+
+    int             LocalPreferredBitmap;
+
+    wxCheckBox     *SPXEnhance;
+    wxSpinCtrl     *SPXQuality;
+    wxSpinCtrl     *SPXBitrate;
+    wxSpinCtrl     *SPXABR;
+    wxCheckBox     *SPXVBR;
+    wxSpinCtrl     *SPXComplexity;
+
+    wxButton    *SaveCodecs;
+    wxButton    *ApplyCodecs;
+    wxButton    *CancelCodecs;
 
     void         OnPreviewIntercom(wxCommandEvent &event);
     void         OnPreviewRingTone(wxCommandEvent &event);
@@ -76,11 +103,17 @@ private:
     void         OnSaveCallerID(wxCommandEvent &event);
     void         OnSaveMisc(wxCommandEvent &event);
     void         OnSaveFilters(wxCommandEvent &event);
+    void         OnSaveCodecs(wxCommandEvent &event);
     void         OnApplyAudio(wxCommandEvent &event);
     void         OnApplyCallerID(wxCommandEvent &event);
     void         OnApplyMisc(wxCommandEvent &event);
     void         OnApplyFilters(wxCommandEvent &event);
-    void         DoApplyFilters(void);
+    void         OnApplyCodecs(wxCommandEvent &event);
+
+    void         OnCodecPrefer(wxCommandEvent &event);
+    void         OnCodecAllow(wxCommandEvent &event);
+
+    void         OnSpeexTune(wxCommandEvent &event);
 
     void         OnAudioDirty(wxCommandEvent &event);
     void         OnCallerIDDirty(wxCommandEvent &event);

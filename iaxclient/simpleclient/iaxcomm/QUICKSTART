@@ -72,3 +72,12 @@ line:
 
  sox ringin.wav -c 1 -r 8000 ringin.sw
 
+=======================================================================
+SPEEX TUNING
+
+You can now tune serveral of the speex codec parameters.  Note that this
+only controls the speex encoder for your outgoing audio.  Incoming audio
+quality is controlled by the remote end.
+
+Asterisk has recently added the capability to tune it's speex encoder.  If
+you have this capability, it can be adjusted in /etc/asterisk/codecs.conf

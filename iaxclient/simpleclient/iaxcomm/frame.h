@@ -77,6 +77,8 @@ public:
     void        CheckPTT();
     void        SetPTT(bool state);
     void        RePanel(wxString Name);
+    void        ApplyCodecs(void);
+    void        ApplyFilters(void);
 
     // Handlers for library-initiated events
     void        HandleEvent(wxCommandEvent &evt);
@@ -97,8 +99,25 @@ public:
     bool        RingOnSpeaker;
     bool        UsingSpeaker;
     bool        AGC;
+    bool        AAGC;
+    bool        CN;
     bool        NoiseReduce;
     bool        EchoCancel;
+
+    bool        AllowuLawVal;
+    bool        AllowaLawVal;
+    bool        AllowGSMVal;
+    bool        AllowSpeexVal;
+    bool        AllowiLBCVal;
+
+    int         PreferredBitmap;
+
+    int         SPXEnhanceVal;
+    int         SPXQualityVal;
+    int         SPXBitrateVal;
+    int         SPXABRVal;
+    int         SPXVBRVal;
+    int         SPXComplexityVal;
     
 private:
 
@@ -118,7 +137,6 @@ private:
     void        OnDialDirect(wxCommandEvent& event);
     void        OnTransfer(wxCommandEvent& event);
     void        AddPanel(wxWindow *parent, wxString Name);
-    void        ApplyFilters(void);
     void        OnAccountChoice(wxCommandEvent &event);
 
 #ifdef __WXGTK__
