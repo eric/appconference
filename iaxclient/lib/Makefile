@@ -4,6 +4,7 @@ IAXVER=2
 
 SPEEX_PREPROCESS=1
 SPAN_EC=0
+SPEEX_EC=0
 
 CFLAGS=-Igsm/inc -Iportaudio/pa_common -Iportaudio/pablio
 
@@ -116,7 +117,7 @@ CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT
 endif
 
 ifeq ($(SPEEX_PREPROCESS),1)
-OBJS:= $(OBJS) libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
+OBJS:= $(OBJS) libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o libspeex/mdf.o
 CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
 endif
 

@@ -31,6 +31,11 @@ static echo_can_state_t *ec;
 static echo_can_state_t *ec;
 #endif
 
+#ifdef SPEEX_EC
+#include "libspeex/speex_echo.h"
+static SpeexEchoState *ec;
+#endif
+
 static PortAudioStream *iStream, *oStream;
 
 static selectedInput, selectedOutput, selectedRing;
@@ -269,6 +274,23 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	/* input overflow might happen here */
 	if(virtualMono) {
 	  stereo2mono(virtualInBuffer, inputBuffer, framesPerBuffer);
+#if defined(SPEEX_EC)
+	  {
+	      /* convert buffers to float, echo cancel, convert back */
+	      float finBuffer[160], foutBuffer[160]; fcancBuffer[160];
+	      for(i=0;i<160;i++)
+	      {
+		  finBuffer[i] = virtualInBuffer[i]/32767.0f;
+		  foutBuffer[i] = virtualOutBuffer[i]/32767.0f;
+	      }
+	      speex_echo_cancel(ec, foutBuffer, finBuffer, fcancBuffer, NULL);
+	      for(i=0;i<160;i++)
+	      {
+		  virtualInBuffer[i] =  (short)(fcancBuffer * 32767.0f);
+	      }
+
+	  }
+#endif
 #if defined(USE_MEC2) || defined(SPAN_EC)
 	  {   /* Echo Can, for virtualMono */
 	      int i;
@@ -278,6 +300,23 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 #endif
 	  RingBuffer_Write(&inRing, virtualInBuffer, totBytes);
 	} else {
+#if defined(SPEEX_EC)
+	  {
+	      /* convert buffers to float, echo cancel, convert back */
+	      float finBuffer[160], foutBuffer[160]; fcancBuffer[160];
+	      for(i=0;i<160;i++)
+	      {
+		  finBuffer[i] = inBuffer[i]/32767.0f;
+		  foutBuffer[i] = outBuffer[i]/32767.0f;
+	      }
+	      speex_echo_cancel(ec, foutBuffer, finBuffer, fcancBuffer, NULL);
+	      for(i=0;i<160;i++)
+	      {
+		  inBuffer[i] =  (short)(fcancBuffer * 32767.0f);
+	      }
+
+	  }
+#endif
 #if defined(USE_MEC2) || defined(SPAN_EC)
 	  {   /* Echo Can, for mono */
 	      int i;
@@ -562,6 +601,9 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
 
 #if defined(USE_MEC2) || defined(SPAN_EC)
     ec = echo_can_create(2048, 0);
+#endif
+#if defined(SPEEX_EC)
+    ec = speex_echo_state_init(160, 2048);
 #endif
 
     running = 0;
