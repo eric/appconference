@@ -26,6 +26,7 @@
 #define LATE_BINS 4
 #endif
 
+static void jb_warninfo(jitterbuf *jb);
 
 jitterbuf * jb_new() {
     jitterbuf *jb;
@@ -69,6 +70,8 @@ void jb_destroy(jitterbuf *jb) {
     /* free ourselves! */ 
     free(jb);
 }
+
+
 
 /* simple history manipulation */
 /* maybe later we can make the history buckets variable size, or something? */
@@ -270,7 +273,7 @@ jb_frame *queue_get(jitterbuf *jb, long ts) {
 static void jb_dbginfo(jitterbuf *jb) {
 }
 
-/* static */ void jb_warninfo(jitterbuf *jb) {
+static void jb_warninfo(jitterbuf *jb) {
     jb_warn("\njb info: fin=%ld fout=%ld flate=%ld flost=%ld fdrop=%ld fcur=%ld\n",
 	    jb->info.frames_in, jb->info.frames_out, jb->info.frames_late, jb->info.frames_lost, jb->info.frames_dropped, jb->info.frames_cur);
 	
@@ -610,9 +613,12 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 
     /* let's work on non-silent case first */
     if(!jb->info.silence) { 
-      /* we want to grow -- grow 1*/
+	  /* we want to grow */
       if( (diff > jb->info.last_voice_ms) && 
-	  ((jb->info.last_adjustment + 20) < now) ) {
+	  /* we haven't grown in a frames' length */
+	  (((jb->info.last_adjustment + jb->info.last_voice_ms ) < now) || 
+	   /* we need to grow more than the "length" we have left */
+	   (diff > queue_last(jb)  - queue_next(jb)) ) ) {
 	      jb->info.current += jb->info.last_voice_ms;
 	      jb->info.last_adjustment = now;
 	      jb_warn("G");
@@ -689,12 +695,18 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
 	   * my outgoing packets go through asterisk's (old)
 	   * jitterbuffer, and then might get an unusual increasing delay 
 	   * there if it decides to grow?? */
-	  if(diff > -1 * jb->info.last_voice_ms) { 
+	  /* Update: that might have been a different bug, that has been fixed..
+	   * But, this still seemed like a good idea, except that it ended up making a single actual
+	   * lost frame get interpolated two or more times, when there was "room" to grow, so it might
+	   * be a bit of a bad idea overall */
+	  /*
+	  if(0 && diff > -1 * jb->info.last_voice_ms) { 
 	      jb->info.current += jb->info.last_voice_ms;
 	      jb->info.last_adjustment = now;
 	      jb_warn("g");
 	      return JB_INTERP;
 	  }
+	  */
 	  jb->info.frames_lost++;
 	  jb_warn("L");
 	  return JB_INTERP;
