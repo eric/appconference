@@ -190,9 +190,15 @@ int iaxc_select_call(int callNo) {
 	// continue if already selected?
 	//if(callNo == selected_call) return;
 
-	if(callNo < 0 || callNo >= nCalls) {
+	if(callNo >= nCalls) {
 		iaxc_usermsg(IAXC_ERROR, "Error: tried to select out_of_range call %d", callNo);
 		return -1;
+	}
+  
+        // callNo < 0 means no call selected (i.e. all on hold)
+	if(callNo < 0) {
+	    selected_call = callNo;
+	    return 0;
 	}
   
 	// de-select old call if not also the new call	
@@ -306,6 +312,8 @@ void iaxc_set_callerid(char *name, char *number) {
 }
 
 static void iaxc_note_activity(int callNo) {
+  if(callNo < 0)
+      return;
   //fprintf(stderr, "Noting activity for call %d\n", callNo);
   gettimeofday(&calls[callNo].last_activity, NULL);   
 }
@@ -337,7 +345,9 @@ static void iaxc_do_pings(void) {
       if(ping_since > IAXC_CALL_TIMEOUT/3) { 
 	  //fprintf(stderr, "Sending Ping for call %d as=%ld, ps=%ld\n", i, act_since, ping_since); 
 	  calls[i].last_ping = now;
+#ifdef IAXC_IAX2
 	  iax_send_ping(calls[i].session);
+#endif
 	  break; 
       }
 
@@ -373,7 +383,7 @@ void iaxc_refresh_registrations() {
 		    return;
 	    }
 
-	    iax_register(cur->session, cur->host, cur->user, cur->pass, 300);
+	    iax_register(cur->session, cur->host, cur->user, cur->pass, 60);
 	    cur->last = now;
 	}
     }
@@ -434,6 +444,16 @@ int iaxc_stop_processing_thread()
 
 int service_audio()
 {
+	// we do this here to avoid looking at calls[-1]
+	if(selected_call < 0) {
+	    static int i=0;
+	    if(i++ % 50 == 0) iaxc_do_levels_callback(-99,-99);
+
+	    // make sure audio is stopped
+	    audio.stop(&audio);
+	    return 0;
+	}	
+
 	/* send audio only if incoming call answered, or outgoing call
 	 * selected. */
 	if( (calls[selected_call].state & IAXC_CALL_STATE_OUTGOING) 
@@ -477,12 +497,15 @@ int service_audio()
 void handle_text_event(struct iax_event *e, int callNo) {
     iaxc_event ev;
 
+   if(callNo < 0)
+       return;
     ev.type=IAXC_EVENT_TEXT;
     ev.ev.text.type=IAXC_TEXT_TYPE_IAX;
     ev.ev.text.callNo = callNo;
 
+#ifdef IAXC_IAX2
     strncpy(ev.ev.text.message, e->data, IAXC_EVENT_BUFSIZ);
-
+#endif
     iaxc_post_event(ev);
 }
 
@@ -491,6 +514,9 @@ void handle_audio_event(struct iax_event *e, int callNo) {
 	int cur;
 	short fr[160];
 	struct iaxc_call *call;
+
+        if(callNo < 0)
+            return;
 
 	call = &calls[callNo];
 
@@ -531,6 +557,8 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 //	short fr[160];
 //	static paused_xmit = 0;
 
+        if(callNo < 0)
+            return;
 
 	iaxc_note_activity(callNo);
 
@@ -619,13 +647,17 @@ void iaxc_call(char *num)
 
 	MUTEXLOCK(&iaxc_lock);
 
-	// use selected call if not active, otherwise, get a new
-	// appearance
-	if(calls[selected_call].state  & IAXC_CALL_STATE_ACTIVE) {
-	  callNo = iaxc_first_free_call();
-	} else {
-	  callNo = selected_call;
-	}
+        // if no call is selected, get a new appearance
+        if(selected_call < 0) {
+            callNo = iaxc_first_free_call();
+        } else {
+            // use selected call if not active, otherwise, get a new appearance
+            if(calls[selected_call].state  & IAXC_CALL_STATE_ACTIVE) {
+                callNo = iaxc_first_free_call();
+            } else {
+                 callNo = selected_call;
+            }
+        }
 
 	if(callNo < 0) {
 		iaxc_usermsg(IAXC_STATUS, "No free call appearances");
@@ -677,6 +709,9 @@ iaxc_call_bail:
 
 void iaxc_answer_call(int callNo) 
 {
+	if(callNo < 0)
+	    return;
+	    
 	//fprintf(stderr, "iaxc answering call %d\n", callNo);
 	calls[callNo].state |= IAXC_CALL_STATE_COMPLETE;
 	calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;
@@ -686,6 +721,8 @@ void iaxc_answer_call(int callNo)
 
 static void iaxc_dump_one_call(int callNo)
 {
+      if(callNo < 0)
+          return;
       if(calls[callNo].state == IAXC_CALL_STATE_FREE) return;
       
       iax_hangup(calls[callNo].session,"Dumped Call");
@@ -705,26 +742,32 @@ void iaxc_dump_all_calls(void)
 
 void iaxc_dump_call(void)
 {
+    if(selected_call >= 0) {
 	MUTEXLOCK(&iaxc_lock);
 	iaxc_dump_one_call(selected_call);
 	MUTEXUNLOCK(&iaxc_lock);
+    }
 }
 
 void iaxc_reject_call(void)
 {
+    if(selected_call >= 0) {
 	MUTEXLOCK(&iaxc_lock);
 	// XXX should take callNo?
 	iax_reject(calls[selected_call].session, "Call rejected manually.");
 	iaxc_clear_call(selected_call);
 	MUTEXUNLOCK(&iaxc_lock);
+    }
 }
 
 void iaxc_send_dtmf(char digit)
 {
+    if(selected_call >= 0) {
 	MUTEXLOCK(&iaxc_lock);
 	if(calls[selected_call].state & IAXC_CALL_STATE_ACTIVE)
 		iax_send_dtmf(calls[selected_call].session,digit);
 	MUTEXUNLOCK(&iaxc_lock);
+    }
 }
 
 static int iaxc_find_call_by_session(struct iax_session *session)
