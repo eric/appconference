@@ -13,7 +13,7 @@ EXEEXT=
 # glean the platform
 # We will define this as either Linux, Win32, or MacOSX
 ifneq (,$(findstring Linux,$(shell uname)))
-OSTYPE=Linux
+OSTYPE=LINUX
 else
 ifneq (,$(findstring Darwin,$(shell uname)))
 OSTYPE=MACOSX

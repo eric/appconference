@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 	if(argc > 1)
 		dest=argv[1];
 	else
-		dest="guest@10.23.1.31/1001";
+		dest="guest@10.23.1.31/9999";
 
 	/* activate the exit handler */
 	atexit(killem);
