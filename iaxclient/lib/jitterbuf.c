@@ -711,7 +711,7 @@ static int jb_get_sk(jitterbuf *jb, jb_frame *frameout, long now) {
        * here, plus handle last_voice_ts a bit differently */
       
       /* to disable silent special case altogether, just uncomment this: */
-       jb->info.silence = 0;
+       /* jb->info.silence = 0; */
 
        frame = queue_get(jb, now - jb->info.current);
        if(!frame) {
