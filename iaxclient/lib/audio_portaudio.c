@@ -22,7 +22,9 @@
 #include "iaxclient_lib.h"
 
 
-static PABLIO_Stream *stream;
+static PABLIO_Stream *iStream;
+static PABLIO_Stream *oStream;
+static int oneStream;
 static const PaDeviceInfo **inputDevices;
 static const PaDeviceInfo **outputDevices;
 static int nInputDevices;
@@ -75,17 +77,37 @@ int pa_initialize_audio() {
     PaError  err;
 
     /* Open simplified blocking I/O layer on top of PortAudio. */
-    err = OpenAudioStream( &stream, SAMPLE_RATE, paInt16,
+    /* first, try opening one stream for in/out */
+    err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
                            (PABLIO_READ  | PABLIO_WRITE | PABLIO_MONO) );
-    if( err != paNoError ) {
-		handle_paerror(err, "opening stream");
-		return -1;
+    
+    if( err == paNoError ) {
+	/* if this works, set iStream, oStream to this stream */
+	oStream = iStream;
+	oneStream = 1;
+	return 0;
     }
+
+    oneStream = 0;
+    err = OpenAudioStream( &iStream, SAMPLE_RATE, paInt16,
+                           (PABLIO_READ  | PABLIO_MONO) );
+    {
+	handle_paerror(err, "opening separate input stream");
+	return -1;
+    }
+    err = OpenAudioStream( &oStream, SAMPLE_RATE, paInt16,
+                           (PABLIO_READ  | PABLIO_MONO) );
+    {
+	handle_paerror(err, "opening separate output stream");
+	return -1;
+    }
+
     return 0;
 }
 
 void pa_shutdown_audio() {
-    CloseAudioStream( stream );
+    CloseAudioStream( iStream );
+    if(!oneStream) CloseAudioStream( oStream );
 }
 
 void handle_paerror(PaError err, char * where) {
@@ -97,23 +119,23 @@ void pa_read_audio_input() {
 }
 
 void pa_play_recv_audio(void *fr, int fr_size) {
-	if(GetAudioStreamWriteable(stream) < SAMPLES_PER_FRAME * FRAMES_PER_BLOCK)
+	if(GetAudioStreamWriteable(oStream) < SAMPLES_PER_FRAME * FRAMES_PER_BLOCK)
 	{
-	      fprintf(stderr, "audio_portaudio: audio output overflow\n");
+	      //fprintf(stderr, "audio_portaudio: audio output overflow\n");
 	      return;
 	}
 
 	// Play the audio as decoded
-	WriteAudioStream(stream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);
+	WriteAudioStream(oStream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);
 }
 
 void pa_send_audio(struct timeval *lastouttm, struct iaxc_call *most_recent_answer, int iEncodeType) {
 	SAMPLE samples[SAMPLES_PER_FRAME * FRAMES_PER_BLOCK];
 
 	/* send all available complete frames */
-	while(GetAudioStreamReadable(stream) >= FRAMES_PER_BLOCK)
+	while(GetAudioStreamReadable(iStream) >= FRAMES_PER_BLOCK)
 	{
-		ReadAudioStream(stream, samples, FRAMES_PER_BLOCK);
+		ReadAudioStream(iStream, samples, FRAMES_PER_BLOCK);
 		send_encoded_audio(most_recent_answer, samples, iEncodeType);
 	}
 }
