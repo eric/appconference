@@ -157,7 +157,17 @@ int send_encoded_audio(struct iaxc_call *call, void *data, int format, int sampl
 
 	silent = input_postprocess(data,insize);	
 
-	if(silent) return 0;  /* poof! no encoding! */
+	if(silent) { 
+	  if(!call->tx_silent) {  /* send a Comfort Noise Frame */
+	    fprintf(stderr, "sending a CNG frame\n");
+	    call->tx_silent = 1;
+	    iax_send_cng(call->session, 10, NULL, 0);
+	  }
+	  return 0;  /* poof! no encoding! */
+	}
+
+	/* we're going to send voice now */
+	call->tx_silent = 0;
 
 	/* destroy encoder if it is incorrect type */
 	if(call->encoder && call->encoder->format != format)

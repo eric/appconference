@@ -144,6 +144,7 @@ struct sockaddr_in;
 /* Front ends for sending events */
 extern int iax_send_dtmf(struct iax_session *session, char digit);
 extern int iax_send_voice(struct iax_session *session, int format, char *data, int datalen, int samples);
+extern int iax_send_cng(struct iax_session *session, int level, char *data, int datalen);
 extern int iax_send_image(struct iax_session *session, int format, char *data, int datalen);
 extern int iax_send_url(struct iax_session *session, char *url, int link);
 extern int iax_send_text(struct iax_session *session, char *text);

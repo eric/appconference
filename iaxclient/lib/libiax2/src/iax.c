@@ -1159,6 +1159,11 @@ int iax_send_voice(struct iax_session *session, int format, char *data, int data
 	return 0;
 }
 
+int iax_send_cng(struct iax_session *session, int level, char *data, int datalen)
+{    
+	return send_command(session, AST_FRAME_CNG, level, 0, data, datalen, -1);
+}
+
 int iax_send_image(struct iax_session *session, int format, char *data, int datalen)
 {
 	/* Send an image frame */

@@ -159,6 +159,9 @@ struct iaxc_call {
 	/* our negotiated format */
 	int format;
 
+	/* we've sent a silent frame since the last audio frame */
+	int tx_silent;
+
 	struct iax_session *session;
 };
 

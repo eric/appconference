@@ -30,6 +30,7 @@ extern "C" {
 #define AST_FRAME_TEXT		7		/* Text messages */
 #define AST_FRAME_IMAGE		8		/* Image Frames */
 #define AST_FRAME_HTML		9		/* HTML Frames */
+#define AST_FRAME_CNG           10		/* Comfort Noise frame (subclass is level of CNG in -dBov) */
 
 /* HTML subclasses */
 #define AST_HTML_URL		1		/* Sending a URL */
