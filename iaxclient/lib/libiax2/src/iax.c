@@ -474,12 +474,17 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 		ms = 0;
 
 	if(voice) {
+#ifdef USE_VOICE_TS_PREDICTION
 		if(abs(ms - session->nextpred) <= 240) {
 		    if(!session->nextpred)		
 			session->nextpred = f->samples; 
 		    ms = session->nextpred; 
 		} else
 		    session->nextpred = ms;
+#else
+		if(ms <= session->lastsent)
+			ms = session->lastsent + 3;
+#endif
 	} else {
 		/* On a dataframe, use last value + 3 (to accomodate jitter buffer shrinking) 
 		   if appropriate unless it's a genuine frame */
@@ -493,11 +498,15 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	}
 
 	/* Record the last sent packet for future reference */
-	session->lastsent = ms;
+	/* unless an AST_FRAME_IAX */
+	if (!genuine)
+		session->lastsent = ms;
 
+#ifdef USE_VOICE_TS_PREDICTION
 	/* set next predicted ts based on 8khz samples */
 	if(voice)
 	    session->nextpred = session->nextpred + f->samples / 8;
+#endif
 
 	return ms;
 }
