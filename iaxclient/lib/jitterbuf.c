@@ -391,7 +391,7 @@ static long jb_getadjustment(jitterbuf *jb) {
 }
 
 
-static int jb_get_(jitterbuf *jb, jb_frame *frameout, long now) {
+static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
     jb_frame *frame;
     long diff;
 
@@ -553,7 +553,7 @@ long jb_next(jitterbuf *jb) {
 }
 
 int jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
-    int ret = jb_get_sk(jb,frameout,now);
+    int ret = _jb_get(jb,frameout,now);
     static int lastts=0;
     int thists = ((ret == JB_OK) || (ret == JB_DROP)) ? frameout->ts : 0;
 //    jb_warn("jb_get(%x,%x,%ld) = %d (%d)\n", jb, frameout, now, ret, thists);
