@@ -10,7 +10,7 @@ static double input_level = 0, output_level = 0;
 
 static SpeexPreprocessState *st = NULL;
 static int speex_state_size = 0;
-int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE;
+int    iaxc_filters = IAXC_FILTER_AGC|IAXC_FILTER_DENOISE|IAXC_FILTER_AAGC;
 
 /* use to measure time since last audio was processed */
 static struct timeval timeLastInput ;
@@ -91,6 +91,34 @@ static int input_postprocess(void *audio, int len)
     /* only preprocess if we're interested in VAD, AGC, or DENOISE */
     if((iaxc_filters & (IAXC_FILTER_DENOISE | IAXC_FILTER_AGC)) || iaxc_silence_threshold > 0)
 	silent = !speex_preprocess(st, audio, NULL);
+
+    /* Analog AGC: Bring speex AGC gain out to mixer, with lots of hysteresis */
+    if(!silent && (iaxc_filters & IAXC_FILTER_AGC) && (iaxc_filters & IAXC_FILTER_AAGC)) {
+      static int i;
+      double level;
+      i++;
+
+      if((i&0x3f) == 0) {
+        /* fprintf(stderr, "loudness = %f\n", st->loudness2); */
+        /* lower quickly if we're too hot */
+         if(st->loudness2 > 8000) {
+           if(level <= 0.9) {
+             level =  iaxc_input_level_get();
+             if(level >= 0.1) {
+               iaxc_input_level_set(level - 0.1);
+             }
+           }
+         }
+         /* raise slowly if we're cold */
+         else if( st->loudness2 < 4000) {
+             level =  iaxc_input_level_get();
+             if(level <= 0.9) {
+               /* fprintf(stderr, "raising level\n"); */
+               iaxc_input_level_set(iaxc_input_level_get() + 0.1);
+             }
+         }
+      }
+    }
 
 
     /* this is ugly.  Basically just don't get volume level if speex thought
