@@ -414,10 +414,7 @@ void PrefsDialog::OnApplyMisc(wxCommandEvent &event)
     wxGetApp().theFrame->IntercomPass = IntercomPass->GetValue();
     wxGetApp().nCalls                 = nCalls->GetValue();
 
-  #ifdef __WXMSW__
-    // This segfaults on Linux, need to look into this
     wxGetApp().theFrame->RePanel(UseSkin->GetValue());
-  #endif
 
     ApplyMisc->Disable();
     CancelMisc->SetLabel("Done");

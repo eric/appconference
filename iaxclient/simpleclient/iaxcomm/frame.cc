@@ -212,6 +212,8 @@ MyFrame::MyFrame( wxWindow *parent )
 
     timer = new MyTimer();
     timer->Start(100);
+
+    RePanel(Name);
 }
 
 void MyFrame::RePanel(wxString Name)
@@ -221,6 +223,11 @@ void MyFrame::RePanel(wxString Name)
     Layout();
 }
 
+void MyFrame::OnSize(wxSizeEvent &event)
+{
+    event.Skip();
+}
+    
 void MyFrame::AddPanel(wxWindow *parent, wxString Name)
 {
     wxBoxSizer *panelSizer;
@@ -323,6 +330,8 @@ MyFrame::~MyFrame()
         iaxc_millisleep(100);
     }
     iaxc_stop_processing_thread();
+    
+    aPanel->Destroy();
 }
 
 void MyFrame::ShowDirectoryControls()
@@ -678,7 +687,7 @@ void MyFrame::OnKeyPad(wxCommandEvent &event)
     iaxc_send_dtmf(digit);
 
     wxString SM;
-    SM.Printf("DTMF %d", digit); 
+    SM.Printf("DTMF %c", digit); 
     SetStatusText(SM); 
 
     Extension->SetValue(Extension->GetValue()+digit);

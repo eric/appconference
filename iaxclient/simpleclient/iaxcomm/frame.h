@@ -63,6 +63,7 @@ public:
    ~MyFrame();
    
     void        ShowDirectoryControls();
+    void        OnSize(wxSizeEvent &event);
     void        OnShow();
     void        OnNotify();
     void        OnHangup(wxEvent &event);
