@@ -334,7 +334,7 @@
                 <flag>wxALIGN_CENTRE|wxALL</flag>
                 <border>5</border>
                 <object class="wxButton" name="Add">
-                  <label>Add</label>
+                  <label>Save</label>
                 </object>
               </object>
               <orient></orient>
@@ -459,7 +459,7 @@
                 <flag>wxALIGN_CENTRE|wxALL</flag>
                 <border>5</border>
                 <object class="wxButton" name="Add">
-                  <label>Add</label>
+                  <label>Save</label>
                 </object>
               </object>
               <orient></orient>
@@ -550,7 +550,7 @@
                 <flag>wxALIGN_CENTRE|wxALL</flag>
                 <border>5</border>
                 <object class="wxButton" name="Add">
-                  <label>Add</label>
+                  <label>Save</label>
                 </object>
               </object>
               <orient></orient>

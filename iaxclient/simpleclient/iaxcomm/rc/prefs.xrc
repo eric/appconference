@@ -113,9 +113,7 @@
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxTextCtrl" name="RingBack">
-                        <enabled>0</enabled>
-                      </object>
+                      <object class="wxTextCtrl" name="RingBack"/>
                       <minsize>260,24</minsize>
                       <border>10</border>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
@@ -127,7 +125,6 @@
                     <object class="sizeritem">
                       <object class="wxButton" name="BrowseRingBack">
                         <label>Browse ...</label>
-                        <enabled>0</enabled>
                       </object>
                     </object>
                   </object>
@@ -147,9 +144,7 @@
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxTextCtrl" name="RingTone">
-                        <enabled>0</enabled>
-                      </object>
+                      <object class="wxTextCtrl" name="RingTone"/>
                       <minsize>260,24</minsize>
                       <border>10</border>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
@@ -161,7 +156,6 @@
                     <object class="sizeritem">
                       <object class="wxButton" name="BrowseRingTone">
                         <label>Browse ...</label>
-                        <enabled>0</enabled>
                       </object>
                     </object>
                   </object>
