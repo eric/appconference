@@ -27,6 +27,17 @@
 #define LEVEL_MIN -50
 #define DEFAULT_SILENCE_THRESHOLD 1 // positive is "auto"
 
+#ifndef DEFAULT_NUM_CALLS
+#define DEFAULT_NUM_CALLS 4
+#endif
+
+#ifndef DEFAULT_DESTSERV
+#define DEFAULT_DESTSERV "guest@misery.digium.com"
+#endif
+
+#ifndef DEFAULT_DESTEXT  
+#define DEFAULT_DESTEXT  "s@default"
+#endif
 
 class IAXClient : public wxApp
 {
@@ -339,7 +350,7 @@ void IAXTimer::Notify()
 
 
 IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int height)
-  : wxFrame((wxFrame *) NULL, -1, title, wxPoint(xpos, ypos), wxSize(width, height))
+  : wxFrame((wxFrame *) NULL, -1, title, wxPoint(xpos, ypos), wxSize(width, height)), calls(NULL)
 {
     wxBoxSizer *panelSizer = new wxBoxSizer(wxVERTICAL);
     wxPanel *aPanel = new wxPanel(this);
@@ -428,19 +439,19 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     /* Server */
     topsizer->Add(iaxServLabel = new wxStaticText(aPanel, -1, _T("Server:")));
-    topsizer->Add(iaxServ = new wxComboBox(aPanel, -1, _T("guest@misery.digium.com"), 
+    topsizer->Add(iaxServ = new wxComboBox(aPanel, -1, _T(DEFAULT_DESTSERV), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
-    iaxServ->Append("guest@misery.digium.com");
+    iaxServ->Append(DEFAULT_DESTSERV);
     iaxServ->Append("guest@ast1");
     iaxServ->Append("guest@asterisk");
 
     /* Destination */
     topsizer->Add(iaxDestLabel = new wxStaticText(aPanel, -1, _T("Number:")));
-    topsizer->Add(iaxDest = new wxComboBox(aPanel, -1, _T("s@default"), 
+    topsizer->Add(iaxDest = new wxComboBox(aPanel, -1, _T(DEFAULT_DESTEXT), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
-    iaxDest->Append("s@default");
+    iaxDest->Append(DEFAULT_DESTEXT);
     iaxDest->Append("8068");
     iaxDest->Append("208");
     iaxDest->Append("600");
@@ -670,7 +681,8 @@ int IAXFrame::HandleIAXEvent(iaxc_event *e)
 	    ret = HandleStatusEvent(e->ev.text.message);
 	    break;
 	case IAXC_EVENT_STATE:
-	    ret = theFrame->calls->HandleStateEvent(e->ev.call);
+	    if(calls)
+	      ret = theFrame->calls->HandleStateEvent(e->ev.call);
 	    break;
 	default:
 	    break;  // not handled
@@ -759,7 +771,7 @@ bool IAXClient::OnCmdLineParsed(wxCmdLineParser& p)
 bool IAXClient::OnInit() 
 { 
 	optNoDialPad = false;
-	optNumCalls = 4;
+	optNumCalls = DEFAULT_NUM_CALLS;
 
 	if(!wxApp::OnInit())
 	  return false;
