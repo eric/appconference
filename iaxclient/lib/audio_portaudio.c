@@ -21,6 +21,11 @@
 
 #include "iaxclient_lib.h"
 
+#ifdef USE_MEC2
+#include "mec2.h"
+static echo_can_state_t *ec;
+#endif
+
 static PortAudioStream *iStream, *oStream;
 
 static selectedInput, selectedOutput, selectedRing;
@@ -102,31 +107,24 @@ void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples) {
 
 int pa_callback(void *inputBuffer, void *outputBuffer,
 	    unsigned long framesPerBuffer, PaTimestamp outTime, void *userData ) {
+
     int totBytes = framesPerBuffer * sizeof(SAMPLE);
 
-    short virtualBuffer[FRAMES_PER_BUFFER * 2];
+    short virtualInBuffer[FRAMES_PER_BUFFER * 2];
+    short virtualOutBuffer[FRAMES_PER_BUFFER * 2];
 
     if(virtualMono && framesPerBuffer > FRAMES_PER_BUFFER) {
 	fprintf(stderr, "ERROR: buffer in callback is too big!\n");
 	exit(1);
     }
 
-    if(inputBuffer) {
-	/* input overflow might happen here */
-	if(virtualMono) {
-	  stereo2mono(virtualBuffer, inputBuffer, framesPerBuffer);
-	  RingBuffer_Write(&inRing, virtualBuffer, totBytes);
-	} else {
-	  RingBuffer_Write(&inRing, inputBuffer, totBytes);
-	}
-    }
     if(outputBuffer)
     {  
 	int bWritten;
 	/* output underflow might happen here */
 	if(virtualMono) {
-	  bWritten = RingBuffer_Read(&outRing, virtualBuffer, totBytes);
-	  mono2stereo(outputBuffer, virtualBuffer, bWritten/2);
+	  bWritten = RingBuffer_Read(&outRing, virtualOutBuffer, totBytes);
+	  mono2stereo(outputBuffer, virtualOutBuffer, bWritten/2);
 	  bWritten *=2;
 	} else {
 	  bWritten = RingBuffer_Read(&outRing, outputBuffer, totBytes);
@@ -136,6 +134,32 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	if(bWritten < totBytes)
 	    memset((char *)outputBuffer + bWritten, 0, totBytes - bWritten);
     }
+
+
+    if(inputBuffer) {
+	/* input overflow might happen here */
+	if(virtualMono) {
+	  stereo2mono(virtualInBuffer, inputBuffer, framesPerBuffer);
+#ifdef USE_MEC2
+	  {   /* Echo Can, for virtualMono */
+	      int i;
+	      for(i=0;i<framesPerBuffer;i++) 
+		virtualInBuffer[i] = echo_can_update(ec, virtualOutBuffer[i], virtualInBuffer[i]);
+	  }
+#endif
+	  RingBuffer_Write(&inRing, virtualInBuffer, totBytes);
+	} else {
+#ifdef USE_MEC2
+	  {   /* Echo Can, for mono */
+	      int i;
+	      for(i=0;i<framesPerBuffer;i++) 
+		((short *)inputBuffer)[i] = echo_can_update(ec, ((short *)outputBuffer)[i], ((short *)inputBuffer)[i]);
+	  }
+#endif
+	  RingBuffer_Write(&inRing, inputBuffer, totBytes);
+	}
+    }
+
     return 0; 
 }
 
@@ -373,6 +397,10 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
 
     RingBuffer_Init(&inRing, RBSZ, inRingBuf);
     RingBuffer_Init(&outRing, RBSZ, outRingBuf);
+
+#ifdef USE_MEC2
+    ec = echo_can_create(256, 0);
+#endif
 
     running = 0;
 
