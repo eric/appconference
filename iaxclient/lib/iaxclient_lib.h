@@ -62,6 +62,7 @@ pthread_create(&thread, NULL, func, args)
 #define MAXARGS 10
 #define MAXARG 256
 #define MAX_SESSIONS 4
+#define OUT_INTERVAL 20
 
 
 #include "iax-client.h" // LibIAX functions
@@ -75,7 +76,6 @@ struct peer {
 	struct iax_session *session;
 	struct peer *next;
 };
-static struct peer *peers;
 
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
 void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p);
@@ -93,11 +93,13 @@ void iaxc_service_network(int netfd, FILE *f);
 
 
 extern double iaxc_silence_threshold;
+extern int iaxc_audio_output_mode;
 extern iaxc_levels_callback_t iaxc_levels_callback;
 extern iaxc_message_callback_t iaxc_error_callback;
 extern iaxc_message_callback_t iaxc_status_callback;
 
-
+/* external audio functions */
+void iaxc_external_service_audio();
 
 #endif
 

@@ -56,6 +56,8 @@ void iaxc_reject_call(void);
 void iaxc_send_dtmf(char digit);
 int iaxc_was_call_answered();
 void iaxc_millisleep(long ms);
+void iaxc_set_silence_threshold(double thr);
+void iaxc_set_audio_output(int mode);
 
 typedef int (*iaxc_levels_callback_t)(float input, float output);
 void iaxc_set_levels_callback(iaxc_levels_callback_t func);

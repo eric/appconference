@@ -24,7 +24,6 @@ HWAVEIN win;
 be spaced by 20 milliseconds. However, in practice, especially in Windoze-95, setting it that high
 caused underruns. 10 is just ever so slightly agressive, and the receiver has to chuck a packet
 every now and then. Thats about the way it should be to be happy. */
-#define	OUT_INTERVAL 10		/* number of ms to wait before sending more data to peer */
 /* parameters for audio out */
 #define	OUT_DEPTH 12		/* number of outbut buffer entries */
 #define	OUT_PAUSE_THRESHOLD 2 /* number of active entries needed to start output (for smoothing) */

@@ -24,7 +24,6 @@
 #define NUM_SECONDS              (5)
 #define SAMPLES_PER_FRAME        (1)
 #define FRAMES_PER_BLOCK       (160)
-#define	OUT_INTERVAL 20		/* number of ms to wait before sending more data to peer */
 
 /* Select whether we will use floats or shorts. */
 #if 1

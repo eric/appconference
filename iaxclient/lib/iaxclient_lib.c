@@ -16,10 +16,13 @@ int c, i;
 char rcmd[RBUFSIZE];
 FILE *f;
 gsm_frame fo;
+
+int iaxc_audio_output_mode = 0; // Normal
 static int answered_call;
 static struct iax_session *newcall;
 
-static struct peer *most_recent_answer;
+static struct peer *most_recent_answer=NULL;
+static struct peer *peers;
 
 struct timeval lastouttm;
 
@@ -41,6 +44,10 @@ void iaxc_set_levels_callback(iaxc_levels_callback_t func) {
 
 void iaxc_set_silence_threshold(double thr) {
     iaxc_silence_threshold = thr;
+}
+
+void iaxc_set_audio_output(int mode) {
+    iaxc_audio_output_mode = mode;
 }
 
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
@@ -233,7 +240,8 @@ int service_audio()
 				break;
 		}
 	} else {
-		if(iaxc_levels_callback) iaxc_levels_callback(-99,-99);
+		static int i=0;
+		if((i++ % 50 == 0) && iaxc_levels_callback) iaxc_levels_callback(-99,-99);
 	}
 	return 0;
 }
@@ -260,6 +268,7 @@ void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p) {
 			return;
 		} else {  /* its an audio packet to be output to user */
 			total_consumed += cur;
+			if(iaxc_audio_output_mode != 0) continue;
 			switch (iAudioType) {
 				case AUDIO_INTERNAL:
 #ifdef WIN32

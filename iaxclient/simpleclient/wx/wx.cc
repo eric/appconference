@@ -9,8 +9,6 @@
 
 #include "iaxclient.h"
 
-#define LEVEL_MAX -10
-#define LEVEL_MIN -50
 
 /* for the silly key state stuff :( */
 #ifdef __WXGTK__
@@ -20,6 +18,10 @@
 #ifdef __WXMAC__
 #include <Carbon/Carbon.h>
 #endif
+
+#define LEVEL_MAX -10
+#define LEVEL_MIN -50
+#define DEFAULT_SILENCE_THRESHOLD -40
 
 IMPLEMENT_APP(IAXClient) 
 
@@ -77,15 +79,20 @@ public:
     void IAXFrame::OnDial(wxEvent &evt);
     void IAXFrame::OnHangup(wxEvent &evt);
     void IAXFrame::OnQuit(wxEvent &evt);
+    void IAXFrame::OnPTTChange(wxEvent &evt);
 
     bool IAXFrame::GetPTTState();
     void IAXFrame::CheckPTT();
+    void IAXFrame::SetPTT(bool state);
 
     wxGauge *input; 
     wxGauge *output; 
     IAXTimer *timer;
     wxTextCtrl *iaxDest;
     wxStaticText *muteState;
+
+    bool pttMode;  // are we in PTT mode?
+    bool pttState; // is the PTT button pressed?
 
 protected:
     DECLARE_EVENT_TABLE()
@@ -101,7 +108,7 @@ void IAXTimer::Notify()
 {
     iaxc_process_calls();
     // really shouldn't do this so often..
-    theFrame->CheckPTT(); 
+    if(theFrame->pttMode) theFrame->CheckPTT(); 
 }
 
 
@@ -115,7 +122,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *row1sizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
-
+    pttMode = false;
 
 
 
@@ -135,9 +142,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 #endif
 
     wxMenu *optionsMenu = new wxMenu();
-    optionsMenu->AppendCheckItem(ID_PTT, _T("Enable &Push to Talk"));
-    optionsMenu->AppendCheckItem(ID_MUTE, _T("&Mute"));
-    optionsMenu->AppendCheckItem(ID_SUPPRESS, _T("&Disable Silence Suppression"));
+    optionsMenu->AppendCheckItem(ID_PTT, _T("Enable &Push to Talk\tCtrl-P"));
    
 
     wxMenuBar *menuBar = new wxMenuBar();
@@ -190,7 +195,7 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
 
     topsizer->Add(row3sizer,0,wxEXPAND);
 
-    topsizer->Add(muteState = new wxStaticText(aPanel,-1,"Mute",
+    topsizer->Add(muteState = new wxStaticText(aPanel,-1,"PTT Disabled",
 	    wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
 
 
@@ -234,9 +239,26 @@ bool IAXFrame::GetPTTState()
     return pressed;
 }
 
+void IAXFrame::SetPTT(bool state)
+{
+	pttState = state;
+	if(pttState) {
+		iaxc_set_silence_threshold(-99); //unmute input
+		iaxc_set_audio_output(1);  // mute output
+	} else {
+		iaxc_set_silence_threshold(0);  // mute input
+		iaxc_set_audio_output(0);  // unmute output
+	}
+
+        muteState->SetLabel( pttState ? "Talk" : "Mute");
+}
+
 void IAXFrame::CheckPTT()
 {
-    muteState->SetLabel(GetPTTState() ? "Talk" : "Mute");
+    bool newState = GetPTTState();
+    if(newState == pttState) return;
+ 
+    SetPTT(newState);
 }
 
 void IAXFrame::OnDTMF(wxEvent &evt)
@@ -265,6 +287,21 @@ void IAXFrame::OnQuit(wxEvent &evt)
 	exit(0);	
 }
 
+void IAXFrame::OnPTTChange(wxEvent &evt)
+{
+	// XXX get the actual state!
+	pttMode = !pttMode;
+	
+	if(pttMode) {
+		SetPTT(GetPTTState());	
+	} else {
+		SetPTT(true);	
+		iaxc_set_silence_threshold(DEFAULT_SILENCE_THRESHOLD);
+		muteState->SetLabel("PTT Disabled");
+	}
+}
+
+
 BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_BUTTON(0,IAXFrame::OnDTMF)
 	EVT_BUTTON(1,IAXFrame::OnDTMF)
@@ -282,6 +319,7 @@ BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
 	EVT_BUTTON(ID_HANG,IAXFrame::OnHangup)
 
 	EVT_MENU(ID_QUIT,IAXFrame::OnQuit)
+	EVT_MENU(ID_PTT,IAXFrame::OnPTTChange)
 
 END_EVENT_TABLE()
 
