@@ -145,6 +145,21 @@ int iaxc_input_level_set(double level);
 int iaxc_output_level_set(double level);
 
 
+struct iaxc_sound {
+	short 	*data;          /* sound data */
+	long 	len;            /* length of sample */
+	int 	malloced;	/* should the library free() the data after it is played? */
+	int 	repeat;      	/* number of times to repeat (-1 = infinite) */
+	long	pos;		/* internal use: current play position */
+	int 	id;		/* internal use: sound ID */
+	struct iaxc_sound *next; /* internal use: next in list */
+};
+
+/* play a sound.  sound = an iaxc_sound structure, ring: 0: play through output device; 1: play through "ring" device */
+int iaxc_play_sound(struct iaxc_sound *sound, int ring);
+
+int iaxc_stop_sound(int id);
+
 
 #ifdef __cplusplus
 }

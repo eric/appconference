@@ -41,6 +41,11 @@ static int virtualMono;
 
 static int running;
 
+static struct iaxc_sound *sounds;
+static int  nextSoundId = 1;
+
+static MUTEX sound_lock;
+
 /* scan devices and stash pointers to dev structures. 
  *  But, these structures only remain valid while Pa is initialized,
  *  which, with pablio, is only while it's running!
@@ -105,6 +110,117 @@ void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples) {
     }
 }
 
+static void mix_slin(short *dst, short *src, int samples) {
+    int i=0,val=0;
+    for (i=0;i<samples;i++) {
+        val = ((short *)dst)[i] + ((short *)src)[i];
+        if(val > 0x7fff) {
+            val = 0x7fff-1;
+        } else if (val < -0x7fff) {
+            val = -0x7fff+1;
+        } 
+
+	if(virtualMono) {
+	    dst[2*i] = val;
+	    dst[2*i+1] = val;
+	} else {
+	    dst[i] = val;
+	}
+	
+    }
+}
+
+int pa_mix_sounds (void *outputBuffer, unsigned long frames) {
+    struct iaxc_sound *s;
+    struct iaxc_sound **sp;
+    unsigned long outpos;
+
+
+  MUTEXLOCK(&sound_lock);
+    /* mix each sound into the outputBuffer */
+    sp = &sounds;
+    while(*sp)  {
+	s = *sp;
+	outpos = 0;
+
+	/* loop over the sound until we've played it enough times, or we've filled the outputBuffer */
+	for(;;) {
+	  int n;
+
+	  if(outpos == frames) break;  /* we've filled the buffer */
+	  if(s->pos == s->len) {
+	    if(s->repeat == 0) {
+	       // XXX free the sound structure, and maybe the buffer!
+	       (*sp) = s->next;
+	       if(s->malloced)
+		  free(s->data);
+	       free(s);
+	       break; 
+	    }
+	    s->pos = 0;
+	    s->repeat--;
+	  }
+
+	  /* how many frames do we add in this loop? */
+	  n = ((frames - outpos) < (s->len - s->pos)) ? (frames - outpos) : (s->len - s->pos);
+
+	  /* mix in the frames */
+	  mix_slin(outputBuffer + outpos, s->data+s->pos, n); 
+
+	  s->pos += n;
+	  outpos += n;
+	}
+	sp = &(s->next);
+    }
+  MUTEXUNLOCK(&sound_lock);
+  return 0;
+}
+
+int pa_play_sound(struct iaxc_sound *inSound, int ring) {
+  struct iaxc_sound *sound;
+
+  sound = (struct iaxc_sound *)malloc(sizeof(struct iaxc_sound));
+  if(!sound) return 1;
+
+  *sound = *inSound;
+  
+  sound->id = nextSoundId++; 
+  sound->pos = 0;
+
+  MUTEXLOCK(&sound_lock);
+  sound->next = sounds;
+  sounds = sound;
+  MUTEXUNLOCK(&sound_lock);
+
+  if(!running) pa_start(); /* XXX fixme: start/stop semantics */
+
+  return sound->id; 
+}
+
+int pa_stop_sound(int soundID) {
+    struct iaxc_sound **sp;
+    struct iaxc_sound *s;
+    int retval = 1; /* not found */
+
+  MUTEXLOCK(&sound_lock);
+    for(sp = &sounds; *sp; (*sp) = (*sp)->next) {
+	s = *sp;	
+	if(s->id == soundID) {
+	   if(s->malloced)
+	     free(s->data);
+	   /* remove from list */ 
+	   (*sp) = s->next;
+	   free(s);
+	   
+	   retval= 0; /* found */
+	   break;
+	}
+    }
+  MUTEXUNLOCK(&sound_lock);
+
+  return retval; /* found? */
+}
+
 int pa_callback(void *inputBuffer, void *outputBuffer,
 	    unsigned long framesPerBuffer, PaTimestamp outTime, void *userData ) {
 
@@ -133,6 +249,8 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
 	/* zero underflowed space [ silence might be more golden than garbage? ] */
 	if(bWritten < totBytes)
 	    memset((char *)outputBuffer + bWritten, 0, totBytes - bWritten);
+
+	pa_mix_sounds(outputBuffer, framesPerBuffer);
     }
 
 
@@ -296,6 +414,7 @@ int pa_stop (struct iaxc_audio_driver *d ) {
     PaError err;
 
     if(!running) return 0;
+    if(sounds) return 0;
 
     err = Pa_AbortStream(iStream); 
     err = Pa_CloseStream(iStream); 
@@ -415,11 +534,17 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     d->input_level_set = pa_input_level_set;
     d->output_level_get = pa_output_level_get;
     d->output_level_set = pa_output_level_set;
+    d->play_sound = pa_play_sound;
+    d->stop_sound = pa_stop_sound;
 
     /* setup private data stuff */
     selectedInput  = Pa_GetDefaultInputDeviceID();
     selectedOutput = Pa_GetDefaultOutputDeviceID();
     selectedRing   = Pa_GetDefaultOutputDeviceID();
+    sounds	   = NULL;
+    MUTEXINIT(&sound_lock);
+
+    
 
     RingBuffer_Init(&inRing, RBSZ, inRingBuf);
     RingBuffer_Init(&outRing, RBSZ, outRingBuf);

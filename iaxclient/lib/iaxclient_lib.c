@@ -812,3 +812,11 @@ int iaxc_input_level_set(double level) {
 int iaxc_output_level_set(double level) {
     return audio.output_level_set(&audio, level);
 }
+
+int iaxc_play_sound(struct iaxc_sound *s, int ring) {
+    return audio.play_sound(s,ring);
+}
+
+int iaxc_stop_sound(int id) {
+    return audio.stop_sound(id);
+}

@@ -105,6 +105,10 @@ struct iaxc_audio_driver {
 	int (*input_level_set)(struct iaxc_audio_driver *d, double level);
 	int (*output_level_set)(struct iaxc_audio_driver *d, double level);
 
+	/* sounds */
+	int (*play_sound)(struct iaxc_sound *s, int ring);
+	int (*stop_sound)(int id);
+
 }; 
 
 
