@@ -186,7 +186,7 @@ int pa_mix_sounds (void *outputBuffer, unsigned long frames) {
 	  n = ((frames - outpos) < (s->len - s->pos)) ? (frames - outpos) : (s->len - s->pos);
 
 	  /* mix in the frames */
-	  mix_slin(outputBuffer + outpos, s->data+s->pos, n); 
+	  mix_slin((short *)outputBuffer + outpos, s->data+s->pos, n); 
 
 	  s->pos += n;
 	  outpos += n;
