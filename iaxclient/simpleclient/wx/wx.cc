@@ -32,19 +32,6 @@ class IAXTimer : public wxTimer
 };
 
 
-class DialPad : public wxPanel
-{
-public:
-    DialPad(wxFrame *parent, wxPoint pos, wxSize size);
-
-    void ButtonHandler(wxEvent &evt);
-
-    wxButton *buttons[12];
-
-protected:
-    DECLARE_EVENT_TABLE()
-};
-
 
 class IAXFrame : public wxFrame
 {
@@ -57,7 +44,6 @@ public:
 
     wxGauge *input; 
     wxGauge *output; 
-    DialPad *dialPad;
     IAXTimer *timer;
     wxTextCtrl *iaxDest;
     wxButton *dialButton, *hangButton, *quitButton;
@@ -74,44 +60,6 @@ void IAXTimer::Notify()
     iaxc_process_calls();
 }
 
-DialPad::DialPad(wxFrame *parent, wxPoint pos, wxSize size)
-  : wxPanel(parent, -1, pos, size, wxTAB_TRAVERSAL, wxString("dial pad"))
-{
-    wxGridSizer *sizer = new wxGridSizer(3);
-
-    for(int i=0; i<12;i++)
-    {
-	sizer->Add(
-	  new wxButton(this, i, wxString(buttonlabels[i])), 1, wxEXPAND);
-    }
-
-    SetSizer(sizer);
-    sizer->SetSizeHints(this);
-}
-
-void DialPad::ButtonHandler(wxEvent &evt)
-{
-	int buttonNo = evt.m_id;	
-	char *button = buttonlabels[buttonNo];
-	//fprintf(stderr, "got Button Event for button %s\n", button);
-	iaxc_send_dtmf(*button);
-}
-
-BEGIN_EVENT_TABLE(DialPad, wxPanel)
-	EVT_BUTTON(0,DialPad::ButtonHandler)
-	EVT_BUTTON(1,DialPad::ButtonHandler)
-	EVT_BUTTON(2,DialPad::ButtonHandler)
-	EVT_BUTTON(3,DialPad::ButtonHandler)
-	EVT_BUTTON(4,DialPad::ButtonHandler)
-	EVT_BUTTON(5,DialPad::ButtonHandler)
-	EVT_BUTTON(6,DialPad::ButtonHandler)
-	EVT_BUTTON(7,DialPad::ButtonHandler)
-	EVT_BUTTON(8,DialPad::ButtonHandler)
-	EVT_BUTTON(9,DialPad::ButtonHandler)
-	EVT_BUTTON(10,DialPad::ButtonHandler)
-	EVT_BUTTON(11,DialPad::ButtonHandler)
-END_EVENT_TABLE()
-
 
 IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int height)
   : wxFrame((wxFrame *) NULL, -1, title, wxPoint(xpos, ypos), wxSize(width, height))
@@ -120,31 +68,44 @@ IAXFrame::IAXFrame(const wxChar *title, int xpos, int ypos, int width, int heigh
     wxBoxSizer *row1sizer = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *row3sizer = new wxBoxSizer(wxHORIZONTAL);
 
+    /* add status bar first; otherwise, sizer doesn't take it into
+     * account */
     CreateStatusBar();
     SetStatusText("Welcome to IAXClient!");
-    
-    row1sizer->Add(dialPad = new DialPad(this, wxDefaultPosition, wxDefaultSize),1, wxEXPAND);
+   
+    /* DialPad Buttons */
+    wxGridSizer *dialpadsizer = new wxGridSizer(3);
+    for(int i=0; i<12;i++)
+    {
+	dialpadsizer->Add(
+	  new wxButton(this, i, wxString(buttonlabels[i]),
+		  wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT), 
+	    1, wxEXPAND|wxALL, 3);
+    }
+    row1sizer->Add(dialpadsizer,1, wxEXPAND);
 
-    row1sizer->Add(input  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(10,120), 
+    /* volume meters */
+    row1sizer->Add(input  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("input level")),0,wxEXPAND); 
 
-    row1sizer->Add(output  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(10,120), 
+    row1sizer->Add(output  = new wxGauge(this, -1, LEVEL_MAX-LEVEL_MIN, wxDefaultPosition, wxSize(15,50), 
 	  wxGA_VERTICAL,  wxDefaultValidator, wxString("output level")),0, wxEXPAND); 
 
     topsizer->Add(row1sizer,1,wxEXPAND);
 
+    /* Destination */
     topsizer->Add(iaxDest = new wxTextCtrl(this, -1, wxString("guest@ast1/8068"), 
 	wxDefaultPosition, wxDefaultSize),0,wxEXPAND);
-	
+
+    /* main control buttons */    
     row3sizer->Add(dialButton = new wxButton(this, 101, wxString("Dial"),
-	    wxDefaultPosition, wxDefaultSize),1);
+	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
     row3sizer->Add(hangButton = new wxButton(this, 102, wxString("Hang Up"),
-	    wxDefaultPosition, wxDefaultSize),1);
+	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
 
     row3sizer->Add(quitButton = new wxButton(this, 100, wxString("Quit"),
-	    wxDefaultPosition, wxDefaultSize),1);
-
+	    wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT),1, wxEXPAND|wxALL, 3);
     topsizer->Add(row3sizer,0,wxEXPAND);
 
     SetSizer(topsizer);
@@ -159,9 +120,11 @@ void IAXFrame::ButtonHandler(wxEvent &evt)
 {
 	int buttonNo = evt.m_id;	
 
-	//fprintf(stderr, "got Button Event for button %d\n", buttonNo);
-
 	switch(buttonNo) {
+		case 0: case 1: case 2: case 3: case 4: case 5:
+		case 6: case 7: case 8: case 9: case 10: case 11:
+			iaxc_send_dtmf(*buttonlabels[buttonNo]);
+			break;
 		case 101:
 			// dial the number
 			iaxc_call(stderr,
@@ -185,6 +148,18 @@ void IAXFrame::ButtonHandler(wxEvent &evt)
 }
 
 BEGIN_EVENT_TABLE(IAXFrame, wxFrame)
+	EVT_BUTTON(0,IAXFrame::ButtonHandler)
+	EVT_BUTTON(1,IAXFrame::ButtonHandler)
+	EVT_BUTTON(2,IAXFrame::ButtonHandler)
+	EVT_BUTTON(3,IAXFrame::ButtonHandler)
+	EVT_BUTTON(4,IAXFrame::ButtonHandler)
+	EVT_BUTTON(5,IAXFrame::ButtonHandler)
+	EVT_BUTTON(6,IAXFrame::ButtonHandler)
+	EVT_BUTTON(7,IAXFrame::ButtonHandler)
+	EVT_BUTTON(8,IAXFrame::ButtonHandler)
+	EVT_BUTTON(9,IAXFrame::ButtonHandler)
+	EVT_BUTTON(10,IAXFrame::ButtonHandler)
+	EVT_BUTTON(11,IAXFrame::ButtonHandler)
 	EVT_BUTTON(100,IAXFrame::ButtonHandler)
 	EVT_BUTTON(101,IAXFrame::ButtonHandler)
 	EVT_BUTTON(102,IAXFrame::ButtonHandler)
