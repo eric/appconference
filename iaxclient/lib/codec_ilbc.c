@@ -91,8 +91,11 @@ struct iaxc_audio_codec *iaxc_audio_codec_ilbc_new() {
   if(!(c->encstate && c->decstate)) 
       return NULL;
 
-  initEncode(c->encstate);
-  initDecode(c->decstate, 1); /* use enhancer */
+  /* the 30 parameters are used for the latest iLBC sources, in 
+   * http://www.ietf.org/internet-drafts/draft-ietf-avt-ilbc-codec-05.txt 
+   * as used in asterisk-CVS as of 14 Oct 2004 */
+  initEncode(c->encstate, 30);
+  initDecode(c->decstate, 30, 1); /* use enhancer */
 
   return c;
 }

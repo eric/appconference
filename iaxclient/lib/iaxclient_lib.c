@@ -481,14 +481,10 @@ int service_audio()
 		if(cmin > toRead)
 		    toRead = cmin;
 	   
-		fprintf(stderr, "cmin = %d toRead = %d\n", cmin, toRead);
-		
 		/* round up to next multiple */
 		if(toRead % cmin)
 		  toRead += cmin - (toRead % cmin);
 
-		fprintf(stderr, "toRead = %d\n", toRead);
-		
 		if(toRead > sizeof(buf)/sizeof(short))
 		{
 		    fprintf(stderr, "internal error: toRead > sizeof(buf)\n");
