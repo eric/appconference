@@ -47,6 +47,7 @@ typedef struct jb_info {
 	long frames_late; 	/* number of frames which were too late, and dropped.*/
 	long frames_lost; 	/* number of missing frames.*/
 	long frames_dropped; 	/* number of frames dropped (shrinkage) */
+	long frames_ooo; 	/* number of frames received out-of-order */
 	long frames_cur; 	/* number of frames presently in jb, awaiting delivery.*/
 	long jitter; 		/* jitter measured within current history interval*/
 	long min;		/* minimum lateness within current history interval */

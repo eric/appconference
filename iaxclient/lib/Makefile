@@ -9,7 +9,7 @@ SPAN_EC=0
 SPEEX_EC=1
 MEC2_EC=0
 
-USE_NEWJB=0
+USE_NEWJB=1
 
 CFLAGS= -I. -Igsm/inc \
 	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \

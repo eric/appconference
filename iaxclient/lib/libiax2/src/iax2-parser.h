@@ -5,7 +5,7 @@
  * 
  * Copyright (C) 2003, Digium
  *
- * Mark Spencer <markster@linux-support.net>
+ * Mark Spencer <markster@digium.com>
  *
  * This program is free software, distributed under the terms of
  * the GNU General Public License
@@ -19,6 +19,9 @@ struct iax_ies {
 	char *calling_number;
 	char *calling_ani;
 	char *calling_name;
+	int calling_ton;
+	int calling_tns;
+	int calling_pres;
 	char *called_context;
 	char *username;
 	char *password;
@@ -38,12 +41,28 @@ struct iax_ies {
 	unsigned short dpstatus;
 	unsigned short callno;
 	char *cause;
+	unsigned char causecode;
 	unsigned char iax_unknown;
 	int msgcount;
 	int autoanswer;
 	int musiconhold;
 	unsigned int transferid;
 	unsigned int datetime;
+	char *devicetype;
+	char *serviceident;
+	int firmwarever;
+	unsigned int fwdesc;
+	unsigned char *fwdata;
+	unsigned char fwdatalen;
+	unsigned int provver;
+	unsigned short samprate;
+	unsigned int provverpres;
+	unsigned int rr_jitter;
+	unsigned int rr_loss;
+	unsigned int rr_pkts;
+	unsigned short rr_delay;
+	unsigned int rr_dropped;
+	unsigned int rr_ooo;
 };
 
 #define DIRECTION_INGRESS 1

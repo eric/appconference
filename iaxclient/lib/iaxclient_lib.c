@@ -95,7 +95,6 @@ long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
       return usecs;
 }
 
-
 EXPORT void iaxc_set_event_callback(iaxc_event_callback_t func) {
     iaxc_event_callback = func;
 }
@@ -265,7 +264,7 @@ EXPORT int iaxc_selected_call() {
 	return selected_call;
 }
 
-void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) {
+EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) {
     iaxc_sendto = st;
     iaxc_recvfrom = rf;
 }
@@ -651,6 +650,27 @@ void handle_text_event(struct iax_event *e, int callNo) {
     iaxc_post_event(ev);
 }
 
+/* DANGER: bad things can happen if iaxc_netstat != iax_netstat.. */
+EXPORT int iaxc_get_netstats(int call, int *rtt, struct iaxc_netstat *local, struct iaxc_netstat *remote) {
+    return iax_get_netstats(calls[call].session, rtt, (struct iax_netstat *)local, (struct iax_netstat *)remote);
+}
+
+/* handle IAX text events */
+static void generate_netstat_event(int callNo) {
+    iaxc_event ev;
+    int i = 0;
+
+    if(callNo < 0)
+       return;
+
+    ev.type=IAXC_EVENT_NETSTAT;
+    ev.ev.netstats.callNo = callNo;
+
+    /* only post the event if the session is valid, etc */
+    if(!iaxc_get_netstats(callNo, &ev.ev.netstats.rtt, &ev.ev.netstats.local, &ev.ev.netstats.remote))
+	iaxc_post_event(ev);
+}
+
 void handle_audio_event(struct iax_event *e, int callNo) {
 	int total_consumed = 0;
 	int cur;
@@ -735,6 +755,7 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			break;
 		case IAX_EVENT_PONG:  /* we got a pong */
 			//fprintf(stderr, "**********GOT A PONG!\n");
+			generate_netstat_event(callNo);
 			break;
 		default:
 			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
@@ -1112,13 +1133,13 @@ bail:
 	}
 }
 
-void iaxc_external_audio_event(struct iax_event *e, struct iaxc_call *call)
+static void iaxc_external_audio_event(struct iax_event *e, struct iaxc_call *call)
 {
 	// To be coded in the future
 	return;
 }
 
-void iaxc_external_service_audio()
+static void iaxc_external_service_audio()
 {
 	// To be coded in the future
 	return;

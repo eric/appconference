@@ -128,7 +128,7 @@ static int WatchDogProc( prioboost   *b )
 
     if (pthread_setschedparam(pthread_self(), SCHEDULER_POLICY, &schp) != 0)
     {
-        ERR_RPT(("WatchDogProc: cannot set watch dog priority!\n"));
+        ERR_RPT("WatchDogProc: cannot set watch dog priority!\n");
         goto killAudio;
     }
 
@@ -160,7 +160,7 @@ static int WatchDogProc( prioboost   *b )
     DBUG("WatchDogProc: dogging, delta = %ld, mysec=%d\n", delta, currentTime.tv_sec);
         if( delta > WATCHDOG_MAX_SECONDS )
         {
-            ERR_RPT(("WatchDogProc: canary died!\n"));
+            ERR_RPT("WatchDogProc: canary died!\n");
             goto lowerAudio;
         }
     }
@@ -173,18 +173,18 @@ lowerAudio:
         struct sched_param    schat = { 0 };
         if( pthread_setschedparam(b->ThreadID, SCHED_OTHER, &schat) != 0)
         {
-            ERR_RPT(("WatchDogProc: failed to lower audio priority. errno = %d\n", errno ));
+            ERR_RPT("WatchDogProc: failed to lower audio priority. errno = %d\n", errno );
             /* Fall through into killing audio thread. */
         }
         else
         {
-            ERR_RPT(("WatchDogProc: lowered audio priority to prevent hogging of CPU.\n"));
+            ERR_RPT("WatchDogProc: lowered audio priority to prevent hogging of CPU.\n");
             goto cleanup;
         }
     }
 
 killAudio:
-    ERR_RPT(("WatchDogProc: killing hung audio thread!\n"));
+    ERR_RPT("WatchDogProc: killing hung audio thread!\n");
     //pthread_cancel( b->ThreadID);
     //pthread_join( b->ThreadID);
     exit(1);

@@ -145,6 +145,10 @@ static int iax_dropcount = 3;
 static sendto_t	  iax_sendto = sendto;
 static recvfrom_t iax_recvfrom = recvfrom;
 
+/* ping interval (seconds) */
+static int ping_time = 10;
+static void send_ping(void *session);
+
 struct iax_session {
 	/* Private data */
 	void *pvt;
@@ -223,6 +227,9 @@ struct iax_session {
 #endif
 	/* Refresh if applicable */
 	int refresh;
+
+	/* ping scheduler id */
+	int pingid;
 	
 	/* Transfer stuff */
 	struct sockaddr_in transfer;
@@ -235,12 +242,14 @@ struct iax_session {
 #ifdef NEWJB
 	jitterbuf *jb;
 #endif
+	struct iax_netstat remote_netstats;
 
 	/* For linking if there are multiple connections */
 	struct iax_session *next;
 };
 
 char iax_errstr[256];
+
 
 #define IAXERROR snprintf(iax_errstr, sizeof(iax_errstr), 
 
@@ -321,6 +330,8 @@ static int __debug(char *file, int lineno, char *func, char *fmt, ...)
 #define G
 #endif
 
+typedef void (*sched_func)(void *);
+
 struct iax_sched {
 	/* These are scheduled things to be delivered */
 	struct timeval when;
@@ -328,6 +339,10 @@ struct iax_sched {
 	struct iax_event *event;
 	/* If frame is non-NULL then we're transmitting a frame */
 	struct iax_frame *frame;
+	/* If func is non-NULL then we should call it */
+	sched_func func;
+	/* and pass it this argument */
+	void *arg;
 	/* Easy linking */
 	struct iax_sched *next;
 };
@@ -351,15 +366,15 @@ static int inaddrcmp(struct sockaddr_in *sin1, struct sockaddr_in *sin2)
 	return (sin1->sin_addr.s_addr != sin2->sin_addr.s_addr) || (sin1->sin_port != sin2->sin_port);
 }
 
-static int iax_sched_event(struct iax_event *event, struct iax_frame *frame, int ms)
+static int iax_sched_add(struct iax_event *event, struct iax_frame *frame, sched_func func, void *arg, int ms)
 {
 
 	/* Schedule event to be delivered to the client
 	   in ms milliseconds from now, or a reliable frame to be retransmitted */
 	struct iax_sched *sched, *cur, *prev = NULL;
 	
-	if (!event && !frame) {
-		DEBU(G "No event, no frame?  what are we scheduling?\n");
+	if (!event && !frame && !func) {
+		DEBU(G "No event, no frame, no func?  what are we scheduling?\n");
 		return -1;
 	}
 	
@@ -377,6 +392,8 @@ static int iax_sched_event(struct iax_event *event, struct iax_frame *frame, int
 		}
 		sched->event = event;
 		sched->frame = frame;
+		sched->func = func;
+		sched->arg = arg;
 		/* Put it in the list, in order */
 		cur = schedq;
 		while(cur && ((cur->when.tv_sec < sched->when.tv_sec) || 
@@ -397,6 +414,7 @@ static int iax_sched_event(struct iax_event *event, struct iax_frame *frame, int
 		return -1;
 	}
 }
+
 
 int iax_time_to_next_event(void)
 {
@@ -440,6 +458,7 @@ struct iax_session *iax_session_new(void)
 		s->transferpeer = 0;		/* for attended transfer */
 		s->next = sessions;
 		s->sendto = iax_sendto;
+		s->pingid = -1;
 #ifdef NEWJB
 		s->jb = jb_new();
 #endif
@@ -458,6 +477,33 @@ static int iax_session_valid(struct iax_session *session)
 		cur = cur->next;
 	}
 	return 0;
+}
+
+int iax_get_netstats(struct iax_session *session, int *rtt, struct iax_netstat *local, struct iax_netstat *remote) {
+
+  if(!iax_session_valid(session)) return -1;
+
+  *rtt = session->pingtime;
+
+  *remote = session->remote_netstats;
+
+#ifdef NEWJB
+  {
+      jb_info stats;
+      jb_getinfo(session->jb, &stats);
+
+      local->jitter = stats.jitter;
+      /* XXX: should be short-term loss pct.. */
+      if(stats.frames_in == 0) stats.frames_in = LONG_MAX;
+      local->losspct = stats.frames_lost * 100 / stats.frames_in;
+      local->losscnt = stats.frames_lost;
+      local->packets = stats.frames_in;
+      local->delay = stats.current - stats.min;
+      local->dropped = stats.frames_dropped;
+      local->ooo = stats.frames_ooo;
+  }
+#endif
+  return 0;
 }
 
 static void add_ms(struct timeval *tv, int ms) {
@@ -479,12 +525,10 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	int voice = 0;
 	int genuine = 0;
 
-	if (f) {
-                if (f->frametype == AST_FRAME_VOICE) {
-                        voice = 1;
-                } else if (f->frametype == AST_FRAME_IAX) {
-                        genuine = 1;
-                }
+	if (f && f->frametype == AST_FRAME_VOICE) {
+		voice = 1;
+	} else if (!f || f->frametype == AST_FRAME_IAX) {
+		genuine = 1;
 	}
 	
 	
@@ -608,7 +652,7 @@ static int iax_reliable_xmit(struct iax_frame *f)
 				return -1;
 			}
 			memcpy(fc->data, f->data, f->datalen);
-			iax_sched_event(NULL, fc, fc->retrytime);
+			iax_sched_add(NULL, fc, NULL, NULL, fc->retrytime);
 			return iax_xmit_frame(fc);
 		}
 	} else
@@ -1363,12 +1407,51 @@ int iax_send_link_reject(struct iax_session *session)
 
 static int iax_send_pong(struct iax_session *session, unsigned int ts)
 {
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PONG, ts, NULL, 0, -1);
+        struct iax_ie_data ied;
+
+        memset(&ied, 0, sizeof(ied));
+#ifdef NEWJB
+	{
+	    jb_info stats;
+	    jb_getinfo(session->jb, &stats);
+
+	    iax_ie_append_int(&ied,IAX_IE_RR_JITTER, stats.jitter);
+	    /* XXX: should be short-term loss pct.. */
+	    if(stats.frames_in == 0) stats.frames_in = 1;
+	    iax_ie_append_int(&ied,IAX_IE_RR_LOSS, 
+		((0xff & (stats.frames_lost * 100 / stats.frames_in)) << 24 | (stats.frames_lost & 0x00ffffff)));
+	    iax_ie_append_int(&ied,IAX_IE_RR_PKTS, stats.frames_in);
+	    iax_ie_append_short(&ied,IAX_IE_RR_DELAY, stats.current - stats.min);
+	    iax_ie_append_int(&ied,IAX_IE_RR_DROPPED, stats.frames_dropped);
+	    iax_ie_append_int(&ied,IAX_IE_RR_OOO, stats.frames_ooo);
+	}
+#else
+	    iax_ie_append_int(&ied,IAX_IE_RR_JITTER, session->jitter);
+	    /* don't know, don't send! iax_ie_append_int(&ied,IAX_IE_RR_LOSS, 0); */
+	    /* don't know, don't send! iax_ie_append_int(&ied,IAX_IE_RR_PKTS, stats.frames_in); */
+	    /* don't know, don't send! iax_ie_append_short(&ied,IAX_IE_RR_DELAY, stats.current - stats.min); */
+#endif
+
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PONG, ts, ied.buf, ied.pos, -1);
 }
 
+/* external API; deprecated since we send pings ourselves now (finally) */
 int iax_send_ping(struct iax_session *session)
 {
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_PING, 0, NULL, 0, -1);
+}
+
+/* scheduled ping sender; sends ping, then reschedules */
+static void send_ping(void *s)
+{
+	struct iax_session *session = (struct iax_session *)s;
+
+	/* important, eh? */
+	if(!iax_session_valid(session)) return;
+
+	send_command(session, AST_FRAME_IAX, IAX_COMMAND_PING, 0, NULL, 0, -1);
+	session->pingid = iax_sched_add(NULL,NULL, send_ping, (void *)session, ping_time * 1000);
+	return;
 }
 
 static int iax_send_lagrp(struct iax_session *session, unsigned int ts)
@@ -1505,6 +1588,7 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 		iax_ie_append_str(&ied, IAX_IE_CALLING_NAME, cidname);
 	
 	session->capability = capabilities;
+	session->pingid = iax_sched_add(NULL,NULL, send_ping, (void *)session, 2 * 1000);
 
 	/* XXX We should have a preferred format XXX */
 	iax_ie_append_int(&ied, IAX_IE_FORMAT, formats);
@@ -1694,6 +1778,7 @@ static struct iax_session *iax_find_session(struct sockaddr_in *sin,
 		cur->peeraddr.sin_addr.s_addr = sin->sin_addr.s_addr;
 		cur->peeraddr.sin_port = sin->sin_port;
 		cur->peeraddr.sin_family = AF_INET;
+		cur->pingid = iax_sched_add(NULL,NULL, send_ping, (void *)cur, 2 * 1000);
 		DEBU(G "Making new session, peer callno %d, our callno %d\n", callno, cur->callno);
 	} else {
 		DEBU(G "No session, peer = %d, us = %d\n", callno, dcallno);
@@ -1918,7 +2003,7 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 			   just drop a hangup frame because it's late, or a ping, or some such.
 			   That kinda ruins retransmissions too ;-) */
 			/* Queue for immediate delivery */
-			iax_sched_event(e, NULL, 0);
+			iax_sched_add(e, NULL, NULL, NULL, 0);
 			return NULL;
 			//return e;
 		}
@@ -1928,7 +2013,7 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 		return NULL;
 	}
 	/* We need this to be delivered in the future, so we use our scheduler */
-	iax_sched_event(e, NULL, ms);
+	iax_sched_add(e, NULL, NULL, NULL, ms);
 #ifdef EXTREME_DEBUG
 	DEBU(G "Delivering packet in %d ms\n", ms);
 #endif
@@ -2170,6 +2255,14 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				break;
 			case IAX_COMMAND_PONG:
 				e->etype = IAX_EVENT_PONG;
+				session->pingtime = calc_timestamp(session,0,NULL) - ts;
+				session->remote_netstats.jitter = e->ies.rr_jitter;
+				session->remote_netstats.losspct = e->ies.rr_loss & 0xff;
+				session->remote_netstats.losscnt = e->ies.rr_loss << 24;
+				session->remote_netstats.packets = e->ies.rr_pkts;
+				session->remote_netstats.delay = e->ies.rr_delay;
+				session->remote_netstats.dropped = e->ies.rr_dropped;
+				session->remote_netstats.ooo = e->ies.rr_dropped;
 				break;
 			case IAX_COMMAND_ACCEPT:
 				if (e->ies.format & session->capability) {
@@ -2511,7 +2604,7 @@ struct iax_event *iax_get_event(int blocking)
 				free(cur);
 				return event;
 			}
-		} else {
+		} else if(frame) {
 			/* It's a frame, transmit it and schedule a retry */
 			if (frame->retries < 0) {
 				/* It's been acked.  No need to send it.   Destroy the old
@@ -2553,8 +2646,10 @@ struct iax_event *iax_get_event(int blocking)
 				iax_xmit_frame(frame);
 				/* Schedule another retransmission */
 				printf("Scheduling retransmission %d\n", frame->retries);
-				iax_sched_event(NULL, frame, frame->retrytime);
+				iax_sched_add(NULL, frame, NULL, NULL, frame->retrytime);
 			}
+		} else if (cur->func) {
+		    cur->func(cur->arg);
 		}
 		free(cur);
 	}

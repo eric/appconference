@@ -179,7 +179,7 @@ extern void iax_destroy(struct iax_session  * session);
 extern void iax_enable_debug(void);
 extern void iax_disable_debug(void);
 
-/* For attended trnasfer, application create a new session,
+/* For attended transfer, application create a new session,
  * make a call on the new session.
  * On answer of the new session, call iax_setup_transfer and wait for
  * IAX_EVENT_TXREADY when both sides are completed succefully or
@@ -188,9 +188,18 @@ extern void iax_disable_debug(void);
  */
 extern int iax_setup_transfer(struct iax_session *s0, struct iax_session *s1);
 
-#if defined(__cplusplus)
-}
-#endif
+struct iax_netstat {
+	int jitter;
+	int losspct;
+	int losscnt;
+	int packets;
+	int delay;
+	int dropped;
+	int ooo;
+};
+/* fills in rtt, and an iax_netstat structure for each of local/remote directions of call */
+int iax_get_netstats(struct iax_session *s, int *rtt, struct iax_netstat *local, struct iax_netstat *remote);
+
 
 void iax_set_private(struct iax_session *s, void *pvt);
 void *iax_get_private(struct iax_session *s);
@@ -203,5 +212,9 @@ void iax_set_networking(sendto_t st, recvfrom_t rf);
 
 /* Handle externally received frames */
 struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_in *sin);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* _ASTERISK_IAX_CLIENT_H */

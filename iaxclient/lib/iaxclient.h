@@ -75,6 +75,7 @@ extern "C" {
 #define IAXC_EVENT_TEXT			1
 #define IAXC_EVENT_LEVELS		2
 #define IAXC_EVENT_STATE		3
+#define IAXC_EVENT_NETSTAT		4
 
 #define IAXC_CALL_STATE_FREE 		0
 #define IAXC_CALL_STATE_ACTIVE 		(1<<1)
@@ -114,12 +115,30 @@ struct iaxc_ev_call_state {
 	char local_context[IAXC_EVENT_BUFSIZ];
 };
 
+struct iaxc_netstat {
+        int jitter;
+        int losspct;
+        int losscnt;
+        int packets;
+        int delay;
+        int dropped;
+        int ooo;
+};
+
+struct iaxc_ev_netstats {
+	int callNo;
+	int rtt;
+	struct iaxc_netstat local;
+	struct iaxc_netstat remote;
+};
+
 typedef struct iaxc_event_struct {
 	int type;
 	union {
 		struct iaxc_ev_levels 		levels;
 		struct iaxc_ev_text 		text;
 		struct iaxc_ev_call_state 	call;
+		struct iaxc_ev_netstats 	netstats;
 	} ev;
 } iaxc_event;
 
@@ -169,8 +188,10 @@ EXPORT int iaxc_mic_boost_set( int enable ) ;
 
 /* application-defined networking; give substiture sendto and recvfrom functions,
  * must be called before iaxc_initialize! */
-void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) ;
+EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) ;
 
+/* wrapper for libiax2 get_netstats */
+EXPORT int iaxc_get_netstats(int call, int *rtt, struct iaxc_netstat *local, struct iaxc_netstat *remote);
 
 #define IAXC_AD_INPUT           (1<<0)
 #define IAXC_AD_OUTPUT          (1<<1)

@@ -65,6 +65,8 @@
 #define IAX_COMMAND_UNSUPPORT	33	/* Unsupported message received */
 #define IAX_COMMAND_TRANSFER	34	/* Request remote transfer */
 #define IAX_COMMAND_PROVISION	35	/* Provision device */
+#define IAX_COMMAND_FWDOWNL    36      /* Download firmware */
+#define IAX_COMMAND_FWDATA     37      /* Firmware Data */
 
 #define IAX_DEFAULT_REG_EXPIRE  60	/* By default require re-registration once per minute */
 
@@ -104,6 +106,26 @@
 #define IAX_IE_PROVISIONING			29		/* Provisioning info */
 #define IAX_IE_AESPROVISIONING			30		/* AES Provisioning info */
 #define IAX_IE_DATETIME				31		/* Date/Time */
+#define IAX_IE_DEVICETYPE                       32              /* Device Type -- string */
+#define IAX_IE_SERVICEIDENT                     33              /* Service Identifier -- string */
+#define IAX_IE_FIRMWAREVER                      34              /* Firmware revision -- u16 */
+#define IAX_IE_FWBLOCKDESC                      35              /* Firmware block description -- u32 */
+#define IAX_IE_FWBLOCKDATA                      36              /* Firmware block of data -- raw */
+#define IAX_IE_PROVVER                          37              /* Provisioning Version (u32) */
+#define IAX_IE_CALLINGPRES                      38              /* Calling presentation (u8) */
+#define IAX_IE_CALLINGTON                       39              /* Calling type of number (u8) */
+#define IAX_IE_CALLINGTNS                       40              /* Calling transit network select (u16) */
+#define IAX_IE_SAMPLINGRATE                     41              /* Supported sampling rates (u16) */
+#define IAX_IE_CAUSECODE                        42              /* Hangup cause (u8) */
+
+
+#define IAX_IE_RR_JITTER			64		/* Received jitter (as in RFC1889) u32 */
+#define IAX_IE_RR_LOSS				65		/* Received loss (high byte loss pct, low 24 bits loss count, as in rfc1889 */
+#define IAX_IE_RR_PKTS				66		/* Received frames (total frames received) u32 */
+#define IAX_IE_RR_DELAY				67		/* Max playout delay for received frames (in ms) u16 */
+#define IAX_IE_RR_DROPPED			68		/* Dropped frames (presumably by jitterbuf) u32 */
+#define IAX_IE_RR_OOO				69		/* Frames received Out of Order u32 */
+
 
 #define IAX_AUTH_PLAINTEXT			(1 << 0)
 #define IAX_AUTH_MD5				(1 << 1)
@@ -111,6 +133,13 @@
 
 #define IAX_META_TRUNK				1		/* Trunk meta-message */
 #define IAX_META_VIDEO				2		/* Video frame */
+
+#define IAX_RATE_8KHZ                          (1 << 0) /* 8khz sampling (default if absent) */
+#define IAX_RATE_11KHZ                         (1 << 1) /* 11.025khz sampling */
+#define IAX_RATE_16KHZ                         (1 << 2) /* 16khz sampling */
+#define IAX_RATE_22KHZ                         (1 << 3) /* 22.05khz sampling */
+#define IAX_RATE_44KHZ                         (1 << 4) /* 44.1khz sampling */
+#define IAX_RATE_48KHZ                         (1 << 5) /* 48khz sampling */
 
 #define IAX_DPSTATUS_EXISTS			(1 << 0)
 #define IAX_DPSTATUS_CANEXIST		(1 << 1)
@@ -169,6 +198,18 @@ struct ast_iax2_meta_trunk_entry {
 	unsigned short callno;			/* Call number */
 	unsigned short len;				/* Length of data for this callno */
 } __PACKED;
+
+#define IAX_FIRMWARE_MAGIC 0x69617879
+
+struct ast_iax2_firmware_header {
+       unsigned int magic;             /* Magic number */
+       unsigned short version;         /* Software version */
+       unsigned char devname[16];      /* Device */
+       unsigned int datalen;           /* Data length of file beyond header */
+       unsigned char chksum[16];       /* Checksum of all data */
+       unsigned char data[0];
+} __PACKED;
+
 
 #if defined(_MSC_VER)
 #pragma pack(pop)

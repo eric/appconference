@@ -17,8 +17,8 @@
 #include <string.h>
 #include <limits.h>
 
-#define jb_warn(...) fprintf(stderr, __VA_ARGS__)
-//#define jb_warn(...) 
+//#define jb_warn(...) fprintf(stderr, __VA_ARGS__)
+#define jb_warn(...) 
 #define jb_err(...)  fprintf(stderr, __VA_ARGS__)
 //#define jb_dbg(...)  fprintf(stderr, __VA_ARGS__)
 #define jb_dbg(...)  
@@ -203,7 +203,7 @@ static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts) {
 	jb->frames = frame;
 	frame->next = frame;
 	frame->prev = frame;
-    } else if(ts < jb->frames->ts) {
+    } else if(ts < jb->frames->ts) { 
 	frame->next = jb->frames;
 	frame->prev = jb->frames->prev;
 
@@ -211,8 +211,11 @@ static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts) {
 	frame->prev->next = frame;
 
 	jb->frames = frame;
-    } else {
+    } else { 
 	p = jb->frames;
+
+	/* frame is out of order */
+	if(ts < p->prev->ts) jb->info.frames_ooo++;
 
 	while(ts < p->prev->ts && p->prev != jb->frames) 
 	    p = p->prev;
