@@ -488,12 +488,7 @@ void IAXFrame::OnHangup(wxEvent &evt)
 
 void IAXFrame::OnQuit(wxEvent &evt)
 {
-	iaxc_dump_call();
-	for(int i=0;i<10;i++) {
-	  iaxc_millisleep(100);
-	}
-	iaxc_stop_processing_thread();
-	exit(0);	
+	Close(TRUE);
 }
 
 void IAXFrame::OnRegisterMenu(wxCommandEvent &evt) {
@@ -652,13 +647,12 @@ END_EVENT_TABLE()
 
 IAXFrame::~IAXFrame()
 {
-#ifdef __WXGTK__
-#if 0
-    // apparently, I'm not supposed to destroy this, cause it's a "root" window
-    gdk_window_destroy(keyStateWindow);
-#endif
-#endif
+    iaxc_dump_all_calls();
+    for(int i=0;i<10;i++) {
+      iaxc_millisleep(100);
+    }
     iaxc_stop_processing_thread();
+    exit(0);	
     iaxc_shutdown();
 }
 
