@@ -1,50 +1,55 @@
 #ifndef _iaxclient_lib_h
 #define _iaxclient_lib_h
 
-#ifdef WIN32
+/* This is the internal include file for IAXCLIENT -- externally
+ * accessible APIs should be declared in iaxclient.h */
 
+#include "iaxclient.h"
+
+#ifdef WIN32
 #include "winpoop.h" // Win32 Support Functions
+#include <winsock.h>
 #include <process.h>
 #include <stddef.h>
 #include <stdlib.h>
 
+#else
+/* not win32 */
+#include <sys/socket.h>
+#include <netinet/in.h>
 #endif
 
 #include <stdio.h>
 #include <sys/types.h>
 #include "gsm.h"
 
+#include "audio_portaudio.h"
+#include "audio_encode.h"
+
+#ifdef WIN32
+#include "audio_win32.h"
+#endif
+
+/* os-dependent macros, etc */
+#ifdef WIN32
+#define os_millisleep(x) Sleep(x)
+#else
+void os_millisleep(long ms);
+#endif
+
+
 #define RBUFSIZE 256
 #define MAXARGS 10
 #define MAXARG 256
 #define MAX_SESSIONS 4
-
-// Define audio type constants
-#define AUDIO_INTERNAL 0
-#define AUDIO_INTERNAL_PA 1
-#define AUDIO_EXTERNAL 99
 
 
 #include "iax-client.h" // LibIAX functions
 
 static struct peer *peers;
 
-int initialize_client(int audType, FILE *file);
-void shutdown_client();
-void set_encode_format(int fmt);
-void process_calls();
-int service_audio();
-void handle_network_event(FILE *f, struct iax_event *e, struct peer *p);
-void client_call(FILE *f, char *num);
-void client_answer_call(void); 
-void client_dump_call(void);
-void client_reject_call(void);
-void client_send_dtmf(char digit);
-static struct peer *find_peer(struct iax_session *session);
-void service_network(int netfd, FILE *f);
-void do_iax_event(FILE *f);
-int was_call_answered();
-void external_audio_event(FILE *f, struct iax_event *e, struct peer *p);
-void external_service_audio();
-void *get_audio_data(int i);
+long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB );
+void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p);
+void iaxc_service_network(int netfd, FILE *f);
 #endif
+

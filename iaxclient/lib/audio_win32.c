@@ -1,7 +1,6 @@
-
+#include "iaxclient_lib.h"
 #include "audio_win32.h"
 #include "audio_encode.h"
-#include "iax-client.h"
 
 /* initialize the sequence variables for the audio in stuff */
 unsigned int whinserial,nextwhin;
@@ -209,7 +208,7 @@ int win_process_audio_buffers(unsigned long *outtick, struct peer *most_recent_a
 {
 	int i;
 	unsigned long lastouttick = *outtick;
-	gsm_frame fo;
+
 	for(;;) {
 		for(i = 0; i < NWHIN; i++) /* find an available one that's the one we are looking for */
 		{
@@ -229,9 +228,7 @@ int win_process_audio_buffers(unsigned long *outtick, struct peer *most_recent_a
 //						get_audio_packet_size(i));
 					return -1;
 				}
-				send_encoded_audio(most_recent_answer, win_get_audio_data(i), &fo, iEncodeType);
-				if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, (char *)fo, sizeof(gsm_frame)) == -1)
-						puts("Failed to send voice!"); 
+				send_encoded_audio(most_recent_answer, win_get_audio_data(i), iEncodeType);
 				lastouttick = GetTickCount(); /* save time of last output */
 				/* unprepare (free) the header */
 				win_free_audio_header(i);

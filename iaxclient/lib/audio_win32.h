@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <mmsystem.h>
-#include <iax-client.h>
 #include <stdio.h>
 
 #include "gsm.h"

@@ -1,13 +1,4 @@
 #include "iaxclient_lib.h"
-#include <process.h>
-
-#ifdef WIN32
-
-#include "audio_win32.h"
-#include "audio_portaudio.h"
-#include "audio_encode.h"
-
-#endif 
 
 static int iAudioType;
 static int iEncodeType;
@@ -18,21 +9,32 @@ int c, i;
 char rcmd[RBUFSIZE];
 FILE *f;
 gsm_frame fo;
-time_t	t;
 static int answered_call;
 static struct iax_session *newcall;
 
 static struct peer *most_recent_answer;
 
-unsigned long lastouttick;
+struct timeval lastouttm;
+
+static struct peer * find_peer(struct iax_session *session);
+static void do_iax_event(FILE *f);
+
+
+long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
+      long secs = timeA->tv_sec - timeB->tv_sec;
+      long usecs = secs * 1000000;
+      usecs += (timeA->tv_usec - timeB->tv_usec);
+      return usecs;
+}
+
+
 
 // Parameters:
 // audType - Define whether audio is handled by library or externally
-int initialize_client(int audType, FILE *file) {
+int iaxc_initialize(int audType, FILE *file) {
 	/* get time of day in milliseconds, offset by tick count (see our
 	   gettimeofday() implementation) */
-	time(&t);
-	startuptime = ((t % 86400) * 1000) - GetTickCount();
+	os_init();
 
 	if ( (port = iax_init(0) < 0)) {
 		fprintf(stderr, "Fatal error: failed to initialize iax with port %d\n", port);
@@ -44,7 +46,7 @@ int initialize_client(int audType, FILE *file) {
 	f=file;
 	answered_call=0;
 	newcall=0;
-	lastouttick=0;
+	gettimeofday(&lastouttm,NULL);
 	switch (iAudioType) {
 		case AUDIO_INTERNAL:
 #ifdef WIN32
@@ -61,7 +63,7 @@ int initialize_client(int audType, FILE *file) {
 	return 0;
 }
 
-void shutdown_client() {
+void iaxc_shutdown() {
 	iax_shutdown();
 	switch (iAudioType) {
 		case AUDIO_INTERNAL:
@@ -77,28 +79,28 @@ void shutdown_client() {
 }
 
 
-void set_encode_format(int fmt)
+void iaxc_set_encode_format(int fmt)
 {
 	iEncodeType = fmt;
 	iax_set_formats(fmt);
 }
 
-void process_calls(void *dummy) {
+void iaxc_process_calls(void *dummy) {
 	while (1) {
 		/* service the network stuff */
-		service_network(netfd,f);
+		iaxc_service_network(netfd,f);
 #ifdef WIN32	
 		win_flush_audio_output_buffers();
-		service_network(netfd,f);
+		iaxc_service_network(netfd,f);
 		if (iAudioType == AUDIO_INTERNAL) {
 			win_prepare_audio_buffers();
 		}
 #else
 #endif
-		service_network(netfd,f);
+		iaxc_service_network(netfd,f);
 		service_audio();
-		service_network(netfd,f);
-		Sleep(10);
+		iaxc_service_network(netfd,f);
+		os_millisleep(10);
 		//if (service_audio() == -1)
 		//	break;
 		if (!answered_call)
@@ -113,13 +115,13 @@ void process_calls(void *dummy) {
 void start_call_processing() {
 	if (!answered_call) {
 		while(1) {
-			service_network(netfd, f);
+			iaxc_service_network(netfd, f);
 			if (answered_call)
 				break;
 		}
 	}
 #ifdef WIN32
-	_beginthread(process_calls, 0, NULL);
+	_beginthread(iaxc_process_calls, 0, NULL);
 #else
 #endif
 }
@@ -132,20 +134,20 @@ int service_audio()
 	{
 		switch (iAudioType) {
 			case AUDIO_INTERNAL:
-				service_network(netfd, f);
+				iaxc_service_network(netfd, f);
 #ifdef WIN32			
-				win_process_audio_buffers(&lastouttick, most_recent_answer, iEncodeType);		
+				win_process_audio_buffers(&lastouttm, most_recent_answer, iEncodeType);		
 #endif
-				service_network(netfd, f);
+				iaxc_service_network(netfd, f);
 				break;
 			case AUDIO_INTERNAL_PA:
-				service_network(netfd, f);
-				pa_send_audio(&lastouttick, most_recent_answer, iEncodeType);
+				iaxc_service_network(netfd, f);
+				pa_send_audio(&lastouttm, most_recent_answer, iEncodeType);
 				break;
 			default:
-				service_network(netfd, f);
-				external_service_audio();
-				service_network(netfd, f);
+				iaxc_service_network(netfd, f);
+				iaxc_external_service_audio();
+				iaxc_service_network(netfd, f);
 				break;
 		}
 	}
@@ -188,7 +190,7 @@ void handle_audio_event(FILE *f, struct iax_event *e, struct peer *p) {
 	}
 }
 
-void handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
+void iaxc_handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 {
 //	int len,n;
 //	WHOUT *wh,*wh1;
@@ -216,7 +218,7 @@ void handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 //			issue_prompt(f);
 			break;
 		case IAX_EVENT_ANSWER:
-			client_answer_call();
+			iaxc_answer_call();
  			break;
 		case IAX_EVENT_VOICE:
 			handle_audio_event(f, e, p);
@@ -233,7 +235,7 @@ void handle_network_event(FILE *f, struct iax_event *e, struct peer *p)
 }
 
 
-void client_call(FILE *f, char *num)
+void iaxc_call(FILE *f, char *num)
 {
 	struct peer *peer;
 
@@ -263,7 +265,7 @@ void client_call(FILE *f, char *num)
 	start_call_processing();
 }
 
-void client_answer_call(void) 
+void iaxc_answer_call(void) 
 {
 	if(most_recent_answer)
 		iax_answer(most_recent_answer->session);
@@ -271,7 +273,7 @@ void client_answer_call(void)
 	answered_call = 1;
 }
 
-void client_dump_call(void)
+void iaxc_dump_call(void)
 {
 	if(most_recent_answer)
 	{
@@ -286,13 +288,13 @@ void client_dump_call(void)
 	newcall = 0;
 }
 
-void client_reject_call(void)
+void iaxc_reject_call(void)
 {
 	iax_reject(most_recent_answer->session, "Call rejected manually.");
 	most_recent_answer = 0;
 }
 
-void client_send_dtmf(char digit)
+void iaxc_send_dtmf(char digit)
 {
 	if(most_recent_answer)
 		iax_send_dtmf(most_recent_answer->session,digit);
@@ -310,7 +312,7 @@ static struct peer *find_peer(struct iax_session *session)
 }
 
 /* handle all network requests, and a pending scheduled event, if any */
-void service_network(int netfd, FILE *f)
+void iaxc_service_network(int netfd, FILE *f)
 {
 	fd_set readfd;
 	struct timeval dumbtimer;
@@ -336,7 +338,7 @@ void service_network(int netfd, FILE *f)
 		do_iax_event(f); /* do pending event if any */
 }
 
-void do_iax_event(FILE *f) {
+static void do_iax_event(FILE *f) {
 	int sessions = 0;
 	struct iax_event *e = 0;
 	struct peer *peer;
@@ -344,7 +346,7 @@ void do_iax_event(FILE *f) {
 	while ( (e = iax_get_event(0))) {
 		peer = find_peer(e->session);
 		if(peer) {
-			handle_network_event(f, e, peer);
+			iaxc_handle_network_event(f, e, peer);
 			iax_event_free(e);
 		} else {
 			if(e->etype != IAX_EVENT_CONNECT) {
@@ -396,18 +398,18 @@ please accept or reject first\n");
 	}
 }
 
-int was_call_answered()
+int iaxc_was_call_answered()
 {
 	return answered_call;
 }
 
-void external_audio_event(FILE *f, struct iax_event *e, struct peer *p)
+void iaxc_external_audio_event(FILE *f, struct iax_event *e, struct peer *p)
 {
 	// To be coded in the future
 	return;
 }
 
-void external_service_audio()
+void iaxc_external_service_audio()
 {
 	// To be coded in the future
 	return;

@@ -683,8 +683,8 @@ int iax_init(int preferredportno)
 }
 
 void iax_shutdown() {
-	closesocket(netfd);
 #ifdef WIN32
+	closesocket(netfd);
 	WSACleanup();
 #endif
 }

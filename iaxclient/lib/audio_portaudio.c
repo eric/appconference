@@ -49,7 +49,7 @@ void pa_shutdown_audio() {
 }
 
 void handle_paerror(PaError err) {
-	printf("PortAudio error: %s\n", Pa_GetErrorText(err));
+	fprintf(stderr, "PortAudio error: %s\n", Pa_GetErrorText(err));
 }
 
 void pa_read_audio_input() {
@@ -61,27 +61,29 @@ void pa_play_recv_audio(void *fr, int fr_size) {
 	WriteAudioStream(outStream, fr, SAMPLES_PER_FRAME * FRAMES_PER_BLOCK);
 }
 
-void pa_send_audio(unsigned long *outtick, struct peer *most_recent_answer, int iEncodeType) {
-	unsigned long lastouttick = *outtick;
+void pa_send_audio(struct timeval *lastouttm, struct peer *most_recent_answer, int iEncodeType) {
+	struct timeval now;
 	short fr[160];
 	long i;
 
 	long framecount = GetAudioStreamReadable(inStream);
 	for(i = 0; i < framecount; i++) {
+		gettimeofday(&now,NULL);
 		// See if we should be sending (jitter buffer for IAX)
-		if (GetTickCount() < (lastouttick + OUT_INTERVAL))
+		if (iaxc_usecdiff(lastouttm,&now) < (OUT_INTERVAL*1000))
 		{
 			i = framecount;
 			break;
 		}
+
+		fprintf(stderr, "PORTAUDIO: reading audio\n");
 		// Read the audio from the audio buffer
 		ReadAudioStream(inStream, samples, FRAMES_PER_BLOCK);
 
 		// Encode it, then send it
 		send_encoded_audio(most_recent_answer, samples, iEncodeType);
 		// Update the counter
-		lastouttick = GetTickCount(); /* save time of last output */
+		*lastouttm = now;  /* save time of last output */
 	}
-	*outtick = lastouttick;
-		
 }
+
