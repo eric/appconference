@@ -42,7 +42,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "pablio.h"
+#include <math.h>
 #include "spandsp/plc.h"
 
 
