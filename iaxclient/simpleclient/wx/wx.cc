@@ -17,6 +17,10 @@
 #include <gdk/gdk.h>
 #endif
 
+#ifdef __WXMAC__
+#include <Carbon/Carbon.h>
+#endif
+
 IMPLEMENT_APP(IAXClient) 
 
 // event constants
@@ -214,8 +218,9 @@ bool IAXFrame::GetPTTState()
 #ifdef __WXMAC__
     KeyMap theKeys;
     GetKeys(theKeys);
-    // control's VK code is 0x3B.  
-    pressed = theKeys[1] & (1 << (0x3b-32));
+    // that's the Control Key (by experimentation!)
+    pressed = theKeys[1] & 0x08;
+    //fprintf(stderr, "%p %p %p %p\n", theKeys[0], theKeys[1], theKeys[2], theKeys[3]);
 #else
 #ifdef __WXMSW__
     pressed = GetAsyncKeyState(VK_CONTROL)|0x8000;
