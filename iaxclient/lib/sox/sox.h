@@ -70,8 +70,9 @@
 
 #define BUFFSIZE 8192 /*16384*/  /* Total I/O buffer size */
 
-typedef int st_sample_t;
+typedef short st_sample_t;
 typedef unsigned long st_size_t;
+typedef int st_ssize_t;
 
 #define ST_SAMPLE_MAX 0x7fff
 #define ST_SAMPLE_MIN (-ST_SAMPLE_MAX - 1)
@@ -79,6 +80,8 @@ typedef unsigned long st_size_t;
 #define ST_SUCCESS 0
 #define ST_EOF 1
 
+#define ST_SAMPLE_RATE 8000
+#define ST_CHANNELS 1
 
 
 /* Private data for Lerp via LCM file */
@@ -105,6 +108,26 @@ typedef struct resamplestuff {
    long Xsize,Ysize;  /* size (Floats) of X[],Y[]         */
    Float *X, *Y;      /* I/O buffers */
 } *resample_t;
+
+
+typedef struct compand {
+  int expectedChannels; /* Also flags that channels aren't to be treated
+                           individually when = 1 and input not mono */
+  int transferPoints;   /* Number of points specified on the transfer
+                           function */
+  double *attackRate;   /* An array of attack rates */
+  double *decayRate;    /*    ... and of decay rates */
+  double *transferIns;  /*    ... and points on the transfer function */
+  double *transferOuts;
+  double *volume;       /* Current "volume" of each channel */
+  double outgain;       /* Post processor gain */
+  double delay;         /* Delay to apply before companding */
+  st_sample_t *delay_buf;   /* Old samples, used for delay processing */
+  st_ssize_t delay_buf_size;/* Size of delay_buf in samples */
+  st_ssize_t delay_buf_ptr; /* Index into delay_buf */
+  st_ssize_t delay_buf_cnt; /* No. of active entries in delay_buf */
+  short int delay_buf_full; /* Shows buffer situation (important for st_compand_drain) */
+} *compand_t;
 
 
 int st_resample_start(resample_t *rH, int inrate, int outrate);

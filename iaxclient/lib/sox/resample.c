@@ -59,8 +59,8 @@
 
 
 
-/* resample includes */
-#include "resample.h"
+/* sox includes */
+#include "sox.h"
 
 /* this Float MUST match that in filter.c */
 #define Float double/*float*/
@@ -94,69 +94,6 @@ static long SrcEX(resample_t r, long Nx);
 	st_sample_t was int32! (we prefer int16!)
 	Make sure that MAX/MIN work right now.
 */
-#include <stdio.h>
-#ifdef __STDC__
-#include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
-
-/* export flags */
-/* FIXME: To be moved inside of fileop structure per handler. */
-static int verbose = 0;        /* be noisy on stderr */
-
-/* FIXME:  These functions are user level concepts.  Move them outside
- * the ST library.
- */
-static char *myname = "resample";
-
-void st_report(const char *fmt, ...)
-{
-        va_list args;
-
-        if (! verbose)
-                return;
-
-        fprintf(stderr, "%s: ", myname);
-        va_start(args, fmt);
-        vfprintf(stderr, fmt, args);
-        va_end(args);
-        fprintf(stderr, "\n");
-}
-
-void st_warn(const char *fmt, ...)
-{
-        va_list args;
-
-        fprintf(stderr, "%s: ", myname);
-        va_start(args, fmt);
-
-        vfprintf(stderr, fmt, args);
-        va_end(args);
-        fprintf(stderr, "\n");
-}       
-                
-void st_fail(const char *fmt, ...)
-{
-        va_list args;
-        extern void cleanup();
-
-        fprintf(stderr, "%s: ", myname);
-
-        va_start(args, fmt);
-        vfprintf(stderr, fmt, args);
-        va_end(args);
-        fprintf(stderr, "\n");
-        exit(2);
-}
-
-long st_gcd(long a, long b)
-{
-        if (b == 0)
-                return a;
-        else
-                return st_gcd(b, a % b);
-}
 
 
 /*
@@ -464,7 +401,7 @@ int st_resample_drain(resample_t *rH, st_sample_t *obuf, st_size_t *osamp)
 	*osamp -= osamp_res;
 	/* fprintf(stderr,"DRAIN osamp %d\n", *osamp); */
 	if (isamp_res)
-		st_warn("drain overran obuf by %d\n", isamp_res); fflush(stderr);
+		st_warn("drain overran obuf by %d\n", isamp_res); 
 	return (ST_SUCCESS);
 }
 

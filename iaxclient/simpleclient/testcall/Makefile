@@ -35,7 +35,7 @@ endif
 
 ifeq ($(OSTYPE),LINUX)
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
-SYSLIBS=-lpthread
+SYSLIBS=-lpthread -lm
 endif
 
 ifeq ($(OSTYPE),MACOSX)

@@ -54,27 +54,60 @@ int levels_callback(float input, float output) {
     fprintf(stderr, "IN: %f OUT: %f\n", input, output);
 }
 
+void usage()
+{ 
+    fprintf(stderr, "Usage is XXX\n");
+    exit(1);
+}
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	FILE *f;
-	char *dest;
 	char c;
+	int i;
+	char *dest = "guest@10.23.1.31/9999";
+	int do_levels = 0;
+	double silence_threshold = -99;
 
 
 	f = stdout;
 
-	if(argc > 1)
-		dest=argv[1];
-	else
-		dest="guest@10.23.1.31/9999";
+	for(i=1;i<argc;i++)
+	{
+	   if(argv[i][0] == '-') 
+	   {
+	      switch(tolower(argv[i][1]))
+	      {
+		case 'v':
+		  do_levels = 1;
+		  break;
+		case 's':
+		  if(i+1 >= argc) usage();
+		  silence_threshold = atof(argv[++i]);
+		  break;
+		default:
+		  usage();
+	      }
+	    } else {
+	      dest=argv[i];
+	    }
+	}
+
+
+	printf("settings: \n");
+	printf("\tsilence threshold: %f\n", silence_threshold);
+	printf("\tlevel output: %s\n", do_levels ? "on" : "off");
 
 	/* activate the exit handler */
 	atexit(killem);
 	
 	iaxc_initialize(AUDIO_INTERNAL_PA, f);
 	iaxc_set_encode_format(IAXC_FORMAT_GSM);
-	/* iaxc_set_levels_callback(levels_callback); */
+	iaxc_set_silence_threshold(silence_threshold);
+
+	if(do_levels)
+	  iaxc_set_levels_callback(levels_callback); 
+
 
 	fprintf(f, "\n\
 	    TestCall accept some keyboard input while it's running.\n\

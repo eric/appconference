@@ -32,6 +32,10 @@ void iaxc_set_levels_callback(iaxc_levels_callback_t func) {
     iaxc_levels_callback = func;
 }
 
+void iaxc_set_silence_threshold(double thr) {
+    iaxc_silence_threshold = thr;
+}
+
 long iaxc_usecdiff( struct timeval *timeA, struct timeval *timeB ){
       long secs = timeA->tv_sec - timeB->tv_sec;
       long usecs = secs * 1000000;

@@ -30,6 +30,8 @@ OBJS=\
 	portaudio/pablio/ringbuffer.o \
 	audio_encode.o \
 	audio_portaudio.o \
+	sox/compand.o \
+	sox/soxcompat.o \
 	iaxclient_lib.o 
 
 OBJS_WIN32=\

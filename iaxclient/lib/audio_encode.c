@@ -1,43 +1,78 @@
-#include "audio_encode.h"
 
-float input_level = 0.0;
-float output_level = 0.0;
-int level_calls = 0;
+#include "iaxclient_lib.h"
+#include "sox/sox.h"
 
+double iaxc_silence_threshold = -9e99;
+static compand_t input_compand = NULL;
+static compand_t output_compand = NULL;
 
-/* calculate the level of audio in the sample.
- * put the result in the cumulative "level" value,
- * return whether we consider this sample to be silent */
-int calculate_level(void *audio, int len, float *level)
+static int level_calls = 0;
+
+static double vol_to_db(double vol)
 {
-    /* Bogus calculation, just to see some changes */
-    *level = (*level * .8) +  *((short *)audio);
-    return 0;
+    return log10(vol) * 20;
+}
+
+static int do_level_callback()
+{
+    static struct timeval last = {0,0};
+    struct timeval now;
+
+    double ilevel, olevel;
+
+    if(!iaxc_levels_callback) return;
+
+    gettimeofday(&now,NULL); 
+    if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000) return;
+
+    last = now;
+
+    if(input_compand)
+	ilevel = *input_compand->volume;
+    else
+	ilevel = 0.0;
+
+    if(output_compand)
+	olevel = *output_compand->volume;
+    else
+	olevel = 0.0;
+
+    iaxc_levels_callback(vol_to_db(ilevel), vol_to_db(olevel)); 
 }
 
 static int input_postprocess(void *audio, int len)
 {
-    int silent;
-    silent = calculate_level(audio, len, &input_level);
+    int l = len;
 
-    if(iaxc_levels_callback)
-    {
-	level_calls++;
-	if(level_calls % 100 == 0) 
-	    iaxc_levels_callback(input_level,output_level);
+    if(!input_compand) {
+	char *argv[2];
+	argv[0] = strdup("0.1,0.3"); /* attack, decay */
+	argv[1] = strdup("-90,-90,-60,-60,-50,-15,0,-5"); /* transfer function */
+	st_compand_start(&input_compand, argv, 2);
     }
-    return silent;
+
+    st_compand_flow(input_compand, audio, audio, &l, &l);
+
+    do_level_callback();
+
+    return vol_to_db(*input_compand->volume) < iaxc_silence_threshold;
 }
 
 static int output_postprocess(void *audio, int len)
 {
+    int l = len;
 
-    if(!iaxc_levels_callback) return 0;
+    if(!output_compand) {
+	char *argv[2];
+	argv[0] = strdup("0.1,0.3"); /* attack, decay */
+	argv[1] = strdup("-90,-90,0,0"); /* transfer function */
+	st_compand_start(&output_compand, argv, 2);
+    }
 
-    calculate_level(audio, len, &output_level);
-    level_calls++;
+    st_compand_flow(output_compand, audio, audio, &l, &l);
 
-    if(level_calls % 100 == 0) iaxc_levels_callback(input_level,output_level);
+    do_level_callback();
+
     return 0;
 }
 
@@ -49,6 +84,8 @@ int send_encoded_audio(struct peer *most_recent_answer, void *data, int iEncodeT
 	/* currently always 20ms */
 	silent = input_postprocess(data,160);	
 
+	if(silent) return;  /* poof! no encoding! */
+
 	switch (iEncodeType) {
 		case AST_FORMAT_GSM:
 			if(!most_recent_answer->gsmout)
@@ -58,7 +95,9 @@ int send_encoded_audio(struct peer *most_recent_answer, void *data, int iEncodeT
 			gsm_encode(most_recent_answer->gsmout, (short *) ((char *) data), (void *)&fo);
 			break;
 	}
-	if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, (char *)&fo, sizeof(gsm_frame)) == -1) {
+	if(iax_send_voice(most_recent_answer->session,AST_FORMAT_GSM, 
+				(char *)&fo, sizeof(gsm_frame)) == -1) 
+	{
 	      puts("Failed to send voice!");
 	      return -1;
 	}
