@@ -1,5 +1,4 @@
 
-#include "iaxclient.h"
 
 // For compilers that supports precompilation , includes  wx/wx.h  
 #include  "wx/wxprec.h"  
@@ -9,6 +8,8 @@
 #endif 
 
 #include  "wx.h"  
+
+#include "iaxclient.h"
 
 #define LEVEL_MAX -10
 #define LEVEL_MIN -50

@@ -14,6 +14,9 @@ extern "C" {
  * require the inclusion of library internals (or sub-libraries) */
 
 #include <stdio.h>
+#ifdef WIN32
+#include <windows.h>
+#endif
 
 /* Define audio type constants */
 #define AUDIO_INTERNAL 0
