@@ -78,13 +78,13 @@ void Dial( wxString DialStr )
     wxString  FQIN;
 
     wxString  AccountInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
-    wxString  Extension  = DialStr.AfterLast('/');     // dialstr if no '/'
+    wxString  Extension   = DialStr.AfterLast('/');     // dialstr if no '/'
 
     if(DialStr.IsEmpty())
         return;
 
     if(AccountInfo.IsEmpty()) {
-        AccountInfo = wxGetApp().theFrame->Account->GetStringSelection();
+        AccountInfo = wxGetApp().DefaultAccount;
 
         // Dialstr has no "/" and no default server: add default extension
         if(AccountInfo.IsEmpty()) {
@@ -112,8 +112,6 @@ void Dial( wxString DialStr )
                                Host.c_str(),
                                Extension.c_str());
 
-
-//  wxMessageBox(FQIN, "Fake Dial");
     iaxc_call((char *)FQIN.c_str());
 }
 

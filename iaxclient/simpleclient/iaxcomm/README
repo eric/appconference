@@ -1,31 +1,20 @@
 =======================================================================
 INTRODUCTION
 
-This is iaxComm, a portable IAX2 protocol telephony client.
-
-I had made some minor UI changes to Steve's wx client and renamed it
-iaxPhone without realizing there was already another project called
-iaxphone.
-
-When I renamed the app to iaxComm, I added minimize to systray functionality
-for the Win32 platform, and One Touch keys.
-
-Then I discovered wxWindows' XRC feature, which allows dialog boxen to be
-edited without recompiling.  Changing dialog box layout or languages can now
-be done without a recompile.
+This is iaxComm, a portable IAX2 protocol telephony client. It is
+distributed along with the sources for the iaxclient library.
 
 The home page for iaxclient is "http://iaxclient.sourceforge.net/"
 
 =======================================================================
 LICENSES
 
-
-iaxComm is provided under the terms of the GPL:
+iaxComm is provided under the terms of the GPL.
 
 =======================================================================
 CONTRIBUTORS:
 
-iaxComm is based upon Steve Kann's wx client.
+iaxComm evolved from Steve Kann's original wx client.
 
 =======================================================================
 BUILDING THE APPLICATION:
@@ -35,12 +24,58 @@ NOTE:
 First you must make sure you have XRC support installed.  (Check with wx
 Documentation for your platform)
 
+WINDOWS NOTE:
+
+It would appear that there is some problem getting wxWindows 2.4.2 to build
+under MinGW 3.x.  I've had several people as me for help setting up their
+environment, but I'm no expert.  Please note that the versions listed below
+work together.
+
+1. Download and run setup.exe from www.cygwin.com.
+   Install the base plus Devel/make.
+   *** You need to use the make from cygwin ***
+   The make in MinGW extras is borken.
+
+2. Download MinGW-2.0.0-3.exe from www.mingw.org.
+   Install, accepting defaults
+
+3. Download wxMSW-2.4.1-setup.zip from wxwindows.org
+   Install to the default directory, c:\wxWindows-2.4.1
+
+4. Configure the WXWIN environment variable and add cygwin/minGW paths:
+   Right click "My Computer".  Click Properties.  Click "Advanced" tab
+   Click "Environment Variables"
+   Prepend "C:\mingw\bin;c:\cygwin\bin;" to the path
+   Create a WXWIN env variable with value "c:/wxwin-2.4.1" (Note the
+   forward slash, rather than back slash.)
+
+5. Compile the wxWindows library.  The docs outline two methods.
+   *** DO NOT ./confgure -- USE THE MAKEFILES DIRECTLY ***
+   Start a cygwin session.
+    cd c:/wxwindows-2.4.1/src/msw
+    make -f makefile.g95
+
+6. Compile the XRC support:
+    cd c:/wxwindows-2.4.1/contrib/src/xrc
+    make -f makefile.g95
+    ./minimal.exe
+
+7. Compile the xrc compiler
+    cd c:/wxwindows-2.4.1/contrib/utils/wxrc
+    make -f makefile.g95
+    cp wxrc.exe /usr/bin
+
+8. Enjoy wxWindows with all of that xrc-y goodness!
+
 LINUX NOTE:
 
 In order to make linux binaries redistibutable, we need to compile the
 wxWindows stuff as static libraries, rather than shared.
 
-1.  Untar the wxWindows source distribution, and cd into it.
+The rpms on the wxWindows web page do not have xrc support compiled in.
+You will need to compile wxWindows from sources.
+
+1. Untar the wxWindows source distribution, and cd into it.
 2. run configure
     ./configure --disable-shared
 3. make and install

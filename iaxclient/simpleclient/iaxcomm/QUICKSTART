@@ -5,28 +5,27 @@ This is iaxComm, a portable IAX2 protocol telephony client.
 =======================================================================
 INSTALLATION
 
-After unzipping, click on the iaxComm icon.
+Unzip or untar, depending on your OS.  There; you're done.
 
-iaxComm needs to be able to see the rc directory.  If you've moved the
-executable without moving the rc directory, iaxComm will look for it.
-If it can't find them, it will ask you where they are.
+iaxComm no longer needs to be able to see the rc directory, as it did in
+previuos versions.
 
-To test, type a destination in the text box above the SEND button and
-click SEND. NOTE:  If you haven't yet configured any account, you'll need 
-to include a username and hostname as well as extension, for example
-"guest@misery.digiumcom/s"
+If you've never run iaxComm before, you'll be prompted for account info.
+If you want to register with an asterisk server, enter that info now.
 
 You only need to configure an account if you want to register with a
 a server for inbound calls, or simplify your dialling.  If you add an
-account on a server called asterisk and set it as your default then 
+account on a server called asterisk and set it as your default account, 
 dialling "100" would connect you to "user:password@asterisk/100"
 
-After you've added a couple of Entries in the directory, you can make
-them One Touch keys that show up on the main panel.
+To test, type a destination in the box above the "Dial" button and click
+"Dial". Example:
+"guest@misery.digium.com/s"
 
-To use, the intercom feature, set a password in the misc tab of the
-Preferences dialog. Any calls to thishost/password@intercom will be answered
-automatically.
+* LINUX BUG NOTE *
+Before you make any calls, you will need to make at least one entry in
+your Phone Book (Not a One Touch).
+
 =======================================================================
 PEER TO PEER CONFIGURATION EXAMPLE
 
@@ -56,9 +55,20 @@ Put this in iax.conf:
   secret=secret
   context=default
 
-Configure the default server in iaxComm, and set the intercom password to
-password.
+(NOTE: You don't want a username= line in iax.conf)
+
+Configure an account in iaxComm with username set to "100", and password
+set to "secret".  To enable intercom calls (autoanswered), set the 
+intercom password to "password".
 
 Now any calls to extension 100 or extension 200 ring to iaxComm on the PC. 
 Calls to extension 200 are answered automatically.
+=======================================================================
+RINGTONE CONVERSIONS
+
+iaxComm only recognizes 8Khz 16 bit signed raw audio.  You can use sox to
+convert standard wav files for use as ringtones with the following command
+line:
+
+ sox ringin.wav -c 1 -r 8000 ringin.sw
 

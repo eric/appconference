@@ -27,6 +27,10 @@
         <checkable>1</checkable>
       </object>
       <object class="separator"/>
+      <object class="wxMenuItem" name="Accounts">
+        <label>_Accounts ...</label>
+        <help>Configure audio options, etc.</help>
+      </object>
       <object class="wxMenuItem" name="Devices">
         <label>De_vices ...</label>
         <help>Configure audio options, etc.</help>

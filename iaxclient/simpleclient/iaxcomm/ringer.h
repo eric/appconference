@@ -1,9 +1,9 @@
 //----------------------------------------------------------------------------------------
-// Name:        devices,h
-// Purpose:     Describes main dialog
+// Name:        ringer.h
+// Purpose:     Describes Ringer class
 // Author:      Michael Van Donselaar
 // Modified by:
-// Created:     2003
+// Created:     2004
 // Copyright:   (c) Michael Van Donselaar ( michael@vandonselaar.org )
 // Licence:     GPL
 //----------------------------------------------------------------------------------------
@@ -12,15 +12,15 @@
 // Begin single inclusion of this .h file condition
 //----------------------------------------------------------------------------------------
 
-#ifndef _DEVICES_H_
-#define _DEVICES_H_
+#ifndef _RINGER_H_
+#define _RINGER_H_
 
 //----------------------------------------------------------------------------------------
 // GCC interface
 //----------------------------------------------------------------------------------------
 
 #if defined(__GNUG__) && ! defined(__APPLE__)
-    #pragma interface "devices.h"
+    #pragma interface "calls.h"
 #endif
 
 //----------------------------------------------------------------------------------------
@@ -29,33 +29,26 @@
 
 #include "app.h"
 
-void         SetAudioDevices(wxString in, wxString out, wxString ring);
+//----------------------------------------------------------------------------------------
+// Class definition: Ringer
+//----------------------------------------------------------------------------------------
 
-class DevicesDialog : public wxDialog
+class Ringer
 {
-public: 
-    DevicesDialog( wxWindow* parent );
-        
-private:
 
-    wxChoice    *InputDevice;
-    wxChoice    *OutputDevice;
-    wxChoice    *SpkInputDevice;
-    wxChoice    *SpkOutputDevice;
-    wxChoice    *RingDevice;
-    wxCheckBox  *RingOnSpeaker;
+public:
 
-    wxButton    *SaveButton;
-    wxButton    *ApplyButton;
-    wxButton    *CancelButton;
-
-    void         GetAudioDevices();
-    void         OnSave(wxCommandEvent &event);
-    void         OnApply(wxCommandEvent &event);
-    void         OnDirty(wxCommandEvent &event);
-
-    DECLARE_EVENT_TABLE()
+    void              Init(int F1, int F2, int Dur, int Len, int Repeat);
+    void              LoadTone(wxString Filename, int Repeat);
+    void              Start(int ring);
+    void              Stop();
+    
+    struct iaxc_sound tone;
 
 };
 
-#endif  //_DEVICES_H_
+//----------------------------------------------------------------------------------------
+// End single inclusion of this .h file condition
+//----------------------------------------------------------------------------------------
+
+#endif  // _RINGER_H_

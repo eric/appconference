@@ -30,6 +30,8 @@
 #include "app.h"
 #include "calls.h"
 #include "directory.h"
+#include "accounts.h"
+#include "ringer.h"
 #include "wx/menu.h"
 
 #define LEVEL_MAX -40
@@ -64,16 +66,16 @@ public:
     void        OnShow();
     void        OnNotify();
     void        OnHangup(wxEvent &event);
-    void        OnNextKey(wxEvent &event);
+    void        OnHoldKey(wxEvent &event);
+    void        OnSpeakerKey(wxEvent &event);
     void        OnQuit(wxEvent &event);
     void        OnPTTChange(wxCommandEvent &event);
     void        OnSilenceChange(wxCommandEvent &event);
-    void        OnSlider(wxScrollEvent &event);
+    void        OnInputSlider(wxScrollEvent &event);
+    void        OnOutputSlider(wxScrollEvent &event);
     bool        GetPTTState();
     void        CheckPTT();
     void        SetPTT(bool state);
-    void        OnAddAccountList(wxCommandEvent &event);
-    void        OnRemoveAccountList(wxCommandEvent &event);
     void        RePanel(wxString Name);
 
     // Handlers for library-initiated events
@@ -84,22 +86,16 @@ public:
 
     wxGauge    *Input;
     wxGauge    *Output;
+    wxSlider   *InputSlider;
     wxSlider   *OutputSlider;
     wxChoice   *Account;
-    wxTextCtrl *Extension;
+    wxComboBox *Extension;
     CallList   *Calls;
 
-    // From wxConfig
-    int         nCalls;
-    wxString    Name;
-    wxString    Number;
-    wxString    RingToneName;
-    wxString    RingBackName;
-    wxString    IntercomName;
-    wxString    DefaultAccount;
     wxString    IntercomPass;
 
-    bool        Speaker;
+    bool        RingOnSpeaker;
+    bool        UsingSpeaker;
     bool        AGC;
     bool        NoiseReduce;
     bool        EchoCancel;
@@ -109,7 +105,10 @@ private:
     // An icon for the corner of dialog and application's taskbar button
     wxIcon      m_icon;
     wxPanel    *aPanel;
+    int         MessageTicks;
+
     void        OnPrefs(wxCommandEvent& event);
+    void        OnAccounts(wxCommandEvent& event);
     void        OnDevices(wxCommandEvent& event);
     void        OnDirectory(wxCommandEvent& event);
     void        OnExit(wxCommandEvent& event);
@@ -117,8 +116,10 @@ private:
     void        OnOneTouch(wxCommandEvent& event);
     void        OnKeyPad(wxCommandEvent& event);
     void        OnDialDirect(wxCommandEvent& event);
+    void        OnTransfer(wxCommandEvent& event);
     void        AddPanel(wxWindow *parent, wxString Name);
     void        ApplyFilters(void);
+    void        OnAccountChoice(wxCommandEvent &event);
 
 #ifdef __WXGTK__
     GdkWindow *keyStateWindow;

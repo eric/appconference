@@ -47,25 +47,19 @@
 #include "main.h"
 #include "prefs.h"
 #include "frame.h"
+#include "devices.h"
 #include <wx/ffile.h>
+#include <wx/textdlg.h>
 
-#include <math.h>
-#ifndef M_PI
-  #define M_PI 3.14159265358979323846
-#endif
-#ifdef __WXGTK__
-  #include <sys/ioctl.h>
-  #include <sys/fcntl.h>
-  #include <linux/kd.h>
-#endif 
 //----------------------------------------------------------------------------------------
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
 
 BEGIN_EVENT_TABLE(CallList, wxListCtrl)
-    EVT_SIZE               (                CallList::OnSize)  
-    EVT_LIST_ITEM_SELECTED (XRCID("Calls"), CallList::OnSelect)
-    EVT_LIST_ITEM_ACTIVATED(XRCID("Calls"), CallList::OnDClick)
+    EVT_SIZE                 (                CallList::OnSize)  
+    EVT_LIST_ITEM_SELECTED   (XRCID("Calls"), CallList::OnSelect)
+    EVT_LIST_ITEM_RIGHT_CLICK(XRCID("Calls"), CallList::OnRClick)
+    EVT_LIST_ITEM_ACTIVATED  (XRCID("Calls"), CallList::OnDClick)
 END_EVENT_TABLE()
 
 //----------------------------------------------------------------------------------------
@@ -104,67 +98,6 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
     Refresh();
     Show();
     AutoSize();
-
-    // clear tone structures. (otherwise we free un-allocated memory below)
-    memset(&ringtone, 0, sizeof(ringtone));
-    memset(&ringback, 0, sizeof(ringback));
-    memset(&icomtone, 0, sizeof(icomtone));
-
-    // Calculate some reasonable sounding defaults
-    CalcTone(&ringtone, 880, 960, 16000, 48000, 10);
-    CalcTone(&ringback, 440, 480, 16000, 48000, 10);
-    CalcTone(&icomtone, 440, 960,  6000,  6000,  1);
-
-    // Replace with user's tones
-    RingToneName = config->Read("RingTone", "");
-    RingBackName = config->Read("RingBack", "");
-    IntercomName = config->Read("Intercom", "");
-
-    LoadTone(&ringtone, RingToneName, 10);
-    LoadTone(&ringback, RingBackName, 10);
-    LoadTone(&icomtone, IntercomName,  1);
-}
-
-void CalcTone(struct iaxc_sound *tone, int F1, int F2, 
-                        int Dur, int Len, int Repeat)
-{
-    // Free old tone, if there was one
-    if(tone->data != NULL)
-        free(tone->data);
-
-    tone->len  = Len;
-    tone->data = (short *)calloc(tone->len , sizeof(short));
-
-    for( int i=0;i < Dur; i++ )
-    {
-        tone->data[i] = (short)(0x7fff*0.4*sin((double)i*F1*M_PI/8000))
-                      + (short)(0x7fff*0.4*sin((double)i*F2*M_PI/8000));
-    }
-
-    tone->repeat = Repeat;
-}
-void LoadTone(struct iaxc_sound *tone, wxString Filename, int Repeat)
-{
-    wxFFile     fTone;
-
-    if(Filename.IsEmpty())
-        return;
-
-    fTone.Open(Filename, "r");
-
-    if(!fTone.IsOpened())
-        return;
-
-    // Free old tone, if there was one
-    if(tone->data != NULL)
-        free(tone->data);
-
-    tone->len  = fTone.Length();
-    tone->data = (short *)calloc(tone->len , sizeof(short));
-    fTone.Read(&tone->data[0], tone->len);
-    fTone.Close();
-
-    tone->repeat = Repeat;
 }
 
 void CallList::AutoSize()
@@ -189,6 +122,7 @@ void CallList::OnSize(wxSizeEvent &event)
 void CallList::OnSelect(wxListEvent &event)
 {
     int selected = event.m_itemIndex;
+    iaxc_unquelch(selected);
     iaxc_select_call(selected);
 }
 
@@ -198,37 +132,23 @@ void CallList::OnDClick(wxListEvent &event)
     iaxc_dump_call();
 }
 
-#ifdef __WXGTK__
-static void Beep(int freq, int dur)
+void CallList::OnRClick(wxListEvent &event)
 {
-   int fd;
-   int arg;
+    //Transfer
+    int      selected = event.m_itemIndex;
+    char     ext[256];
+    wxString Title;
 
-   fd = open("/dev/tty0", O_RDONLY);
-   arg = (dur<<16)+(1193180/freq);
-   ioctl(fd,KDMKTONE,arg);
-}
+    Title.Printf("Transfer Call %d", selected);
+    wxTextEntryDialog dialog(this,
+                             _T("Target Extension:"),
+                             Title,
+                             _T(""),
+                             wxOK | wxCANCEL);
 
-#endif
-
-void CallList::RingStart(int type)
-{
-    if(type == 1)
-        iaxc_play_sound(&icomtone, 1);
-    else
-        iaxc_play_sound(&ringtone, 1);
-
-    if(wxGetApp().theFrame->Speaker) {
-        #ifdef __WXMSW__
-          Beep(440,300);
-          Beep(880,900);
-          Beep(220,300);
-        #endif
-        #ifdef __WXGTK__
-          int fd = open("/dev/console", O_WRONLY);
-          if(fd >= 0) 
-              ioctl(fd, KDMKTONE, (long)(1193180/2) << 16 + (1193180/440));
-        #endif
+    if(dialog.ShowModal() == wxID_OK) {
+        strncpy(ext, dialog.GetValue().c_str(), 256);
+        iaxc_blind_transfer_call(selected, ext);
     }
 }
 
@@ -246,7 +166,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     }
 
     int i;
-    int nCalls = wxGetApp().theFrame->nCalls;
+    int nCalls = wxGetApp().nCalls;
     for(i=0; i<nCalls; i++)
         SetItem(i, 1, _T("") );
 
@@ -254,8 +174,9 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     if(!(c.state & IAXC_CALL_STATE_ACTIVE)) {
         SetItem(c.callNo, 2, _T("") );
         SetItem(c.callNo, 1, _T("") );
-        iaxc_stop_sound(ringback.id);
-        iaxc_stop_sound(ringtone.id);
+        wxGetApp().RingbackTone.Stop();
+        wxGetApp().IncomingRing.Stop();
+        wxGetApp().CallerIDRing.Stop();
     } else {
         bool     outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
         bool     ringing  = c.state & IAXC_CALL_STATE_RINGING;
@@ -275,7 +196,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         if(outgoing) {
             if(ringing) {
                 SetItem(c.callNo, 1, _T("ring out") );
-                iaxc_play_sound(&ringback, 0);
+                wxGetApp().RingbackTone.Start(0);
             } else {
                 if(complete) {
                     // I really need to clean up this spaghetti code
@@ -287,7 +208,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                         else
                             SetItem(c.callNo, 1, _T("ACTIVE") );
 
-                    iaxc_stop_sound(ringback.id);
+                    wxGetApp().RingbackTone.Stop();
                 } else {
                     // not accepted yet..
                     SetItem(c.callNo, 1, _T("---") );
@@ -305,23 +226,40 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                         break;
                     bCont = config->GetNextGroup(str, dummy);
                 }
-                // Add to phone book if not there already
+
                 if(!str.IsSameAs(c.remote_name)) {
+                    // Add to phone book if not there already
                     str.Printf("%s/Extension", c.remote_name);
                     config->Write(str, c.remote);
+                } else {
+                    // Since they're in the phone book, look for ringtone
+                    str.Printf("%s/RingTone", c.remote_name);
+                    wxGetApp().CallerIDRingName = config->Read(str, "");
                 }
 
                 if(strcmp(c.local_context, "intercom") == 0) {
                     if(config->Read("/Prefs/IntercomPass","s").IsSameAs(c.local)) {
-                        RingStart(1);
+                        wxGetApp().IntercomTone.Start(1);
                         iaxc_millisleep(1000);
+                        iaxc_unquelch(c.callNo);
                         iaxc_select_call(c.callNo);
+
+                        wxGetApp().theFrame->UsingSpeaker = true;
+                        SetAudioDevices(wxGetApp().SpkInputDevice,
+                                        wxGetApp().SpkOutputDevice,
+                                        wxGetApp().RingDevice);
                     }
                 } else {
-                    RingStart(0);
+                    if(wxGetApp().CallerIDRingName.IsEmpty()) {
+                        wxGetApp().IncomingRing.Start(1);
+                    } else {
+                        wxGetApp().CallerIDRing.LoadTone(wxGetApp().CallerIDRingName, 10);
+                        wxGetApp().CallerIDRing.Start(1);
+                    }
                 }
             } else {
-                iaxc_stop_sound(ringtone.id);
+                wxGetApp().IncomingRing.Stop();
+                wxGetApp().CallerIDRing.Stop();
                 if(complete) {
                     SetItem(c.callNo, 1, _T("ACTIVE") );
                 } else { 
@@ -342,4 +280,3 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 
     return 0;
 }
-

@@ -48,8 +48,10 @@
 #include "prefs.h"
 #include "devices.h"
 #include "directory.h"
+#include "accounts.h"
 #include "calls.h"
 #include "dial.h"
+#include "wx/statusbr.h"
 
 static bool pttMode;      // are we in PTT mode?
 static bool pttState;     // is the PTT button pressed?
@@ -64,6 +66,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU    (XRCID("PTT"),         MyFrame::OnPTTChange)
     EVT_MENU    (XRCID("Silence"),     MyFrame::OnSilenceChange)
 
+    EVT_MENU    (XRCID("Accounts"),    MyFrame::OnAccounts)
     EVT_MENU    (XRCID("Prefs"),       MyFrame::OnPrefs)
     EVT_MENU    (XRCID("Devices"),     MyFrame::OnDevices)
     EVT_MENU    (XRCID("Directory"),   MyFrame::OnDirectory)
@@ -98,13 +101,15 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_BUTTON  (XRCID("KPSTAR"),      MyFrame::OnKeyPad)
     EVT_BUTTON  (XRCID("KPPOUND"),     MyFrame::OnKeyPad)
     EVT_BUTTON  (XRCID("Dial"),        MyFrame::OnDialDirect)
-    EVT_BUTTON  (XRCID("Next"),        MyFrame::OnNextKey)
+    EVT_BUTTON  (XRCID("Transfer"),    MyFrame::OnTransfer)
+    EVT_BUTTON  (XRCID("Hold"),        MyFrame::OnHoldKey)
+    EVT_BUTTON  (XRCID("Speaker"),     MyFrame::OnSpeakerKey)
     EVT_BUTTON  (XRCID("Hangup"),      MyFrame::OnHangup)
 
-    EVT_BUTTON  (XRCID("AddAccount"),         MyFrame::OnAddAccountList)
-    EVT_BUTTON  (XRCID("DeleteAccount"),      MyFrame::OnRemoveAccountList)
+    EVT_CHOICE  (XRCID("Account"),     MyFrame::OnAccountChoice)
 
-    EVT_COMMAND_SCROLL(XRCID("OutputSlider"), MyFrame::OnSlider)
+    EVT_COMMAND_SCROLL(XRCID("OutputSlider"), MyFrame::OnOutputSlider)
+    EVT_COMMAND_SCROLL(XRCID("InputSlider"),  MyFrame::OnInputSlider)
     EVT_TEXT_ENTER    (XRCID("Extension"),    MyFrame::OnDialDirect)
 END_EVENT_TABLE()
 
@@ -146,24 +151,33 @@ MyFrame::MyFrame( wxWindow *parent )
 
     config->SetPath("/Prefs");
 
-    nCalls      = config->Read("nCalls", 2);
-    Speaker     = config->Read("Speaker", 0l);
-    AGC         = config->Read("AGC", 0l);
-    NoiseReduce = config->Read("NoiseReduce", 0l);
-    EchoCancel  = config->Read("EchoCancel", 0l);
+    RingOnSpeaker = config->Read("RingOnSpeaker", 0l);
+    AGC           = config->Read("AGC", 0l);
+    NoiseReduce   = config->Read("NoiseReduce", 0l);
+    EchoCancel    = config->Read("EchoCancel", 0l);
 
     //----Add the panel-----------------------------------------------------------------
-    Name = config->Read("UseView", "default");
-    DefaultAccount = config->Read("DefaultAccount", "");
+    Name = config->Read("UseSkin", "default");
     AddPanel(this, Name);
 
     pttMode = false;
 
+    wxGetApp().InputDevice     = config->Read("Input Device", "");
+    wxGetApp().OutputDevice    = config->Read("Output Device", "");
+    wxGetApp().SpkInputDevice  = config->Read("Speaker Input Device",  
+                                              wxGetApp().InputDevice);
+    wxGetApp().SpkOutputDevice = config->Read("Speaker Output Device", 
+                                              wxGetApp().OutputDevice);
+    wxGetApp().RingDevice      = config->Read("Ring Device", "");
 
     ApplyFilters();
+    UsingSpeaker = false;
 
     if(OutputSlider != NULL)
         OutputSlider->SetValue(config->Read("OutputLevel", 70));
+
+    if(InputSlider != NULL)
+        InputSlider->SetValue(config->Read("InputLevel", 70));
 
 #ifdef __WXGTK__
     // window used for getting keyboard state
@@ -198,11 +212,12 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
     Input        = XRCCTRL(*aPanel, "Input",        wxGauge);
     Output       = XRCCTRL(*aPanel, "Output",       wxGauge);
     OutputSlider = XRCCTRL(*aPanel, "OutputSlider", wxSlider);
+    InputSlider  = XRCCTRL(*aPanel, "InputSlider",  wxSlider);
     Account      = XRCCTRL(*aPanel, "Account",      wxChoice);
-    Extension    = XRCCTRL(*aPanel, "Extension",    wxTextCtrl);
+    Extension    = XRCCTRL(*aPanel, "Extension",    wxComboBox);
 
     //----Insert the Calls listctrl into it's "unknown" placeholder---------------------
-    Calls = new CallList(aPanel, nCalls);
+    Calls = new CallList(aPanel, wxGetApp().nCalls);
 
     if(Calls == NULL)
         wxFatalError(_("Can't Load CallList in frame.cc"));
@@ -244,34 +259,6 @@ MyFrame::~MyFrame()
         iaxc_millisleep(100);
     }
     iaxc_stop_processing_thread();
-
-//  This hangs under linux; appears unnecessary under Win32
-//  iaxc_shutdown();
-}
-
-void MyFrame::OnAddAccountList(wxCommandEvent &event)
-{
-    wxString val;
-
-    AddAccountDialog dialog(this, val);
-    dialog.ShowModal();
-    ShowDirectoryControls();
-}
-
-void MyFrame::OnRemoveAccountList(wxCommandEvent &event)
-{
-    wxConfig  *config = new wxConfig("iaxComm");
-    long       sel = -1;
-
-    sel = Account->GetSelection();
-
-    if(sel >= 0) {
-        config->DeleteGroup("/Accounts/"+ Account->GetStringSelection());
-        Account->Delete(sel);
-    }
-
-    delete config;
-    ShowDirectoryControls();
 }
 
 void MyFrame::ShowDirectoryControls()
@@ -286,15 +273,17 @@ void MyFrame::ShowDirectoryControls()
     bool        bCont;
 
     //----Add Accounts-------------------------------------------------------------------
-    Account->Clear();
-    config->SetPath("/Accounts");
-    bCont = config->GetFirstGroup(Name, dummy);
-    while ( bCont ) {
-        Account->Append(Name);
-        bCont = config->GetNextGroup(Name, dummy);
-    }
+    if(Account != NULL) {
+        Account->Clear();
+        config->SetPath("/Accounts");
+        bCont = config->GetFirstGroup(Name, dummy);
+        while ( bCont ) {
+            Account->Append(Name);
+            bCont = config->GetNextGroup(Name, dummy);
+        }
 
-    Account->SetSelection(Account->FindString(DefaultAccount));
+        Account->SetSelection(Account->FindString(wxGetApp().DefaultAccount));
+    }
 
     //----Load up One Touch Keys--------------------------------------------------------
     config->SetPath("/OT");
@@ -317,10 +306,25 @@ void MyFrame::ShowDirectoryControls()
         }
         bCont = config->GetNextGroup(OTName, dummy);
     }
+
+    //----Load up Extension ComboBox----------------------------------------------------
+    config->SetPath("/PhoneBook");
+    bCont = config->GetFirstGroup(Name, dummy);
+    while ( bCont ) {
+        Extension->Append(Name);
+        bCont = config->GetNextGroup(Name, dummy);
+    }
 }
 
 void MyFrame::OnNotify()
 {
+    MessageTicks++;
+
+    if(MessageTicks > 30) {
+        MessageTicks = 0;
+        wxGetApp().theFrame->SetStatusText(_T(""));
+    }
+
     if(pttMode) CheckPTT(); 
 }
 
@@ -329,14 +333,29 @@ void MyFrame::OnShow()
     Show(TRUE);
 }
 
-void MyFrame::OnNextKey(wxEvent &event)
+void MyFrame::OnSpeakerKey(wxEvent &event)
 {
-//    int n = iaxc_first_free_call();
-//
-//    if(n < 0)
-//        wxMessageBox(_("Sorry, there are no free calls"), "Oops");
-//    else
-//        iaxc_select_call(n);
+    if(UsingSpeaker != true) {
+        UsingSpeaker = true;
+        SetAudioDevices(wxGetApp().SpkInputDevice,
+                        wxGetApp().SpkOutputDevice,
+                        wxGetApp().RingDevice);
+    } else {
+        UsingSpeaker = false;
+        SetAudioDevices(wxGetApp().InputDevice,
+                        wxGetApp().OutputDevice,
+                        wxGetApp().RingDevice);
+    }
+}
+
+void MyFrame::OnHoldKey(wxEvent &event)
+{
+    int selected = iaxc_selected_call();
+
+    if(selected < 0)
+        return;
+
+    iaxc_quelch(selected, 1);
     iaxc_select_call(-1);
 }
 
@@ -350,11 +369,18 @@ void MyFrame::OnQuit(wxEvent &event)
     Close(TRUE);
 }
 
-void MyFrame::OnSlider(wxScrollEvent &event)
+void MyFrame::OnOutputSlider(wxScrollEvent &event)
 {
     int      pos = event.GetPosition();
 
     iaxc_output_level_set((double)pos/100.0);
+}
+
+void MyFrame::OnInputSlider(wxScrollEvent &event)
+{
+    int      pos = event.GetPosition();
+
+    iaxc_input_level_set((double)pos/100.0);
 }
 
 void MyFrame::OnPTTChange(wxCommandEvent &event)
@@ -465,6 +491,7 @@ int MyFrame::HandleIAXEvent(iaxc_event *e)
 
 int MyFrame::HandleStatusEvent(char *msg)
 {
+    MessageTicks = 0;
     wxGetApp().theFrame->SetStatusText(msg);
     return 1;
 }
@@ -517,8 +544,14 @@ void MyFrame::OnExit(wxCommandEvent& WXUNUSED(event))
 void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
 {
     wxString msg;
-    msg.Printf( _T("CVS Version"));
-    wxMessageBox(msg, _("iax Phone Application"), wxOK | wxICON_INFORMATION, this);
+    msg.Printf( _T("Pre CVS 28 Feb 2004"));
+    wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
+}
+
+void MyFrame::OnAccounts(wxCommandEvent& WXUNUSED(event))
+{
+    AccountsDialog dialog(this);
+    dialog.ShowModal();
 }
 
 void MyFrame::OnPrefs(wxCommandEvent& WXUNUSED(event))
@@ -580,12 +613,47 @@ void MyFrame::OnKeyPad(wxCommandEvent &event)
         digit = '#';
 
     iaxc_send_dtmf(digit);
-    Extension->WriteText(digit);
+    Extension->SetValue(Extension->GetValue()+digit);
 }
 
 void MyFrame::OnDialDirect(wxCommandEvent &event)
 {
-    Dial(Extension->GetValue());
+    wxString  DialString;
+    wxString  Value       = Extension->GetValue();
+    wxConfig *config      = new wxConfig("iaxComm");
+
+    DialString = config->Read("/PhoneBook/" + Value + "/Extension", "");
+
+    if(DialString.IsEmpty()) {
+        Dial(Value);
+    } else {
+        Dial(DialString);
+    }
+}
+
+void MyFrame::OnTransfer(wxCommandEvent &event)
+{
+    //Transfer
+    int      selected = iaxc_selected_call();
+    char     ext[256];
+    wxString Title;
+
+    Title.Printf("Transfer Call %d", selected);
+    wxTextEntryDialog dialog(this,
+                             _T("Target Extension:"),
+                             Title,
+                             _T(""),
+                             wxOK | wxCANCEL);
+
+    if(dialog.ShowModal() == wxID_OK) {
+        strncpy(ext, dialog.GetValue().c_str(), 256);
+        iaxc_blind_transfer_call(selected, ext);
+    }
+}
+
+void MyFrame::OnAccountChoice(wxCommandEvent &event)
+{
+    wxGetApp().DefaultAccount = Account->GetStringSelection();
 }
 
 void MyTimer::Notify()

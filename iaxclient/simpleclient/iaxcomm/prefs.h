@@ -28,6 +28,7 @@
 //----------------------------------------------------------------------------------------
 
 #include "app.h"
+#include "ringer.h"
 
 void         SetCallerID(wxString name, wxString number);
 
@@ -51,7 +52,7 @@ private:
     wxButton    *ApplyCallerID;
     wxButton    *CancelCallerID;
 
-    wxComboBox  *UseView;
+    wxComboBox  *UseSkin;
     wxChoice    *DefaultAccount;
     wxTextCtrl  *IntercomPass;
     wxSpinCtrl  *nCalls;
@@ -65,6 +66,10 @@ private:
     wxButton    *SaveFilters;
     wxButton    *ApplyFilters;
     wxButton    *CancelFilters;
+
+    void         OnPreviewIntercom(wxCommandEvent &event);
+    void         OnPreviewRingTone(wxCommandEvent &event);
+    void         OnPreviewRingBack(wxCommandEvent &event);
 
     void         OnBrowse(wxCommandEvent &event);
     void         OnSaveAudio(wxCommandEvent &event);

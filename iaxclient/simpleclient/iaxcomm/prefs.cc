@@ -51,37 +51,40 @@
 // Event table: connect the events to the handler functions to process them
 //----------------------------------------------------------------------------------------
 BEGIN_EVENT_TABLE(PrefsDialog, wxDialog)
-    EVT_BUTTON  ( XRCID("BrowseRingTone"),     PrefsDialog::OnBrowse)
-    EVT_BUTTON  ( XRCID("BrowseIntercom"),     PrefsDialog::OnBrowse)
-    EVT_BUTTON  ( XRCID("BrowseRingBack"),     PrefsDialog::OnBrowse)
-    EVT_TEXT    ( XRCID("RingBack"),           PrefsDialog::OnAudioDirty)
-    EVT_TEXT    ( XRCID("RingTone"),           PrefsDialog::OnAudioDirty)
-    EVT_TEXT    ( XRCID("Intercom"),           PrefsDialog::OnAudioDirty)
-    EVT_BUTTON  ( XRCID("SaveAudio"),          PrefsDialog::OnSaveAudio)
-    EVT_BUTTON  ( XRCID("ApplyAudio"),         PrefsDialog::OnApplyAudio)
+    EVT_BUTTON  ( XRCID("BrowseRingTone"),   PrefsDialog::OnBrowse)
+    EVT_BUTTON  ( XRCID("BrowseIntercom"),   PrefsDialog::OnBrowse)
+    EVT_BUTTON  ( XRCID("BrowseRingBack"),   PrefsDialog::OnBrowse)
+    EVT_BUTTON  ( XRCID("PreviewRingTone"),  PrefsDialog::OnPreviewRingTone)
+    EVT_BUTTON  ( XRCID("PreviewIntercom"),  PrefsDialog::OnPreviewIntercom)
+    EVT_BUTTON  ( XRCID("PreviewRingBack"),  PrefsDialog::OnPreviewRingBack)
+    EVT_TEXT    ( XRCID("RingBack"),         PrefsDialog::OnAudioDirty)
+    EVT_TEXT    ( XRCID("RingTone"),         PrefsDialog::OnAudioDirty)
+    EVT_TEXT    ( XRCID("Intercom"),         PrefsDialog::OnAudioDirty)
+    EVT_BUTTON  ( XRCID("SaveAudio"),        PrefsDialog::OnSaveAudio)
+    EVT_BUTTON  ( XRCID("ApplyAudio"),       PrefsDialog::OnApplyAudio)
 
-    EVT_BUTTON  ( XRCID("SaveCallerID"),       PrefsDialog::OnSaveCallerID)
-    EVT_BUTTON  ( XRCID("ApplyCallerID"),      PrefsDialog::OnApplyCallerID)
-    EVT_TEXT    ( XRCID("Name"),               PrefsDialog::OnCallerIDDirty)
-    EVT_TEXT    ( XRCID("Number"),             PrefsDialog::OnCallerIDDirty)
+    EVT_BUTTON  ( XRCID("SaveCallerID"),     PrefsDialog::OnSaveCallerID)
+    EVT_BUTTON  ( XRCID("ApplyCallerID"),    PrefsDialog::OnApplyCallerID)
+    EVT_TEXT    ( XRCID("Name"),             PrefsDialog::OnCallerIDDirty)
+    EVT_TEXT    ( XRCID("Number"),           PrefsDialog::OnCallerIDDirty)
 
-    EVT_BUTTON  ( XRCID("SaveMisc"),           PrefsDialog::OnSaveMisc)
-    EVT_BUTTON  ( XRCID("ApplyMisc"),          PrefsDialog::OnApplyMisc)
-    EVT_TEXT    ( XRCID("UseView"),            PrefsDialog::OnMiscDirty)
-    EVT_CHOICE  ( XRCID("DefaultAccount"),     PrefsDialog::OnMiscDirty)
-    EVT_TEXT    ( XRCID("IntercomPass"),       PrefsDialog::OnMiscDirty)
-    EVT_SPINCTRL( XRCID("nCalls"),             PrefsDialog::OnMiscDirty)
+    EVT_BUTTON  ( XRCID("SaveMisc"),         PrefsDialog::OnSaveMisc)
+    EVT_BUTTON  ( XRCID("ApplyMisc"),        PrefsDialog::OnApplyMisc)
+    EVT_TEXT    ( XRCID("UseSkin"),          PrefsDialog::OnMiscDirty)
+    EVT_CHOICE  ( XRCID("DefaultAccount"),   PrefsDialog::OnMiscDirty)
+    EVT_TEXT    ( XRCID("IntercomPass"),     PrefsDialog::OnMiscDirty)
+    EVT_SPINCTRL( XRCID("nCalls"),           PrefsDialog::OnMiscDirty)
 
-    EVT_BUTTON  ( XRCID("SaveFilters"),        PrefsDialog::OnSaveFilters)
-    EVT_BUTTON  ( XRCID("ApplyFilters"),       PrefsDialog::OnApplyFilters)
-    EVT_CHECKBOX( XRCID("AGC"),                PrefsDialog::OnFiltersDirty)
-    EVT_CHECKBOX( XRCID("NoiseReduce"),        PrefsDialog::OnFiltersDirty)
-    EVT_CHECKBOX( XRCID("EchoCancel"),         PrefsDialog::OnFiltersDirty)
+    EVT_BUTTON  ( XRCID("SaveFilters"),      PrefsDialog::OnSaveFilters)
+    EVT_BUTTON  ( XRCID("ApplyFilters"),     PrefsDialog::OnApplyFilters)
+    EVT_CHECKBOX( XRCID("AGC"),              PrefsDialog::OnFiltersDirty)
+    EVT_CHECKBOX( XRCID("NoiseReduce"),      PrefsDialog::OnFiltersDirty)
+    EVT_CHECKBOX( XRCID("EchoCancel"),       PrefsDialog::OnFiltersDirty)
 
-    EVT_BUTTON  ( XRCID("CancelAudio"),        PrefsDialog::OnCancel)
-    EVT_BUTTON  ( XRCID("CancelCallerID"),     PrefsDialog::OnCancel)
-    EVT_BUTTON  ( XRCID("CancelMisc"),         PrefsDialog::OnCancel)
-    EVT_BUTTON  ( XRCID("CancelFilters"),      PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelAudio"),      PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelCallerID"),   PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelMisc"),       PrefsDialog::OnCancel)
+    EVT_BUTTON  ( XRCID("CancelFilters"),    PrefsDialog::OnCancel)
 
 END_EVENT_TABLE()
 
@@ -113,7 +116,7 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     ApplyCallerID  = XRCCTRL(*this, "ApplyCallerID",  wxButton);
     CancelCallerID = XRCCTRL(*this, "CancelCallerID", wxButton);
 
-    UseView        = XRCCTRL(*this, "UseView",        wxComboBox);
+    UseSkin        = XRCCTRL(*this, "UseSkin",        wxComboBox);
     DefaultAccount = XRCCTRL(*this, "DefaultAccount", wxChoice);
     IntercomPass   = XRCCTRL(*this, "IntercomPass",   wxTextCtrl);
     nCalls         = XRCCTRL(*this, "nCalls",         wxSpinCtrl);
@@ -130,18 +133,18 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
 
     config->SetPath("/Prefs");
 
-    RingTone->SetValue(wxGetApp().theFrame->Calls->RingToneName);
-    RingBack->SetValue(wxGetApp().theFrame->Calls->RingBackName);
-    Intercom->SetValue(wxGetApp().theFrame->Calls->IntercomName);
+    RingTone->SetValue(wxGetApp().IncomingRingName);
+    RingBack->SetValue(wxGetApp().RingBackToneName);
+    Intercom->SetValue(wxGetApp().IntercomToneName);
 
-    Name->SetValue(config->Read("Name", "Caller Name"));
-    Number->SetValue(config->Read("Number", "700000000"));
+    Name->SetValue(wxGetApp().Name);
+    Number->SetValue(wxGetApp().Number);
 
-    UseView->Append("default");
-    UseView->Append("compact");
-    UseView->Append("compactlogo");
-    UseView->Append("micro");
-    UseView->SetValue(config->Read("UseView", "default"));
+    UseSkin->Append("default");
+    UseSkin->Append("compact");
+    UseSkin->Append("logo");
+    UseSkin->Append("micro");
+    UseSkin->SetValue(config->Read("UseSkin", "default"));
 
     config->SetPath("/Accounts");
     bCont = config->GetFirstGroup(str, dummy);
@@ -155,7 +158,7 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
     DefaultAccount->SetSelection(dummy);
 
     IntercomPass->SetValue(config->Read("/Prefs/IntercomPass", ""));
-    nCalls->SetValue(wxGetApp().theFrame->nCalls);
+    nCalls->SetValue(wxGetApp().nCalls);
 
     AGC->SetValue(wxGetApp().theFrame->AGC);
     NoiseReduce->SetValue(wxGetApp().theFrame->NoiseReduce);
@@ -181,6 +184,28 @@ PrefsDialog::PrefsDialog(wxWindow* parent)
 //----------------------------------------------------------------------------------------
 // Private methods
 //----------------------------------------------------------------------------------------
+
+void PrefsDialog::OnPreviewRingTone(wxCommandEvent &event)
+{
+    // We only want to preview a single ring
+    wxGetApp().IncomingRing.LoadTone(RingTone->GetValue(), 0);
+    wxGetApp().IncomingRing.Start(1);
+    wxGetApp().IncomingRing.LoadTone(RingTone->GetValue(), 10);
+}
+
+void PrefsDialog::OnPreviewRingBack(wxCommandEvent &event)
+{
+    wxGetApp().RingbackTone.LoadTone(RingBack->GetValue(), 0);
+    wxGetApp().RingbackTone.Start(1);
+    wxGetApp().RingbackTone.LoadTone(RingBack->GetValue(), 10);
+}
+
+void PrefsDialog::OnPreviewIntercom(wxCommandEvent &event)
+{
+    wxGetApp().IntercomTone.LoadTone(Intercom->GetValue(), 0);
+    wxGetApp().IntercomTone.Start(1);
+    wxGetApp().IntercomTone.LoadTone(Intercom->GetValue(), 1);
+}
 
 void PrefsDialog::OnBrowse(wxCommandEvent &event)
 {
@@ -223,24 +248,13 @@ void PrefsDialog::OnSaveAudio(wxCommandEvent &event)
 
 void PrefsDialog::OnApplyAudio(wxCommandEvent &event)
 {
-    if(!RingTone->GetValue().IsEmpty())
-        LoadTone(&wxGetApp().theFrame->Calls->ringtone, RingTone->GetValue(),10);
-    else
-        CalcTone(&wxGetApp().theFrame->Calls->ringtone, 880, 960, 16000, 48000, 10);
+    wxGetApp().IncomingRingName = RingTone->GetValue();
+    wxGetApp().RingBackToneName = RingBack->GetValue();
+    wxGetApp().IntercomToneName = Intercom->GetValue();
 
-    if(!RingBack->GetValue().IsEmpty())
-        LoadTone(&wxGetApp().theFrame->Calls->ringback, RingBack->GetValue(),10);
-    else
-        CalcTone(&wxGetApp().theFrame->Calls->ringback, 440, 480, 16000, 48000, 10);
-
-    if(!Intercom->GetValue().IsEmpty())
-        LoadTone(&wxGetApp().theFrame->Calls->icomtone, Intercom->GetValue(),10);
-    else
-        CalcTone(&wxGetApp().theFrame->Calls->icomtone, 440, 960,  6000,  6000,  1);
-
-    wxGetApp().theFrame->Calls->RingToneName = RingTone->GetValue();
-    wxGetApp().theFrame->Calls->RingBackName = RingBack->GetValue();
-    wxGetApp().theFrame->Calls->IntercomName = Intercom->GetValue();
+    wxGetApp().IncomingRing.LoadTone(RingTone->GetValue(), 10);
+    wxGetApp().RingbackTone.LoadTone(RingBack->GetValue(), 10);
+    wxGetApp().IntercomTone.LoadTone(Intercom->GetValue(),  1);
 
     ApplyAudio->Disable();
     CancelAudio->SetLabel("Done");
@@ -261,9 +275,9 @@ void PrefsDialog::OnSaveCallerID(wxCommandEvent &event)
 
 void PrefsDialog::OnApplyCallerID(wxCommandEvent &event)
 {
-    wxGetApp().theFrame->Name   = Name->GetValue();
-    wxGetApp().theFrame->Number = Number->GetValue();
-    SetCallerID(wxGetApp().theFrame->Name, wxGetApp().theFrame->Number);
+    wxGetApp().Name   = Name->GetValue();
+    wxGetApp().Number = Number->GetValue();
+    SetCallerID(wxGetApp().Name, wxGetApp().Number);
 
     ApplyCallerID->Disable();
     CancelCallerID->SetLabel("Done");
@@ -274,7 +288,7 @@ void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
     wxConfig *config = new wxConfig("iaxComm");
     config->SetPath("/Prefs");
 
-    config->Write("UseView",        UseView->GetValue());
+    config->Write("UseSkin",        UseSkin->GetValue());
     config->Write("DefaultAccount", DefaultAccount->GetStringSelection());
     config->Write("IntercomPass",   IntercomPass->GetValue());
     config->Write("nCalls",         nCalls->GetValue());
@@ -286,16 +300,17 @@ void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
 
 void PrefsDialog::OnApplyMisc(wxCommandEvent &event)
 {
-    // Update the Default Account
-    wxGetApp().theFrame->DefaultAccount = DefaultAccount->GetStringSelection();
+    // Update the Default Account on the main panel, if there is one
+    wxGetApp().DefaultAccount = DefaultAccount->GetStringSelection();
     wxGetApp().theFrame->ShowDirectoryControls();
 
+
     wxGetApp().theFrame->IntercomPass = IntercomPass->GetValue();
-//  wxGetApp().theFrame->nCalls       = nCalls->GetValue();
+    wxGetApp().nCalls                 = nCalls->GetValue();
 
   #ifdef __WXMSW__
     // This segfaults on Linux, need to look into this
-    wxGetApp().theFrame->RePanel(UseView->GetValue());
+    wxGetApp().theFrame->RePanel(UseSkin->GetValue());
   #endif
 
     ApplyMisc->Disable();

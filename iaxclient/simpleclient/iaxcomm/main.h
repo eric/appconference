@@ -28,6 +28,8 @@
 
 #include "app.h"
 #include "frame.h"
+#include "calls.h"
+#include "ringer.h"
 
 enum
 {
@@ -71,6 +73,27 @@ public:
     virtual int   OnExit();
 
     MyFrame      *theFrame;
+
+    Ringer        IncomingRing;
+    Ringer        RingbackTone;
+    Ringer        IntercomTone;
+    Ringer        CallerIDRing;
+
+    wxString      IncomingRingName;
+    wxString      RingBackToneName;
+    wxString      IntercomToneName;
+    wxString      CallerIDRingName;
+
+    wxString      InputDevice;
+    wxString      OutputDevice;
+    wxString      SpkInputDevice;
+    wxString      SpkOutputDevice;
+    wxString      RingDevice;
+
+    int           nCalls;
+    wxString      Name;
+    wxString      Number;
+    wxString      DefaultAccount;
 
 protected:
 

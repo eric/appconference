@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------
-// Name:        calls,h
+// Name:        calls.h
 // Purpose:     Describes call appearances listctrl
 // Author:      Michael Van Donselaar
 // Modified by:
@@ -29,11 +29,8 @@
 
 #include "app.h"
 
-void              LoadTone(struct iaxc_sound *tone, wxString File, int rpt);
-void              CalcTone(struct iaxc_sound *tone, int F1, int F2, 
-                           int Dur, int Len, int Repeat);
 //----------------------------------------------------------------------------------------
-// Class definition: MyFrame
+// Class definition: CallList
 //----------------------------------------------------------------------------------------
 
 class CallList : public wxListCtrl
@@ -50,20 +47,13 @@ public:
     void              OnSize( wxSizeEvent &event);
     void              AutoSize();
     void              OnSelect(wxListEvent &event);
+    void              OnRClick(wxListEvent &event);
     void              OnDClick(wxListEvent &event);
-    void              RingStart(int type);
     int               HandleStateEvent(struct iaxc_ev_call_state e);
-
-    wxString          RingToneName;
-    wxString          RingBackName;
-    wxString          IntercomName;
-    
-    struct iaxc_sound ringback;
-    struct iaxc_sound ringtone;
-    struct iaxc_sound icomtone;
 
 private:
     wxWindow         *m_parent;
+
     
     
     DECLARE_EVENT_TABLE()

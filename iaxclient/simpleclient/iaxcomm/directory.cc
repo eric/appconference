@@ -54,13 +54,10 @@
 BEGIN_EVENT_TABLE(DirectoryDialog, wxDialog)
     EVT_BUTTON(XRCID("AddOTList"),               DirectoryDialog::OnAddOTList)
     EVT_BUTTON(XRCID("AddPhoneList"),            DirectoryDialog::OnAddPhoneList)
-    EVT_BUTTON(XRCID("AddAccountList"),          DirectoryDialog::OnAddAccountList)
     EVT_BUTTON(XRCID("EditOTList"),              DirectoryDialog::OnAddOTList)
     EVT_BUTTON(XRCID("EditPhoneList"),           DirectoryDialog::OnAddPhoneList)
-    EVT_BUTTON(XRCID("EditAccountList"),         DirectoryDialog::OnAddAccountList)
     EVT_BUTTON(XRCID("RemoveOTList"),            DirectoryDialog::OnRemoveOTList)
     EVT_BUTTON(XRCID("RemovePhoneList"),         DirectoryDialog::OnRemovePhoneList)
-    EVT_BUTTON(XRCID("RemoveAccountList"),       DirectoryDialog::OnRemoveAccountList)
     EVT_BUTTON(XRCID("DialOTList"),              DirectoryDialog::OnDialOTList)
     EVT_BUTTON(XRCID("DialPhoneList"),           DirectoryDialog::OnDialPhoneList)
 
@@ -82,18 +79,14 @@ DirectoryDialog::DirectoryDialog( wxWindow* parent )
 
     OTList       = XRCCTRL(*this, "OTList",      wxListCtrl);
     PhoneList    = XRCCTRL(*this, "PhoneList",   wxListCtrl);
-    AccountList  = XRCCTRL(*this, "AccountList", wxListCtrl);
 
     OTList->InsertColumn(     0, _("No"),        wxLIST_FORMAT_LEFT,  40);
     OTList->InsertColumn(     1, _("Name"),      wxLIST_FORMAT_LEFT, 100);
     OTList->InsertColumn(     2, _("Extension"), wxLIST_FORMAT_LEFT, 100);
 
     PhoneList->InsertColumn(  0, _("Name"),      wxLIST_FORMAT_LEFT, 100);
-    PhoneList->InsertColumn(  1, _("Extension"), wxLIST_FORMAT_LEFT, 100);
-
-    AccountList->InsertColumn(0, _("Name"),      wxLIST_FORMAT_LEFT, 100);
-    AccountList->InsertColumn(1, _("Host"),      wxLIST_FORMAT_LEFT, 100);
-    AccountList->InsertColumn(2, _("Username"),  wxLIST_FORMAT_LEFT, 100);
+    PhoneList->InsertColumn(  1, _("Extension"), wxLIST_FORMAT_LEFT,  80);
+    PhoneList->InsertColumn(  2, _("Ring Tone"), wxLIST_FORMAT_LEFT, 100);
 
     Show();
 }
@@ -133,39 +126,29 @@ void DirectoryDialog::Show( void )
     i=0;
     bCont = config->GetFirstGroup(str, dummy);
     while ( bCont ) {
+        wxString ExtensionItem;
+        wxString RingToneItem;
+
         PhoneList->InsertItem(i, str);
-        PhoneList->SetItem(i, 1, config->Read(PhoneList->GetItemText(i) + "/Extension" ,""));
+
+        ExtensionItem = config->Read(PhoneList->GetItemText(i) + "/Extension" ,"");
+        RingToneItem  = config->Read(PhoneList->GetItemText(i) + "/RingTone"  ,"");
+
+        wxString ShortTone = RingToneItem.AfterLast(wxFILE_SEP_PATH);
+
+        PhoneList->SetItem(i, 1, ExtensionItem);
+        PhoneList->SetItem(i, 2, ShortTone);
+
         bCont = config->GetNextGroup(str, dummy);
         i++;
     }
 
     PhoneList->SetColumnWidth(0, -1);
     PhoneList->SetColumnWidth(1, -1);
-    if(PhoneList->GetColumnWidth(0) < 100)        PhoneList->SetColumnWidth(0,  100);
-    if(PhoneList->GetColumnWidth(1) < 100)        PhoneList->SetColumnWidth(1,  100);
-
-    //----Populate AccountList listctrl--------------------------------------------------
-    config->SetPath("/Accounts");
-    AccountList->DeleteAllItems();
-    i = 0;
-    bCont = config->GetFirstGroup(str, dummy);
-    while ( bCont ) {
-        AccountList->InsertItem(i, str);
-        AccountList->SetItem(i, 1, config->Read(AccountList->GetItemText(i) +
-                                                "/Host" ,""));
-        AccountList->SetItem(i, 2, config->Read(AccountList->GetItemText(i) +
-                                                "/Username" ,""));
-        bCont = config->GetNextGroup(str, dummy);
-        i++;
-    }
-
-    AccountList->SetColumnWidth(0, -1);
-    AccountList->SetColumnWidth(1, -1);
-    AccountList->SetColumnWidth(2, -1);
-    if(AccountList->GetColumnWidth(0) < 100)        AccountList->SetColumnWidth(0,  100);
-    if(AccountList->GetColumnWidth(1) < 100)        AccountList->SetColumnWidth(1,  100);
-    if(AccountList->GetColumnWidth(2) < 100)        AccountList->SetColumnWidth(2,  100);
-
+    PhoneList->SetColumnWidth(2, -1);
+    if(PhoneList->GetColumnWidth(0) < 100)     PhoneList->SetColumnWidth(0,  100);
+    if(PhoneList->GetColumnWidth(1) < 100)     PhoneList->SetColumnWidth(1,  100);
+    if(PhoneList->GetColumnWidth(2) < 100)     PhoneList->SetColumnWidth(2,  100);
 }
 
 //----------------------------------------------------------------------------------------
@@ -197,7 +180,10 @@ AddOTListDialog::AddOTListDialog( wxWindow* parent, wxString Selection )
 //----------------------------------------------------------------------------------------
 
 BEGIN_EVENT_TABLE(AddPhoneListDialog, wxDialog)
-    EVT_BUTTON(XRCID("Add"),            AddPhoneListDialog::OnAdd)
+    EVT_BUTTON(XRCID("BrowseRingTone"),  AddPhoneListDialog::OnBrowse)
+    EVT_BUTTON(XRCID("PreviewRingTone"), AddPhoneListDialog::OnPreviewRingTone)
+
+    EVT_BUTTON(XRCID("Add"),             AddPhoneListDialog::OnAdd)
 END_EVENT_TABLE()
 
 AddPhoneListDialog::AddPhoneListDialog( wxWindow* parent, wxString Selection )
@@ -208,41 +194,14 @@ AddPhoneListDialog::AddPhoneListDialog( wxWindow* parent, wxString Selection )
     //----Reach in for our controls-----------------------------------------------------
     Name         = XRCCTRL(*this, "Name",         wxTextCtrl);
     Extension    = XRCCTRL(*this, "Extension",    wxTextCtrl);
+    RingTone     = XRCCTRL(*this, "RingTone",     wxTextCtrl);
 
     if(!Selection.IsEmpty()) {
         SetTitle(_("Edit " + Selection));
         Name->SetValue(Selection);
         config->SetPath("/PhoneBook/" + Selection);
         Extension->SetValue(config->Read("Extension" ,""));
-    }
-}
-
-//----------------------------------------------------------------------------------------
-
-BEGIN_EVENT_TABLE(AddAccountDialog, wxDialog)
-    EVT_BUTTON(XRCID("Add"),            AddAccountDialog::OnAdd)
-END_EVENT_TABLE()
-
-AddAccountDialog::AddAccountDialog( wxWindow* parent, wxString Selection )
-{
-    wxConfig  *config = new wxConfig("iaxComm");
-    wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddAccount"));
-
-    //----Reach in for our controls-----------------------------------------------------
-    AccountName  = XRCCTRL(*this, "AccountName",  wxTextCtrl);
-    HostName     = XRCCTRL(*this, "HostName",     wxTextCtrl);
-    UserName     = XRCCTRL(*this, "UserName",     wxTextCtrl);
-    Password     = XRCCTRL(*this, "Password",     wxTextCtrl);
-    Confirm      = XRCCTRL(*this, "Confirm",      wxTextCtrl);
-
-    if(!Selection.IsEmpty()) {
-        SetTitle(_("Edit " + Selection));
-        AccountName->SetValue(Selection);
-        config->SetPath("/Accounts/" + Selection);
-        HostName->SetValue(config->Read("Host" ,""));
-        UserName->SetValue(config->Read("Username" ,""));
-        Password->SetValue(config->Read("Password" ,""));
-        Confirm->SetValue(config->Read("Password" ,""));
+        RingTone->SetValue(config->Read("RingTone" ,""));
     }
 }
 
@@ -279,22 +238,6 @@ void DirectoryDialog::OnAddPhoneList(wxCommandEvent &event)
     dialog.ShowModal();
 
     Show();
-}
-
-void DirectoryDialog::OnAddAccountList(wxCommandEvent &event)
-{
-    long     sel = -1;
-    wxString val;
-
-    if(event.GetId() == XRCID("EditAccountList")) {
-        if((sel = AccountList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0)
-            val = AccountList->GetItemText(sel);
-    }
-    AddAccountDialog dialog(this, val);
-    dialog.ShowModal();
-
-    Show();
-    wxGetApp().theFrame->ShowDirectoryControls();
 }
 
 //----------------------------------------------------------------------------------------
@@ -372,24 +315,6 @@ void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
     delete config;
 }
 
-void DirectoryDialog::OnRemoveAccountList(wxCommandEvent &event)
-{
-    wxConfig  *config = new wxConfig("iaxComm");
-    long       sel = -1;
-    int        isOK;
-
-    if((sel=AccountList->GetNextItem(sel,wxLIST_NEXT_ALL,wxLIST_STATE_SELECTED)) >= 0) {
-        isOK = wxMessageBox("Really remove " + AccountList->GetItemText(sel) + "?",
-                            "Remove from Account List", wxOK|wxCANCEL|wxCENTRE);
-        if(isOK == wxOK) {
-            config->DeleteGroup("/Accounts/"+AccountList->GetItemText(sel));
-            AccountList->DeleteItem(sel);
-        }
-    }
-    delete config;
-    wxGetApp().theFrame->ShowDirectoryControls();
-}
-
 //----------------------------------------------------------------------------------------
 
 void AddOTListDialog::OnAdd(wxCommandEvent &event)
@@ -415,42 +340,29 @@ void AddPhoneListDialog::OnAdd(wxCommandEvent &event)
 
     config->SetPath("/PhoneBook/" + Name->GetValue());
     config->Write("Extension", Extension->GetValue());
+    config->Write("RingTone",  RingTone->GetValue());
     delete config;
 
     Name->SetValue("");
     Extension->SetValue("");
+    RingTone->SetValue("");
 }
 
-//----------------------------------------------------------------------------------------
-
-void AddAccountDialog::OnAdd(wxCommandEvent &event)
+void AddPhoneListDialog::OnPreviewRingTone(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig("iaxComm");
-
-    if(!Password->GetValue().IsSameAs(Confirm->GetValue())) {
-        wxMessageBox(_("Try Again"),
-                     _("Password Mismatch"),
-                       wxICON_INFORMATION);
-        return;
-    }
-    config->SetPath("/Accounts/" + AccountName->GetValue());
-    config->Write("Host",     HostName->GetValue());
-    config->Write("Username", UserName->GetValue());
-    config->Write("Password", Password->GetValue());
-    delete config;
-
-    // Well we wouldn't have added it if we didn't want to regiser
-    // Thanks, AJ
-    char user[256], pass[256], host[256];
-    wxStrcpy(user, UserName->GetValue());
-    wxStrcpy(pass, Password->GetValue());
-    wxStrcpy(host, HostName->GetValue());
-    iaxc_register(user, pass, host);
-
-    AccountName->SetValue("");
-    HostName->SetValue("");
-    UserName->SetValue("");
-    HostName->SetValue("");
-    Confirm->SetValue("");
+    // We only want to preview a single ring
+    wxGetApp().CallerIDRing.LoadTone(RingTone->GetValue(), 0);
+    wxGetApp().CallerIDRing.Start(1);
+    wxGetApp().CallerIDRing.LoadTone(RingTone->GetValue(), 10);
 }
 
+void AddPhoneListDialog::OnBrowse(wxCommandEvent &event)
+{
+    wxString dirHome;
+    wxGetHomeDir(&dirHome);
+
+    wxFileDialog where(NULL, _("Raw sound file"), dirHome, "", "*.*", wxOPEN );
+    where.ShowModal();
+
+    RingTone->SetValue(where.GetPath());
+}

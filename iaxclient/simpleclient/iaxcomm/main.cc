@@ -40,6 +40,7 @@
 #include "main.h"
 #include "devices.h"
 #include "prefs.h"
+#include "accounts.h"
 #include "wx/tokenzr.h"
 
 //----------------------------------------------------------------------------------------
@@ -89,7 +90,7 @@ bool theApp::OnInit()
 
 #ifndef __WXMAC__
 // XXX this seems broken on mac with wx-2.4.2
-    m_single_instance_checker = new wxSingleInstanceChecker( GetAppName() );
+    m_single_instance_checker = new wxSingleInstanceChecker(_T("iaxcomm.lock"));
 
 
     // And if a copy is alreay running, then abort...
@@ -122,6 +123,39 @@ bool theApp::OnInit()
     extern void InitXmlResource();
     InitXmlResource();
 
+    IncomingRing.Init( 880, 960, 16000, 48000, 10);
+    RingbackTone.Init( 440, 480, 16000, 48000, 10);
+    IntercomTone.Init( 440, 960,  6000,  6000,  1);
+
+    // Read in some config info
+    nCalls           = config->Read("nCalls", 2);
+    DefaultAccount   = config->Read("DefaultAccount", "");
+
+    IncomingRingName = config->Read("RingTone", "");
+    RingBackToneName = config->Read("RingBack", "");
+    IntercomToneName = config->Read("Intercom", "");
+
+    IncomingRing.LoadTone(IncomingRingName, 10);
+    RingbackTone.LoadTone(RingBackToneName, 10);
+    IntercomTone.LoadTone(IntercomToneName,  1);
+
+    if(DefaultAccount.IsEmpty()) {
+        bool     bCont;
+        long     dummy;
+        wxString Name;
+        wxString Path;
+
+        Path = config->GetPath();
+        config->SetPath("/Accounts");
+        bCont = config->GetFirstGroup(Name, dummy);
+        while ( bCont ) {
+            DefaultAccount = Name;
+            bCont = config->GetNextGroup(Name, dummy);
+        }
+
+        config->SetPath(Path);
+    }
+
     // Create an instance of the main frame.
     // Using a pointer since behaviour will be when close the frame, it will
     // Destroy() itself, which will safely call "delete" when the time is right.
@@ -129,6 +163,20 @@ bool theApp::OnInit()
     // NULL].
 
     theFrame = new MyFrame();
+
+    if(DefaultAccount.IsEmpty()) {
+        // If we never did find a default account, must be a new install
+
+        AddAccountDialog dialog(theFrame, "");
+
+        dialog.SetTitle("Welcome to iaxComm!");
+      #ifdef PROVIDER
+        dialog.AccountName->SetValue("asterisk");
+        dialog.HostName->SetValue("asterisk");
+      #endif
+
+        dialog.ShowModal();
+    }
 
     // This is of dubious usefulness unless an app is a dialog-only app. This
     // is the first created frame, so it is the top window already.
@@ -144,13 +192,13 @@ bool theApp::OnInit()
     theTaskBarIcon.SetIcon(wxICON(application));
   #endif
 
-    if(iaxc_initialize(AUDIO_INTERNAL_PA, theFrame->nCalls)) {
+    if(iaxc_initialize(AUDIO_INTERNAL_PA, nCalls)) {
         wxFatalError(_("Couldn't Initialize IAX Client "));
     }
 
-    SetAudioDevices(config->Read("Input Device", ""),
-                    config->Read("Output Device", ""),
-                    config->Read("Ring Device", ""));
+    SetAudioDevices(InputDevice,
+                    OutputDevice,
+                    RingDevice);
 
     iaxc_set_encode_format(IAXC_FORMAT_GSM);
     iaxc_set_silence_threshold(-99);
@@ -159,9 +207,9 @@ bool theApp::OnInit()
     iaxc_start_processing_thread();
 
     // Callerid from wxConfig
-    theFrame->Name   = config->Read("Name", "IaxComm User");
-    theFrame->Number = config->Read("Number",  "700000000");
-    SetCallerID(theFrame->Name, theFrame->Number);
+    Name   = config->Read("Name", "IaxComm User");
+    Number = config->Read("Number",  "700000000");
+    SetCallerID(Name, Number);
 
     // Register from wxConfig
     config->SetPath("/Accounts");
@@ -210,7 +258,6 @@ void theApp::RegisterByName(wxString RegName)
 int theApp::OnExit(void)
 {
     // Delete the single instance checker
-    wxLogDebug( "Deleting the single instance checker." );
 #ifndef __WXMAC__
     delete m_single_instance_checker;
 #endif

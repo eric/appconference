@@ -1,9 +1,10 @@
-
+PROVIDER=asterisk
 CFLAGS=-I../../lib 
 
 #debug
 CFLAGS:= $(CFLAGS) -g -Wall
-OBJS = main.o prefs.o calls.o directory.o dial.o frame.o devices.o xrc_res.o
+OBJS = main.o prefs.o calls.o directory.o dial.o frame.o devices.o xrc_res.o accounts.o ringer.o
+XRCS = rc/devices.xrc rc/directory.xrc rc/frame.xrc rc/menubar.xrc rc/panel.xrc rc/prefs.xrc
 REZ=echo
 
 
@@ -77,7 +78,7 @@ makelib:
 iaxcomm_resources.o: iaxcomm.rc
 	windres --use-temp-file -i iaxcomm.rc -o iaxcomm_resources.o --include-dir $(WXWIN)/include --define __WIN32__ --define __WIN95__ --define __GNUWIN32__
 
-xrc_res.cc:
+xrc_res.cc: $(XRCS)
 	wxrc -c rc/*xrc -o xrc_res.cc
 
 compact: all

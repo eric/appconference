@@ -48,11 +48,19 @@
                       <size>4,4</size>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxButton" name="BrowseRingBack">
-                        <label>Browse ...</label>
+                      <object class="wxBitmapButton" name="BrowseRingBack">
+                        <bitmap stock_id="wxART_FILE_OPEN"></bitmap>
+                      </object>
+                      <flag>wxEXPAND|wxALIGN_CENTRE_VERTICAL</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxButton" name="PreviewRingBack">
+                        <style>wxNO_BORDER</style>
+                        <label>Preview</label>
                       </object>
                     </object>
                   </object>
+                  <flag>wxALIGN_CENTRE_VERTICAL</flag>
                   <border>10</border>
                 </object>
                 <object class="sizeritem">
@@ -78,8 +86,14 @@
                       <size>4,4</size>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxButton" name="BrowseRingTone">
-                        <label>Browse ...</label>
+                      <object class="wxBitmapButton" name="BrowseRingTone">
+                        <bitmap stock_id="wxART_FILE_OPEN"></bitmap>
+                      </object>
+                      <flag>wxEXPAND|wxALIGN_CENTRE_VERTICAL</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxButton" name="PreviewRingTone">
+                        <label>Preview</label>
                       </object>
                     </object>
                   </object>
@@ -108,8 +122,14 @@
                       <size>4,4</size>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxButton" name="BrowseIntercom">
-                        <label>Browse ...</label>
+                      <object class="wxBitmapButton" name="BrowseIntercom">
+                        <bitmap stock_id="wxART_FILE_OPEN"></bitmap>
+                      </object>
+                      <flag>wxEXPAND|wxALIGN_CENTRE_VERTICAL</flag>
+                    </object>
+                    <object class="sizeritem">
+                      <object class="wxButton" name="PreviewIntercom">
+                        <label>Preview</label>
                       </object>
                     </object>
                   </object>
@@ -251,13 +271,13 @@
                     </object>
                     <object class="sizeritem">
                       <object class="wxStaticText">
-                        <label>Use This View:  </label>
+                        <label>Use This Skin:  </label>
                       </object>
                       <minsize>130,20</minsize>
                       <flag>wxALIGN_CENTRE_VERTICAL</flag>
                     </object>
                     <object class="sizeritem">
-                      <object class="wxComboBox" name="UseView">
+                      <object class="wxComboBox" name="UseSkin">
                         <content/>
                       </object>
                       <minsize>260,24</minsize>
@@ -330,7 +350,7 @@
                     <object class="sizeritem">
                       <object class="wxSpinCtrl" name="nCalls">
                         <min>1</min>
-                        <max>9</max>
+                        <max>99</max>
                         <size>50,28</size>
                         <tooltip>The number of calls to show in main window</tooltip>
                       </object>
