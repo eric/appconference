@@ -71,7 +71,9 @@ static int sample_rate = 8000;
 /* Input ringbuffer size;  this doesn't seem to be as critical, and making it big
  * causes issues when we're answering calls, etc., and the audio system is running
  * but not being drained */
-#define INRBSZ  2048
+#ifndef INRBSZ
+# define INRBSZ  2048
+#endif
 
 /* TUNING:  The following constants may help in tuning for situations
  * where you are getting audio-level under/overruns.
@@ -98,7 +100,9 @@ static int sample_rate = 8000;
  */
 
 /* 80ms if average outRing length is more than this many bytes, start dropping */
-#define RBOUTTARGET (80)
+#ifndef RBOUTTARGET
+# define RBOUTTARGET (80)
+#endif
 
 /* size in bytes of ringbuffer target */
 #define RBOUTTARGET_BYTES (RBOUTTARGET * (sample_rate / 1000) * sizeof(SAMPLE))

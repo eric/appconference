@@ -160,6 +160,7 @@ struct iaxc_audio_codec *iaxc_audio_codec_speex_new(struct iaxc_speex_settings *
   struct state * encstate;
   struct state * decstate;
   struct iaxc_audio_codec *c = calloc(sizeof(struct iaxc_audio_codec),1);
+  const SpeexMode *sm;
 
   if(!c) return c;
 
@@ -181,8 +182,12 @@ struct iaxc_audio_codec *iaxc_audio_codec_speex_new(struct iaxc_speex_settings *
   encstate = (struct state *) c->encstate;
   decstate = (struct state *) c->decstate;
 
-  encstate->state = speex_encoder_init(&speex_nb_mode);
-  decstate->state = speex_decoder_init(&speex_nb_mode);
+  sm = set->mode;
+  if(!sm) sm = &speex_nb_mode;
+
+
+  encstate->state = speex_encoder_init(sm);
+  decstate->state = speex_decoder_init(sm);
   speex_bits_init(&encstate->bits);
   speex_bits_init(&decstate->bits);
   speex_bits_reset(&encstate->bits);
