@@ -1718,17 +1718,58 @@ PaTimestamp Pa_StreamTime( PortAudioStream *stream )
  */
 
 double Pa_GetInputLevel( PortAudioStream *stream ) {
-    fprintf(stderr, "GetInputLevel called\n");
+    return -1;
 }
 
 double Pa_GetOutputLevel( PortAudioStream *stream ) {
-    fprintf(stderr, "GetOutputLevel called\n");
+    MMRESULT mmresult;
+    DWORD vol;
+    HWAVEOUT           hWaveOut = ((PaWMMEStreamData *) ((internalPortAudioStream *)stream)->past_DeviceData)->hWaveOut;
+
+    if((mmresult = waveOutGetVolume(hWaveOut,&vol)) != MMSYSERR_NOERROR)
+      return -1;
+  
+    return (double) ((vol & 0xffff) + (vol >> 16)) / 0xffff / 2;
+
 } 
 
 PaError Pa_SetInputLevel( PortAudioStream *stream , double level) {
-    fprintf(stderr, "SetInputLevel called\n");
+    MMRESULT mmresult;
+    DWORD vol;
+    HWAVEIN  hWaveIn = ((PaWMMEStreamData *) ((internalPortAudioStream *)stream)->past_DeviceData)->hWaveIn;
+
+#if 0
+
+    There doesn't seem to be an easy way to do this :(
+    MIXERCONTROLDETAILS mcd;
+    
+   
+    = imux_.vol_[imux_.vmap_[iport_]];
+
+                 for (u_int i = 0; i < mcd.cChannels; ++i)
+                    ((MIXERCONTROLDETAILS_UNSIGNED*)mcd.paDetails + i)->dwValue =
+                         level;
+                 MMRESULT result =
+                         mixerSetControlDetails((HMIXEROBJ) imux_.id_, &mcd,
+                                                MIXER_SETCONTROLDETAILSF_VALUE);
+                 if (result != MMSYSERR_NOERROR) {
+                         fprintf(stderr, "cannot set rgain (err=%d)\n", result);
+                 }
+#endif
+    return -1;
+
 }
 
 PaError Pa_SetOutputLevel( PortAudioStream *stream , double level) {
-    fprintf(stderr, "SetOutputLevel called\n");
+    MMRESULT mmresult;
+    DWORD vol;
+    HWAVEOUT           hWaveOut = ((PaWMMEStreamData *) ((internalPortAudioStream *)stream)->past_DeviceData)->hWaveOut;
+
+    vol = level * 0xffff;
+    vol |= (vol << 16);
+
+    if((mmresult = waveOutSetVolume(hWaveOut,vol)) != MMSYSERR_NOERROR)
+      return -1;
+            
+    return paNoError;
 }
