@@ -19,7 +19,7 @@
 #define FRAMES_PER_BLOCK       (160)
 
 /* Select whether we will use floats or shorts. */
-#if 1
+#if 0
 #define SAMPLE_TYPE  paFloat32
 typedef float SAMPLE;
 #else

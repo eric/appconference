@@ -577,8 +577,9 @@ void iaxc_dump_all_calls(void)
 
 void iaxc_dump_call(void)
 {
-	int toDump = selected_call;
+	int toDump;
 	MUTEXLOCK(&iaxc_lock);
+	toDump = selected_call;
 	if(toDump < 0) {
 	    iaxc_usermsg(IAXC_ERROR, "Error: tried to dump but no call selected");
 	} else {

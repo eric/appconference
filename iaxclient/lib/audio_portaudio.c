@@ -195,7 +195,7 @@ void pa_play_recv_audio(void *fr, int fr_size) {
 	    mono2stereo(stereobuf, (SAMPLE *)fr, FRAMES_PER_BLOCK);
 	    buf = stereobuf;
 	} else {
-	    buf = (short *)fr;
+	    buf = (SAMPLE *)fr;
 	}
 
 	// Play the audio as decoded
