@@ -441,10 +441,6 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 
 	switch(e->etype) {
 		case IAX_EVENT_HANGUP:
-#ifndef IAXC_IAX2  /* IAX2 barfs from this.  Should we do this or not? */
-			
-			iax_hangup(calls[callNo].session, "Byeee!");
-#endif
 			iaxc_usermsg(IAXC_STATUS, "Call disconnected by remote");
 			// XXX does the session go away now?
 			iaxc_clear_call(callNo);
