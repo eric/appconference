@@ -106,9 +106,11 @@ static IAXFrame *theFrame;
 
 void IAXTimer::Notify()
 {
+
     iaxc_process_calls();
     // really shouldn't do this so often..
-    if(theFrame->pttMode) theFrame->CheckPTT(); 
+    static int i=0;
+    if((i++%10==0) && theFrame->pttMode) theFrame->CheckPTT(); 
 }
 
 
