@@ -48,7 +48,7 @@ static char *descrip = "  Conference():  returns 0\n"
 
 // from member.c and conference.c, respectively
 extern int member_exec( struct ast_channel* chan, void* data ) ;
-extern void init_conflock( void ) ;
+extern void init_conference( void ) ;
 
 //
 // functions defined in asterisk/module.h
@@ -67,7 +67,7 @@ int unload_module( void )
 int load_module( void )
 {
 	ast_log( LOG_NOTICE, "loading app_conference module [ $Revision$ ]\n" ) ;
-	init_conflock() ;
+	init_conference() ;
 	return ast_register_application( app, app_conference_main, synopsis, descrip ) ;
 }
 

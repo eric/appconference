@@ -32,21 +32,18 @@
 
 struct ast_conference 
 {
-	ast_mutex_t lock ; // conference data mutex
-	
-	char name[80] ; // conference name
+	// conference name
+	char name[128] ; 
 	
 	// single-linked list of members in conference
 	struct ast_conf_member* memberlist ;
 	int membercount ;
 	
-	// audio thread mutexes
-	pthread_t audiothread ;
-	ast_mutex_t threadlock ;
-	
-	// notification thread mutexes
-	pthread_t notification_thread ;
-	ast_mutex_t notification_thread_lock ;
+	// conference thread id
+	pthread_t conference_thread ;
+
+	// conference data mutex
+	ast_mutex_t lock ;
 	
 	// pointer to next conference in single-linked list
 	struct ast_conference* next ;
@@ -66,21 +63,22 @@ struct ast_conference
 // function declarations
 //
 
+struct ast_conference* start_conference( struct ast_conf_member* member ) ;
+
 void conference_exec( struct ast_conference* conf ) ;
+
+struct ast_conference* find_conf( char* name ) ;
+struct ast_conference* create_conf( char* name, struct ast_conf_member* member ) ;
+void remove_conf( struct ast_conference* conf ) ;
 
 int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_member* member, struct conf_frame* frame ) ;
 int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, struct conf_frame* frame ) ;
 int queue_silent_frame( struct ast_conference* conf, struct ast_conf_member* member ) ;
 
-void remove_conf( struct ast_conference* conf ) ;
-struct ast_conference* find_conf( char* name ) ;
-struct ast_conference* create_conf( char* name, struct ast_conf_member* member ) ;
-
-struct ast_conference* setup_member_conference( struct ast_conf_member* member ) ;
 void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 
 // called by app_confernce.c:load_module()
-void init_conflock( void ) ;
+void init_conference( void ) ;
 
 #endif

@@ -248,6 +248,10 @@ struct conf_frame* mix_multiple_speakers(
 			{
 				// don't mix this frame
 			}
+			else if ( cf_spoken->fr == NULL )
+			{
+				ast_log( LOG_WARNING, "unable to mix conf_frame with null ast_frame\n" ) ;
+			}
 			else
 			{			
 				// mix the new frame in with the existing buffer			
