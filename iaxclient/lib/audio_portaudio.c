@@ -605,7 +605,7 @@ int pa_initialize (struct iaxc_audio_driver *d ) {
     ec = echo_can_create(2048, 0);
 #endif
 #if defined(SPEEX_EC)
-    ec = speex_echo_state_init(160, 2048);
+    ec = speex_echo_state_init(160, 500); /* in ms */
 #endif
 
     running = 0;
