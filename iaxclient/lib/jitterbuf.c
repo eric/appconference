@@ -30,9 +30,8 @@ int jb_reset(jitterbuf *jb) {
     memset(jb,0,sizeof(jitterbuf));
 
     /* initialize length */
-    jb->info.current = jb->info.target = 100; 
+    jb->info.current = jb->info.target = 0; 
     jb->info.silence = 1; 
-    jb->info.last_voice_ms = 20;
 }
 
 jitterbuf * jb_new() {
@@ -153,10 +152,16 @@ static long history_get(jitterbuf *jb, long *minptr) {
 
     n = jb->hist_ts/JB_HISTORY_SHORTTM;
     if(n > JB_HISTORY_LONGSZ) n = JB_HISTORY_LONGSZ;
+
  
     for(i=0;i<n;i++) {
       if(jb->hist_longmax[i] > max) max = jb->hist_longmax[i];
       if(jb->hist_longmin[i] < min) min = jb->hist_longmin[i];
+    }
+
+    /* not enough history.. */
+    if(n == 0 && jb->hist_shortcur <= 2) {
+	min = max = 0;
     }
 
     if(minptr) *minptr = min;
@@ -395,7 +400,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
     jb_frame *frame;
     long diff;
 
-    if((now - jb_next(jb)) > 2 * jb->info.last_voice_ms) jb_warn("SCHED: %ld", (now - jb_next(jb)));
+    //if((now - jb_next(jb)) > 2 * jb->info.last_voice_ms) jb_warn("SCHED: %ld", (now - jb_next(jb)));
     /* get jitter info */
     jb->info.jitter = history_get(jb, &jb->info.min);
 
@@ -531,9 +536,10 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now) {
        }
        if(frame && frame->type == JB_TYPE_VOICE) {
 	  jb->info.silence = 0;
-	  jb->info.last_voice_ts = frame->ts - jb->info.current;
+	  jb->info.last_voice_ts = frame->ts + jb->info.current + frame->ms;
 	  jb->info.last_voice_ms = frame->ms;
 	  *frameout = *frame;
+	  jb_warn("V");
 	  return JB_OK;
        }
        /* normal case; in silent mode, got a non-voice frame */
