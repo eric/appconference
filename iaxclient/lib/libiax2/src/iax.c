@@ -609,12 +609,129 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	return ms;
 }
 
+static unsigned char get_n_bits_at(unsigned char *data, int n, int bit)
+{
+	int byte = bit / 8;       /* byte containing first bit */
+	int rem = 8 - (bit % 8);  /* remaining bits in first byte */
+	unsigned char ret = 0;
+	
+	if (n <= 0 || n > 8)
+		return 0;
+
+	if (rem < n) {
+		ret = (data[byte] << (n - rem));
+		ret |= (data[byte + 1] >> (8 - n + rem));
+	} else {
+		ret = (data[byte] >> (rem - n));
+	}
+
+	return (ret & (0xff >> (8 - n)));
+}
+
+static int speex_get_wb_sz_at(unsigned char *data, int len, int bit)
+{
+	static int SpeexWBSubModeSz[] = {
+		0, 36, 112, 192,
+		352, 0, 0, 0 };
+	int off = bit;
+	unsigned char c;
+
+	/* skip up to two wideband frames */
+	if (((len * 8 - off) >= 5) && 
+		get_n_bits_at(data, 1, off)) {
+		c = get_n_bits_at(data, 3, off + 1);
+		off += SpeexWBSubModeSz[c];
+
+		if (((len * 8 - off) >= 5) && 
+			get_n_bits_at(data, 1, off)) {
+			c = get_n_bits_at(data, 3, off + 1);
+			off += SpeexWBSubModeSz[c];
+
+			if (((len * 8 - off) >= 5) && 
+				get_n_bits_at(data, 1, off)) {
+				/* too many in a row */
+				DEBU(G "\tCORRUPT too many wideband streams in a row\n");
+				return -1;
+			}
+		}
+
+	}
+	return off - bit;
+}
+
+static int speex_get_samples(unsigned char *data, int len)
+{
+	static int SpeexSubModeSz[] = {
+		0, 43, 119, 160, 
+		220, 300, 364, 492, 
+		79, 0, 0, 0,
+		0, 0, 0, 0 };
+	static int SpeexInBandSz[] = { 
+		1, 1, 4, 4,
+		4, 4, 4, 4,
+		8, 8, 16, 16,
+		32, 32, 64, 64 };
+	int bit = 0;
+	int cnt = 0;
+	int off = 0;
+	unsigned char c;
+
+	DEBU(G "speex_get_samples(%d)\n", len);
+	while ((len * 8 - bit) >= 5) {
+		/* skip wideband frames */
+		off = speex_get_wb_sz_at(data, len, bit);
+		if (off < 0)  {
+			DEBU(G "\tERROR reading wideband frames\n");
+			break;
+		}
+		bit += off;
+
+		if ((len * 8 - bit) < 5) {
+			DEBU(G "\tERROR not enough bits left after wb\n");
+			break;
+		}
+
+		/* get control bits */
+		c = get_n_bits_at(data, 5, bit);
+		DEBU(G "\tCONTROL: %d at %d\n", c, bit);
+		bit += 5;
+
+		if (c == 15) { 
+			DEBU(G "\tTERMINATOR\n");
+			break;
+		} else if (c == 14) {
+			/* in-band signal; next 4 bits contain signal id */
+			c = get_n_bits_at(data, 4, bit);
+			bit += 4;
+			DEBU(G "\tIN-BAND %d bits\n", SpeexInBandSz[c]);
+			bit += SpeexInBandSz[c];
+		} else if (c == 13) {
+			/* user in-band; next 5 bits contain msg len */
+			c = get_n_bits_at(data, 5, bit);
+			bit += 5;
+			DEBU(G "\tUSER-BAND %d bytes\n", c);
+			bit += c * 8;
+		} else if (c > 8) {
+			DEBU(G "\tUNKNOWN sub-mode %d\n", c);
+			break;
+		} else {
+			/* skip number bits for submode (less the 5 control bits) */
+			DEBU(G "\tSUBMODE %d %d bits\n", c, SpeexSubModeSz[c]);
+			bit += SpeexSubModeSz[c] - 5;
+
+			cnt += 160; /* new frame */
+		}
+	}
+	DEBU(G "\tSAMPLES: %d\n", cnt);
+	return cnt;
+}
+
 static int get_sample_cnt(struct iax_event *e)
 {
 	int cnt = 0;
 	switch (e->subclass) {
 	  case AST_FORMAT_SPEEX:
-	    cnt = 160;		/* FIXME Not always the case */
+	    cnt = speex_get_samples(e->data, e->datalen);
 	    break;
 	  case AST_FORMAT_G723_1:
 	    cnt = 240;		/* FIXME Not always the case */
