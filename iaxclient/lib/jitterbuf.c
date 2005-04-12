@@ -672,7 +672,7 @@ long jb_next(jitterbuf *jb)
       }
       else return JB_LONGMAX;
     } else {
-      return jb->info.last_voice_ts + jb->info.last_voice_ms;
+      return jb->info.last_voice_ts;
     }
 }
 
