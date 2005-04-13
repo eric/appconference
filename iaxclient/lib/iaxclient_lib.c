@@ -877,6 +877,18 @@ EXPORT void iaxc_register(char *user, char *pass, char *host)
 	registrations = newreg;
 }
 
+static void codec_destroy( int callNo )
+{
+	if( calls[callNo].encoder ) {
+		calls[callNo].encoder->destroy( calls[callNo].encoder );
+		calls[callNo].encoder = NULL;
+	}
+	if( calls[callNo].decoder ) {
+		calls[callNo].decoder->destroy( calls[callNo].decoder );
+		calls[callNo].decoder = NULL;
+	}
+}
+
 EXPORT void iaxc_call(char *num)
 {
 	int callNo;
@@ -910,9 +922,7 @@ EXPORT void iaxc_call(char *num)
 
 	calls[callNo].session = newsession;
 
-	/* XXX leak???? */
-	calls[callNo].encoder = 0;
-	calls[callNo].decoder = 0;
+	codec_destroy( callNo );
 
 	if(ext) {
 	    strncpy(calls[callNo].remote_name, num, IAXC_EVENT_BUFSIZ); 
@@ -1160,9 +1170,8 @@ static void iaxc_service_network() {
 			iaxc_note_activity(callNo);
 			iaxc_usermsg(IAXC_STATUS, "Call from (%s)", calls[callNo].remote);
 
-			/* XXX leak? */
-			calls[callNo].encoder = 0;
-			calls[callNo].decoder = 0;
+			codec_destroy( callNo );
+
 			calls[callNo].session = e->session;
 			calls[callNo].state = IAXC_CALL_STATE_ACTIVE|IAXC_CALL_STATE_RINGING;
 
