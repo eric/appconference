@@ -627,6 +627,13 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl)
       /* to disable silent special case altogether, just uncomment this: */
        /* jb->info.silence = 0; */
 
+       /* shrink interpl len every 10ms during silence */
+       if (diff < -JB_TARGET_EXTRA &&
+           jb->info.last_adjustment + 10 <= now) {
+         jb->info.current -= interpl;
+         jb->info.last_adjustment = now;
+       }
+
        frame = queue_get(jb, now - jb->info.current);
        if(!frame) {
 	  return JB_NOFRAME;
@@ -667,8 +674,10 @@ long jb_next(jitterbuf *jb)
     if(jb->info.silence_begin_ts) {
       long next = queue_next(jb);
       if(next > 0) { 
-	history_get(jb);
-	return next + jb->info.target;
+        /* shrink during silence */
+        if (jb->info.target - jb->info.current < -JB_TARGET_EXTRA)
+          return jb->info.last_adjustment + 10;
+        return next + jb->info.target;
       }
       else return JB_LONGMAX;
     } else {
