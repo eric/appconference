@@ -213,4 +213,7 @@ extern int post_event_id;
 extern int iaxc_prioboostbegin(void);
 extern int iaxc_prioboostend(void);
 
+/* get the raw in/out levels, as int */
+extern int iaxc_get_inout_volumes(int *input, int *output);
+
 #endif

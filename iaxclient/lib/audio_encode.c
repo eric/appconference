@@ -41,10 +41,21 @@ static struct iaxc_speex_settings speex_settings = {
   3     /* complexity */
 };
 
+
 static double vol_to_db(double vol)
 {
     /* avoid calling log10 on zero */
     return log10(vol + 1.0e-99) * 20;
+}
+
+/* just get the current input/output volumes, and return them. */
+int iaxc_get_inout_volumes(int *input, int *output) {
+  if(input) 
+    *input = (int)vol_to_db(input_level);
+  if(output)
+    *output = (int)vol_to_db(output_level);
+
+  return 0;
 }
 
 static int do_level_callback()
