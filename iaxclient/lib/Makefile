@@ -214,7 +214,8 @@ endif
 # Setup platform-specific stuff based on gleaning
 ifeq ($(OSTYPE),WIN32)
 OBJS:= $(OBJS) $(OBJS_WIN32) 
-DYNLDFLAGS= -lwinmm -lwsock32 -lcomdlg32 -luser32 -lgdi32 -lole32 -lcomctl32 -lctl3d32 \
+CFLAGS:= -mno-cygwin $(CFLAGS)
+DYNLDFLAGS= -mno-cygwin -lwinmm -lwsock32 -lcomdlg32 -luser32 -lgdi32 -lole32 -lcomctl32 -lctl3d32 \
 		-lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -Wl,--out-implib,libiaxclient.a
 DYNCFLAGS=-DBUILDING_DLL
 DYNLIB=iaxclient.dll
