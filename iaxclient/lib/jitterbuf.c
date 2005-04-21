@@ -60,7 +60,7 @@ void jb_reset(jitterbuf *jb)
     memset(jb,0,sizeof(jitterbuf));
 
     /* initialize length */
-    jb->info.current = jb->info.target = 0; 
+    jb->info.current = jb->info.target = JB_TARGET_EXTRA; 
     jb->info.silence_begin_ts = -1; 
 }
 
@@ -530,18 +530,31 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl)
 	return JB_OK;
       }
 
-
-      /* voice frame is late */
+      /* voice frame is later than expected */
       if(frame && frame->ts + jb->info.current < jb->info.last_voice_ts) {
-	*frameout = *frame;
-	jb->info.frames_out++;
-	decrement_losspct(jb);
-	jb->info.frames_late++;
-	jb->info.frames_lost--;
-	jb_dbg("l");
-	/*jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
-	jb_warninfo(jb); */
-	return JB_DROP;
+        if (frame->ts + jb->info.current > jb->info.last_voice_ts - (jb->info.cnt_contig_interp ? interpl : jb->info.last_voice_ms)) {
+            /* either we interpolated past this frame in the last jb_get */
+            /* or the frame is still in order, but came a little too quick */ 
+            *frameout = *frame;
+            /* reset expectation for next frame */
+            jb->info.last_voice_ts = frame->ts + jb->info.current + frame->ms;
+            jb->info.frames_out++;
+            decrement_losspct(jb);
+            jb->info.cnt_contig_interp = 0;
+            jb_dbg("v");
+            return JB_OK;
+        } else {
+      	    /* voice frame is late */
+            *frameout = *frame;
+            jb->info.frames_out++;
+            decrement_losspct(jb);
+            jb->info.frames_late++;
+            jb->info.frames_lost--;
+            jb_dbg("l");
+            /*jb_warn("\nlate: wanted=%ld, this=%ld, next=%ld\n", jb->info.last_voice_ts - jb->info.current, frame->ts, queue_next(jb));
+            jb_warninfo(jb); */
+            return JB_DROP;
+        }
       }
 
       /* keep track of frame sizes, to allow for variable sized-frames */
@@ -645,8 +658,6 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl)
        if (frame->ts < jb->info.silence_begin_ts) {
           /* voice frame is late */
 	  *frameout = *frame;
-	  /* rewind last_voice, since we're just dumping */
-	  jb->info.last_voice_ts -= jb->info.last_voice_ms;
 	  jb->info.frames_out++;
 	  decrement_losspct(jb);
 	  jb->info.frames_late++;
