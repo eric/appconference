@@ -66,7 +66,9 @@ static int sample_rate = 8000;
 #define ECHO_TAIL	  4096 /* echo_tail length, in frames must be pow(2) for mec/span ? */
 
 /* RingBuffer Size; Needs to be Pow(2), 1024 = 512 samples = 64ms */
-#define OUTRBSZ 32768 
+#ifndef OUTRBSZ
+# define OUTRBSZ 32768 
+#endif
 
 /* Input ringbuffer size;  this doesn't seem to be as critical, and making it big
  * causes issues when we're answering calls, etc., and the audio system is running
