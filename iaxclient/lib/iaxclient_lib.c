@@ -476,13 +476,13 @@ static void iaxc_do_pings(void) {
       long ping_since;
 
       if(!(calls[i].state & IAXC_CALL_STATE_ACTIVE))
-	  break;
+	  continue;
 
       act_since = iaxc_usecdiff(&now, &calls[i].last_activity)/1000;
 
       // if we've had any activity in a while, don't worry about anything.
       if(act_since < IAXC_CALL_TIMEOUT/3)
-	  break;  /* OK */
+	  continue;  /* OK */
 
       ping_since = iaxc_usecdiff(&now, &calls[i].last_ping)/1000;
 
@@ -493,7 +493,7 @@ static void iaxc_do_pings(void) {
 	  //fprintf(stderr, "Sending Ping for call %d as=%ld, ps=%ld\n", i, act_since, ping_since); 
 	  calls[i].last_ping = now;
 	  iax_send_ping(calls[i].session);
-	  break; 
+	  continue; 
       }
 
       /* finally, we've recently sent a ping, and still haven't had any 
@@ -520,7 +520,9 @@ void iaxc_refresh_registrations() {
     for(cur = registrations; cur != NULL; cur=cur->next) {
 	if(iaxc_usecdiff(&now, &cur->last) > cur->refresh ) {
 	    //fprintf(stderr, "refreshing registration %s:%s@%s\n", cur->user, cur->pass, cur->host);
-
+	    if( cur->session != NULL ) {	
+		    iax_destroy( cur->session );
+	    }
 	    cur->session = iax_session_new();
 	    if(!cur->session) {
 		    iaxc_usermsg(IAXC_ERROR, "Can't make new registration session");
