@@ -386,7 +386,7 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 
 	nCalls = inCalls;
 	/* initialize calls */
-	if(nCalls == 0) nCalls = 1; /* 0 == Default? */
+	if(nCalls <= 0) nCalls = 1; /* 0 == Default? */
 
 	/* calloc zeroes for us */
 	calls = calloc(sizeof(struct iaxc_call), nCalls);
