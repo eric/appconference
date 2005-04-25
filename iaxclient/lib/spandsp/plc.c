@@ -215,7 +215,7 @@ int plc_fillin(plc_state_t *s, int16_t amp[], int len)
         old_step = new_step;
         new_weight = new_step;
         old_weight = 1.0 - new_step;
-        for (i = 0;  i < pitch_overlap;  i++)
+        for (i = 0;  i < pitch_overlap && i < len;  i++)
         {
             amp[i] = fsaturate(old_weight*s->history[PLC_HISTORY_LEN - 1 - i] + new_weight*s->pitchbuf[i]);
             new_weight += new_step;
