@@ -21,6 +21,10 @@
 #include <varargs.h>
 #endif
 
+#define IAXC_ERROR  IAXC_TEXT_TYPE_ERROR
+#define IAXC_STATUS IAXC_TEXT_TYPE_STATUS
+#define IAXC_NOTICE IAXC_TEXT_TYPE_NOTICE
+
 #define DEFAULT_CALLERID_NAME    "Not Available"
 #define DEFAULT_CALLERID_NUMBER  "7005551212"
 
@@ -80,7 +84,6 @@ static THREADID procThreadID;
 static int procThreadQuitFlag = -1;
 
 static void iaxc_do_pings(void);
-static void iaxc_post_event(iaxc_event e);
 
 static iaxc_event_callback_t iaxc_event_callback = NULL;
 
@@ -174,7 +177,13 @@ static void default_message_callback(char *message) {
 }
 
 // Post Events back to clients
-static void iaxc_post_event(iaxc_event e) {
+void iaxc_post_event(iaxc_event e) {
+
+    if(e.type == 0) {
+	iaxc_usermsg(IAXC_ERROR, "Error: something posted to us an invalid event");
+	return;
+    }
+	
     // If the library is locked then just queue the event to be posted
     // once the lock is released.
     if (iaxc_locked)
@@ -209,10 +218,6 @@ static void iaxc_post_event(iaxc_event e) {
     }
 }
 
-
-#define IAXC_ERROR  IAXC_TEXT_TYPE_ERROR
-#define IAXC_STATUS IAXC_TEXT_TYPE_STATUS
-#define IAXC_NOTICE IAXC_TEXT_TYPE_NOTICE
 
 void iaxc_usermsg(int type, const char *fmt, ...)
 {
@@ -425,6 +430,14 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 	audio_format_capability = IAXC_FORMAT_ULAW | IAXC_FORMAT_ALAW | IAXC_FORMAT_GSM | IAXC_FORMAT_SPEEX;
 	audio_format_preferred = IAXC_FORMAT_SPEEX;
 
+#ifdef IAXC_VIDEO
+	if(iaxc_video_initialize()) {
+		fprintf(stderr, "can't initialize pv\n");
+		return -1;
+	}
+#endif
+
+
 	return 0;
 }
 
@@ -548,7 +561,11 @@ EXPORT void iaxc_process_calls(void) {
     iaxc_do_pings();
     service_audio();
     iaxc_refresh_registrations();
-
+    
+    // XXX move to service_audio or something -- set call properly!
+#ifdef IAXC_VIDEO
+    iaxc_send_video(NULL);
+#endif
     put_iaxc_lock();
 }
 
