@@ -16,9 +16,15 @@
 #ifndef _iaxclient_lib_h
 #define _iaxclient_lib_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /* This is the internal include file for IAXCLIENT -- externally
  * accessible APIs should be declared in iaxclient.h */
 
+#include <stdio.h>
 
 #ifdef WIN32
 #include "winpoop.h" // Win32 Support Functions
@@ -143,7 +149,30 @@ struct iaxc_audio_driver {
 	/* mic boost */
 	int (*mic_boost_get)(struct iaxc_audio_driver *d ) ;
 	int (*mic_boost_set)(struct iaxc_audio_driver *d, int enable);
+}; 
 
+struct iaxc_video_driver {
+	/* data */
+	char *name; 	/* driver name */
+	//struct iaxc_audio_device *devices; /* list of devices */
+	//int nDevices;	/* count of devices */
+	void *priv;	/* pointer to private data */
+
+	/* methods */
+	int (*initialize)(struct iaxc_video_driver *d, int w, int h, int framerate);
+	int (*destroy)(struct iaxc_video_driver *d);  /* free resources */
+	int (*select_devices)(struct iaxc_video_driver *d, int input, int output);
+	int (*selected_devices)(struct iaxc_video_driver *d, int *input, int *output);
+
+	/* 
+	 * select_ring ? 
+	 * set_latency
+	 */
+
+	int (*start)(struct iaxc_video_driver *d);
+	int (*stop)(struct iaxc_video_driver *d);
+	int (*output)(struct iaxc_video_driver *d, unsigned char *data);
+	int (*input)(struct iaxc_video_driver *d, unsigned char **data);
 }; 
 
 struct iaxc_audio_codec {
@@ -157,11 +186,27 @@ struct iaxc_audio_codec {
 	void (*destroy) ( struct iaxc_audio_codec *codec);
 };
 
+struct iaxc_video_codec {
+	char name[256];
+	int format;
+	void *encstate;
+	void *decstate;
+	int (*encode) ( struct iaxc_video_codec *codec, int *inlen, char *in, int *outlen, char *out );
+	int (*decode) ( struct iaxc_video_codec *codec, int *inlen, char *in, int *outlen, char *out );
+	void (*destroy) ( struct iaxc_video_codec *codec);
+};
+
+
 
 struct iaxc_call {
 	/* to be replaced with codec-structures, with codec-private data  */
 	struct iaxc_audio_codec *encoder;
 	struct iaxc_audio_codec *decoder;
+
+#ifdef IAXC_VIDEO
+	struct iaxc_video_codec *vencoder;
+	struct iaxc_video_codec *vdecoder;
+#endif
 
 	/* the "state" of this call */
 	int state;
@@ -191,6 +236,11 @@ struct iaxc_call {
 #include "audio_portaudio.h"
 #include "audio_file.h"
 
+#ifdef IAXC_VIDEO
+#include "video_portvideo.h"
+#endif
+
+
 /* our format capabilities */
 extern int audio_format_capability;
 
@@ -205,6 +255,9 @@ extern MUTEX iaxc_lock;
 /* post_event_callback */
 int post_event_callback(iaxc_event e);
 
+/* post an event to the application */
+void iaxc_post_event(iaxc_event e);
+
 /* parameters for callback */
 extern void * post_event_handle;
 extern int post_event_id;
@@ -216,4 +269,7 @@ extern int iaxc_prioboostend(void);
 /* get the raw in/out levels, as int */
 extern int iaxc_get_inout_volumes(int *input, int *output);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

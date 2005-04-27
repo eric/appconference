@@ -25,12 +25,14 @@ MEC2_EC=0
 
 USE_NEWJB=1
 
+USE_VIDEO=0
+
 CFLAGS= -I. -Igsm/inc \
 	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \
 	-Ilibspeex/include
 
 #CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
-CFLAGS:= $(CFLAGS) -g -O2 
+CFLAGS:= $(CFLAGS) -g -O2
 
 CFLAGS:= $(CFLAGS) -DLIBVER='"CVS-$(shell date +%Y/%m/%d-%H:%M)"'
 
@@ -141,6 +143,14 @@ OBJS_ILBC=\
 	iLBC/iCBConstruct.o\
 	iLBC/lsf.o
 
+OBJS_VIDEO=\
+	video.o\
+	video_portvideo.o\
+	PortVideoSDL/common/cameraTool.o\
+	PortVideoSDL/common/RingBuffer.o\
+	PortVideoSDL/common/FrameInverter.o\
+	codec_theora.o
+
 
 OBJS:= $(OBJS) $(OBJS_LIBSPEEX) 
 
@@ -244,6 +254,24 @@ RANLIB= ranlib
 DYNLIB=libiaxclient.dylib
 endif
 
+ifeq ($(USE_VIDEO),1)
+	OBJS:= $(OBJS) $(OBJS_VIDEO) 
+	CFLAGS:= $(CFLAGS) -DIAXC_VIDEO
+	LIBS:= $(LIBS) -lavcodec -ltheora
+  ifeq ($(OSTYPE),LINUX)
+	OBJS:= $(OBJS) PortVideoSDL/linux/linuxfwCamera.o PortVideoSDL/linux/v4linuxCamera.o
+  endif
+  ifeq ($(OSTYPE),WIN32)
+	CFLAGS:= $(CFLAGS) -IPortVideoSDL/win32/dslib/include -Ic:/DX90SDK/include-gcc -Ic:/DX90SDK/Samples/C++/DirectShow/BaseClasses
+	OBJS:= $(OBJS) PortVideoSDL/win32/dslibCamera.cpp
+  endif
+  ifeq ($(OSTYPE),MACOSX)
+        CFLAGS:= $(CFLAGS) -I../../theora/include -I/sw/include
+        OBJS:= $(OBJS) PortVideoSDL/macosx/macvdCamera.o PortVideoSDL/macosx/vdigGrab.o
+  endif
+endif
+
+
 
 OBJS:= $(OBJS) $(OBJS_IAX2)
 #CFLAGS:= $(CFLAGS) -Ilibiax2/src -DIAXC_IAX2 -DLIBIAX -DDEBUG_SUPPORT 
@@ -276,6 +304,7 @@ GCCLIBDIR=$(MGLIBDIR)/gcc-lib/mingw32/3.2/
 
 GCCLIB=$(GCCLIBDIR)/libgcc.a 
 
+CXXFLAGS=$(CFLAGS)
 
 $(MSLIB): $(OBJS)
 #	rm -f $(MSLIB)

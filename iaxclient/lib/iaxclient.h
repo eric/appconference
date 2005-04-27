@@ -74,11 +74,15 @@ extern "C" {
 #define IAXC_FORMAT_SPEEX        (1 << 9)        /* Speex Audio */
 #define IAXC_FORMAT_ILBC         (1 << 10)       /* iLBC Audio */
 
-#define IAXC_FORMAT_MAX_AUDIO (1 << 15)  /* Maximum audio format */
+#define IAXC_FORMAT_MAX_AUDIO 	 (1 << 15)  /* Maximum audio format */
 #define IAXC_FORMAT_JPEG         (1 << 16)       /* JPEG Images */
 #define IAXC_FORMAT_PNG          (1 << 17)       /* PNG Images */
 #define IAXC_FORMAT_H261         (1 << 18)       /* H.261 Video */
 #define IAXC_FORMAT_H263         (1 << 19)       /* H.263 Video */
+#define IAXC_FORMAT_H263_PLUS    (1 << 20)       /* H.263+ Video */
+#define IAXC_FORMAT_MPEG4    	 (1 << 21)       /* MPEG4 Video */
+#define IAXC_FORMAT_H264    	 (1 << 23)       /* H264 Video */
+#define IAXC_FORMAT_THEORA    	 (1 << 24)       /* Theora Video */
 
 
 
@@ -87,6 +91,7 @@ extern "C" {
 #define IAXC_EVENT_STATE		3
 #define IAXC_EVENT_NETSTAT		4
 #define IAXC_EVENT_URL			5	/* URL push via IAX(2) */
+#define IAXC_EVENT_VIDEO		6	/* video data (pointer) */
 
 #define IAXC_CALL_STATE_FREE 		0
 #define IAXC_CALL_STATE_ACTIVE 		(1<<1)
@@ -155,6 +160,14 @@ struct iaxc_ev_url {
 	char url[IAXC_EVENT_BUFSIZ];
 };
 
+struct iaxc_ev_video {
+	int callNo;
+	int format;
+	int width;
+	int height;
+	unsigned char *data;
+};
+
 typedef struct iaxc_event_struct {
 	struct iaxc_event_struct *next;
 	int type;
@@ -164,6 +177,7 @@ typedef struct iaxc_event_struct {
 		struct iaxc_ev_call_state 	call;
 		struct iaxc_ev_netstats 	netstats;
 		struct iaxc_ev_url		url;
+		struct iaxc_ev_video		video;
 	} ev;
 } iaxc_event;
 
@@ -294,6 +308,18 @@ EXPORT void iaxc_set_filters(int filters);
 	*    default and good choice.
 */
 EXPORT void iaxc_set_speex_settings(int decode_enhance, float quality, int bitrate, int vbr, int abr, int complexity);
+
+/* set/get video mode */
+#define IAXC_VIDEO_MODE_NONE 			0  /* don't send video at all */
+#define IAXC_VIDEO_MODE_ACTIVE 			1  /* send video */
+#define IAXC_VIDEO_MODE_PREVIEW_RAW 		2  /* send video, and show raw preview */
+#define IAXC_VIDEO_MODE_PREVIEW_ENCODED  	3  /* send video, and show encoded preview */
+EXPORT int iaxc_video_mode_set(int mode);
+EXPORT int iaxc_video_mode_get();
+
+/* set allowed/preferred video encodings */
+EXPORT void iaxc_video_format_set(int preferred, int allowed, int framerate, int bitrate, int width, int height);
+
 
 #ifdef __cplusplus
 }
