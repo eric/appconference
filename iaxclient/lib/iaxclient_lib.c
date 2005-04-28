@@ -83,8 +83,6 @@ static THREADID procThreadID;
 /* QuitFlag: 0: Running 1: Should Quit, -1: Not Running */
 static int procThreadQuitFlag = -1;
 
-static void iaxc_do_pings(void);
-
 static iaxc_event_callback_t iaxc_event_callback = NULL;
 
 // Internal queue of events, waiting to be posted once the library
@@ -478,52 +476,6 @@ static void iaxc_note_activity(int callNo) {
   gettimeofday(&calls[callNo].last_activity, NULL);   
 }
 
-static void iaxc_do_pings(void) {
-  int i;
-  struct timeval now;
-
-  gettimeofday(&now, NULL);
-  for(i = 0; i < nCalls; i++)
-  {
-      long act_since;
-      long ping_since;
-
-      if(!(calls[i].state & IAXC_CALL_STATE_ACTIVE))
-	  continue;
-
-      act_since = iaxc_usecdiff(&now, &calls[i].last_activity)/1000;
-
-      // if we've had any activity in a while, don't worry about anything.
-      if(act_since < IAXC_CALL_TIMEOUT/3)
-	  continue;  /* OK */
-
-      ping_since = iaxc_usecdiff(&now, &calls[i].last_ping)/1000;
-
-      /* if we haven't had activity in a while, and also haven't sent a
-       * ping in a while, send a ping.
-       */
-      if(ping_since > IAXC_CALL_TIMEOUT/3) { 
-	  //fprintf(stderr, "Sending Ping for call %d as=%ld, ps=%ld\n", i, act_since, ping_since); 
-	  calls[i].last_ping = now;
-	  iax_send_ping(calls[i].session);
-	  continue; 
-      }
-
-      /* finally, we've recently sent a ping, and still haven't had any 
-       * activity.  If it's been longer then the timeout, timeout the call.
-       */
-      if(act_since > IAXC_CALL_TIMEOUT) {
-	  /* timeout the call. */
-	  //fprintf(stderr, "Timing out call %d as=%ld, ps=%ld\n", i, act_since, ping_since); 
-	  iax_hangup(calls[i].session,"Timed out waiting for ping or activity");
-	  iaxc_usermsg(IAXC_STATUS, "call %d timed out (ping/act = %ld/%ld)", i, ping_since/1000, act_since/1000);
-	  iaxc_clear_call(i);
-      }
-
-  }
-
-}
-
 void iaxc_refresh_registrations() {
     struct iaxc_registration *cur;
     struct timeval now;
@@ -558,7 +510,6 @@ EXPORT void iaxc_process_calls(void) {
 #endif
     get_iaxc_lock();
     iaxc_service_network();
-    iaxc_do_pings();
     service_audio();
     iaxc_refresh_registrations();
     
