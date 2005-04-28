@@ -1038,6 +1038,8 @@ static int iax_send(struct iax_session *pvt, struct ast_frame *f, unsigned int t
 		fr->retries = -1;
 		res = iax_xmit_frame(fr);
 	}
+	if( !now && fr!=NULL )
+	        iax_frame_free( fr ); 
 	return res;
 }
 
