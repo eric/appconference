@@ -118,7 +118,7 @@ void gettimeofday(struct timeval *tv, struct timezone *tz);
 #define DROP_WHOLE_FRAMES
 
 #define MIN_RETRY_TIME 10
-#define MAX_RETRY_TIME 10000
+#define MAX_RETRY_TIME 4000
 #define MEMORY_SIZE 1000
 
 #define TRANSFER_NONE  0
@@ -414,6 +414,30 @@ static int iax_sched_add(struct iax_event *event, struct iax_frame *frame, sched
 		DEBU(G "Out of memory!\n");
 		return -1;
 	}
+}
+
+static int iax_sched_del(struct iax_event *event, struct iax_frame *frame, sched_func func, void *arg, int all)
+{
+	struct iax_sched *cur, *tmp, *prev = NULL;
+
+	cur = schedq;
+	while (cur) {
+		if (cur->event == event && cur->frame == frame && cur->func == func && cur->arg == arg) {
+			if (prev)
+				prev->next = cur->next;
+			else
+				schedq = cur->next;
+			tmp = cur;
+			cur = cur->next;	
+			free(tmp);
+			if (!all)
+				break;
+		} else {
+			prev = cur;
+			cur = cur->next;
+		}
+	}
+
 }
 
 
@@ -1510,6 +1534,7 @@ int iax_reject(struct iax_session *session, char *reason)
 int iax_hangup(struct iax_session *session, char *byemsg)
 {
 	struct iax_ie_data ied;
+	iax_sched_del(NULL, NULL, send_ping, (void *)session, 1);
 	memset(&ied, 0, sizeof(ied));
 	iax_ie_append_str(&ied, IAX_IE_CAUSE, byemsg ? byemsg : "Normal clearing");
 	return send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_HANGUP, 0, ied.buf, ied.pos, -1);
@@ -2434,7 +2459,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				break;
 			case IAX_COMMAND_PONG:
 				e->etype = IAX_EVENT_PONG;
-				session->pingtime = calc_timestamp(session,0,NULL) - ts;
+				/* track weighted average of ping time */
+				session->pingtime = ((2 * session->pingtime) + (calc_timestamp(session,0,NULL) - ts)) / 3;
 				session->remote_netstats.jitter = e->ies.rr_jitter;
 				session->remote_netstats.losspct = e->ies.rr_loss >> 24;;
 				session->remote_netstats.losscnt = e->ies.rr_loss & 0xffffff;
@@ -2789,7 +2815,9 @@ struct iax_event *iax_get_event(int blocking)
 			/* It's a frame, transmit it and schedule a retry */
 			if (frame->retries < 0) {
 				/* It's been acked.  No need to send it.   Destroy the old
-				   frame */
+				   frame. If final, destroy the session. */
+				if (frame->final)
+					destroy_session(frame->session);
 				if (frame->data)
 					free(frame->data);
 				free(frame);
@@ -2797,17 +2825,30 @@ struct iax_event *iax_get_event(int blocking)
 				if (frame->transfer) {
 					/* Send a transfer reject since we weren't able to connect */
 					iax_send_txrej(frame->session);
+					if (frame->data)
+						free(frame->data);
+					free(frame);
 					free(cur);
 					break;
 				} else {
-					/* We haven't been able to get an ACK on this packet.  We should
-					   destroy its session */
-					event = (struct iax_event *)malloc(sizeof(struct iax_event));
-					if (event) {
-						event->etype = IAX_EVENT_TIMEOUT;
-						event->session = frame->session;
-						free(cur);
-						return handle_event(event);
+					/* We haven't been able to get an ACK on this packet. If a 
+					   final frame, destroy the session, otherwise, pass up timeout */
+					if (frame->final) {
+						destroy_session(frame->session);
+						if (frame->data)
+							free(frame->data);
+						free(frame);
+					} else {
+						event = (struct iax_event *)malloc(sizeof(struct iax_event));
+						if (event) {
+							event->etype = IAX_EVENT_TIMEOUT;
+							event->session = frame->session;
+							if (frame->data)
+								free(frame->data);
+							free(frame);
+							free(cur);
+							return handle_event(event);
+						}
 					}
 				}
 			} else {

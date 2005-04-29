@@ -807,6 +807,11 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 		case IAX_EVENT_CNG:
 			/* ignore? */
 			break;
+		case IAX_EVENT_TIMEOUT:
+			iax_hangup(e->session, "Call timed out");
+			iaxc_usermsg(IAXC_STATUS, "Call %d timed out.", callNo);
+			iaxc_clear_call(callNo);
+			break;
 		default:
 			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
 			break;
