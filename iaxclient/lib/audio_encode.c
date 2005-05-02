@@ -186,10 +186,13 @@ int iaxc_input_postprocess(void *audio, int len, int rate)
 	return volume < iaxc_silence_threshold;
 }
 
+void iaxc_calculate_output_levels(void *audio, int len) {
+    calculate_level(audio, len, &output_level);
+}
+
 static int output_postprocess(void *audio, int len)
 {
-
-    calculate_level(audio, len, &output_level);
+    iaxc_calculate_output_levels(audio, len);
 
     do_level_callback();
 
