@@ -1,5 +1,7 @@
 
-CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
+CFLAGS=-mno-cygwin -I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
+LDFLAGS=-mno-cygwin
+
 
 #debug
 CFLAGS:= $(CFLAGS) -g
@@ -89,7 +91,7 @@ makelib:
 	(cd ../../lib; $(MAKE) libiaxclient.a)
 
 testcall$(EXEEXT): $(OBJS) $(LIBS)
-	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)
+	gcc $(LDFLAGS) $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)
 
 testcall-jb$(EXEEXT): testcall-jb.o $(LIBS)
 	gcc testcall-jb.o $(LIBS) $(SYSLIBS) -o testcall-jb$(EXEEXT)
