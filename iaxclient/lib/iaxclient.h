@@ -214,6 +214,8 @@ EXPORT void iaxc_dump_call(void);
 EXPORT void iaxc_reject_call(void);
 EXPORT void iaxc_reject_call_number(int callNo);
 EXPORT void iaxc_send_dtmf(char digit);
+EXPORT void iaxc_send_text(char *text);
+EXPORT void iaxc_send_url(char *url, int link); /* link == 1 ? AST_HTML_LINKURL : AST_HTML_URL */
 EXPORT int iaxc_was_call_answered();
 EXPORT void iaxc_millisleep(long ms);
 EXPORT void iaxc_set_silence_threshold(double thr);

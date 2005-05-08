@@ -1001,6 +1001,26 @@ EXPORT void iaxc_send_dtmf(char digit)
     }
 }
 
+EXPORT void iaxc_send_text(char *text)
+{
+    if(selected_call >= 0) {
+	get_iaxc_lock();
+	if(calls[selected_call].state & IAXC_CALL_STATE_ACTIVE)
+		iax_send_text(calls[selected_call].session, text);
+	put_iaxc_lock();
+    }
+}
+
+EXPORT void iaxc_send_url(char *url, int link)
+{
+    if(selected_call >= 0) {
+	get_iaxc_lock();
+	if(calls[selected_call].state & IAXC_CALL_STATE_ACTIVE)
+		iax_send_url(calls[selected_call].session, url, link); 
+	put_iaxc_lock();
+    }
+}
+
 static int iaxc_find_call_by_session(struct iax_session *session)
 {
 	int i;
