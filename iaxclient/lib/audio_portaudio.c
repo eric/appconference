@@ -130,8 +130,8 @@ static int  nextSoundId = 1;
 
 static MUTEX sound_lock;
 
-int pa_start (struct iaxc_audio_driver *d ) ;
-void handle_paerror(PaError err, char * where);
+static int pa_start (struct iaxc_audio_driver *d ) ;
+static void handle_paerror(PaError err, char * where);
 
 /* scan devices and stash pointers to dev structures. 
  *  But, these structures only remain valid while Pa is initialized,
@@ -178,7 +178,7 @@ static int scan_devices(struct iaxc_audio_driver *d) {
     return 0;
 }
 
-void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples) {
+static void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples) {
     int i;
     //fprintf(stderr, "mono2stereo: %d samples\n", nSamples);
     for(i=0;i<nSamples;i++) {
@@ -187,7 +187,7 @@ void mono2stereo(SAMPLE *out, SAMPLE *in, int nSamples) {
     }
 }
 
-void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples) {
+static void stereo2mono(SAMPLE *out, SAMPLE *in, int nSamples) {
     int i;
     //fprintf(stderr, "stereo2mono: %d samples\n", nSamples);
     for(i=0;i<nSamples;i++) {
@@ -222,7 +222,7 @@ static void mix_slin(short *dst, short *src, int samples) {
     }
 }
 
-int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel) {
+static int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel) {
     struct iaxc_sound *s;
     struct iaxc_sound **sp;
     unsigned long outpos;
@@ -271,7 +271,7 @@ int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel) {
   return 0;
 }
 
-int pa_play_sound(struct iaxc_sound *inSound, int ring) {
+static int pa_play_sound(struct iaxc_sound *inSound, int ring) {
   struct iaxc_sound *sound;
 
   sound = (struct iaxc_sound *)malloc(sizeof(struct iaxc_sound));
@@ -293,7 +293,7 @@ int pa_play_sound(struct iaxc_sound *inSound, int ring) {
   return sound->id; 
 }
 
-int pa_stop_sound(int soundID) {
+static int pa_stop_sound(int soundID) {
     struct iaxc_sound **sp;
     struct iaxc_sound *s;
     int retval = 1; /* not found */
@@ -391,7 +391,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 
 }
 
-int pa_callback(void *inputBuffer, void *outputBuffer,
+static int pa_callback(void *inputBuffer, void *outputBuffer,
 	    unsigned long samplesPerFrame, PaTimestamp outTime, void *userData ) {
 
     int totBytes = samplesPerFrame * sizeof(SAMPLE);
@@ -455,7 +455,7 @@ int pa_callback(void *inputBuffer, void *outputBuffer,
     return 0; 
 }
 
-int pa_aux_callback(void *inputBuffer, void *outputBuffer,
+static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 	    unsigned long samplesPerFrame, PaTimestamp outTime, void *userData ) {
 
     int totBytes = samplesPerFrame * sizeof(SAMPLE);
@@ -495,7 +495,7 @@ int pa_aux_callback(void *inputBuffer, void *outputBuffer,
  * where we will fail (i.e. if the user has only mono in and out on a Mac).
  *
  * */
-int pa_openstreams (struct iaxc_audio_driver *d ) {
+static int pa_openstreams (struct iaxc_audio_driver *d ) {
     PaError err;
 
 #ifndef MACOSX
@@ -605,7 +605,7 @@ int pa_openstreams (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-int pa_openauxstream (struct iaxc_audio_driver *d ) {
+static int pa_openauxstream (struct iaxc_audio_driver *d ) {
     PaError err;
 
     err = Pa_OpenStream ( &aStream, 
@@ -627,7 +627,7 @@ int pa_openauxstream (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-int pa_start (struct iaxc_audio_driver *d ) {
+static int pa_start (struct iaxc_audio_driver *d ) {
     PaError err;
     static int errcnt=0;
 
@@ -719,7 +719,7 @@ int pa_start (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-int pa_stop (struct iaxc_audio_driver *d ) {
+static int pa_stop (struct iaxc_audio_driver *d ) {
     PaError err;
 
     if(!running) return 0;
@@ -743,17 +743,17 @@ int pa_stop (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-void pa_shutdown() {
+static void pa_shutdown() {
     CloseAudioStream( iStream );
     if(!oneStream) CloseAudioStream( oStream );
     if(auxStream) CloseAudioStream( aStream );
 }
 
-void handle_paerror(PaError err, char * where) {
+static void handle_paerror(PaError err, char * where) {
 	fprintf(stderr, "PortAudio error at %s: %s\n", where, Pa_GetErrorText(err));
 }
 
-int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
+static int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 	int bytestoread;
 
 	bytestoread = *nSamples * sizeof(SAMPLE);
@@ -769,7 +769,7 @@ int pa_input(struct iaxc_audio_driver *d, void *samples, int *nSamples) {
 	return 0;
 }
 
-int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
+static int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 	int bytestowrite = nSamples * sizeof(SAMPLE);
 	int outRingLen;
 
@@ -791,7 +791,7 @@ int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 
 }
 
-int pa_select_devices (struct iaxc_audio_driver *d, int input, int output, int ring) {
+static int pa_select_devices (struct iaxc_audio_driver *d, int input, int output, int ring) {
     selectedInput = input;
     selectedOutput = output;
     selectedRing = ring;
@@ -802,19 +802,19 @@ int pa_select_devices (struct iaxc_audio_driver *d, int input, int output, int r
     return 0;
 }
 
-int pa_selected_devices (struct iaxc_audio_driver *d, int *input, int *output, int *ring) {
+static int pa_selected_devices (struct iaxc_audio_driver *d, int *input, int *output, int *ring) {
     *input = selectedInput;
     *output = selectedOutput;
     *ring = selectedRing;
     return 0;
 }
 
-int pa_destroy (struct iaxc_audio_driver *d ) {
+static int pa_destroy (struct iaxc_audio_driver *d ) {
     //implementme
     return 0;
 }
 
-double pa_input_level_get(struct iaxc_audio_driver *d)
+static double pa_input_level_get(struct iaxc_audio_driver *d)
 {
 	/* iMixer should be non-null if we using either one or two streams */
     if(!iMixer) return -1;
@@ -826,7 +826,7 @@ double pa_input_level_get(struct iaxc_audio_driver *d)
     return Px_GetInputVolume(iMixer);
 }
 
-double pa_output_level_get(struct iaxc_audio_driver *d){
+static double pa_output_level_get(struct iaxc_audio_driver *d){
     PxMixer *mix;
 
 	/* oMixer may be null if we're using one stream,
@@ -844,7 +844,7 @@ double pa_output_level_get(struct iaxc_audio_driver *d){
     return Px_GetOutputVolume( mix, Px_SupportsPCMOutputVolume( mix ) ) ;
 }
 
-int pa_input_level_set(struct iaxc_audio_driver *d, double level){
+static int pa_input_level_set(struct iaxc_audio_driver *d, double level){
     if(!iMixer) return -1;
      
 	/* make sure this device supports input volume controls */
@@ -856,7 +856,7 @@ int pa_input_level_set(struct iaxc_audio_driver *d, double level){
     return 0;
 }
 
-int pa_output_level_set(struct iaxc_audio_driver *d, double level){
+static int pa_output_level_set(struct iaxc_audio_driver *d, double level){
     PxMixer *mix;
 
     if(oMixer)
@@ -872,7 +872,7 @@ int pa_output_level_set(struct iaxc_audio_driver *d, double level){
     return 0;
 }
 
-int pa_mic_boost_get( struct iaxc_audio_driver* d )
+static int pa_mic_boost_get( struct iaxc_audio_driver* d )
 {
 	int enable = -1 ;
 #ifdef WIN32

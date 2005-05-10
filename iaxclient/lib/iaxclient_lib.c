@@ -634,7 +634,7 @@ static int service_audio()
 }
 
 /* handle IAX text events */
-void handle_text_event(struct iax_event *e, int callNo) {
+static void handle_text_event(struct iax_event *e, int callNo) {
     iaxc_event ev;
 
    if(callNo < 0)
@@ -713,7 +713,7 @@ static void generate_netstat_event(int callNo) {
 	iaxc_post_event(ev);
 }
 
-void handle_audio_event(struct iax_event *e, int callNo) {
+static void handle_audio_event(struct iax_event *e, int callNo) {
 	int total_consumed = 0;
 	int cur;
 	short fr[1024];

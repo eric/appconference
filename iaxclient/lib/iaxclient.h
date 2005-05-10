@@ -294,6 +294,7 @@ EXPORT int iaxc_stop_sound(int id);
 #define IAXC_FILTER_CN 		(1<<4) /* Send CN frames when silence detected */
 EXPORT int iaxc_get_filters(void);
 EXPORT void iaxc_set_filters(int filters);
+EXPORT int iaxc_set_files(FILE *input, FILE *output);
 
 /* speex specific codec settings */
 /* a good choice is (1,-1,-1,0,8000,3): 8kbps ABR */
