@@ -14,6 +14,7 @@
  * the GNU Lesser (Library) General Public License
  */
 #include "iaxclient_lib.h"
+#include "jitterbuf.h"
 
 #if defined(__STDC__) || defined(_MSC_VER)
 #include <stdarg.h>

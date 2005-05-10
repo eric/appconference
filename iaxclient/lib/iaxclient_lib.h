@@ -25,6 +25,7 @@ extern "C" {
  * accessible APIs should be declared in iaxclient.h */
 
 #include <stdio.h>
+#include <string.h>
 
 #ifdef WIN32
 #include "winpoop.h" // Win32 Support Functions
@@ -46,7 +47,6 @@ extern "C" {
 #include "speex/speex_preprocess.h"
 #endif
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include "spandsp/plc.h"
