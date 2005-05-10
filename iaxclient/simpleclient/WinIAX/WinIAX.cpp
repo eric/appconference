@@ -1,15 +1,15 @@
 // WinIAX.cpp : Defines the entry point for the application.
 //
 
-#include "stdafx.h"
-#include "mmsystem.h"
+#include "StdAfx.h"
+#include <mmsystem.h>
 #include "winiax.h"
 #include "resource.h"
 #include "iaxclient.h"
-#include "commctrl.h"
-#include "Commdlg.h"
-//#include "stdarg.h"
-//#include "varargs.h"
+#include <commctrl.h>
+#include <commdlg.h>
+//#include <stdarg.h>
+//#include <varargs.h>
 
 #define APP_NAME "WinIAX Client"
 #define LEVEL_MAX -10
@@ -26,7 +26,7 @@ int APIENTRY WinMain(HINSTANCE hInstance,
 {
  	// TODO: Place code here.
 	WNDCLASSEX wnd;
-	wnd.cbSize=sizeof WNDCLASSEX;
+	wnd.cbSize=sizeof(WNDCLASSEX);
 	wnd.lpfnWndProc=(WNDPROC)DialogProc;
 	wnd.lpszMenuName=MAKEINTRESOURCE(IDR_MENU1);
 	wnd.hInstance=hInstance;
@@ -448,7 +448,7 @@ BOOL OnInitDialog()
 //		  Sleep(3000);
 //		  PlaySound(NULL,NULL,NULL);
 	iaxc_initialize(AUDIO_INTERNAL_PA,3);
-	iaxc_set_encode_format(IAXC_FORMAT_GSM);
+	//	iaxc_set_encode_format(IAXC_FORMAT_GSM);
 	iaxc_set_silence_threshold(silence_threshold);
 
 	iaxc_set_event_callback(iaxc_callback);
@@ -533,7 +533,8 @@ void OnBnDial()
 	char szString[MAX_PATH];
 	GetDlgItemText(m_hwndMainDlg,IDC_E_IAX_URI,szString,MAX_PATH);
 //	if(iTotCalls>0 && iTotCalls<3) // We do have a call so make another i guess
-	iaxc_call(szString,CALLER_ID);
+	iaxc_set_callerid(CALLER_ID, 0);
+	iaxc_call(szString);
 //	else if(iTotCalls>3)
 //		return;
 //	else
@@ -677,7 +678,7 @@ int HandleStateEvent(struct iaxc_ev_call_state c)
 		BOOL outgoing = c.state & IAXC_CALL_STATE_OUTGOING;
 		BOOL ringing = c.state & IAXC_CALL_STATE_RINGING;
 		BOOL complete = c.state & IAXC_CALL_STATE_COMPLETE;
-		BOOL rejected = c.state & IAXC_CALL_STATE_REJECTED;
+		BOOL rejected = c.state & 0; //IAXC_CALL_STATE_REJECTED;
 		
 		if( ringing && !outgoing ) {
 //	    stateItem.SetTextColour(*wxBLACK);
@@ -690,11 +691,11 @@ int HandleStateEvent(struct iaxc_ev_call_state c)
 		}
 		if(outgoing)
 		{
-			if((c.state & IAXC_CALL_STATE_AUTHREQ))
-			{
-				sprintf(stStr,"call no %d: Authentication required");
-				TMessageBox(stStr);
-			}
+// 			if((c.state & IAXC_CALL_STATE_AUTHREQ))
+// 			{
+// 				sprintf(stStr,"call no %d: Authentication required");
+// 				TMessageBox(stStr);
+// 			}
 			if(ringing)
 			{
 				sprintf(stStr,"Ringing outbound call no %d",c.callNo);				

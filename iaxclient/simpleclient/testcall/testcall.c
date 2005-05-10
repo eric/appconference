@@ -11,7 +11,7 @@
  * the GNU Lesser (Library) General Public License
  */
 
-/* #define	PRINTCHUCK /* enable this to indicate chucked incomming packets */
+/* #define	PRINTCHUCK /\* enable this to indicate chucked incomming packets *\/ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,19 +19,23 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <time.h>
+#include <ctype.h>
+#include <unistd.h>
 
 #include "iaxclient.h"
 
-static int answered_call;
+/* static int answered_call; */
 static char *output_filename = NULL;
 int do_levels = 0;
+int initialized = 0;
 
 /* routine called at exit to shutdown audio I/O and close nicely.
 NOTE: If all this isnt done, the system doesnt not handle this
 cleanly and has to be rebooted. What a pile of doo doo!! */
 void killem(void)
 {
-	iaxc_shutdown();
+	if (initialized)
+		iaxc_shutdown();
 	return;
 }
 
@@ -109,7 +113,7 @@ void list_devices()
 
     iaxc_audio_devices_get(&devs,&nDevs, &input, &output, &ring);
     for(i=0;i<nDevs;i++) {
-	fprintf(stderr, "DEVICE ID=%d NAME=%s CAPS=%x\n", devs[i].devID, devs[i].name, devs[i].capabilities);
+	fprintf(stderr, "DEVICE ID=%d NAME=%s CAPS=%lx\n", devs[i].devID, devs[i].name, devs[i].capabilities);
     }
 }
 
@@ -168,11 +172,13 @@ int main(int argc, char **argv)
 	  FILE *outfile;
 	  if(iaxc_initialize(AUDIO_INTERNAL_FILE,1))
 	    fatal_error("cannot initialize iaxclient!");
+	  initialized = 1;
 	  outfile = fopen(output_filename,"w");
-	  file_set_files(NULL, outfile);
+	  iaxc_set_files(NULL, outfile);
 	} else {
 	  if(iaxc_initialize(AUDIO_INTERNAL_PA,1))
 	    fatal_error("cannot initialize iaxclient!");
+	  initialized = 1;
 	}
 
 	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
@@ -207,7 +213,7 @@ int main(int argc, char **argv)
 	    for(;;)
 	      sleep(10);
 	}
-	while(c = getc(stdin)) {
+	while((c = getc(stdin))) {
 	    switch (tolower(c)) {
 	      case 'a':
 		printf("Answering call 0\n");

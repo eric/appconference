@@ -740,7 +740,7 @@ bool IAXClient::OnInit()
                                    config->Read("/Output Device", ""),
                                    config->Read("/Ring Device", ""));
 
-    iaxc_set_encode_format(IAXC_FORMAT_GSM);
+    //    iaxc_set_encode_format(IAXC_FORMAT_GSM);
     iaxc_set_silence_threshold(-99);
     iaxc_set_event_callback(iaxc_callback);
 

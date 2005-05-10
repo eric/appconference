@@ -1,6 +1,5 @@
-#include "gsm\inc\gsm.h"
-#include "stdio.h"
-#include "process.h"
+#include <stdio.h>
+#include <process.h>
 //#include "sox.h"
 
 

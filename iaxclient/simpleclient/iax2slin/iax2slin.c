@@ -77,9 +77,9 @@ int main(int argc, char **argv)
 	}
 	if(output_filename) {
 	  outfile = fopen(output_filename,"w");
-	  file_set_files(NULL, outfile);
+	  iaxc_set_files(NULL, outfile);
 	} else {
-	  file_set_files(NULL, stdout);
+	  iaxc_set_files(NULL, stdout);
 	}
 
 //	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
