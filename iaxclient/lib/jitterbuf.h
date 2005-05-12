@@ -63,7 +63,7 @@ typedef struct jb_info {
 	long current; 		/* the present jitterbuffer adjustment */
 	long target; 		/* the target jitterbuffer adjustment */
 	long losspct; 		/* recent lost frame percentage (* 1000) */
-	long last_voice_ts;	/* the last ts that was read from the jb - in receiver's time */
+	long next_voice_ts;	/* the ts of the next frame to be read from the jb - in receiver's time */
 	long last_voice_ms;	/* the duration of the last voice frame */
 	long silence_begin_ts;	/* the time of the last CNG frame, when in silence */
 	long last_adjustment;   /* the time of the last adjustment */
