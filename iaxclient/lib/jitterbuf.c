@@ -314,6 +314,9 @@ static void queue_put(jitterbuf *jb, void *data, int type, long ms, long ts)
 	frame->next->prev = frame;
 	frame->prev->next = frame;
 
+	/* frame is out of order */
+	jb->info.frames_ooo++;
+
 	jb->frames = frame;
     } else { 
 	p = jb->frames;
