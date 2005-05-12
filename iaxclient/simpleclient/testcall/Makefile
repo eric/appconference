@@ -1,6 +1,6 @@
 
-CFLAGS=-mno-cygwin -I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
-LDFLAGS=-mno-cygwin
+CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
+LDFLAGS=
 
 
 #debug
@@ -11,6 +11,7 @@ OBJS=	testcall.o
 LIBS=	../../lib/libiaxclient.a
 
 EXEEXT=
+
 
 # glean the platform
 # We will define this as either Linux, Win32, or MacOSX
@@ -23,9 +24,11 @@ else
 # CYGWIN reports CYGWIN_NT-5.0 under Win2K
 ifneq (,$(findstring WIN,$(shell uname)))
 OSTYPE=WIN32
+CC=gcc -mno-cygwin
 else
 ifneq (,$(findstring MINGW,$(shell uname)))
 OSTYPE=WIN32
+CC=gcc -mno-cygwin
 else
 ifneq (,$(findstring SunOS,$(shell uname)))
 OSTYPE=SOLARIS
@@ -91,8 +94,8 @@ makelib:
 	(cd ../../lib; $(MAKE) libiaxclient.a)
 
 testcall$(EXEEXT): $(OBJS) $(LIBS)
-	gcc $(LDFLAGS) $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)
+	$(CC) $(OBJS) $(LIBS) $(SYSLIBS) -o testcall$(EXEEXT)
 
 testcall-jb$(EXEEXT): testcall-jb.o $(LIBS)
-	gcc testcall-jb.o $(LIBS) $(SYSLIBS) -o testcall-jb$(EXEEXT)
+	$(CC) testcall-jb.o $(LIBS) $(SYSLIBS) -o testcall-jb$(EXEEXT)
 
