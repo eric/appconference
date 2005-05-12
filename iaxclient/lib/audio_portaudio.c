@@ -57,7 +57,9 @@ static int sample_rate = 8000;
 
 
 #define MAX_SAMPLE_RATE	      48000
-#define MS_PER_FRAME	      10
+#ifndef MS_PER_FRAME
+# define MS_PER_FRAME	      40
+#endif
 #define SAMPLES_PER_FRAME     (MS_PER_FRAME * sample_rate / 1000)
 
 /* static frame buffer allocation */
