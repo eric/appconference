@@ -413,7 +413,7 @@ int main(int argc, char **argv)
 	  if(iaxc_initialize(AUDIO_INTERNAL_FILE,1))
 	    fatal_error("cannot initialize iaxclient!");
 	  outfile = fopen(output_filename,"w");
-	  file_set_files(NULL, outfile);
+	  iaxc_set_files(NULL, outfile);
 	} else {
 	  if(iaxc_initialize(AUDIO_INTERNAL_PA,1))
 	    fatal_error("cannot initialize iaxclient!");
