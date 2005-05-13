@@ -34,6 +34,8 @@
 #ifndef SPEEX_PREPROCESS_H
 #define SPEEX_PREPROCESS_H
 
+#include "speex/speex_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +55,8 @@ typedef struct SpeexPreprocessState {
    int    dereverb_enabled;
    float  reverb_decay;
    float  reverb_level;
+   float  speech_prob_start;
+   float  speech_prob_continue;
    
    float *frame;             /**< Processing frame (2*ps_size) */
    float *ps;                /**< Current power spectrum */
@@ -107,10 +111,10 @@ SpeexPreprocessState *speex_preprocess_state_init(int frame_size, int sampling_r
 void speex_preprocess_state_destroy(SpeexPreprocessState *st);
 
 /** Preprocess a frame */
-int speex_preprocess(SpeexPreprocessState *st, short *x, int *echo);
+int speex_preprocess(SpeexPreprocessState *st, spx_int16_t *x, float *echo);
 
 /** Preprocess a frame */
-void speex_preprocess_estimate_update(SpeexPreprocessState *st, short *x, int *echo);
+void speex_preprocess_estimate_update(SpeexPreprocessState *st, spx_int16_t *x, float *echo);
 
 /** Used like the ioctl function to control the preprocessor parameters */
 int speex_preprocess_ctl(SpeexPreprocessState *st, int request, void *ptr);
@@ -137,6 +141,13 @@ int speex_preprocess_ctl(SpeexPreprocessState *st, int request, void *ptr);
 
 #define SPEEX_PREPROCESS_SET_DEREVERB_DECAY 12
 #define SPEEX_PREPROCESS_GET_DEREVERB_DECAY 13
+
+#define SPEEX_PREPROCESS_SET_PROB_START 14
+#define SPEEX_PREPROCESS_GET_PROB_START 15
+
+#define SPEEX_PREPROCESS_SET_PROB_CONTINUE 16
+#define SPEEX_PREPROCESS_GET_PROB_CONTINUE 17
+
 
 #ifdef __cplusplus
 }

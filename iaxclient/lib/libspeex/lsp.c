@@ -6,7 +6,8 @@ Original copyright
 	AUTHOR......: David Rowe
 	DATE CREATED: 24/2/93
 
-Modified by Jean-Marc Valin
+Heavily modified by Jean-Marc Valin (fixed-point, optimizations, 
+                                     additional functions, ...)
 
    This file contains functions for converting Linear Prediction
    Coefficients (LPC) to Line Spectral Pair (LSP) and back. Note that the
@@ -76,7 +77,7 @@ static spx_word16_t spx_cos(spx_word16_t x)
       x2 = MULT16_16_P13(x,x);
       return ADD32(C1, MULT16_16_P13(x2, ADD32(C2, MULT16_16_P13(x2, ADD32(C3, MULT16_16_P13(C4, x2))))));
    } else {
-      x = 25736-x;
+      x = SUB16(25736,x);
       x2 = MULT16_16_P13(x,x);
       return SUB32(-C1, MULT16_16_P13(x2, ADD32(C2, MULT16_16_P13(x2, ADD32(C3, MULT16_16_P13(C4, x2))))));
       /*return SUB32(-C1, MULT16_16_Q13(x2, ADD32(C2, MULT16_16_Q13(C3, x2))));*/
@@ -87,7 +88,7 @@ static spx_word16_t spx_cos(spx_word16_t x)
 #define FREQ_SCALE 16384
 
 /*#define ANGLE2X(a) (32768*cos(((a)/8192.)))*/
-#define ANGLE2X(a) (SHL(spx_cos(a),2))
+#define ANGLE2X(a) (SHL16(spx_cos(a),2))
 
 /*#define X2ANGLE(x) (acos(.00006103515625*(x))*LSP_SCALING)*/
 #define X2ANGLE(x) (spx_acos(x))
@@ -98,10 +99,10 @@ static spx_word16_t spx_cos(spx_word16_t x)
 #define C2 -0.49558072
 #define C3 0.03679168*/
 
-#define C1 0.9999932946
-#define C2 -0.4999124376
-#define C3 0.0414877472
-#define C4 -0.0012712095
+#define C1 0.9999932946f
+#define C2 -0.4999124376f
+#define C3 0.0414877472f
+#define C4 -0.0012712095f
 
 
 #define SPX_PI_2 1.5707963268
@@ -114,7 +115,7 @@ static inline spx_word16_t spx_cos(spx_word16_t x)
    } else {
       x = M_PI-x;
       x *= x;
-      return -(C1 + x*(C2+x*(C3+C4*x)));
+      return NEG16(C1 + x*(C2+x*(C3+C4*x)));
    }
 }
 #define FREQ_SCALE 1.
@@ -137,16 +138,16 @@ static inline spx_word16_t spx_cos(spx_word16_t x)
 
 #ifdef FIXED_POINT
 
-static spx_word32_t cheb_poly_eva(spx_word32_t *coef,spx_word16_t x,int m,char *stack)
+static inline spx_word32_t cheb_poly_eva(spx_word32_t *coef,spx_word16_t x,int m,char *stack)
 /*  float coef[]  	coefficients of the polynomial to be evaluated 	*/
 /*  float x   		the point where polynomial is to be evaluated 	*/
 /*  int m 		order of the polynomial 			*/
 {
     int i;
-    spx_word16_t *T;
+    VARDECL(spx_word16_t *T);
     spx_word32_t sum;
     int m2=m>>1;
-    spx_word16_t *coefn;
+    VARDECL(spx_word16_t *coefn);
 
     /*Prevents overflows*/
     if (x>16383)
@@ -155,8 +156,8 @@ static spx_word32_t cheb_poly_eva(spx_word32_t *coef,spx_word16_t x,int m,char *
        x = -16383;
 
     /* Allocate memory for Chebyshev series formulation */
-    T=PUSH(stack, m2+1, spx_word16_t);
-    coefn=PUSH(stack, m2+1, spx_word16_t);
+    ALLOC(T, m2+1, spx_word16_t);
+    ALLOC(coefn, m2+1, spx_word16_t);
 
     for (i=0;i<m2+1;i++)
     {
@@ -175,7 +176,7 @@ static spx_word32_t cheb_poly_eva(spx_word32_t *coef,spx_word16_t x,int m,char *
     /*x *= 2;*/
     for(i=2;i<=m2;i++)
     {
-       T[i] = MULT16_16_Q13(x,T[i-1]) - T[i-2];
+       T[i] = SUB16(MULT16_16_Q13(x,T[i-1]), T[i-2]);
        sum = ADD32(sum, MULT16_16_P14(coefn[m2-i],T[i]));
        /*printf ("%f ", sum);*/
     }
@@ -190,11 +191,12 @@ static float cheb_poly_eva(spx_word32_t *coef,float x,int m,char *stack)
 /*  int m 		order of the polynomial 			*/
 {
     int i;
-    float *T,sum;
+    VARDECL(float *T);
+    float sum;
     int m2=m>>1;
 
     /* Allocate memory for Chebyshev series formulation */
-    T=PUSH(stack, m2+1, float);
+    ALLOC(T, m2+1, float);
 
     /* Initialise values */
     T[0]=1;
@@ -245,8 +247,8 @@ int lpc_to_lsp (spx_coef_t *a,int lpcrdr,spx_lsp_t *freq,int nb,spx_word16_t del
     spx_word16_t temp_xr,xl,xr,xm=0;
     spx_word32_t psuml,psumr,psumm,temp_psumr/*,temp_qsumr*/;
     int i,j,m,flag,k;
-    spx_word32_t *Q;                 	/* ptrs for memory allocation 		*/
-    spx_word32_t *P;
+    VARDECL(spx_word32_t *Q);                 	/* ptrs for memory allocation 		*/
+    VARDECL(spx_word32_t *P);
     spx_word32_t *px;                	/* ptrs of respective P'(z) & Q'(z)	*/
     spx_word32_t *qx;
     spx_word32_t *p;
@@ -259,8 +261,8 @@ int lpc_to_lsp (spx_coef_t *a,int lpcrdr,spx_lsp_t *freq,int nb,spx_word16_t del
     m = lpcrdr/2;            	/* order of P'(z) & Q'(z) polynomials 	*/
 
     /* Allocate memory space for polynomials */
-    Q = PUSH(stack, (m+1), spx_word32_t);
-    P = PUSH(stack, (m+1), spx_word32_t);
+    ALLOC(Q, (m+1), spx_word32_t);
+    ALLOC(P, (m+1), spx_word32_t);
 
     /* determine P'(z)'s and Q'(z)'s coefficients where
       P'(z) = P(z)/(1 + z^(-1)) and Q'(z) = Q(z)/(1-z^(-1)) */
@@ -274,8 +276,8 @@ int lpc_to_lsp (spx_coef_t *a,int lpcrdr,spx_lsp_t *freq,int nb,spx_word16_t del
     *px++ = LPC_SCALING;
     *qx++ = LPC_SCALING;
     for(i=1;i<=m;i++){
-	*px++ = (a[i]+a[lpcrdr+1-i]) - *p++;
-	*qx++ = (a[i]-a[lpcrdr+1-i]) + *q++;
+       *px++ = SUB32(ADD32(EXTEND32(a[i]),EXTEND32(a[lpcrdr+1-i])), *p++);
+       *qx++ = ADD32(SUB32(EXTEND32(a[i]),EXTEND32(a[lpcrdr+1-i])), *q++);
     }
     px = P;
     qx = Q;
@@ -285,27 +287,28 @@ int lpc_to_lsp (spx_coef_t *a,int lpcrdr,spx_lsp_t *freq,int nb,spx_word16_t del
           speex_warning_int("px", *px);
        if (fabs(*qx)>=32768)
        speex_warning_int("qx", *qx);*/
-       *px = (2+*px)>>2;
-       *qx = (2+*qx)>>2;
+       *px = PSHR32(*px,2);
+       *qx = PSHR32(*qx,2);
        px++;
        qx++;
     }
-    P[m] = PSHR(P[m],3);
-    Q[m] = PSHR(Q[m],3);
+    /* The reason for this lies in the way cheb_poly_eva() is implemented for fixed-point */
+    P[m] = PSHR32(P[m],3);
+    Q[m] = PSHR32(Q[m],3);
 #else
     *px++ = LPC_SCALING;
     *qx++ = LPC_SCALING;
     for(i=1;i<=m;i++){
-	*px++ = (a[i]+a[lpcrdr+1-i]) - *p++;
-	*qx++ = (a[i]-a[lpcrdr+1-i]) + *q++;
+       *px++ = (a[i]+a[lpcrdr+1-i]) - *p++;
+       *qx++ = (a[i]-a[lpcrdr+1-i]) + *q++;
     }
     px = P;
     qx = Q;
     for(i=0;i<m;i++){
-	*px = 2**px;
-	*qx = 2**qx;
-	 px++;
-	 qx++;
+       *px = 2**px;
+       *qx = 2**qx;
+       px++;
+       qx++;
     }
 #endif
 
@@ -331,15 +334,15 @@ int lpc_to_lsp (spx_coef_t *a,int lpcrdr,spx_lsp_t *freq,int nb,spx_word16_t del
            spx_word16_t dd;
            /* Modified by JMV to provide smaller steps around x=+-1 */
 #ifdef FIXED_POINT
-           dd = MULT16_16_Q15(delta,(FREQ_SCALE - MULT16_16_Q14(MULT16_16_Q14(xl,xl),14000)));
+           dd = MULT16_16_Q15(delta,SUB16(FREQ_SCALE, MULT16_16_Q14(MULT16_16_Q14(xl,xl),14000)));
            if (psuml<512 && psuml>-512)
-              dd = PSHR(dd,1);
+              dd = PSHR16(dd,1);
 #else
            dd=delta*(1-.9*xl*xl);
            if (fabs(psuml)<.2)
               dd *= .5;
 #endif
-           xr = xl - dd;                        	/* interval spacing 	*/
+           xr = SUB16(xl, dd);                        	/* interval spacing 	*/
 	    psumr = cheb_poly_eva(pt,xr,lpcrdr,stack);/* poly(xl-delta_x) 	*/
 	    temp_psumr = psumr;
 	    temp_xr = xr;
@@ -360,7 +363,7 @@ int lpc_to_lsp (spx_coef_t *a,int lpcrdr,spx_lsp_t *freq,int nb,spx_word16_t del
 		psumm=psuml;
 		for(k=0;k<=nb;k++){
 #ifdef FIXED_POINT
-		    xm = ADD16(PSHR(xl,1),PSHR(xr,1));        	/* bisect the interval 	*/
+		    xm = ADD16(PSHR16(xl,1),PSHR16(xr,1));        	/* bisect the interval 	*/
 #else
                     xm = .5*(xl+xr);        	/* bisect the interval 	*/
 #endif
@@ -414,23 +417,23 @@ void lsp_to_lpc(spx_lsp_t *freq,spx_coef_t *ak,int lpcrdr, char *stack)
 {
     int i,j;
     spx_word32_t xout1,xout2,xin1,xin2;
-    spx_word32_t *Wp;
+    VARDECL(spx_word32_t *Wp);
     spx_word32_t *pw,*n1,*n2,*n3,*n4=NULL;
-    spx_word16_t *freqn;
+    VARDECL(spx_word16_t *freqn);
     int m = lpcrdr>>1;
     
-    freqn = PUSH(stack, lpcrdr, spx_word16_t);
+    ALLOC(freqn, lpcrdr, spx_word16_t);
     for (i=0;i<lpcrdr;i++)
        freqn[i] = ANGLE2X(freq[i]);
 
-    Wp = PUSH(stack, 4*m+2, spx_word32_t);
+    ALLOC(Wp, 4*m+2, spx_word32_t);
     pw = Wp;
 
 
     /* initialise contents of array */
 
     for(i=0;i<=4*m+1;i++){       	/* set contents of buffer to 0 */
-	*pw++ = 0.0;
+	*pw++ = 0;
     }
 
     /* Set pointers up */
@@ -444,14 +447,16 @@ void lsp_to_lpc(spx_lsp_t *freq,spx_coef_t *ak,int lpcrdr, char *stack)
       LSP coefficient */
 
     for(j=0;j<=lpcrdr;j++){
-       int i2=0;
-	for(i=0;i<m;i++,i2+=2){
-	    n1 = pw+(i*4);
+       spx_word16_t *fr=freqn;
+	for(i=0;i<m;i++){
+	    n1 = pw+(i<<2);
 	    n2 = n1 + 1;
 	    n3 = n2 + 1;
 	    n4 = n3 + 1;
-	    xout1 = ADD32(SUB32(xin1, MULT16_32_Q14(freqn[i2],*n1)), *n2);
-            xout2 = ADD32(SUB32(xin2, MULT16_32_Q14(freqn[i2+1],*n3)), *n4);
+	    xout1 = ADD32(SUB32(xin1, MULT16_32_Q14(*fr,*n1)), *n2);
+            fr++;
+            xout2 = ADD32(SUB32(xin2, MULT16_32_Q14(*fr,*n3)), *n4);
+            fr++;
 	    *n2 = *n1;
 	    *n4 = *n3;
 	    *n1 = xin1;
@@ -462,17 +467,18 @@ void lsp_to_lpc(spx_lsp_t *freq,spx_coef_t *ak,int lpcrdr, char *stack)
 	xout1 = xin1 + *(n4+1);
 	xout2 = xin2 - *(n4+2);
         /* FIXME: perhaps apply bandwidth expansion in case of overflow? */
-        if (xout1 + xout2>256*32766)
+        /*FIXME: Is it OK to have a long constant? */
+        if (xout1 + xout2>SHL(32766,8))
            ak[j] = 32767;
-        else if (xout1 + xout2 < -256*32767)
-           ak[j] = -32768;
+        else if (xout1 + xout2 < -SHL(32766,8))
+           ak[j] = -32767;
         else
-           ak[j] = PSHR(ADD32(xout1,xout2),8);
+           ak[j] = EXTRACT16(PSHR32(ADD32(xout1,xout2),8));
 	*(n4+1) = xin1;
 	*(n4+2) = xin2;
 
-	xin1 = 0.0;
-	xin2 = 0.0;
+	xin1 = 0;
+	xin2 = 0;
     }
 }
 #else
@@ -486,12 +492,12 @@ void lsp_to_lpc(spx_lsp_t *freq,spx_coef_t *ak,int lpcrdr, char *stack)
 {
     int i,j;
     float xout1,xout2,xin1,xin2;
-    float *Wp;
+    VARDECL(float *Wp);
     float *pw,*n1,*n2,*n3,*n4=NULL;
-    float *x_freq;
+    VARDECL(float *x_freq);
     int m = lpcrdr>>1;
 
-    Wp = PUSH(stack, 4*m+2, float);
+    ALLOC(Wp, 4*m+2, float);
     pw = Wp;
 
     /* initialise contents of array */
@@ -506,7 +512,7 @@ void lsp_to_lpc(spx_lsp_t *freq,spx_coef_t *ak,int lpcrdr, char *stack)
     xin1 = 1.0;
     xin2 = 1.0;
 
-    x_freq=PUSH(stack, lpcrdr, float);
+    ALLOC(x_freq, lpcrdr, float);
     for (i=0;i<lpcrdr;i++)
        x_freq[i] = ANGLE2X(freq[i]);
 
@@ -563,7 +569,7 @@ void lsp_enforce_margin(spx_lsp_t *lsp, int len, spx_word16_t margin)
          lsp[i]=lsp[i-1]+m;
 
       if (lsp[i]>lsp[i+1]-m)
-         lsp[i]= SHR(lsp[i],1) + SHR(lsp[i+1]-m,1);
+         lsp[i]= SHR16(lsp[i],1) + SHR16(lsp[i+1]-m,1);
    }
 }
 
@@ -571,7 +577,7 @@ void lsp_enforce_margin(spx_lsp_t *lsp, int len, spx_word16_t margin)
 void lsp_interpolate(spx_lsp_t *old_lsp, spx_lsp_t *new_lsp, spx_lsp_t *interp_lsp, int len, int subframe, int nb_subframes)
 {
    int i;
-   spx_word16_t tmp = DIV32_16(SHL(1 + subframe,14),nb_subframes);
+   spx_word16_t tmp = DIV32_16(SHL32(1 + subframe,14),nb_subframes);
    spx_word16_t tmp2 = 16384-tmp;
    for (i=0;i<len;i++)
    {

@@ -51,7 +51,6 @@ typedef struct EncState {
    int    nbSubframes;    /**< Number of sub-frames */
    int    windowSize;     /**< Analysis (LPC) window length */
    int    lpcSize;        /**< LPC order */
-   int    bufSize;        /**< Buffer size */
    int    min_pitch;      /**< Minimum pitch value allowed */
    int    max_pitch;      /**< Maximum pitch value allowed */
 
@@ -74,13 +73,10 @@ typedef struct EncState {
    spx_sig_t *frame;          /**< Start of original frame */
    spx_sig_t *excBuf;         /**< Excitation buffer */
    spx_sig_t *exc;            /**< Start of excitation frame */
-   spx_sig_t *exc2Buf;        /**< "Pitch enhanced" excitation */
-   spx_sig_t *exc2;           /**< "Pitch enhanced" excitation */
    spx_sig_t *swBuf;          /**< Weighted signal buffer */
    spx_sig_t *sw;             /**< Start of weighted signal frame */
    spx_sig_t *innov;          /**< Innovation for the frame */
    spx_word16_t *window;         /**< Temporary (Hanning) window */
-   spx_sig_t *buf2;           /**< 2nd temporary buffer */
    spx_word16_t *autocorr;       /**< auto-correlation */
    spx_word16_t *lagWindow;      /**< Window applied to auto-correlation */
    spx_coef_t *lpc;            /**< LPCs for current frame */
@@ -113,7 +109,7 @@ typedef struct EncState {
    float  abr_count;
    int    complexity;     /**< Complexity setting (0-10 from least complex to most complex) */
    int    sampling_rate;
-
+   int    plc_tuning;
    int    encode_submode;
    const SpeexSubmode * const *submodes; /**< Sub-mode data */
    int    submodeID;      /**< Activated sub-mode */
@@ -128,9 +124,7 @@ typedef struct DecState {
    int    frameSize;      /**< Size of frames */
    int    subframeSize;   /**< Size of sub-frames */
    int    nbSubframes;    /**< Number of sub-frames */
-   int    windowSize;     /**< Analysis (LPC) window length */
    int    lpcSize;        /**< LPC order */
-   int    bufSize;        /**< Buffer size */
    int    min_pitch;      /**< Minimum pitch value allowed */
    int    max_pitch;      /**< Maximum pitch value allowed */
    int    sampling_rate;

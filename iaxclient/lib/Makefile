@@ -29,7 +29,7 @@ USE_VIDEO=0
 
 CFLAGS= -I. -Igsm/inc \
 	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \
-	-Ilibspeex/include
+	-Ilibspeex/include --std=c99
 
 #CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
 CFLAGS:= $(CFLAGS) -g -O2

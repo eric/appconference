@@ -88,13 +88,13 @@ int vq_index(float *in, const float *codebook, int len, int entries)
 void vq_nbest(spx_word16_t *_in, const __m128 *codebook, int len, int entries, __m128 *E, int N, int *nbest, spx_word32_t *best_dist, char *stack)
 {
    int i,j,k,used;
-   float *dist;
-   __m128 *in;
+   VARDECL(float *dist);
+   VARDECL(__m128 *in);
    __m128 half;
    used = 0;
-   dist = PUSH(stack, entries, float);
+   ALLOC(dist, entries, float);
    half = _mm_set_ps1(.5f);
-   in = PUSH(stack, len, __m128);
+   ALLOC(in, len, __m128);
    for (i=0;i<len;i++)
       in[i] = _mm_set_ps1(_in[i]);
    for (i=0;i<entries>>2;i++)
@@ -123,6 +123,10 @@ void vq_nbest(spx_word16_t *_in, const __m128 *codebook, int len, int entries, _
 
 #else
 
+#if defined(SHORTCUTS) && (defined(ARM4_ASM) || defined(ARM5E_ASM))
+#include "vq_arm4.h"
+#else
+
 /*Finds the indices of the n-best entries in a codebook*/
 void vq_nbest(spx_word16_t *in, const spx_word16_t *codebook, int len, int entries, spx_word32_t *E, int N, int *nbest, spx_word32_t *best_dist, char *stack)
 {
@@ -134,7 +138,7 @@ void vq_nbest(spx_word16_t *in, const spx_word16_t *codebook, int len, int entri
       for (j=0;j<len;j++)
          dist = MAC16_16(dist,in[j],*codebook++);
 #ifdef FIXED_POINT
-      dist=SUB32(SHR(E[i],1),dist);
+      dist=SUB32(SHR32(E[i],1),dist);
 #else
       dist=.5f*E[i]-dist;
 #endif
@@ -151,6 +155,7 @@ void vq_nbest(spx_word16_t *in, const spx_word16_t *codebook, int len, int entri
       }
    }
 }
+#endif
 
 #endif
 
@@ -161,13 +166,13 @@ void vq_nbest(spx_word16_t *in, const spx_word16_t *codebook, int len, int entri
 void vq_nbest_sign(spx_word16_t *_in, const __m128 *codebook, int len, int entries, __m128 *E, int N, int *nbest, spx_word32_t *best_dist, char *stack)
 {
    int i,j,k,used;
-   float *dist;
-   __m128 *in;
+   VARDECL(float *dist);
+   VARDECL(__m128 *in);
    __m128 half;
    used = 0;
-   dist = PUSH(stack, entries, float);
+   ALLOC(dist, entries, float);
    half = _mm_set_ps1(.5f);
-   in = PUSH(stack, len, __m128);
+   ALLOC(in, len, __m128);
    for (i=0;i<len;i++)
       in[i] = _mm_set_ps1(_in[i]);
    for (i=0;i<entries>>2;i++)
@@ -226,7 +231,7 @@ void vq_nbest_sign(spx_word16_t *in, const spx_word16_t *codebook, int len, int 
          sign=1;
       }
 #ifdef FIXED_POINT
-      dist = ADD32(dist,SHR(E[i],1));
+      dist = ADD32(dist,SHR32(E[i],1));
 #else
       dist = ADD32(dist,.5f*E[i]);
 #endif

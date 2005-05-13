@@ -1,7 +1,7 @@
-/* Copyright (C) 2002 Jean-Marc Valin 
-   File: speex_jitter.h
+/* Copyright (C) 2004 Jean-Marc Valin
+   File medfilter.h
+   Median filter
 
-   Adaptive jitter buffer for Speex
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
@@ -32,56 +32,18 @@
 
 */
 
-#ifndef SPEEX_JITTER_H
-#define SPEEX_JITTER_H
+#ifndef MEDFILTER_H
+#define MEDFILTER_H
 
-#include "speex.h"
-#include "speex_bits.h"
+typedef struct {
+   int N;
+   int filled;
+   int *ids;
+   float *val;
+} MedianFilter;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#define SPEEX_JITTER_MAX_PACKET_SIZE 1500
-#define SPEEX_JITTER_MAX_BUFFER_SIZE 20
-
-#define MAX_MARGIN 12
-
-typedef struct SpeexJitter {
-   int buffer_size;
-   int pointer_timestamp;
-
-   SpeexBits current_packet;
-   int valid_bits;
-
-   char buf[SPEEX_JITTER_MAX_BUFFER_SIZE][SPEEX_JITTER_MAX_PACKET_SIZE];
-   int timestamp[SPEEX_JITTER_MAX_BUFFER_SIZE];
-   int len[SPEEX_JITTER_MAX_BUFFER_SIZE];
-
-   void *dec;
-   int frame_size;
-   int frame_time;
-   int reset_state;
-   
-   int lost_count;
-   float shortterm_margin[MAX_MARGIN];
-   float longterm_margin[MAX_MARGIN];
-   float loss_rate;
-} SpeexJitter;
-
-void speex_jitter_init(SpeexJitter *jitter, void *decoder, int sampling_rate);
-
-void speex_jitter_destroy(SpeexJitter *jitter);
-
-void speex_jitter_put(SpeexJitter *jitter, char *packet, int len, int time);
-
-void speex_jitter_get(SpeexJitter *jitter, short *out, int *current_timestamp);
-
-int speex_jitter_get_pointer_timestamp(SpeexJitter *jitter);
-
-#ifdef __cplusplus
-}
-#endif
-
+MedianFilter *median_filter_new(int N);
+void median_filter_update(MedianFilter *f, float val);
+float median_filter_get(MedianFilter *f);
 
 #endif

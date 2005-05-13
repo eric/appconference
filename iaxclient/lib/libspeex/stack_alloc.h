@@ -34,6 +34,10 @@
 #ifndef STACK_ALLOC_H
 #define STACK_ALLOC_H
 
+#ifdef USE_ALLOCA
+#include <alloca.h>
+#endif
+
 #ifdef ENABLE_VALGRIND
 
 #include <valgrind/memcheck.h>
@@ -60,6 +64,16 @@
 
 #endif
 
+#if defined(VAR_ARRAYS)
+#define VARDECL(var) 
+#define ALLOC(var, size, type) type var[size]
+#elif defined(USE_ALLOCA)
+#define VARDECL(var) var
+#define ALLOC(var, size, type) var = alloca(sizeof(type)*size)
+#else
+#define VARDECL(var) var
+#define ALLOC(var, size, type) var = PUSH(stack, size, type)
+#endif
 
 
 #endif

@@ -36,7 +36,8 @@
 #ifndef SPEEX_H
 #define SPEEX_H
 
-#include "speex_bits.h"
+#include "speex/speex_bits.h"
+#include "speex/speex_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -131,10 +132,14 @@ extern "C" {
 /** */
 #define SPEEX_GET_SUBMODE_ENCODING 37
 
-/*#define SPEEX_SET_SUBMODE_ENCODING 38*/
-/** */
+/*#define SPEEX_SET_LOOKAHEAD 38*/
+/** Returns the lookahead used by Speex */
 #define SPEEX_GET_LOOKAHEAD 39
 
+/** Sets tuning for packet-loss concealment (expected loss rate) */
+#define SPEEX_SET_PLC_TUNING 40
+/** Gets tuning for PLC */
+#define SPEEX_GET_PLC_TUNING 41
 
 /* Used internally, not to be used in applications */
 /** Used internally*/
@@ -241,7 +246,7 @@ typedef struct SpeexMode {
    mode_query_func query;
    
    /** The name of the mode (you should not rely on this to identify the mode)*/
-   char *modeName;
+   const char *modeName;
 
    /**ID of the mode*/
    int modeID;
@@ -294,7 +299,7 @@ void speex_encoder_destroy(void *state);
 /** Uses an existing encoder state to encode one frame of speech pointed to by
     "in". The encoded bit-stream is saved in "bits".
  @param state Encoder state
- @param in Frame that will be encoded with a +-2^16 range
+ @param in Frame that will be encoded with a +-2^15 range
  @param bits Bit-stream where the data will be written
  */
 int speex_encode(void *state, float *in, SpeexBits *bits);
@@ -302,10 +307,10 @@ int speex_encode(void *state, float *in, SpeexBits *bits);
 /** Uses an existing encoder state to encode one frame of speech pointed to by
     "in". The encoded bit-stream is saved in "bits".
  @param state Encoder state
- @param in Frame that will be encoded with a +-2^16 range
+ @param in Frame that will be encoded with a +-2^15 range
  @param bits Bit-stream where the data will be written
  */
-int speex_encode_int(void *state, short *in, SpeexBits *bits);
+int speex_encode_int(void *state, spx_int16_t *in, SpeexBits *bits);
 
 /** Used like the ioctl function to control the encoder parameters
  *
@@ -351,7 +356,7 @@ int speex_decode(void *state, SpeexBits *bits, float *out);
  * @param out Where to write the decoded frame
  * @return return status (0 for no error, -1 for end of stream, -2 other)
  */
-int speex_decode_int(void *state, SpeexBits *bits, short *out);
+int speex_decode_int(void *state, SpeexBits *bits, spx_int16_t *out);
 
 /** Used like the ioctl function to control the encoder parameters
  *
@@ -395,7 +400,7 @@ extern const SpeexMode speex_nb_48k_mode;
 extern const SpeexMode * const speex_mode_list[SPEEX_NB_MODES];
 
 /** Obtain one of the modes available */
-const SpeexMode * const speex_lib_get_mode (int mode);
+const SpeexMode * speex_lib_get_mode (int mode);
 
 #ifdef __cplusplus
 }

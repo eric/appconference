@@ -1,7 +1,7 @@
-/* Copyright (C) 2002 Jean-Marc Valin 
-   File: speex_jitter.h
+/* Copyright (C) 2004 Jean-Marc Valin
+   File medfilter.c
+   Median filter
 
-   Adaptive jitter buffer for Speex
 
    Redistribution and use in source and binary forms, with or without
    modification, are permitted provided that the following conditions
@@ -32,56 +32,66 @@
 
 */
 
-#ifndef SPEEX_JITTER_H
-#define SPEEX_JITTER_H
+#include "medfilter.h"
+#include "misc.h"
 
-#include "speex.h"
-#include "speex_bits.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#define SPEEX_JITTER_MAX_PACKET_SIZE 1500
-#define SPEEX_JITTER_MAX_BUFFER_SIZE 20
-
-#define MAX_MARGIN 12
-
-typedef struct SpeexJitter {
-   int buffer_size;
-   int pointer_timestamp;
-
-   SpeexBits current_packet;
-   int valid_bits;
-
-   char buf[SPEEX_JITTER_MAX_BUFFER_SIZE][SPEEX_JITTER_MAX_PACKET_SIZE];
-   int timestamp[SPEEX_JITTER_MAX_BUFFER_SIZE];
-   int len[SPEEX_JITTER_MAX_BUFFER_SIZE];
-
-   void *dec;
-   int frame_size;
-   int frame_time;
-   int reset_state;
-   
-   int lost_count;
-   float shortterm_margin[MAX_MARGIN];
-   float longterm_margin[MAX_MARGIN];
-   float loss_rate;
-} SpeexJitter;
-
-void speex_jitter_init(SpeexJitter *jitter, void *decoder, int sampling_rate);
-
-void speex_jitter_destroy(SpeexJitter *jitter);
-
-void speex_jitter_put(SpeexJitter *jitter, char *packet, int len, int time);
-
-void speex_jitter_get(SpeexJitter *jitter, short *out, int *current_timestamp);
-
-int speex_jitter_get_pointer_timestamp(SpeexJitter *jitter);
-
-#ifdef __cplusplus
+MedianFilter *median_filter_new(int N)
+{
+   MedianFilter *f = speex_alloc(sizeof(MedianFilter));
+   f->N = N;
+   f->ids = speex_alloc(sizeof(int)*N);
+   f->val = speex_alloc(sizeof(float)*N);
+   f->filled = 0;
+   return f;
 }
-#endif
 
+void median_filter_update(MedianFilter *f, float val)
+{
+   int i=0;
+   int insert = 0;
+   while (insert<f->filled && f->val[insert] < val)
+   {
+      insert++;
+   }
+   if (f->filled == f->N)
+   {
+      int remove;
+      for (remove=0;remove<f->N;remove++)
+         if (f->ids[remove] == 0)
+            break;
+      if (insert>remove)
+         insert--;
+      if (insert > remove)
+      {
+         for (i=remove;i<insert;i++)
+         {
+            f->val[i] = f->val[i+1];
+            f->ids[i] = f->ids[i+1];
+         }
+      } else if (insert < remove)
+      {
+         for (i=remove;i>insert;i--)
+         {
+            f->val[i] = f->val[i-1];
+            f->ids[i] = f->ids[i-1];
+         }
+      }
+      for (i=0;i<f->filled;i++)
+         f->ids[i]--;
+   } else {
+      for (i=f->filled;i>insert;i--)
+      {
+         f->val[i] = f->val[i-1];
+         f->ids[i] = f->ids[i-1];
+      }
+      f->filled++;
+   }
+   f->val[insert]=val;
+   f->ids[insert]=f->filled-1;
+}
 
-#endif
+float median_filter_get(MedianFilter *f)
+{
+   return f->val[f->filled>>1];
+}
+

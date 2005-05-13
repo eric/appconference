@@ -41,7 +41,7 @@ void signal_div(const spx_sig_t *x, spx_sig_t *y, spx_word32_t scale, int len);
 
 #ifdef FIXED_POINT
 
-int normalize16(const spx_sig_t *x, spx_word16_t *y, int max_scale, int len);
+int normalize16(const spx_sig_t *x, spx_word16_t *y, spx_sig_t max_scale, int len);
 
 #endif
 
@@ -52,7 +52,7 @@ typedef struct CombFilterMem {
 } CombFilterMem;
 
 
-void qmf_decomp(const spx_word16_t *xx, const spx_word16_t *aa, spx_sig_t *y1, spx_sig_t *y2, int N, int M, spx_word16_t *mem, char *stack);
+void qmf_decomp(const spx_word16_t *xx, const spx_word16_t *aa, spx_sig_t *, spx_sig_t *y2, int N, int M, spx_word16_t *mem, char *stack);
 void fir_mem_up(const spx_sig_t *x, const spx_word16_t *a, spx_sig_t *y, int N, int M, spx_word32_t *mem, char *stack);
 
 
@@ -61,13 +61,15 @@ void fir_mem2(const spx_sig_t *x, const spx_coef_t *num, spx_sig_t *y, int N, in
 void iir_mem2(const spx_sig_t *x, const spx_coef_t *den, spx_sig_t *y, int N, int ord, spx_mem_t *mem);
 
 /* Apply bandwidth expansion on LPC coef */
-void bw_lpc(spx_word16_t gamma, const spx_coef_t *lpc_in, spx_coef_t *lpc_out, int order);
+void bw_lpc(spx_word16_t , const spx_coef_t *lpc_in, spx_coef_t *lpc_out, int order);
 
 
 
 void syn_percep_zero(const spx_sig_t *x, const spx_coef_t *ak, const spx_coef_t *awk1, const spx_coef_t *awk2, spx_sig_t *y, int N, int ord, char *stack);
 
 void residue_percep_zero(const spx_sig_t *xx, const spx_coef_t *ak, const spx_coef_t *awk1, const spx_coef_t *awk2, spx_sig_t *y, int N, int ord, char *stack);
+
+void compute_impulse_response(const spx_coef_t *ak, const spx_coef_t *awk1, const spx_coef_t *awk2, spx_word16_t *y, int N, int ord, char *stack);
 
 void comb_filter_mem_init (CombFilterMem *mem);
 

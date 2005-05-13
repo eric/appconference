@@ -36,7 +36,7 @@
 #endif
 
 #include <math.h>
-#include <speex/speex_preprocess.h>
+#include "speex/speex_preprocess.h"
 #include "misc.h"
 #include "smallft.h"
 
@@ -49,6 +49,9 @@
 
 #define SQRT_M_PI_2 0.88623
 #define LOUDNESS_EXP 2.5
+
+#define SPEEX_PROB_START_DEFAULT    0.35f
+#define SPEEX_PROB_CONTINUE_DEFAULT 0.20f
 
 #define NB_BANDS 8
 
@@ -102,10 +105,11 @@ static float hypergeom_gain(float x)
    if (x>9.5)
       return 1+.12/x;
 
-   integer = floor(x);
-   frac = x-integer;
+   integer = floor(2*x);
+   frac = 2*x-integer;
    ind = (int)integer;
-   
+   /*if (ind > 20 || ind < 0)
+   fprintf (stderr, "error: %d %f\n", ind, x);*/
    return ((1-frac)*table[ind] + frac*table[ind+1])/sqrt(x+.0001f);
 }
 
@@ -151,6 +155,9 @@ SpeexPreprocessState *speex_preprocess_state_init(int frame_size, int sampling_r
    st->dereverb_enabled = 0;
    st->reverb_decay = .5;
    st->reverb_level = .2;
+
+   st->speech_prob_start = SPEEX_PROB_START_DEFAULT;
+   st->speech_prob_continue = SPEEX_PROB_CONTINUE_DEFAULT;
 
    st->frame = (float*)speex_alloc(2*N*sizeof(float));
    st->ps = (float*)speex_alloc(N*sizeof(float));
@@ -226,7 +233,7 @@ SpeexPreprocessState *speex_preprocess_state_init(int frame_size, int sampling_r
    st->nb_loudness_adapt = 0;
 
    st->fft_lookup = (struct drft_lookup*)speex_alloc(sizeof(struct drft_lookup));
-   drft_init(st->fft_lookup,2*N);
+   spx_drft_init(st->fft_lookup,2*N);
 
    st->nb_adapt=0;
    st->consec_noise=0;
@@ -263,13 +270,13 @@ void speex_preprocess_state_destroy(SpeexPreprocessState *st)
    speex_free(st->inbuf);
    speex_free(st->outbuf);
 
-   drft_clear(st->fft_lookup);
+   spx_drft_clear(st->fft_lookup);
    speex_free(st->fft_lookup);
 
    speex_free(st);
 }
 
-static void update_noise(SpeexPreprocessState *st, float *ps, int *echo)
+static void update_noise(SpeexPreprocessState *st, float *ps, float *echo)
 {
    int i;
    float beta;
@@ -281,10 +288,10 @@ static void update_noise(SpeexPreprocessState *st, float *ps, int *echo)
    if (!echo)
    {
       for (i=0;i<st->ps_size;i++)
-         st->noise[i] = (1.f-beta)*st->noise[i] + beta*ps[i];   
+         st->noise[i] = (1.f-beta)*st->noise[i] + beta*ps[i];
    } else {
       for (i=0;i<st->ps_size;i++)
-         st->noise[i] = (1.f-beta)*st->noise[i] + beta*max(0.f,ps[i]-echo[i]); 
+         st->noise[i] = (1.f-beta)*st->noise[i] + beta*max(1.f,ps[i]-echo[i]); 
 #if 0
       for (i=0;i<st->ps_size;i++)
          st->noise[i] = 0;
@@ -446,9 +453,8 @@ static int speex_compute_vad(SpeexPreprocessState *st, float *ps, float mean_pri
       st->speech_prob = p0/(1e-25f+p1+p0);
       /*fprintf (stderr, "%f %f %f ", tot_loudness, st->loudness2, st->speech_prob);*/
 
-      /* IAXCLIENT: Make things a bit more sensitive */
-/*      if (st->speech_prob>.35 || (st->last_speech < 20 && st->speech_prob>.1)) */
-      if (st->speech_prob> .30 || (st->last_speech < 20 && st->speech_prob>.07))
+      if (st->speech_prob > st->speech_prob_start 
+	  || (st->last_speech < 20 && st->speech_prob > st->speech_prob_continue))
       {
          is_speech = 1;
          st->last_speech = 0;
@@ -549,7 +555,7 @@ static void speex_compute_agc(SpeexPreprocessState *st, float mean_prior)
    
 }
 
-static void preprocess_analysis(SpeexPreprocessState *st, short *x)
+static void preprocess_analysis(SpeexPreprocessState *st, spx_int16_t *x)
 {
    int i;
    int N = st->ps_size;
@@ -572,7 +578,7 @@ static void preprocess_analysis(SpeexPreprocessState *st, short *x)
       st->frame[i] *= st->window[i];
 
    /* Perform FFT */
-   drft_forward(st->fft_lookup, st->frame);
+   spx_drft_forward(st->fft_lookup, st->frame);
 
    /* Power spectrum */
    ps[0]=1;
@@ -622,7 +628,7 @@ static void update_noise_prob(SpeexPreprocessState *st)
 
 #define NOISE_OVERCOMPENS 1.4
 
-int speex_preprocess(SpeexPreprocessState *st, short *x, int *echo)
+int speex_preprocess(SpeexPreprocessState *st, spx_int16_t *x, float *echo)
 {
    int i;
    int is_speech=1;
@@ -650,7 +656,7 @@ int speex_preprocess(SpeexPreprocessState *st, short *x, int *echo)
    /* Deal with residual echo if provided */
    if (echo)
       for (i=1;i<N;i++)
-         st->echo_noise[i] = (.7f*st->echo_noise[i] + .3f* echo[i]);
+         st->echo_noise[i] = (.3f*st->echo_noise[i] + echo[i]);
 
    /* Compute a posteriori SNR */
    for (i=1;i<N;i++)
@@ -757,7 +763,7 @@ int speex_preprocess(SpeexPreprocessState *st, short *x, int *echo)
          if (st->update_prob[i]<.5f || st->ps[i] < st->noise[i])
          {
             if (echo)
-               st->noise[i] = .90f*st->noise[i] + .1f*(st->ps[i]-echo[i]);
+               st->noise[i] = .90f*st->noise[i] + .1f*max(1.0f,st->ps[i]-echo[i]);
             else
                st->noise[i] = .90f*st->noise[i] + .1f*st->ps[i];
          }
@@ -901,7 +907,7 @@ int speex_preprocess(SpeexPreprocessState *st, short *x, int *echo)
    st->frame[2*N-1]=0;
 
    /* Inverse FFT with 1/N scaling */
-   drft_backward(st->fft_lookup, st->frame);
+   spx_drft_backward(st->fft_lookup, st->frame);
 
    for (i=0;i<2*N;i++)
       st->frame[i] *= scale;
@@ -939,7 +945,7 @@ int speex_preprocess(SpeexPreprocessState *st, short *x, int *echo)
    return is_speech;
 }
 
-void speex_preprocess_estimate_update(SpeexPreprocessState *st, short *x, int *echo)
+void speex_preprocess_estimate_update(SpeexPreprocessState *st, spx_int16_t *x, float *echo)
 {
    int i;
    int N = st->ps_size;
@@ -958,7 +964,7 @@ void speex_preprocess_estimate_update(SpeexPreprocessState *st, short *x, int *e
       if (st->update_prob[i]<.5f || st->ps[i] < st->noise[i])
       {
          if (echo)
-            st->noise[i] = .90f*st->noise[i] + .1f*(st->ps[i]-echo[i]);
+            st->noise[i] = .90f*st->noise[i] + .1f*max(1.0f,st->ps[i]-echo[i]);
          else
             st->noise[i] = .90f*st->noise[i] + .1f*st->ps[i];
       }
@@ -1038,7 +1044,29 @@ int speex_preprocess_ctl(SpeexPreprocessState *state, int request, void *ptr)
       (*(float*)ptr) = st->reverb_decay;
       break;
 
-      default:
+   case SPEEX_PREPROCESS_SET_PROB_START:
+      st->speech_prob_start = (*(float*)ptr);
+      if ( st->speech_prob_start > 1 )
+	  st->speech_prob_start = st->speech_prob_start / 100;
+      if ( st->speech_prob_start > 1 || st->speech_prob_start < 0 )
+	  st->speech_prob_start = SPEEX_PROB_START_DEFAULT;
+      break;
+   case SPEEX_PREPROCESS_GET_PROB_START:
+      (*(float*)ptr) = st->speech_prob_start ;
+      break;
+
+   case SPEEX_PREPROCESS_SET_PROB_CONTINUE:
+      st->speech_prob_continue = (*(float*)ptr);
+      if ( st->speech_prob_continue > 1 )
+	  st->speech_prob_continue = st->speech_prob_continue / 100;
+      if ( st->speech_prob_continue > 1 || st->speech_prob_continue < 0 )
+	  st->speech_prob_continue = SPEEX_PROB_CONTINUE_DEFAULT;
+      break;
+   case SPEEX_PREPROCESS_GET_PROB_CONTINUE:
+      (*(float*)ptr) = st->speech_prob_continue;
+      break;
+
+   default:
       speex_warning_int("Unknown speex_preprocess_ctl request: ", request);
       return -1;
    }
