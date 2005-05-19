@@ -223,7 +223,23 @@ MyFrame::MyFrame(wxWindow *parent)
     wxImage::AddHandler(new wxPNGHandler);
     wxFileSystem::AddHandler(new wxZipFSHandler);
     help = new wxHtmlHelpController;
-    help->AddBook(wxFileName(_T("iaxcomm.htb")));
+
+    wxFileName filename = wxFileName(_T("iaxcomm.htb"));
+
+    if (filename.FileExists()) {
+	help->AddBook(filename);
+	return;
+    }
+
+#ifdef DATADIR
+    filename = wxFileName(wxString(DATADIR) + wxFILE_SEP_PATH +
+			  _T("iaxcomm.htb"));
+
+    if (filename.FileExists()) {
+	help->AddBook(filename);
+	return;
+    }
+#endif /* DATADIR */
 }
 
 void MyFrame::RePanel(wxString Name)
