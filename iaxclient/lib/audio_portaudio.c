@@ -500,6 +500,50 @@ static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 static int pa_openstreams (struct iaxc_audio_driver *d ) {
     PaError err;
 
+#ifdef LINUX
+    /* First try, separate streams */
+    err = Pa_OpenStream(&iStream, 
+			/* input info */
+			selectedOutput,  1, paInt16, NULL,
+			/* output info */
+			paNoDevice, 0, paInt16, NULL,
+			sample_rate, 
+			/* frames per buffer -- 10ms */
+			SAMPLES_PER_FRAME,	
+			/* numbuffers */  /* use default */
+			PA_NUMBUFFERS,
+			0,   /* flags */
+			pa_callback, 
+			NULL /* userdata */ );
+
+    if (err == paNoError) 
+    {
+	err = Pa_OpenStream(&oStream, 
+			    /* input info */
+			    paNoDevice, 0, paInt16, NULL,
+			    /* output info */
+			    selectedOutput,  1, paInt16, NULL,
+			    sample_rate, 
+			    /* frames per buffer -- 10ms */
+			    SAMPLES_PER_FRAME,	
+			    /* numbuffers */  /* use default */
+			    PA_NUMBUFFERS,
+			    0,   /* flags */
+			    pa_callback, 
+			    NULL /* userdata */ );
+	if (err == paNoError)
+	{
+	    oneStream = 0;
+	    virtualMonoIn = 0;
+	    virtualMonoOut = 0;
+	    return 0;
+	} else {
+	    Pa_CloseStream(iStream);
+	    iStream = NULL;
+	}
+    }
+#endif /* LINUX */
+
 #ifndef MACOSX
     /* first, try opening one stream for in/out, Mono */
     /* except for MacOSX, which needs virtual stereo */
