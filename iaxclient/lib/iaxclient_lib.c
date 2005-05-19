@@ -775,11 +775,9 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			iaxc_clear_call(callNo);
 			break;
 		case IAX_EVENT_ACCEPT:
-			calls[callNo].state |= IAXC_CALL_STATE_RINGING;	
 			calls[callNo].format = e->ies.format;
 	  //fprintf(stderr, "outgoing call remote accepted, format=%d\n", e->ies.format);
-			iaxc_do_state_callback(callNo);
-			iaxc_usermsg(IAXC_STATUS,"Call %d ringing", callNo);
+			iaxc_usermsg(IAXC_STATUS,"Call %d accepted", callNo);
 //			issue_prompt(f);
 			break;
 		case IAX_EVENT_ANSWER:
@@ -797,6 +795,9 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			handle_text_event(e, callNo);
 			break;
 		case IAX_EVENT_RINGA:
+			calls[callNo].state |= IAXC_CALL_STATE_RINGING;	
+			iaxc_do_state_callback(callNo);
+			iaxc_usermsg(IAXC_STATUS,"Call %d ringing", callNo);
 			break;
 		case IAX_EVENT_PONG:  /* we got a pong */
 			//fprintf(stderr, "**********GOT A PONG!\n");
