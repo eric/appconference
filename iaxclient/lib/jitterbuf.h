@@ -30,7 +30,7 @@ extern "C" {
 #define JB_HISTORY_DROPPCT_MAX	4
 	/* the size of the buffer we use to keep the top and botton timestamps for dropping */
 #define JB_HISTORY_MAXBUF_SZ	JB_HISTORY_SZ * JB_HISTORY_DROPPCT_MAX / 100 
-	/* amount of jitterbuffer slack to include */
+	/* amount of additional jitterbuffer adjustment  */
 #define JB_TARGET_EXTRA 40
 	/* ms between growing and shrinking; may not be honored if jitterbuffer runs out of space */
 #define JB_ADJUST_DELAY 40
@@ -42,6 +42,7 @@ extern "C" {
 #define JB_NOFRAME	2
 #define JB_INTERP	3
 #define JB_DROP		4
+#define JB_SCHED	5
 
 /* frame types */
 #define JB_TYPE_CONTROL	0
@@ -49,7 +50,17 @@ extern "C" {
 #define JB_TYPE_VIDEO	2  /* reserved */
 #define JB_TYPE_SILENCE	3
 
+
+typedef struct jb_conf {
+	/* settings */
+	long max_jitterbuf;	/* defines a hard clamp to use in setting the jitter buffer delay */
+ 	long resync_threshold;  /* the jb will resync when delay increases to (2 * jitter) + this param */
+	long max_contig_interp; /* the max interp frames to return in a row */
+} jb_conf;
+
 typedef struct jb_info {
+	jb_conf conf;
+
 	/* statistics */
 	long frames_in;  	/* number of frames input to the jitterbuffer.*/
 	long frames_out;  	/* number of frames output from the jitterbuffer.*/
@@ -67,11 +78,10 @@ typedef struct jb_info {
 	long last_voice_ms;	/* the duration of the last voice frame */
 	long silence_begin_ts;	/* the time of the last CNG frame, when in silence */
 	long last_adjustment;   /* the time of the last adjustment */
-        long cnt_contig_interp; /* the count of consecutive interpolation frames */
-
-	/* settings */
-	long max_jitterbuf;	/* defines a hard clamp to use in setting the jitter buffer delay */
-        long max_contig_interp; /* the max count of interpolations to send before assuming silence */
+	long last_delay;        /* the last now added to history */
+	long cnt_delay_discont;	/* the count of discontinuous delays */
+	long resync_offset;     /* the amount to offset ts to support resyncs */
+	long cnt_contig_interp; /* the number of contiguous interp frames returned */
 } jb_info;
 
 typedef struct jb_frame {
@@ -110,14 +120,18 @@ void			jb_destroy(jitterbuf *jb);
 void			jb_reset(jitterbuf *jb);
 
 /* queue a frame data=frame data, timings (in ms): ms=length of frame (for voice), ts=ts (sender's time) 
- * now=now (in receiver's time)*/
+ * now=now (in receiver's time) return value is one of 
+ * JB_OK: Frame added. Last call to jb_next() still valid
+ * JB_DROP: Drop this frame immediately
+ * JB_SCHED: Frame added. Call jb_next() to get a new time for the next frame
+ */
 int 			jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now);
 
 /* get a frame for time now (receiver's time)  return value is one of
  * JB_OK:  You've got frame!
  * JB_DROP: Here's an audio frame you should just drop.  Ask me again for this time..
  * JB_NOFRAME: There's no frame scheduled for this time.
- * JB_INTERP: Please interpolate an interpl-length frame for this time (either we need to grow, or there was a lost frame 
+ * JB_INTERP: Please interpolate an interpl-length frame for this time (either we need to grow, or there was a lost frame) 
  * JB_EMPTY: The jb is empty.
  */
 int			jb_get(jitterbuf *jb, jb_frame *frame, long now, long interpl);
@@ -132,8 +146,8 @@ long			jb_next(jitterbuf *jb);
 /* get jitterbuf info: only "statistics" may be valid */
 int			jb_getinfo(jitterbuf *jb, jb_info *stats);
 
-/* set jitterbuf info: only "settings" may be honored */
-int			jb_setinfo(jitterbuf *jb, jb_info *settings);
+/* set jitterbuf conf */
+int			jb_setconf(jitterbuf *jb, jb_conf *conf);
 
 typedef 		void (*jb_output_function_t)(const char *fmt, ...);
 void 			jb_setoutput(jb_output_function_t err, jb_output_function_t warn, jb_output_function_t dbg);
