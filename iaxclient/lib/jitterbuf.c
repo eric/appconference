@@ -34,11 +34,11 @@
 
 static jb_output_function_t warnf, errf, dbgf;
 
-void jb_setoutput(jb_output_function_t warn, jb_output_function_t err, jb_output_function_t dbg) 
+void jb_setoutput(jb_output_function_t err, jb_output_function_t warn, jb_output_function_t dbg) 
 {
-    warnf = warn;
-    errf = err;
-    dbgf = dbg;
+	errf = err;
+	warnf = warn;
+	dbgf = dbg;
 }
 
 static void increment_losspct(jitterbuf *jb) 
