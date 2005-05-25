@@ -487,6 +487,13 @@ struct iax_session *iax_session_new(void)
 		s->pingid = -1;
 #ifdef NEWJB
 		s->jb = jb_new();
+		{
+			jb_conf jbconf;
+			jbconf.max_jitterbuf = 0;
+			jbconf.resync_threshold = -1;
+			jbconf.max_contig_interp = 0;
+			jb_setconf(s->jb, &jbconf);
+		}
 #endif
 		sessions = s;
 	}
