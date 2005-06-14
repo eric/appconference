@@ -696,7 +696,7 @@ static int pa_start (struct iaxc_audio_driver *d ) {
 
     if(errcnt > 5) {
 	iaxc_usermsg(IAXC_TEXT_TYPE_FATALERROR,
-		"iaxclient audio: Can't open Audio Device, we tried 5 times.  Perhaps you do not have an input or output device?");
+		"iaxclient audio: Can't open Audio Device.  Perhaps you do not have an input or output device?");
 	/* OK, we'll give the application the option to abort or not here, but we will throw a fatal error
 	 * anyway */
 	iaxc_millisleep(1000);
