@@ -315,7 +315,12 @@ $(MSLIB): $(OBJS)
 shared: CFLAGS := $(CFLAGS) $(DYNCFLAGS)
 #shared: clean libiaxclient.a
 shared: libiaxclient.a
+ifeq ($(OSTYPE),MACOSX)
+	libtool -single_module -dynamic -o libiaxclient.dylib libiaxclient.a -lc -framework CoreAudio -framework AudioToolbox -lcc_dynamic
+else
 	$(CC) -shared -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS)
+endif
+
 
 
 plat:
