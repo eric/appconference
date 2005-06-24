@@ -36,11 +36,13 @@ struct iaxc_registration {
     char host[256];
     char user[256];
     char pass[256];
-    long   refresh;
+    long refresh;
+    int registrations_id;
     struct iaxc_registration *next;
 };
 
-struct iaxc_registration *registrations = NULL;
+static int registrations_id = 0;
+static struct iaxc_registration *registrations = NULL;
 
 struct iaxc_audio_driver audio;
 
@@ -820,38 +822,67 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 	}
 }
 
-EXPORT void iaxc_register(char *user, char *pass, char *host)
+EXPORT int iaxc_unregister( int registrations_id )
+{
+	struct iaxc_registration *curr, *prev;
+	int count=0;
+
+	get_iaxc_lock();
+	for( prev=NULL, curr=registrations; curr != NULL; prev=curr, curr=curr->next ) {
+		if( curr->registrations_id == registrations_id ) {
+			count++;
+			if( curr->session != NULL )
+				iax_destroy( curr->session );
+			if( prev != NULL )
+				prev->next = curr->next;
+			else
+				registrations = curr->next;
+			free( curr );
+			break;
+		}
+	}
+	put_iaxc_lock();
+	return count;
+}
+
+EXPORT int iaxc_register(char *user, char *pass, char *host)
 {
 	struct iaxc_registration *newreg;
 
 	newreg = malloc(sizeof (struct iaxc_registration));
 	if(!newreg) {
 		iaxc_usermsg(IAXC_ERROR, "Can't make new registration");
-		return;
+		return -1;
 	}
 
+	get_iaxc_lock();
 	newreg->session = iax_session_new();
 	if(!newreg->session) {
 		iaxc_usermsg(IAXC_ERROR, "Can't make new registration session");
-		return;
+		put_iaxc_lock();
+		return -1;
 	}
 
 	gettimeofday(&newreg->last,NULL);
-	newreg->refresh = 60*1000*1000;  // 60 seconds, in usecs
+	newreg->refresh = 60*1000*1000;  /* 60 seconds, in usecs */
 
 	strncpy(newreg->host, host, 256);
 	strncpy(newreg->user, user, 256);
 	strncpy(newreg->pass, pass, 256);
 
-	// so we notify the user.
+	/* so we notify the user. */
 	newreg->firstpass = 1;
 
-	// send out the initial registration timeout 300 seconds
+	/* send out the initial registration timeout 300 seconds */
 	iax_register(newreg->session, host, user, pass, 300);
 
-	// add it to the list;
+	/* add it to the list; */
+	newreg->registrations_id = ++registrations_id;
 	newreg->next = registrations;
 	registrations = newreg;
+
+	put_iaxc_lock();
+	return newreg->registrations_id;
 }
 
 static void codec_destroy( int callNo )
