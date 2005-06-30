@@ -92,6 +92,7 @@ extern "C" {
 #define IAXC_EVENT_NETSTAT		4
 #define IAXC_EVENT_URL			5	/* URL push via IAX(2) */
 #define IAXC_EVENT_VIDEO		6	/* video data (pointer) */
+#define IAXC_EVENT_REGISTRATION 7
 
 #define IAXC_CALL_STATE_FREE 		0
 #define IAXC_CALL_STATE_ACTIVE 		(1<<1)
@@ -107,6 +108,10 @@ extern "C" {
 #define IAXC_TEXT_TYPE_FATALERROR	4
 #define IAXC_TEXT_TYPE_IAX		5
 
+/* registration replys, corresponding to IAX_EVENTs*/
+#define IAXC_REGISTRATION_REPLY_ACK     18   /* IAX_EVENT_REGACC  */
+#define IAXC_REGISTRATION_REPLY_REJ     30   /* IAX_EVENT_REGREJ  */
+#define IAXC_REGISTRATION_REPLY_TIMEOUT 6    /* IAX_EVENT_TIMEOUT */
 
 #define IAXC_URL_URL				1	/* URL received */
 #define IAXC_URL_LDCOMPLETE	2	/* URL loading complete */
@@ -168,6 +173,11 @@ struct iaxc_ev_video {
 	unsigned char *data;
 };
 
+struct iaxc_ev_registration {
+    int id;
+    int reply;
+};
+
 typedef struct iaxc_event_struct {
 	struct iaxc_event_struct *next;
 	int type;
@@ -176,8 +186,9 @@ typedef struct iaxc_event_struct {
 		struct iaxc_ev_text 		text;
 		struct iaxc_ev_call_state 	call;
 		struct iaxc_ev_netstats 	netstats;
-		struct iaxc_ev_url		url;
+		struct iaxc_ev_url          url;
 		struct iaxc_ev_video		video;
+		struct iaxc_ev_registration reg;
 	} ev;
 } iaxc_event;
 
@@ -206,7 +217,7 @@ EXPORT int iaxc_service_audio();
 EXPORT int iaxc_start_processing_thread();
 EXPORT int iaxc_stop_processing_thread();
 EXPORT void iaxc_call(char *num);
-EXPORT int iaxc_unregister( int registrations_id );
+EXPORT int iaxc_unregister( int id );
 EXPORT int iaxc_register(char *user, char *pass, char *host);
 EXPORT void iaxc_answer_call(int callNo); 
 EXPORT void iaxc_blind_transfer_call(int callNo, char *number); 

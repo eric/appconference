@@ -31,17 +31,16 @@
 
 struct iaxc_registration {
     struct iax_session *session;
-    int firstpass;
     struct timeval last;
     char host[256];
     char user[256];
     char pass[256];
     long refresh;
-    int registrations_id;
+    int id;
     struct iaxc_registration *next;
 };
 
-static int registrations_id = 0;
+static int next_registration_id = 0;
 static struct iaxc_registration *registrations = NULL;
 
 struct iaxc_audio_driver audio;
@@ -258,6 +257,34 @@ void iaxc_do_state_callback(int callNo)
       strncpy(e.ev.call.local,         calls[callNo].local,         IAXC_EVENT_BUFSIZ);
       strncpy(e.ev.call.local_context, calls[callNo].local_context, IAXC_EVENT_BUFSIZ);
       iaxc_post_event(e);
+}
+
+void iaxc_do_registration_callback(int id, int reply) 
+{
+    iaxc_event e;
+    e.type = IAXC_EVENT_REGISTRATION;
+    e.ev.reg.id = id;
+    e.ev.reg.reply = reply;
+    iaxc_post_event(e);
+}
+
+static int iaxc_remove_registration_by_id(int id) {
+	struct iaxc_registration *curr, *prev;
+	int count=0;
+	for( prev=NULL, curr=registrations; curr != NULL; prev=curr, curr=curr->next ) {
+		if( curr->id == id ) {
+			count++;
+			if( curr->session != NULL )
+				iax_destroy( curr->session );
+			if( prev != NULL )
+				prev->next = curr->next;
+			else
+				registrations = curr->next;
+			free( curr );
+			break;
+		}
+	}
+	return count;
 }
 
 EXPORT int iaxc_first_free_call()  {
@@ -822,25 +849,11 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 	}
 }
 
-EXPORT int iaxc_unregister( int registrations_id )
+EXPORT int iaxc_unregister( int id )
 {
-	struct iaxc_registration *curr, *prev;
 	int count=0;
-
 	get_iaxc_lock();
-	for( prev=NULL, curr=registrations; curr != NULL; prev=curr, curr=curr->next ) {
-		if( curr->registrations_id == registrations_id ) {
-			count++;
-			if( curr->session != NULL )
-				iax_destroy( curr->session );
-			if( prev != NULL )
-				prev->next = curr->next;
-			else
-				registrations = curr->next;
-			free( curr );
-			break;
-		}
-	}
+	count = iaxc_remove_registration_by_id(id);
 	put_iaxc_lock();
 	return count;
 }
@@ -870,19 +883,16 @@ EXPORT int iaxc_register(char *user, char *pass, char *host)
 	strncpy(newreg->user, user, 256);
 	strncpy(newreg->pass, pass, 256);
 
-	/* so we notify the user. */
-	newreg->firstpass = 1;
-
 	/* send out the initial registration timeout 300 seconds */
 	iax_register(newreg->session, host, user, pass, 300);
 
 	/* add it to the list; */
-	newreg->registrations_id = ++registrations_id;
+	newreg->id = ++next_registration_id;
 	newreg->next = registrations;
 	registrations = newreg;
 
 	put_iaxc_lock();
-	return newreg->registrations_id;
+	return newreg->id;
 }
 
 static void codec_destroy( int callNo )
@@ -1063,33 +1073,27 @@ static int iaxc_find_call_by_session(struct iax_session *session)
 	return -1;
 }
 
-static void iaxc_handle_regreply(struct iax_event *e) {
-  struct iaxc_registration *cur;
-  // find the registration session
+static struct iaxc_registration *iaxc_find_registration_by_session(struct iax_session *session) {
+    struct iaxc_registration *reg;
+    for (reg = registrations; reg != NULL; reg=reg->next)
+        if (reg->session == session) break;
+    return reg;
+}
 
-    for(cur = registrations; cur != NULL; cur=cur->next) 
-	if(cur->session == e->session) break;
+static void iaxc_handle_regreply(struct iax_event *e, struct iaxc_registration *reg) {
 
-    if(!cur) {
-	iaxc_usermsg(IAXC_ERROR, "Unexpected registration reply");
-	return;
-    }
-
-    if(cur->firstpass) {
-	cur->firstpass = 0;
-      
-	if(e->etype == IAX_EVENT_REGACK ) {
-	    iaxc_usermsg(IAXC_STATUS, "Registration accepted");
-	} else if(e->etype == IAX_EVENT_REGREJ ) {
-	    iaxc_usermsg(IAXC_STATUS, "Registration rejected");
-	}
-    }
+    iaxc_do_registration_callback(reg->id, e->etype);
 
     // XXX I think the session is no longer valid.. at least, that's
     // what miniphone does, and re-using the session doesn't seem to
     // work!
-    iax_destroy(cur->session);
-    cur->session = NULL;
+    iax_destroy(reg->session);
+    reg->session = NULL;
+    
+    if (e->etype == IAX_EVENT_REGREJ) {
+        // we were rejected, so end the registration
+        iaxc_remove_registration_by_id(reg->id);
+    }
 }
 
 /* this is what asterisk does */
@@ -1117,15 +1121,17 @@ static int iaxc_choose_codec(int formats) {
 static void iaxc_service_network() { 
 	struct iax_event *e = 0;
 	int callNo;
+	struct iaxc_registration *reg;
 
 	while ( (e = iax_get_event(0))) {
 		// first, see if this is an event for one of our calls.
 		callNo = iaxc_find_call_by_session(e->session);
 		if(callNo >= 0) {
 			iaxc_handle_network_event(e, callNo);
-		} else if ((e->etype == IAX_EVENT_REGACK ) || (e->etype == IAX_EVENT_REGREJ ))
-		{ 
-		    iaxc_handle_regreply(e);
+		} else if((reg = iaxc_find_registration_by_session(e->session)) != NULL) {
+            iaxc_handle_regreply(e,reg);
+        } else if((e->etype == IAX_EVENT_REGACK ) || (e->etype == IAX_EVENT_REGREJ )) { 
+            iaxc_usermsg(IAXC_ERROR, "Unexpected registration reply");
 		} else if(e->etype == IAX_EVENT_REGREQ ) {
 			iaxc_usermsg(IAXC_ERROR, "Registration requested by someone, but we don't understand!");
 		} else  if(e->etype == IAX_EVENT_CONNECT) {
@@ -1210,6 +1216,10 @@ static void iaxc_service_network() {
 
 			iaxc_usermsg(IAXC_STATUS, "Incoming call on line %d", callNo);
 
+		} else if (e->etype == IAX_EVENT_TIMEOUT) {
+		    
+			iaxc_usermsg(IAXC_STATUS, "Timeout for a non-existant session.  Dropping", e->etype);
+			
 		} else {
 			iaxc_usermsg(IAXC_STATUS, "Event (type %d) for a non-existant session.  Dropping", e->etype);
 		}
