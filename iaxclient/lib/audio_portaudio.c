@@ -610,6 +610,33 @@ static int pa_openstreams (struct iaxc_audio_driver *d ) {
 	virtualMonoOut = 1;
 	return 0;
     }
+
+#endif
+
+#ifdef MACOSX
+    /* I'll put this afterwards because of the assumtion that "mac os x needs virtual stereo"
+       stated above. Defacto this is neede on Mac OS X tiger for some headsets to work! 
+       The Two opens, virtual mono fails in that case abysmally when opening the second
+       input stream... */
+    err = Pa_OpenStream ( &iStream, 
+	      selectedInput,  1, paInt16, NULL,  /* input info */
+	      selectedOutput, 1, paInt16, NULL,  /* output info */
+	      sample_rate, 
+	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
+	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
+	      0,   /* flags */
+	      pa_callback, 
+	      NULL /* userdata */
+      );
+    
+    if( err == paNoError ) {
+	/* if this works, set iStream, oStream to this stream */
+	oStream = iStream;
+	oneStream = 1;
+	virtualMonoIn = 0;
+	virtualMonoOut = 0;
+	return 0;
+    }
 #endif
 
     /* finally, we go to the worst case.  Two opens, virtual mono */
