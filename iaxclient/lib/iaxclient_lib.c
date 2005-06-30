@@ -320,13 +320,14 @@ EXPORT int iaxc_select_call(int callNo) {
   
         // callNo < 0 means no call selected (i.e. all on hold)
 	if(callNo < 0) {
+	    calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
 	    selected_call = callNo;
 	    return 0;
 	}
   
 	// de-select old call if not also the new call	
 	if(callNo != selected_call) {
-	    calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+	    if (selected_call >= 0) calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
 	    selected_call = callNo;
 	    iaxc_do_state_callback(selected_call);
 
@@ -799,6 +800,7 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			
 			break;
 
+
 		case IAX_EVENT_REJECT:
 			iaxc_usermsg(IAXC_STATUS, "Call rejected by remote");
 			iaxc_clear_call(callNo);
@@ -817,6 +819,11 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			//iaxc_answer_call(callNo);
 			// notify the user?
  			break;
+        case IAX_EVENT_BUSY:
+			calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;	
+            calls[callNo].state |= IAXC_CALL_STATE_BUSY;
+            iaxc_do_state_callback(callNo);
+            break;
 		case IAX_EVENT_VOICE:
 			handle_audio_event(e, callNo); 
 			break;
