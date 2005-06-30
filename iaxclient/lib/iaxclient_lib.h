@@ -249,8 +249,6 @@ extern int audio_format_preferred;
 
 extern double iaxc_silence_threshold;
 extern int iaxc_audio_output_mode;
-extern iaxc_event_callback_t iaxc_event_callback;
-extern MUTEX iaxc_lock;
 
 /* post_event_callback */
 int post_event_callback(iaxc_event e);
