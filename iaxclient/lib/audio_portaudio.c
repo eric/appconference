@@ -471,16 +471,74 @@ static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
     return 0; 
 }
 
+static int pa_open(int single, int inMono, int outMono)
+{
+    PaError err;
+    if (single) {
+        err = Pa_OpenStream(&iStream, 
+	      selectedInput, (inMono ? 1 : 2), paInt16, NULL,
+	      selectedOutput, (outMono ? 1 : 2), paInt16, NULL,
+	      sample_rate, 
+	      SAMPLES_PER_FRAME,
+	      PA_NUMBUFFERS,
+	      0,
+	      pa_callback, 
+	      NULL);
+    
+        if (err != paNoError) {
+            return -1;
+        }
+
+        oStream = iStream;
+        oneStream = 1;
+    } else {
+        err = Pa_OpenStream(&iStream, 
+	      selectedInput, (inMono ? 1 : 2), paInt16, NULL,
+	      paNoDevice, 0, paInt16, NULL,
+	      sample_rate, 
+	      SAMPLES_PER_FRAME,
+	      PA_NUMBUFFERS,
+	      0,
+	      pa_callback, 
+	      NULL);
+        if (err != paNoError) {
+	    return -1;
+        }
+
+        err = Pa_OpenStream(&oStream, 
+	      paNoDevice, 0, paInt16, NULL,
+	      selectedOutput, (outMono ? 1 : 2), paInt16, NULL,
+	      sample_rate, 
+	      SAMPLES_PER_FRAME,
+	      PA_NUMBUFFERS,
+	      0,
+	      pa_callback, 
+	      NULL);
+        if (err != paNoError) {
+	    Pa_CloseStream(iStream);
+            iStream = NULL;
+	    return -1;
+        }
+
+        oneStream = 0;
+    }
+
+    virtualMonoIn = (inMono ? 0 : 1);
+    virtualMonoOut = (outMono ? 0 : 1);
+    return 0;
+}
 
 /* some commentary here:
- * 1: MacOSX: MacOSX needs "virtual mono" and a single stream.  That's
- * really the only choice there, and it should always work (Famous last
- * words).
+ * 1: MacOSX: MacOSX often needs "virtual mono" and a single stream.  
+ * That doesn't work for some USB devices (a Platronics headset), so 
+ * mono in, virtual mono out, and mono in/out are also tried.
  *
  * 2: Unix/OSS: most cards are OK with real mono, and a single stream.
  * Except some.  For those, a single open with real mono will succeed,
  * but execution will fail.  Maybe others will open OK with a single
- * stream, and real mono, but fail later?
+ * stream, and real mono, but fail later? Two stream mono is tried first,
+ * since it reportedly provides better sound quality with ALSA
+ * and Sound Blaster Live.
  *
  * The failure mode I saw with a volunteer was that reads/writes would
  * return -enodev (down in the portaudio code).  Bummer.
@@ -488,193 +546,34 @@ static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
  * Win32 works fine, in all cases, with a single stream and real mono,
  * so far.
  *
- * Unfortunately, things get more complicated for MacOSX.  In a reported
- * case, a user has stereo output, but only Mono Input (a particular
- * Plantronics USB headset.  So, we need to handle a new case of mono 
- * input, but virtualMono output.  argh.
- *
  * We could probably do this more cleanly, because there are still cases
  * where we will fail (i.e. if the user has only mono in and out on a Mac).
  *
  * */
 static int pa_openstreams (struct iaxc_audio_driver *d ) {
-    PaError err;
-
+    int err;
 #ifdef LINUX
-    /* First try, separate streams */
-    err = Pa_OpenStream(&iStream, 
-			/* input info */
-			selectedOutput,  1, paInt16, NULL,
-			/* output info */
-			paNoDevice, 0, paInt16, NULL,
-			sample_rate, 
-			/* frames per buffer -- 10ms */
-			SAMPLES_PER_FRAME,	
-			/* numbuffers */  /* use default */
-			PA_NUMBUFFERS,
-			0,   /* flags */
-			pa_callback, 
-			NULL /* userdata */ );
-
-    if (err == paNoError) 
-    {
-	err = Pa_OpenStream(&oStream, 
-			    /* input info */
-			    paNoDevice, 0, paInt16, NULL,
-			    /* output info */
-			    selectedOutput,  1, paInt16, NULL,
-			    sample_rate, 
-			    /* frames per buffer -- 10ms */
-			    SAMPLES_PER_FRAME,	
-			    /* numbuffers */  /* use default */
-			    PA_NUMBUFFERS,
-			    0,   /* flags */
-			    pa_callback, 
-			    NULL /* userdata */ );
-	if (err == paNoError)
-	{
-	    oneStream = 0;
-	    virtualMonoIn = 0;
-	    virtualMonoOut = 0;
-	    return 0;
-	} else {
-	    Pa_CloseStream(iStream);
-	    iStream = NULL;
-	}
-    }
+    err = pa_open(0, 1, 1) && /* two stream mono */
+        pa_open(1, 1, 1) &&   /* one stream mono */
+        pa_open(0, 0, 0);     /* two stream stereo */
+#else
+#ifdef MACOSX
+    err = pa_open(1, 0, 0) &&  /* one stream stereo */
+        pa_open(1, 1, 0) &&    /* one stream mono in stereo out */
+        pa_open(1, 1, 1) &&    /* one stream mono */
+        pa_open(0, 0, 0);      /* two stream stereo */
+#else
+    err = pa_open(1, 1, 1) &&  /* one stream mono */
+        pa_open(1, 0, 0) &&    /* one stream stereo */
+        pa_open(1, 1, 0) &&    /* one stream mono in stereo out */
+        pa_open(0, 0, 0);      /* two stream stereo */
+#endif /*MACOSX */
 #endif /* LINUX */
 
-#ifndef MACOSX
-    /* first, try opening one stream for in/out, Mono */
-    /* except for MacOSX, which needs virtual stereo */
-    err = Pa_OpenStream ( &iStream, 
-	      selectedInput,  1, paInt16, NULL,  /* input info */
-	      selectedOutput, 1, paInt16, NULL,  /* output info */
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
-	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
-	      0,   /* flags */
-	      pa_callback, 
-	      NULL /* userdata */
-      );
-      
-    if( err == paNoError ) {
-	/* if this works, set iStream, oStream to this stream */
-	oStream = iStream;
-	oneStream = 1;
-	virtualMonoIn = virtualMonoOut = 0;
-	return 0;
-    }
-#endif
-
-#ifndef LINUX
-    /* then, we try a single stream, virtual stereo.  Except on linux,
-     * see note above */
-    err = Pa_OpenStream ( &iStream, 
-	      selectedInput,  2, paInt16, NULL,  /* input info */
-	      selectedOutput, 2, paInt16, NULL,  /* output info */
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
-	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
-	      0,   /* flags */
-	      pa_callback, 
-	      NULL /* userdata */
-      );
-    
-    if( err == paNoError ) {
-	/* if this works, set iStream, oStream to this stream */
-	oStream = iStream;
-	oneStream = 1;
-	virtualMonoIn = virtualMonoOut = 1;
-	return 0;
-    }
-
-    /* then, we try a single stream, virtual stereo.  Except on linux,
-     * see note above */
-    err = Pa_OpenStream ( &iStream, 
-	      selectedInput,  1, paInt16, NULL,  /* input info */
-	      selectedOutput, 2, paInt16, NULL,  /* output info */
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
-	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
-	      0,   /* flags */
-	      pa_callback, 
-	      NULL /* userdata */
-      );
-    
-    if( err == paNoError ) {
-	/* if this works, set iStream, oStream to this stream */
-	oStream = iStream;
-	oneStream = 1;
-	virtualMonoIn = 0;
-	virtualMonoOut = 1;
-	return 0;
-    }
-
-#endif
-
-#ifdef MACOSX
-    /* I'll put this afterwards because of the assumtion that "mac os x needs virtual stereo"
-       stated above. Defacto this is neede on Mac OS X tiger for some headsets to work! 
-       The Two opens, virtual mono fails in that case abysmally when opening the second
-       input stream... */
-    err = Pa_OpenStream ( &iStream, 
-	      selectedInput,  1, paInt16, NULL,  /* input info */
-	      selectedOutput, 1, paInt16, NULL,  /* output info */
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
-	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
-	      0,   /* flags */
-	      pa_callback, 
-	      NULL /* userdata */
-      );
-    
-    if( err == paNoError ) {
-	/* if this works, set iStream, oStream to this stream */
-	oStream = iStream;
-	oneStream = 1;
-	virtualMonoIn = 0;
-	virtualMonoOut = 0;
-	return 0;
-    }
-#endif
-
-    /* finally, we go to the worst case.  Two opens, virtual mono */
-    oneStream = 0;
-    virtualMonoIn = virtualMonoOut = 1;
-    err = Pa_OpenStream ( &iStream, 
-	      selectedInput,  2, paInt16, NULL,  /* input info */
-	      paNoDevice, 0, paInt16, NULL,  /* output info */
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
-	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
-	      0,   /* flags */
-	      pa_callback, 
-	      NULL /* userdata */
-      );
-    if( err != paNoError ) 
-    {
-	handle_paerror(err, "opening separate input stream");
+    if (err) {
+	handle_paerror(err, "Unable to open streams");
 	return -1;
     }
-
-    err = Pa_OpenStream ( &oStream, 
-	      paNoDevice, 0, paInt16, NULL,  /* input info */
-	      selectedOutput,  2, paInt16, NULL,  /* output info */
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
-	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
-	      0,   /* flags */
-	      pa_callback, 
-	      NULL /* userdata */
-      );
-    if( err != paNoError ) 
-    {
-	Pa_CloseStream(iStream);
-	handle_paerror(err, "opening separate output stream");
-	return -1;
-    }
-
     return 0;
 }
 
