@@ -320,18 +320,21 @@ EXPORT int iaxc_select_call(int callNo) {
   
         // callNo < 0 means no call selected (i.e. all on hold)
 	if(callNo < 0) {
-	    calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+	    if (selected_call >= 0) {
+	    	calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+		}
 	    selected_call = callNo;
 	    return 0;
 	}
   
-	// de-select old call if not also the new call	
+	// de-select and notify the old call if not also the new call	
 	if(callNo != selected_call) {
-	    if (selected_call >= 0) calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+	    if (selected_call >= 0) {
+		    calls[selected_call].state &= ~IAXC_CALL_STATE_SELECTED;
+		    iaxc_do_state_callback(selected_call);
+		}
 	    selected_call = callNo;
-	    iaxc_do_state_callback(selected_call);
-
-	    calls[callNo].state |= IAXC_CALL_STATE_SELECTED;
+	    calls[selected_call].state |= IAXC_CALL_STATE_SELECTED;
 	}
 
 
