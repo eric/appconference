@@ -853,6 +853,11 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 			iaxc_usermsg(IAXC_STATUS, "Call %d timed out.", callNo);
 			iaxc_clear_call(callNo);
 			break;
+		case IAX_EVENT_TRANSFER:
+			calls[callNo].state |= IAXC_CALL_STATE_TRANSFER;	
+			iaxc_do_state_callback(callNo);
+			iaxc_usermsg(IAXC_STATUS,"Call %d transfer released", callNo);
+			break;
 		default:
 			iaxc_usermsg(IAXC_STATUS, "Unknown event: %d for call %d", e->etype, callNo);
 			break;

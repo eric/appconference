@@ -2567,6 +2567,8 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 					complete_transfer(session, session->peercallno, 0, 1);
 				}
 				e->etype = IAX_EVENT_TRANSFER;
+				/* notify that asterisk no longer sitting between peers */
+				e = schedule_delivery(e, ts, updatehistory);
 				break;
 			case IAX_COMMAND_QUELCH:
 				e->etype = IAX_EVENT_QUELCH;
@@ -2745,6 +2747,40 @@ static struct iax_event *iax_net_read(void)
 	return iax_net_process(buf, res, &sin);
 }
 
+static struct iax_session *iax_txcnt_session(struct ast_iax2_full_hdr *fh, int datalen,
+				struct sockaddr_in *sin, short callno, short dcallno)
+{
+	int subclass = uncompress_subclass(fh->csub);
+	char buf[ 65536 ]; /* allocated on stack with same size as iax_net_read() */
+	struct iax_ies ies;
+	struct iax_session *cur;
+
+	if ((fh->type != AST_FRAME_IAX) || (subclass != IAX_COMMAND_TXCNT) || (!datalen)) {
+		return NULL; /* special handling for TXCNT only */
+	}
+	memcpy(buf, fh->iedata, datalen);	/* prepare local buf for iax_parse_ies() */
+
+	if (iax_parse_ies(&ies, buf, datalen)) {
+		return NULL;	/* Unable to parse IE's */
+	}
+	if (!ies.transferid) {
+		return NULL;	/* TXCNT without proper IAX_IE_TRANSFERID */
+	}
+	for( cur=sessions; cur; cur=cur->next ) {
+		if ((cur->transferring) && (cur->transferid == ies.transferid) &&
+		   	(cur->callno == dcallno) && (cur->transfercallno == callno)) {
+			/* We're transferring ---
+			 * 	skip address/port checking which would fail while remote peer behind symmetric NAT
+			 * 	verify transferid instead
+			 */
+			cur->transfer.sin_addr.s_addr = sin->sin_addr.s_addr;	/* setup for further handling */
+			cur->transfer.sin_port = sin->sin_port;
+			break;		
+		}
+	}
+	return cur;
+}
+
 struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_in *sin)
 {
 	struct ast_iax2_full_hdr *fh = (struct ast_iax2_full_hdr *)buf;
@@ -2759,6 +2795,8 @@ struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_i
 		}
 		/* We have a full header, process appropriately */
 		session = iax_find_session(sin, ntohs(fh->scallno) & ~IAX_FLAG_FULL, ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS, 1);
+		if (!session)
+			session = iax_txcnt_session(fh, len-sizeof(struct ast_iax2_full_hdr), sin, ntohs(fh->scallno) & ~IAX_FLAG_FULL, ntohs(fh->dcallno) & ~IAX_FLAG_RETRANS);
 		if (session) 
 			return iax_header_to_event(session, fh, len - sizeof(struct ast_iax2_full_hdr), sin);
 		DEBU(G "No session?\n");
