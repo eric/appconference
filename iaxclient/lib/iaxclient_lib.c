@@ -259,12 +259,13 @@ void iaxc_do_state_callback(int callNo)
       iaxc_post_event(e);
 }
 
-void iaxc_do_registration_callback(int id, int reply) 
+void iaxc_do_registration_callback(int id, int reply, int msgcount) 
 {
     iaxc_event e;
     e.type = IAXC_EVENT_REGISTRATION;
     e.ev.reg.id = id;
     e.ev.reg.reply = reply;
+    e.ev.reg.msgcount = msgcount;
     iaxc_post_event(e);
 }
 
@@ -1097,7 +1098,7 @@ static struct iaxc_registration *iaxc_find_registration_by_session(struct iax_se
 
 static void iaxc_handle_regreply(struct iax_event *e, struct iaxc_registration *reg) {
 
-    iaxc_do_registration_callback(reg->id, e->etype);
+    iaxc_do_registration_callback(reg->id, e->etype, e->ies.msgcount);
 
     // XXX I think the session is no longer valid.. at least, that's
     // what miniphone does, and re-using the session doesn't seem to

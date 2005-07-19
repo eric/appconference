@@ -92,7 +92,7 @@ extern "C" {
 #define IAXC_EVENT_NETSTAT		4
 #define IAXC_EVENT_URL			5	/* URL push via IAX(2) */
 #define IAXC_EVENT_VIDEO		6	/* video data (pointer) */
-#define IAXC_EVENT_REGISTRATION 7
+#define IAXC_EVENT_REGISTRATION 	7
 
 #define IAXC_CALL_STATE_FREE 		0
 #define IAXC_CALL_STATE_ACTIVE		(1<<1)
@@ -178,6 +178,7 @@ struct iaxc_ev_video {
 struct iaxc_ev_registration {
     int id;
     int reply;
+    int msgcount;
 };
 
 typedef struct iaxc_event_struct {
