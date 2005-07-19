@@ -20,6 +20,8 @@
 
 #include <winsock.h>
 
+void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
+
 static inline int inet_aton(char *cp, struct in_addr *inp)
 {
 	int res;

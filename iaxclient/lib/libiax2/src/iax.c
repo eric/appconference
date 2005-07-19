@@ -10,6 +10,7 @@
  */
  
 #ifdef	WIN32
+#undef __STRICT_ANSI__ //for strdup with ms
 
 #include <string.h>
 #include <process.h>
@@ -32,7 +33,7 @@
 #define	close		_close
 #endif
 
-void gettimeofday(struct timeval *tv, struct timezone *tz);
+void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 
 #else
 

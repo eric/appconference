@@ -34,6 +34,7 @@
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
  */
+#undef __STRICT_ANSI__ //for strupr with ms
 
 #include <windows.h>
 

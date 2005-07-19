@@ -43,6 +43,24 @@ static echo_can_state_t *ec;
 static SpeexEchoState *ec;
 #endif
 
+#ifdef	WIN32
+// alternate volume control initialization routines
+typedef unsigned int MMRESULT;   /* from mmsystem.h */
+struct PxInfo;
+struct PxMixer;
+
+MMRESULT _Px_InitInputVolumeControls(struct PxInfo* mixer, int hWaveIn ) ;
+MMRESULT _Px_InitOutputVolumeControls(struct PxInfo* mixer, int hWaveOut ) ;
+
+// toggle microphone boost function
+MMRESULT _Px_SetMicrophoneBoost(struct PxMixer* mixer, int enable ) ;
+int _Px_GetMicrophoneBoost(struct PxMixer* mixer ) ;
+
+// set input source by name
+MMRESULT _Px_SetCurrentInputSourceByName(struct PxInfo* mixer, const char* line_name ) ;
+#endif
+
+
 #define EC_RING_SZ  8192 /* must be pow(2) */
 
 
