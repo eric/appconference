@@ -48,9 +48,16 @@ endif
 ifeq ($(OSTYPE),LINUX)
 PROG=iaxcomm
 TARGET=iaxcomm
+
+# Suitable settings for wxwidgets 2.4.2 for GTK 1.2
 CFLAGS:= $(CFLAGS) `wx-config --cflags` `gtk-config --cflags`
 EXTRALIBS = /usr/local/lib/libwx_gtk_xrc-2.4.a
 SYSLIBS=$(EXTRALIBS) -lpthread -lm `wx-config --static --libs`
+
+# Suitable settings for wxwidgets 2.6.1 for GTK 2.x and Unicode
+#CFLAGS:= $(CFLAGS) -D__UNICODE__ -DUNICODE `wx-config --cflags` `pkg-config --cflags gtk+-2.0`
+#EXTRALIBS = -lwx_gtk2u_xrc-2.6
+#SYSLIBS=$(EXTRALIBS) -lpthread -lm `wx-config --libs`
 endif
 
 ifeq ($(OSTYPE),MACOSX)

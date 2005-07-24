@@ -212,6 +212,16 @@ MyFrame::MyFrame(wxWindow *parent)
 #ifdef __WXGTK__
     // window used for getting keyboard state
     GdkWindowAttr attr;
+
+    attr.window_type = GDK_WINDOW_CHILD;
+    attr.x = 0;
+    attr.y = 0;
+    attr.width = 0;
+    attr.height = 0;
+    attr.wclass = GDK_INPUT_ONLY;
+    attr.visual = NULL;
+    attr.colormap = NULL;
+    attr.event_mask = 0;
     keyStateWindow = gdk_window_new(NULL, &attr, 0);
 #endif
 
@@ -226,10 +236,12 @@ MyFrame::MyFrame(wxWindow *parent)
 
     wxFileName filename = wxFileName(_T("iaxcomm.htb"));
 
+#ifdef __WXMSW__   
     if (filename.FileExists()) {
 	help->AddBook(filename);
 	return;
     }
+#endif
 
 #ifdef DATADIR
     filename = wxFileName(wxString(DATADIR) + wxFILE_SEP_PATH +
