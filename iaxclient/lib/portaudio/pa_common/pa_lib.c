@@ -36,6 +36,9 @@
  PLB20010820 - fix dither and shift for recording PaUInt8 format 
 */
 
+#ifdef _POCKETPC_
+#include <windows.h>  /*GJG20021019*/
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -130,27 +133,59 @@ PaError PaHost_ValidateSampleRate( PaDeviceID id, double requestedFrameRate,
 }
 
 /*************************************************************************/
-PaError Pa_OpenStream(
-    PortAudioStream** streamPtrPtr,
-    PaDeviceID inputDeviceID,
-    int numInputChannels,
-    PaSampleFormat inputSampleFormat,
-    void *inputDriverInfo,
-    PaDeviceID outputDeviceID,
-    int numOutputChannels,
-    PaSampleFormat outputSampleFormat,
-    void *outputDriverInfo,
-    double sampleRate,
-    unsigned long framesPerBuffer,
-    unsigned long numberOfBuffers,
-    unsigned long streamFlags,
-    PortAudioCallback *callback,
-    void *userData )
+PaError Pa_OpenStream( PortAudioStream** streamPtrPtr,
+                       PaDeviceID inputDeviceID,
+                       int numInputChannels,
+                       PaSampleFormat inputSampleFormat,
+                       void *inputDriverInfo,
+                       PaDeviceID outputDeviceID,
+                       int numOutputChannels,
+                       PaSampleFormat outputSampleFormat,
+                       void *outputDriverInfo,
+                       double sampleRate,
+                       unsigned long framesPerBuffer,
+                       unsigned long numberOfBuffers,
+                       unsigned long streamFlags,
+                       PortAudioCallback *callback,
+                       void *userData )
 {
     internalPortAudioStream   *past = NULL;
     PaError                    result = paNoError;
     int                        bitsPerInputSample;
     int                        bitsPerOutputSample;
+
+#ifdef _POCKETPC_
+    FILE *pa_stdout;   // for portaudio logging
+    char pa_buf[256];
+    int pa_len;
+    int pa_nbw;
+
+    pa_stdout = fopen("\\Program Files\\myApp\\pa_OpenStream.txt","w+t");
+
+    /* Print passed parameters. */
+    pa_len=sprintf(pa_buf,"Pa_OpenStream(\n");
+    pa_nbw = fwrite(pa_buf,1,pa_len,pa_stdout); fflush(pa_stdout);
+
+    pa_len=sprintf(pa_buf,"%p, %d, %d, %d, %p, /* in */\n",
+                    streamPtrPtr, inputDeviceID, numInputChannels,
+                    inputSampleFormat, inputDriverInfo );
+    pa_nbw = fwrite(pa_buf,1,pa_len,pa_stdout); fflush(pa_stdout);
+
+    pa_len=sprintf(pa_buf,"%d, %d, %d, %p, /* out */\n",
+                    outputDeviceID, numOutputChannels,
+                    outputSampleFormat, outputDriverInfo );
+    pa_nbw = fwrite(pa_buf,1,pa_len,pa_stdout); fflush(pa_stdout);
+
+    pa_len=sprintf(pa_buf,"%d, %d, %d, 0x%x, , userdata )\n",
+                    sampleRate,       //was %g
+                    framesPerBuffer, 
+                    numberOfBuffers,
+                    streamFlags); 
+            //      userData );       // was %p
+    pa_nbw = fwrite(pa_buf,1,pa_len,pa_stdout); fflush(pa_stdout);
+
+    fclose(pa_stdout);  
+#else
     /* Print passed parameters. */
     DBUG(("Pa_OpenStream( %p, %d, %d, %d, %p, /* input */ \n",
           streamPtrPtr, inputDeviceID, numInputChannels,
@@ -161,6 +196,7 @@ PaError Pa_OpenStream(
     DBUG(("               %g, %d, %d, 0x%x, , %p )\n",
           sampleRate, framesPerBuffer, numberOfBuffers,
           streamFlags, userData ));
+#endif
 
     /* Check for parameter errors. */
     if( (streamFlags & ~(paClipOff | paDitherOff)) != 0 ) return paInvalidFlag;
@@ -347,7 +383,21 @@ PaError Pa_StartStream( PortAudioStream *stream )
     PaError result = paHostError;
     internalPortAudioStream   *past;
 
+#ifdef _POCKETPC_
+    FILE *pa_stdout;   // for portaudio logging
+    char pa_buf[256];
+    int pa_len;
+    int pa_nbw;
+
+    pa_stdout = fopen("\\Program Files\\Live2496\\pa_StartStream.txt","w+t");
+
+    if( stream == NULL ) { 
+        fclose(pa_stdout);   
+        return paBadStreamPtr; }
+#else
     if( stream == NULL ) return paBadStreamPtr;
+#endif
+
     past = (internalPortAudioStream *) stream;
 
     past->past_FrameCount = 0.0;
@@ -355,24 +405,45 @@ PaError Pa_StartStream( PortAudioStream *stream )
     if( past->past_NumInputChannels > 0 )
     {
         result = PaHost_StartInput( past );
+#ifdef _POCKETPC_
+        pa_len=sprintf(pa_buf,"Pa_StartStream: PaHost_StartInput returned = 0x%X.\n", result);
+        pa_nbw = fwrite(pa_buf,1,pa_len,pa_stdout); fflush(pa_stdout);
+#else
         DBUG(("Pa_StartStream: PaHost_StartInput returned = 0x%X.\n", result));
+#endif
         if( result < 0 ) goto error;
     }
 
     if( past->past_NumOutputChannels > 0 )
     {
         result = PaHost_StartOutput( past );
+#ifdef _POCKETPC_
+        pa_len=sprintf(pa_buf,"Pa_StartStream: PaHost_StartOutput returned = 0x%X.\n", result);
+        pa_nbw = fwrite(pa_buf,1,pa_len,pa_stdout); fflush(pa_stdout);
+#else
         DBUG(("Pa_StartStream: PaHost_StartOutput returned = 0x%X.\n", result));
+#endif
         if( result < 0 ) goto error;
     }
 
     result = PaHost_StartEngine( past );
+#ifdef _POCKETPC_
+    pa_len=sprintf(pa_buf,"Pa_StartStream: PaHost_StartEngine returned = 0x%X.\n", result);
+    pa_nbw = fwrite(pa_buf,1,pa_len,pa_stdout); fflush(pa_stdout);
+#else
     DBUG(("Pa_StartStream: PaHost_StartEngine returned = 0x%X.\n", result));
+#endif
     if( result < 0 ) goto error;
 
+#ifdef _POCKETPC_
+    fclose(pa_stdout);
+#endif
     return paNoError;
 
 error:
+#ifdef _POCKETPC_
+    fclose(pa_stdout);
+#endif
     return result;
 }
 
@@ -457,18 +528,20 @@ const char *Pa_GetErrorText( PaError errnum )
     case paBadStreamPtr:             msg = "Invalid stream pointer."; break;
     case paTimedOut    :             msg = "Wait Timed Out."; break;
     case paInternalError:            msg = "Internal PortAudio Error."; break;
+#ifndef _POCKETPC_
     case paDeviceUnavailable:        msg = "Device Unavailable."; break;
+#endif
     default:                         msg = "Illegal error number."; break;
     }
     return msg;
 }
 
 /*
- Get CPU Load as a fraction of total CPU time.
- A value of 0.5 would imply that PortAudio and the sound generating
- callback was consuming roughly 50% of the available CPU time.
- The amount may vary depending on CPU load.
- This function may be called from the callback function.
+    Get CPU Load as a fraction of total CPU time.
+    A value of 0.5 would imply that PortAudio and the sound generating
+    callback was consuming roughly 50% of the available CPU time.
+    The amount may vary depending on CPU load.
+    This function may be called from the callback function.
 */
 double Pa_GetCPULoad(  PortAudioStream* stream)
 {
@@ -479,6 +552,7 @@ double Pa_GetCPULoad(  PortAudioStream* stream)
 }
 
 /*************************************************************************/
+#ifndef _POCKETPC_
 internalPortAudioStream* PaHost_GetStreamRepresentation( PortAudioStream *stream )
 {
     internalPortAudioStream* result = (internalPortAudioStream*) stream;
@@ -488,15 +562,22 @@ internalPortAudioStream* PaHost_GetStreamRepresentation( PortAudioStream *stream
     else
         return result;
 }
+#endif
 
 /*************************************************************
 ** Calculate 2 LSB dither signal with a triangular distribution.
 ** Ranged properly for adding to a 32 bit integer prior to >>15.
 ** Range of output is +/- 32767
 */
+#ifdef _POCKETPC_
+#define DITHER_BITS   (15)
+#define DITHER_SCALE  (1.0f / ((1<<DITHER_BITS)-1))
+static long Pa_TriangularDither( void )
+#else
 #define PA_DITHER_BITS   (15)
 #define PA_DITHER_SCALE  (1.0f / ((1<<PA_DITHER_BITS)-1))
 long PaConvert_TriangularDither( void )
+#endif
 {
     static unsigned long previous = 0;
     static unsigned long randSeed1 = 22222;
@@ -505,12 +586,17 @@ long PaConvert_TriangularDither( void )
     /* Generate two random numbers. */
     randSeed1 = (randSeed1 * 196314165) + 907633515;
     randSeed2 = (randSeed2 * 196314165) + 907633515;
+#ifdef _POCKETPC_
+    /* Generate triangular distribution about 0. */
+    current = (((long)randSeed1)>>(32-DITHER_BITS)) + (((long)randSeed2)>>(32-DITHER_BITS));
+#else
     /* Generate triangular distribution about 0.
      * Shift before adding to prevent overflow which would skew the distribution.
      * Also shift an extra bit for the high pass filter. 
      */
 #define DITHER_SHIFT  ((32 - PA_DITHER_BITS) + 1)
     current = (((long)randSeed1)>>DITHER_SHIFT) + (((long)randSeed2)>>DITHER_SHIFT);
+#endif
     /* High pass filter to reduce audibility. */
     highPass = current - previous;
     previous = current;
@@ -529,6 +615,10 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                           short *nativeOutputBuffer )
 {
     long              temp;
+#ifdef _POCKETPC_
+    long              bytesEmpty = 0;
+    long              bytesFilled = 0;
+#endif
     int               userResult;
     unsigned int      i;
     void             *inputBuffer = NULL;
@@ -590,7 +680,11 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                     for( i=0; i<samplesPerBuffer; i++ )
                     {
                         temp = nativeInputBuffer[i];
+#ifdef _POCKETPC_
+                        temp += Pa_TriangularDither() >> 8; /* PLB20010820 */
+#else
                         temp += PaConvert_TriangularDither() >> 8; /* PLB20010820 */
+#endif
                         temp = ((temp < -0x8000) ? -0x8000 : ((temp > 0x7FFF) ? 0x7FFF : temp));
                         inBufPtr[i] = (char)(temp >> 8);
                     }
@@ -607,7 +701,11 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                 {
                     for( i=0; i<samplesPerBuffer; i++ )
                     {
+#ifdef _POCKETPC_
+                        inBufPtr[i] = ((unsigned char)(nativeInputBuffer[i] >> 8)) + 0x80;
+#else
                         inBufPtr[i] = (unsigned char)((nativeInputBuffer[i] >> 8) + 0x80);
+#endif
                     }
                 }
                 else
@@ -616,7 +714,11 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                     for( i=0; i<samplesPerBuffer; i++ )
                     {
                         temp = nativeInputBuffer[i];
+#ifdef _POCKETPC_
+                        temp += Pa_TriangularDither() >> 8; /* PLB20010820 */
+#else
                         temp += PaConvert_TriangularDither() >> 8; /* PLB20010820 */
+#endif
                         temp = ((temp < -0x8000) ? -0x8000 : ((temp > 0x7FFF) ? 0x7FFF : temp));
                         inBufPtr[i] = (unsigned char)((temp>>8) + 0x80); /* PLB20010820 */
                     }
@@ -635,11 +737,15 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
     {
         /* May already be in native format so just write directly to native buffer. */
         outputBuffer = (past->past_OutputSampleFormat == paInt16) ?
-                       (void*)nativeOutputBuffer : past->past_OutputBuffer;
+#ifdef _POCKETPC_
+                        nativeOutputBuffer : past->past_OutputBuffer;
+#else
+                        (void *) nativeOutputBuffer : past->past_OutputBuffer;
+#endif
     }
     /*
-     AddTraceMessage("Pa_CallConvertInt16: inputBuffer = ", (int) inputBuffer );
-     AddTraceMessage("Pa_CallConvertInt16: outputBuffer = ", (int) outputBuffer );
+        AddTraceMessage("Pa_CallConvertInt16: inputBuffer = ", (int) inputBuffer );
+        AddTraceMessage("Pa_CallConvertInt16: outputBuffer = ", (int) outputBuffer );
     */
     /* Call user callback routine. */
     userResult = past->past_Callback(
@@ -683,7 +789,11 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                     /* If you dither then you have to clip because dithering could push the signal out of range! */
                     for( i=0; i<samplesPerBuffer; i++ )
                     {
+#ifdef _POCKETPC_
+                        float dither  = Pa_TriangularDither()*DITHER_SCALE;
+#else
                         float dither  = PaConvert_TriangularDither()*PA_DITHER_SCALE;
+#endif
                         float dithered = (outBufPtr[i] * (32767.0f)) + dither;
                         temp = (long) (dithered);
                         *nativeOutputBuffer++ = (short)((temp < -0x8000) ? -0x8000 : ((temp > 0x7FFF) ? 0x7FFF : temp));
@@ -707,7 +817,11 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                     for( i=0; i<samplesPerBuffer; i++ )
                     {
                         /* Shift one bit down before dithering so that we have room for overflow from add. */
+#ifdef _POCKETPC_
+                        temp = (outBufPtr[i] >> 1) + Pa_TriangularDither();
+#else
                         temp = (outBufPtr[i] >> 1) + PaConvert_TriangularDither();
+#endif
                         temp = temp >> 15;
                         *nativeOutputBuffer++ = (short)((temp < -0x8000) ? -0x8000 : ((temp > 0x7FFF) ? 0x7FFF : temp));
                     }
@@ -720,7 +834,11 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                 char *outBufPtr = (char *) past->past_OutputBuffer;
                 for( i=0; i<samplesPerBuffer; i++ )
                 {
+#ifdef _POCKETPC_
+                    *nativeOutputBuffer++ = ((short) outBufPtr[i]) << 8;
+#else
                     *nativeOutputBuffer++ = (short) (((int)outBufPtr[i]) << 8);
+#endif
                 }
                 break;
             }
@@ -730,7 +848,11 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
                 unsigned char *outBufPtr = (unsigned char *) past->past_OutputBuffer;
                 for( i=0; i<samplesPerBuffer; i++ )
                 {
+#ifdef _POCKETPC_
+                    *nativeOutputBuffer++ = ((short) (outBufPtr[i] - 0x80)) << 8;
+#else
                     *nativeOutputBuffer++ = (short) (((int)(outBufPtr[i] - 0x80)) << 8);
+#endif
                 }
                 break;
             }
@@ -738,11 +860,61 @@ long Pa_CallConvertInt16( internalPortAudioStream   *past,
         default:
             break;
         }
-
     }
 
     return userResult;
 }
+
+#ifdef _POCKETPC_
+/*************************************************************************
+** Called by host code.
+** Convert input from Float32, call user code, then convert output
+** to Float32 format for native use.
+** Assumes host native format is Float32.
+** Returns result from user callback.
+** FIXME - Unimplemented for formats other than paFloat32!!!!
+*/
+long Pa_CallConvertFloat32( internalPortAudioStream *past, 
+                            float *nativeInputBuffer,
+                            float *nativeOutputBuffer )
+{
+    long              bytesEmpty = 0;
+    long              bytesFilled = 0;
+    int               userResult;
+    void             *inputBuffer = NULL;
+    void             *outputBuffer = NULL;
+    
+    /* Get native data from DirectSound. */
+    if( (past->past_NumInputChannels > 0) && (nativeInputBuffer != NULL) )
+    {
+        inputBuffer = nativeInputBuffer;  /* FIXME */
+    }
+    
+    /* Are we doing output time? */
+    if( (past->past_NumOutputChannels > 0) && (nativeOutputBuffer != NULL) )
+    {
+    /* May already be in native format so just write directly to native buffer. */
+        outputBuffer = (past->past_OutputSampleFormat == paFloat32) ?
+            nativeOutputBuffer : past->past_OutputBuffer;
+    }
+    /*  
+        AddTraceMessage("Pa_CallConvertInt16: inputBuffer = ", (int) inputBuffer );
+        AddTraceMessage("Pa_CallConvertInt16: outputBuffer = ", (int) outputBuffer );
+    */  
+    /* Call user callback routine. */
+    userResult = past->past_Callback(
+            inputBuffer,
+            outputBuffer,
+            past->past_FramesPerUserBuffer,
+            past->past_FrameCount,
+            past->past_UserData );
+
+    past->past_FrameCount += (PaTimestamp) past->past_FramesPerUserBuffer;
+
+    /* Convert to native format if necessary. */  /* FIXME */   
+    return userResult;
+}
+#endif
 
 /*************************************************************************/
 PaError Pa_Initialize( void )
@@ -765,10 +937,12 @@ PaError Pa_Terminate( void )
     return result;
 }
 
+#ifndef _POCKETPC_
 int PaHost_IsInitialized()
 {
     return gInitCount;
 }
+#endif
 
 /*************************************************************************/
 PaError Pa_GetSampleSize( PaSampleFormat format )
@@ -802,5 +976,3 @@ PaError Pa_GetSampleSize( PaSampleFormat format )
     }
     return (PaError) size;
 }
-
-
