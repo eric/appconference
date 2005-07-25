@@ -362,3 +362,23 @@ void Px_SetPlaythrough( PxMixer *mixer, PxVolume volume )
                                  sizeof(UInt32), &flag);
 }
 
+
+/*
+  unimplemented stubs
+*/
+
+int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
+{
+	return 1 ;
+}
+
+int Px_GetMicrophoneBoost( PxMixer* mixer )
+{
+	return -1 ;
+}
+
+int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* line_name )
+{
+	return 1 ;
+}
+

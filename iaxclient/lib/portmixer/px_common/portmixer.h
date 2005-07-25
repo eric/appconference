@@ -132,6 +132,21 @@ int Px_SupportsPlaythrough( PxMixer *mixer );
 PxVolume Px_GetPlaythrough( PxMixer *mixer );
 void Px_SetPlaythrough( PxMixer *mixer, PxVolume volume );
 
+/*
+  toggle microphone boost function
+*/
+
+/* returns 0 on success, 1 on failure, -1 if not available */
+int Px_SetMicrophoneBoost( PxMixer* mixer, int enable ) ;
+int Px_GetMicrophoneBoost( PxMixer* mixer ) ;
+
+/*
+  set input source by name
+*/
+
+/* returns 0 on sucess, 1 on failure */
+int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* line_name ) ;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
