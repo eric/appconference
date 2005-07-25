@@ -77,16 +77,9 @@ typedef struct PxInfo
    DWORD       waveID;
 } PxInfo;
 
-// alternate volume control initialization routines
-MMRESULT _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn ) ;
-MMRESULT _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut ) ;
-
-// toggle microphone boost function
-MMRESULT _Px_SetMicrophoneBoost( PxMixer* mixer, int enable ) ;
-int _Px_GetMicrophoneBoost( PxMixer* mixer ) ;
-
-// set input source by name
-MMRESULT _Px_SetCurrentInputSourceByName( PxInfo* mixer, const char* line_name ) ;
+/* static function */
+static int Px_InitInputVolumeControls( PxMixer* mixer, int hWaveIn ) ;
+static int Px_InitOutputVolumeControls( PxMixer* mixer, int hWaveOut ) ;
 
 int Px_GetNumMixers( void *pa_stream )
 {
@@ -114,7 +107,7 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
 	if ( wmmeStreamData->hWaveIn != NULL )
 	{
 		/* initialize input volume controls */
-		result = _Px_InitInputVolumeControls( 
+		result = Px_InitInputVolumeControls( 
 			( PxInfo* )( mixer ), 
 			( UINT )( wmmeStreamData->hWaveIn ) 
 		) ;
@@ -129,7 +122,7 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
 	if ( wmmeStreamData->hWaveOut != NULL )
 	{
 		/* initialize output volume controls */
-		result = _Px_InitOutputVolumeControls( 
+		result = Px_InitOutputVolumeControls( 
 			( PxInfo* )( mixer ),
 			( UINT )( wmmeStreamData->hWaveOut ) 
 		) ;
@@ -143,7 +136,7 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
 
 	// report found info
 //	fprintf( stdout, "useMuxID => %d, muxID => %u, inputID => %u, speakerID => %u, waveID => %u\n", 
-//		mixer->useMuxID, mixer->muxID, mixer->inputID, mixer->speakerID, mixer->waveID ) ;
+//		info->useMuxID, info->muxID, info->inputID, info->speakerID, info->waveID ) ;
 	
 	return mixer ;
 }
@@ -468,8 +461,7 @@ void Px_SetPlaythrough( PxMixer *mixer, PxVolume volume )
 // alternate control initialization functions
 //
 
-MMRESULT
-_Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn ) 
+static int Px_InitInputVolumeControls( PxMixer* mixer, int hWaveIn ) 
 {
 	MMRESULT mmr ;
 
@@ -484,7 +476,7 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 	//
 	
 	mmr = mixerOpen( 
-		( LPHMIXER )( &mixer->hInputMixer ), 
+		( LPHMIXER )( &info->hInputMixer ), 
 		( UINT )( hWaveIn ), 0, 0, 
 		MIXER_OBJECTF_HWAVEIN 
 	) ;
@@ -501,26 +493,26 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
     mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_WAVEIN ;
 	
 	mmr = mixerGetLineInfo(
-		( HMIXEROBJ )( mixer->hInputMixer ),
+		( HMIXEROBJ )( info->hInputMixer ),
 		&mixerLine,
 		MIXER_GETLINEINFOF_COMPONENTTYPE
 	) ;
 
 	if ( mmr != MMSYSERR_NOERROR )
 	{
-		mixerClose( (HMIXER)( mixer->hInputMixer ) ) ;
+		mixerClose( (HMIXER)( info->hInputMixer ) ) ;
 		return mmr ;
 	}
 	
 	// we now know the number of inputs
-	mixer->numInputs = mixerLine.cConnections ;
+	info->numInputs = mixerLine.cConnections ;
 	
 	//
 	// find a mux or mixer control for the wavein line
 	//
 
 	// set defaults
-	mixer->useMuxID = 0 ;
+	info->useMuxID = 0 ;
 	
 	LPMIXERCONTROL muxControl = malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 
@@ -532,7 +524,7 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 	muxLineControls.pamxctrl = ( LPMIXERCONTROL )( muxControl ) ;
 	
 	mmr = mixerGetLineControls(
-		mixer->hInputMixer,
+		info->hInputMixer,
 		&muxLineControls,
 		MIXER_GETLINECONTROLSF_ALL
 	) ;
@@ -546,13 +538,13 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 		)
 		{
 			// okay, we have a mux control, let's use it
-			mixer->muxID = muxControl[i].dwControlID ;
-			mixer->useMuxID = 1 ;
+			info->muxID = muxControl[i].dwControlID ;
+			info->useMuxID = 1 ;
 		}
 		else if ( muxControl[i].dwControlType == MIXERCONTROL_CONTROLTYPE_VOLUME )
 		{
 			// normally the master volume, use as our default inputID
-			mixer->inputID = muxControl[i].dwControlID ;
+			info->inputID = muxControl[i].dwControlID ;
 		}
 	}
 
@@ -562,7 +554,7 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 	// gather information about the wavein line volume controls
 	// 	
 
-	if ( mixer->useMuxID == 1 )
+	if ( info->useMuxID == 1 )
 	{
 		// use mux controls
 		
@@ -570,14 +562,14 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 
 		MIXERCONTROLDETAILS details ;
 		details.cbStruct = sizeof( MIXERCONTROLDETAILS ) ;
-		details.dwControlID = mixer->muxID ;
+		details.dwControlID = info->muxID ;
 		details.cChannels = 1 ;
 		details.cbDetails = sizeof( MIXERCONTROLDETAILS_LISTTEXT ) ;
 		details.paDetails = ( LPMIXERCONTROLDETAILS_LISTTEXT )&mixList[0] ;
-		details.cMultipleItems = mixer->numInputs ;
+		details.cMultipleItems = info->numInputs ;
 		
 		mmr = mixerGetControlDetails(
-			( HMIXEROBJ )( mixer->hInputMixer ), 
+			( HMIXEROBJ )( info->hInputMixer ), 
 			( LPMIXERCONTROLDETAILS )&details,
 			MIXER_GETCONTROLDETAILSF_LISTTEXT
 		) ;
@@ -585,11 +577,11 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 		if ( mmr == MMSYSERR_NOERROR )
 		{		
 			int j = 0 ;
-			for ( ; j < mixer->numInputs ; ++j ) 
+			for ( ; j < info->numInputs ; ++j ) 
 			{
 				// record the control's name and line id
-				strcpy( mixer->src[j].name, mixList[j].szName ) ;
-				mixer->src[j].lineID = mixList[j].dwParam1 ;
+				strcpy( info->src[j].name, mixList[j].szName ) ;
+				info->src[j].lineID = mixList[j].dwParam1 ;
 
 				// now get the control's volume control
 				
@@ -605,7 +597,7 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 				control.cbStruct = sizeof( MIXERCONTROL ) ;
 			
 				mmr = mixerGetLineControls(
-					mixer->hInputMixer,
+					info->hInputMixer,
 					&controls,
 					MIXER_GETLINECONTROLSF_ONEBYTYPE
 				) ;
@@ -613,10 +605,10 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 				if ( mmr != MMSYSERR_NOERROR )
 					break ;
 				
-				mixer->src[j].controlID = control.dwControlID ;
+				info->src[j].controlID = control.dwControlID ;
 
 //				fprintf( stdout, "INPUT :: index => %d, name => %s, lineID => %u\n", 
-//					j, mixer->src[j].name, mixer->src[j].lineID, mixer->src[j].controlID ) ;
+//					j, info->src[j].name, info->src[j].lineID, info->src[j].controlID ) ;
 			}
 		}
 	}
@@ -625,10 +617,10 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 	// reset so we can try the line controls directly
 	if ( mmr != MMSYSERR_NOERROR )
 	{
-		mixer->useMuxID = 0 ;
+		info->useMuxID = 0 ;
 	}
 
-	if ( mixer->useMuxID == 0 )
+	if ( info->useMuxID == 0 )
 	{
 		// no mux, use line controls instead
 	
@@ -648,7 +640,7 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 			line.dwDestination = mixerLine.dwDestination ;
 	
 			mmr = mixerGetLineInfo( 
-				( HMIXEROBJ )( mixer->hInputMixer ),
+				( HMIXEROBJ )( info->hInputMixer ),
 				&line, 
 				MIXER_GETLINEINFOF_SOURCE
 			) ;
@@ -660,9 +652,9 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 			// save line info
 			//
 	
-			strcpy( mixer->src[j].name, line.szName ) ;
-			mixer->src[j].lineID = line.dwLineID ;
-			mixer->src[j].controlID = -1 ; // unfortunately, dwControlID is unsigned....
+			strcpy( info->src[j].name, line.szName ) ;
+			info->src[j].lineID = line.dwLineID ;
+			info->src[j].controlID = -1 ; // unfortunately, dwControlID is unsigned....
 	
 			if ( line.cControls == 0 )
 				continue ;
@@ -683,7 +675,7 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 			mixerLineControls.pamxctrl = mixerControl ;
 			
 			mmr = mixerGetLineControls(
-				( HMIXEROBJ )( mixer->hInputMixer ), 
+				( HMIXEROBJ )( info->hInputMixer ), 
 				&mixerLineControls,
 				MIXER_GETLINECONTROLSF_ONEBYTYPE
 			) ;
@@ -694,14 +686,14 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 			int x = 0 ;
 			for ( ; x < line.cControls ; ++x )
 			{
-				mixer->src[j].controlID = mixerControl[x].dwControlID ;
+				info->src[j].controlID = mixerControl[x].dwControlID ;
 
 				// use first volume control
 				break ;
 			}
 			
 //			fprintf( stdout, "INPUT :: index => %d, name => %s, lineID => %u\n", 
-//				j, mixer->src[j].name, mixer->src[j].lineID ) ;
+//				j, info->src[j].name, info->src[j].lineID ) ;
 	
 			free( mixerControl ) ;
 		}
@@ -714,8 +706,7 @@ _Px_InitInputVolumeControls( PxInfo* mixer, int hWaveIn )
 	return MMSYSERR_NOERROR ;
 }
 
-MMRESULT
-_Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut ) 
+static int Px_InitOutputVolumeControls( PxMixer* mixer, int hWaveOut ) 
 {
 	MMRESULT mmr ;
 
@@ -726,14 +717,14 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 		return MMSYSERR_ERROR ;
 	
 	// default win32 speaker control id
-	mixer->speakerID = 0x00000000 ;
+	info->speakerID = 0x00000000 ;
 	
 	//
 	// open the mixer device
 	//
 	
 	mmr = mixerOpen( 
-		( LPHMIXER )( &mixer->hOutputMixer ), 
+		( LPHMIXER )( &info->hOutputMixer ), 
 		hWaveOut, 0, 0,
 		MIXER_OBJECTF_HWAVEOUT 
 	) ;
@@ -743,8 +734,8 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 	
 
 	// set default values
-	mixer->speakerID = 0 ;
-	mixer->waveID = 0 ;
+	info->speakerID = 0 ;
+	info->waveID = 0 ;
 
 	//
 	// MASTER VOLUME
@@ -761,14 +752,14 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 		mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_SPEAKERS ;
 		
 		mmr = mixerGetLineInfo(
-			( HMIXEROBJ )( mixer->hOutputMixer ),
+			( HMIXEROBJ )( info->hOutputMixer ),
 			&mixerLine,
 			MIXER_GETLINEINFOF_COMPONENTTYPE
 		) ;
 		
 		if ( mmr != MMSYSERR_NOERROR )
 		{
-			mixerClose( ( HMIXER )( mixer->hOutputMixer ) ) ;
+			mixerClose( ( HMIXER )( info->hOutputMixer ) ) ;
 			break ;
 		}
 	
@@ -791,19 +782,19 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 		mixerLineControls.pamxctrl = &mixerControl ;
 		
 		mmr = mixerGetLineControls(
-			( HMIXEROBJ )( mixer->hOutputMixer ),
+			( HMIXEROBJ )( info->hOutputMixer ),
 			&mixerLineControls,
 			MIXER_GETLINECONTROLSF_ONEBYTYPE
 		) ;
 		
 		if ( mmr != MMSYSERR_NOERROR )
 		{
-			mixerClose( ( HMIXER )( mixer->hInputMixer ) ) ;
+			mixerClose( ( HMIXER )( info->hInputMixer ) ) ;
 		}
 		else
 		{
 			// save speaker_id
-			mixer->speakerID = mixerControl.dwControlID ;
+			info->speakerID = mixerControl.dwControlID ;
 		}
 	
 		break ;
@@ -824,14 +815,14 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 		mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_SRC_WAVEOUT ;
 		
 		mmr = mixerGetLineInfo(
-			( HMIXEROBJ )( mixer->hOutputMixer ),
+			( HMIXEROBJ )( info->hOutputMixer ),
 			&mixerLine,
 			MIXER_GETLINEINFOF_COMPONENTTYPE
 		) ;
 		
 		if ( mmr != MMSYSERR_NOERROR )
 		{
-			mixerClose( ( HMIXER )( mixer->hOutputMixer ) ) ;
+			mixerClose( ( HMIXER )( info->hOutputMixer ) ) ;
 			break ;
 		}
 	
@@ -854,19 +845,19 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 		mixerLineControls.pamxctrl = &mixerControl ;
 		
 		mmr = mixerGetLineControls(
-			( HMIXEROBJ )( mixer->hOutputMixer ),
+			( HMIXEROBJ )( info->hOutputMixer ),
 			&mixerLineControls,
 			MIXER_GETLINECONTROLSF_ONEBYTYPE
 		) ;
 		
 		if ( mmr != MMSYSERR_NOERROR )
 		{
-			mixerClose( ( HMIXER )( mixer->hInputMixer ) ) ;
+			mixerClose( ( HMIXER )( info->hInputMixer ) ) ;
 		}
 		else
 		{
 			// save speaker_id
-			mixer->waveID = mixerControl.dwControlID ;
+			info->waveID = mixerControl.dwControlID ;
 		}
 		
 		break ;
@@ -875,7 +866,7 @@ _Px_InitOutputVolumeControls( PxInfo* mixer, int hWaveOut )
 	return MMSYSERR_NOERROR ;
 }
 
-MMRESULT _Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
+int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 {
 	MMRESULT mmr = MMSYSERR_ERROR ;
 	
@@ -999,7 +990,7 @@ MMRESULT _Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	return mmr ;
 }
 
-int _Px_GetMicrophoneBoost( PxMixer* mixer )
+int Px_GetMicrophoneBoost( PxMixer* mixer )
 {
 	MMRESULT mmr = MMSYSERR_ERROR ;
 	
@@ -1104,8 +1095,7 @@ int _Px_GetMicrophoneBoost( PxMixer* mixer )
 	return ( int )( value.fValue ) ;
 }
 
-MMRESULT 
-_Px_SetCurrentInputSourceByName( PxInfo* mixer, const char* name ) 
+int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* name ) 
 {
 	// cast void pointer
 	PxInfo* info = ( PxInfo* )( mixer ) ;
