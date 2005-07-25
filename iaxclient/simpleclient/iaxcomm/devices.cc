@@ -164,7 +164,7 @@ void DevicesDialog::OnSave(wxCommandEvent &event)
     //First, apply the changes
     OnApply(event);
 
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
 
     config->SetPath(_T("/Prefs"));
 

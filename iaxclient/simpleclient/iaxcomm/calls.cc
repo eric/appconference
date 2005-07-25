@@ -70,7 +70,7 @@ CallList::CallList(wxWindow *parent, int nCalls, wxWindowID id, const wxPoint& p
                     const wxSize& size, long style)
                   : wxListCtrl( parent, id, pos, size, style)
 {
-    wxConfig   *config = new wxConfig(_T("iaxComm"));
+    wxConfig   *config = theApp::getConfig();
     long        i;
     wxListItem  item;
 
@@ -188,7 +188,7 @@ wxString CallList::GetCodec(struct iaxc_ev_call_state c)
 
 int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     wxString   str;
     long       dummy;
     bool       bCont;

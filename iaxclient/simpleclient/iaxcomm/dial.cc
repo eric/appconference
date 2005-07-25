@@ -53,7 +53,7 @@ void DialEntry(wxString& EntryName)
     wxString Msg;
     wxString FQIN;
 
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     wxString  val;
     wxString  KeyPath;
 
@@ -74,7 +74,7 @@ void DialEntry(wxString& EntryName)
 
 void Dial( wxString DialStr )
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     wxString  FQIN;
 #if defined(__UNICODE__)
     wxMBConvUTF8 utf8;

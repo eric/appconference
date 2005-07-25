@@ -77,7 +77,7 @@ AccountsDialog::AccountsDialog( wxWindow* parent )
 
 void AccountsDialog::Show( void )
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     wxString   str;
     long       dummy;
     bool       bCont;
@@ -115,7 +115,7 @@ END_EVENT_TABLE()
 
 AddAccountDialog::AddAccountDialog( wxWindow* parent, wxString Selection )
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddAccount"));
 
     //----Reach in for our controls-----------------------------------------------------
@@ -159,7 +159,7 @@ void AccountsDialog::OnAddAccountList(wxCommandEvent &event)
 
 void AccountsDialog::OnRemoveAccountList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     long       sel = -1;
     int        isOK;
 
@@ -181,7 +181,7 @@ void AddAccountDialog::OnAdd(wxCommandEvent &event)
 #if defined(__UNICODE__)
     wxMBConvUTF8 utf8;
 #endif
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
 
     if(!Password->GetValue().IsSameAs(Confirm->GetValue())) {
         wxMessageBox(_("Try Again"),

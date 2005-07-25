@@ -93,7 +93,7 @@ DirectoryDialog::DirectoryDialog( wxWindow* parent )
 
 void DirectoryDialog::Show( void )
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     wxString   str;
     long       dummy;
     bool       bCont;
@@ -160,7 +160,7 @@ END_EVENT_TABLE()
 
 AddOTListDialog::AddOTListDialog( wxWindow* parent, wxString Selection )
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddOT"));
 
     //----Reach in for our controls-----------------------------------------------------
@@ -188,7 +188,7 @@ END_EVENT_TABLE()
 
 AddPhoneListDialog::AddPhoneListDialog( wxWindow* parent, wxString Selection )
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     wxXmlResource::Get()->LoadDialog(this, parent, wxT("AddPhoneList"));
 
     //----Reach in for our controls-----------------------------------------------------
@@ -249,7 +249,7 @@ void DirectoryDialog::OnDialOTListActivatedEvent(wxListEvent &event)
 
 void DirectoryDialog::OnDialOTList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     long       sel = -1;
     wxString   DialString;
 
@@ -275,7 +275,7 @@ void DirectoryDialog::OnDialPhoneListActivatedEvent(wxListEvent &event)
 
 void DirectoryDialog::OnDialPhoneList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     long       sel = -1;
     wxString   DialString;
 
@@ -292,7 +292,7 @@ void DirectoryDialog::OnDialPhoneList(wxCommandEvent &event)
 
 void DirectoryDialog::OnRemoveOTList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     long       sel = -1;
     int        isOK;
 
@@ -310,7 +310,7 @@ void DirectoryDialog::OnRemoveOTList(wxCommandEvent &event)
 
 void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     long       sel = -1;
     int        isOK;
 
@@ -329,7 +329,7 @@ void DirectoryDialog::OnRemovePhoneList(wxCommandEvent &event)
 
 void AddOTListDialog::OnAdd(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
     wxString   Path;
 
     Path.Printf(_T("/OT/%d"), OTNo->GetValue());
@@ -346,7 +346,7 @@ void AddOTListDialog::OnAdd(wxCommandEvent &event)
 
 void AddPhoneListDialog::OnAdd(wxCommandEvent &event)
 {
-    wxConfig  *config = new wxConfig(_T("iaxComm"));
+    wxConfig  *config = theApp::getConfig();
 
     config->SetPath(_T("/PhoneBook/") + Name->GetValue());
     config->Write(_T("Extension"), Extension->GetValue());

@@ -82,7 +82,7 @@ IMPLEMENT_APP( theApp )
 
 bool theApp::OnInit()
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
 
     wxString str;
     wxString reginfo;
@@ -237,7 +237,7 @@ bool theApp::OnInit()
 
 void theApp::RegisterByName(wxString RegName)
 {
-    wxConfig    *config = new wxConfig(_T("iaxComm"));
+    wxConfig    *config = theApp::getConfig();
     wxChar      KeyPath[256];
     wxListItem  item;
 #if defined(__UNICODE__)
@@ -298,7 +298,7 @@ int theApp::OnExit(void)
 
 void theApp::load_xrc_resource( const wxString& xrc_filename )
 {
-    wxConfig        *config = new wxConfig(_T("iaxComm"));
+    wxConfig        *config = theApp::getConfig();
     wxString         xrc_fullname;
     static wxString  xrc_subdirectory = _T("");
 
@@ -348,6 +348,14 @@ void theApp::load_xrc_resource( const wxString& xrc_filename )
         wxXmlResource::Get()->Load( xrc_fullname );
         return;
     }
+}
+
+wxConfig *theApp::getConfig()
+{
+    wxConfig  *config = new wxConfig(_T("iaxComm"));
+
+    config->SetUmask(0077);	// owner only
+    return config;
 }
 
 #ifdef __WXMSW__

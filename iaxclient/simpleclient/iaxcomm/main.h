@@ -95,6 +95,8 @@ public:
     wxString      Number;
     wxString      DefaultAccount;
 
+    static wxConfig *getConfig();
+
 protected:
 
 private:

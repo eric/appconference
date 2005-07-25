@@ -120,7 +120,7 @@ END_EVENT_TABLE()
 
 PrefsDialog::PrefsDialog(wxWindow* parent)
 {    
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     long      dummy;
     bool      bCont;
     wxString  str;
@@ -340,7 +340,7 @@ void SetCallerID(wxString name, wxString number)
 
 void PrefsDialog::OnSaveAudio(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     config->SetPath(_T("/Prefs"));
 
     config->Write(_T("RingTone"),   RingTone->GetValue());
@@ -368,7 +368,7 @@ void PrefsDialog::OnApplyAudio(wxCommandEvent &event)
 
 void PrefsDialog::OnSaveCallerID(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     config->SetPath(_T("/Prefs"));
 
     config->Write(_T("Name"),       Name->GetValue());
@@ -391,7 +391,7 @@ void PrefsDialog::OnApplyCallerID(wxCommandEvent &event)
 
 void PrefsDialog::OnSaveMisc(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     config->SetPath(_T("/Prefs"));
 
     config->Write(_T("UseSkin"),        UseSkin->GetValue());
@@ -422,7 +422,7 @@ void PrefsDialog::OnApplyMisc(wxCommandEvent &event)
 
 void PrefsDialog::OnSaveFilters(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     config->SetPath(_T("/Prefs"));
 
     config->Write(_T("AGC"),            AGC->GetValue());
@@ -523,7 +523,7 @@ void PrefsDialog::OnSpeexTune(wxCommandEvent &event)
 
 void PrefsDialog::OnSaveCodecs(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     config->SetPath(_T("/Codecs"));
 
     config->Write(_T("AllowuLaw"),       AllowuLaw->GetValue());

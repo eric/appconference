@@ -124,7 +124,7 @@ END_EVENT_TABLE()
 
 MyFrame::MyFrame(wxWindow *parent)
 {
-    wxConfig   *config = new wxConfig(_T("iaxComm"));
+    wxConfig   *config = theApp::getConfig();
     wxMenuBar  *aMenuBar;
     wxString    Name;
     MyTimer    *timer;
@@ -385,7 +385,7 @@ MyFrame::~MyFrame()
 
 void MyFrame::ShowDirectoryControls()
 {
-    wxConfig   *config = new wxConfig(_T("iaxComm"));
+    wxConfig   *config = theApp::getConfig();
     wxButton   *ot;
     wxString    OTName;
     wxString    DialString;
@@ -717,7 +717,7 @@ void MyFrame::OnDirectory(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnOneTouch(wxCommandEvent &event)
 {
-    wxConfig *config = new wxConfig(_T("iaxComm"));
+    wxConfig *config = theApp::getConfig();
     wxString  Message;
     int       OTNo;
     wxString  PathName;
@@ -772,7 +772,7 @@ void MyFrame::OnDialDirect(wxCommandEvent &event)
 {
     wxString  DialString;
     wxString  Value       = Extension->GetValue();
-    wxConfig *config      = new wxConfig(_T("iaxComm"));
+    wxConfig *config      = theApp::getConfig();
 
     DialString = config->Read(_T("/PhoneBook/") + Value + _T("/Extension"), _T(""));
 
