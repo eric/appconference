@@ -43,24 +43,6 @@ static echo_can_state_t *ec;
 static SpeexEchoState *ec;
 #endif
 
-#ifdef	WIN32
-// alternate volume control initialization routines
-typedef unsigned int MMRESULT;   /* from mmsystem.h */
-struct PxInfo;
-struct PxMixer;
-
-MMRESULT _Px_InitInputVolumeControls(struct PxInfo* mixer, int hWaveIn ) ;
-MMRESULT _Px_InitOutputVolumeControls(struct PxInfo* mixer, int hWaveOut ) ;
-
-// toggle microphone boost function
-MMRESULT _Px_SetMicrophoneBoost(struct PxMixer* mixer, int enable ) ;
-int _Px_GetMicrophoneBoost(struct PxMixer* mixer ) ;
-
-// set input source by name
-MMRESULT _Px_SetCurrentInputSourceByName(struct PxInfo* mixer, const char* line_name ) ;
-#endif
-
-
 #define EC_RING_SZ  8192 /* must be pow(2) */
 
 
@@ -690,19 +672,21 @@ static int pa_start (struct iaxc_audio_driver *d ) {
 	/* select the microphone as the input source */
 	if ( iMixer != NULL )
 	{
-#ifdef WIN32 // temporary until other impl have this function
-		_Px_SetCurrentInputSourceByName( iMixer, "microphone" ) ;
-		_Px_SetMicrophoneBoost( iMixer, 0 ) ;
-#else
-		int n = Px_GetNumInputSources( iMixer ) - 1 ;
-		for ( ; n > 0 ; --n )
+		/* try the new method, reverting to the old if it fails */
+		if ( Px_SetCurrentInputSourceByName( iMixer, "microphone" ) != 0 )
 		{
-			if ( strcasecmp( "microphone", Px_GetInputSourceName( iMixer, n ) ) == 0 )
+			int n = Px_GetNumInputSources( iMixer ) - 1 ;
+			for ( ; n > 0 ; --n )
 			{
-				Px_SetCurrentInputSource( iMixer, n ) ;
+				if ( strcasecmp( "microphone", Px_GetInputSourceName( iMixer, n ) ) == 0 )
+				{
+					Px_SetCurrentInputSource( iMixer, n ) ;
+				}
 			}
 		}
-#endif
+		
+		/* try to set the microphone boost */
+		Px_SetMicrophoneBoost( iMixer, 0 ) ;
 	}
 
     running = 1;
@@ -831,7 +815,10 @@ static double pa_output_level_get(struct iaxc_audio_driver *d){
       return -1;
 
 	/* prefer the pcm output, but default to the master output */
-    return Px_GetOutputVolume( mix, Px_SupportsPCMOutputVolume( mix ) ) ;
+	if ( Px_SupportsPCMOutputVolume( mix ) )
+		return Px_GetPCMOutputVolume( mix );
+	else
+		return Px_GetMasterVolume( mix );
 }
 
 static int pa_input_level_set(struct iaxc_audio_driver *d, double level){
@@ -857,7 +844,10 @@ static int pa_output_level_set(struct iaxc_audio_driver *d, double level){
       return -1;
 
 	/* prefer the pcm output, but default to the master output */
-    Px_SetOutputVolume( mix, Px_SupportsPCMOutputVolume( mix ), level ) ;
+	if ( Px_SupportsPCMOutputVolume( mix ) ) 
+		Px_SetPCMOutputVolume( mix, level );
+	else 
+		Px_SetMasterVolume( mix, level );
 
     return 0;
 }
@@ -865,24 +855,16 @@ static int pa_output_level_set(struct iaxc_audio_driver *d, double level){
 static int pa_mic_boost_get( struct iaxc_audio_driver* d )
 {
 	int enable = -1 ;
-#ifdef WIN32
 	if ( iMixer != NULL )
-	{
-		enable = _Px_GetMicrophoneBoost( iMixer ) ;
-	}
-#endif
+		enable = Px_GetMicrophoneBoost( iMixer ) ;
 	return enable ;
 }
 
 int pa_mic_boost_set( struct iaxc_audio_driver* d, int enable )
 {
 	int err = -1 ;
-#ifdef WIN32
 	if ( iMixer != NULL )
-	{
-		err = _Px_SetMicrophoneBoost( iMixer, enable ) ;
-	}
-#endif
+		err = Px_SetMicrophoneBoost( iMixer, enable ) ;
 	return err ;
 }
 
