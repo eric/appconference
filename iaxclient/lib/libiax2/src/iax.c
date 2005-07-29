@@ -42,6 +42,9 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#ifdef __GNUC__
+#define __USE_SVID
+#endif
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -350,15 +353,6 @@ struct iax_sched {
 	struct iax_sched *next;
 };
 
-#ifdef	WIN32
-
-void bzero(void *b, size_t len)
-{
-	memset(b,0,len);
-}
-
-#endif
-
 static struct iax_sched *schedq = NULL;
 static struct iax_session *sessions = NULL;
 static int callnums = 1;
@@ -384,7 +378,7 @@ static int iax_sched_add(struct iax_event *event, struct iax_frame *frame, sched
 
 	sched = (struct iax_sched*)malloc(sizeof(struct iax_sched));
 	if (sched) {
-		bzero(sched, sizeof(struct iax_sched));
+        memset(sched, 0, sizeof(struct iax_sched));
 		gettimeofday(&sched->when, NULL);
 		sched->when.tv_sec += (ms / 1000);
 		ms = ms % 1000;
@@ -859,7 +853,7 @@ int iax_init(int preferredportno)
 {
 	int portno = preferredportno;
 	struct sockaddr_in sin;
-	int sinlen;
+	unsigned int sinlen;
 	int flags;
 
 	if(iax_recvfrom == recvfrom) {
@@ -1102,7 +1096,7 @@ static int iax_predestroy(struct iax_session *pvt)
 }
 #endif
 
-static int __send_command(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno, 
+static int __send_command(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno, 
 		int now, int transfer, int final, int samples)
 {
 	struct ast_frame f;
@@ -1113,20 +1107,20 @@ static int __send_command(struct iax_session *i, char type, int command, unsigne
 	f.mallocd = 0;
 	f.offset = 0;
 #ifdef __GNUC__
-	f.src = __FUNCTION__;
+	f.src = (char *) __FUNCTION__;
 #else
-	f.src = __FILE__;
+	f.src = (char *) __FILE__;
 #endif
 	f.data = data;
 	return iax_send(i, &f, ts, seqno, now, transfer, final);
 }
 
-static int send_command(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno)
+static int send_command(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno)
 {
 	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 0, 0);
 }
 
-static int send_command_final(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno)
+static int send_command_final(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno)
 {
 #if 0
 	/* It is assumed that the callno has already been locked */
@@ -1138,17 +1132,17 @@ static int send_command_final(struct iax_session *i, char type, int command, uns
 	return r;
 }
 
-static int send_command_immediate(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno)
+static int send_command_immediate(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno)
 {
 	return __send_command(i, type, command, ts, data, datalen, seqno, 1, 0, 0, 0);
 }
 
-static int send_command_transfer(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen)
+static int send_command_transfer(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen)
 {
 	return __send_command(i, type, command, ts, data, datalen, 0, 0, 1, 0, 0);
 }
 
-static int send_command_samples(struct iax_session *i, char type, int command, unsigned int ts, char *data, int datalen, int seqno, int samples)
+static int send_command_samples(struct iax_session *i, char type, int command, unsigned int ts, unsigned char *data, int datalen, int seqno, int samples)
 {
 	return __send_command(i, type, command, ts, data, datalen, seqno, 0, 0, 0, samples);
 }
@@ -1163,7 +1157,7 @@ int iax_transfer(struct iax_session *session, char *number)
 	memset(&ied, 0, sizeof(ied));
 	
 	// Copy The Transfer Destination Into The IE Structure
-	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, number);
+	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, (unsigned char *) number);
 	
 	// Send The Transfer Command - Asterisk Will Handle The Rest!			
 	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_TRANSFER, 0, ied.buf, ied.pos, -1);
@@ -1471,7 +1465,7 @@ int iax_send_dtmf(struct iax_session *session, char digit)
 	return send_command(session, AST_FRAME_DTMF, digit, 0, NULL, 0, -1);
 }
 
-int iax_send_voice(struct iax_session *session, int format, char *data, int datalen, int samples)
+int iax_send_voice(struct iax_session *session, int format, unsigned char *data, int datalen, int samples)
 {
 	/* Send a (possibly compressed) voice frame */
 	if (!session->quelch)
@@ -1479,13 +1473,13 @@ int iax_send_voice(struct iax_session *session, int format, char *data, int data
 	return 0;
 }
 
-int iax_send_cng(struct iax_session *session, int level, char *data, int datalen)
+int iax_send_cng(struct iax_session *session, int level, unsigned char *data, int datalen)
 {    
 	session->notsilenttx = 0;
 	return send_command(session, AST_FRAME_CNG, level, 0, data, datalen, -1);
 }
 
-int iax_send_image(struct iax_session *session, int format, char *data, int datalen)
+int iax_send_image(struct iax_session *session, int format, unsigned char *data, int datalen)
 {
 	/* Send an image frame */
 	return send_command(session, AST_FRAME_IMAGE, format, 0, data, datalen, -1);
@@ -1526,7 +1520,7 @@ int iax_register(struct iax_session *session, char *server, char *peer, char *se
 	session->peeraddr.sin_family = AF_INET;
 	strncpy(session->username, peer, sizeof(session->username) - 1);
 	session->refresh = refresh;
-	iax_ie_append_str(&ied, IAX_IE_USERNAME, peer);
+	iax_ie_append_str(&ied, IAX_IE_USERNAME, (unsigned char *) peer);
 	iax_ie_append_short(&ied, IAX_IE_REFRESH, refresh);
 	res = send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
 	return res;
@@ -1536,22 +1530,22 @@ int iax_reject(struct iax_session *session, char *reason)
 {
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
-	iax_ie_append_str(&ied, IAX_IE_CAUSE, reason ? reason : "Unspecified");
+	iax_ie_append_str(&ied, IAX_IE_CAUSE, reason ? (unsigned char *) reason : (unsigned char *) "Unspecified");
 	return send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_REJECT, 0, ied.buf, ied.pos, -1);
 }
 
 int iax_hangup(struct iax_session *session, char *byemsg)
 {
 	struct iax_ie_data ied;
-	iax_sched_del(NULL, NULL, send_ping, (void *)session, 1);
+	iax_sched_del(NULL, NULL, send_ping, (void *) session, 1);
 	memset(&ied, 0, sizeof(ied));
-	iax_ie_append_str(&ied, IAX_IE_CAUSE, byemsg ? byemsg : "Normal clearing");
+	iax_ie_append_str(&ied, IAX_IE_CAUSE, byemsg ? (unsigned char *) byemsg : (unsigned char *) "Normal clearing");
 	return send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_HANGUP, 0, ied.buf, ied.pos, -1);
 }
 
 int iax_sendurl(struct iax_session *session, char *url)
 {
-	return send_command(session, AST_FRAME_HTML, AST_HTML_URL, 0, url, strlen(url), -1);
+	return send_command(session, AST_FRAME_HTML, AST_HTML_URL, 0, (unsigned char *) url, strlen(url), -1);
 }
 
 int iax_ring_announce(struct iax_session *session)
@@ -1589,12 +1583,12 @@ int iax_load_complete(struct iax_session *session)
 
 int iax_send_url(struct iax_session *session, char *url, int link)
 {
-	return send_command(session, AST_FRAME_HTML, link ? AST_HTML_LINKURL : AST_HTML_URL, 0, url, strlen(url), -1);
+	return send_command(session, AST_FRAME_HTML, link ? AST_HTML_LINKURL : AST_HTML_URL, 0, (unsigned char *) url, strlen(url), -1);
 }
 
 int iax_send_text(struct iax_session *session, char *text)
 {
-	return send_command(session, AST_FRAME_TEXT, 0, 0, text, strlen(text) + 1, -1);
+	return send_command(session, AST_FRAME_TEXT, 0, 0, (unsigned char *) text, strlen(text) + 1, -1);
 }
 
 int iax_send_unlink(struct iax_session *session)
@@ -1706,11 +1700,11 @@ int iax_auth_reply(struct iax_session *session, char *password, char *challenge,
 		MD5Update(&md5, (const unsigned char *) challenge, strlen(challenge));
 		MD5Update(&md5, (const unsigned char *) password, strlen(password));
 		MD5Final((unsigned char *) reply, &md5);
-		bzero(realreply, sizeof(realreply));
+		memset(realreply, 0, sizeof(realreply));
 		convert_reply(realreply, (unsigned char *) reply);
-		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, realreply);
+		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, (unsigned char *) realreply);
 	} else {
-		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, password);
+		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, (unsigned char *) password);
 	}
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_AUTHREP, 0, ied.buf, ied.pos, -1);
 }
@@ -1722,18 +1716,18 @@ static int iax_regauth_reply(struct iax_session *session, char *password, char *
 	char realreply[256];
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
-	iax_ie_append_str(&ied, IAX_IE_USERNAME, session->username);
+	iax_ie_append_str(&ied, IAX_IE_USERNAME, (unsigned char *) session->username);
 	iax_ie_append_short(&ied, IAX_IE_REFRESH, session->refresh);
 	if ((methods & IAX_AUTHMETHOD_MD5) && challenge) {
 		MD5Init(&md5);
 		MD5Update(&md5, (const unsigned char *) challenge, strlen(challenge));
 		MD5Update(&md5, (const unsigned char *) password, strlen(password));
 		MD5Final((unsigned char *) reply, &md5);
-		bzero(realreply, sizeof(realreply));
+		memset(realreply, 0, sizeof(realreply));
 		convert_reply(realreply, (unsigned char *) reply);
-		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, realreply);
+		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, (unsigned char *) realreply);
 	} else {
-		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, password);
+		iax_ie_append_str(&ied, IAX_IE_MD5_RESULT, (unsigned char *) password);
 	}
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_REGREQ, 0, ied.buf, ied.pos, -1);
 }
@@ -1743,7 +1737,7 @@ int iax_dial(struct iax_session *session, char *number)
 {
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
-	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, number);
+	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, (unsigned char *) number);
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DIAL, 0, ied.buf, ied.pos, -1);
 }
 
@@ -1761,7 +1755,7 @@ int iax_dialplan_request(struct iax_session *session, char *number)
 {
 	struct iax_ie_data ied;
 	memset(&ied, 0, sizeof(ied));
-	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, number);
+	iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, (unsigned char *) number);
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DPREQ, 0, ied.buf, ied.pos, -1);
 }
 
@@ -1785,9 +1779,9 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 	strncpy(tmp, ich, sizeof(tmp) - 1);	
 	iax_ie_append_short(&ied, IAX_IE_VERSION, IAX_PROTO_VERSION);
 	if (cidnum)
-		iax_ie_append_str(&ied, IAX_IE_CALLING_NUMBER, cidnum);
+		iax_ie_append_str(&ied, IAX_IE_CALLING_NUMBER, (unsigned char *) cidnum);
 	if (cidname)
-		iax_ie_append_str(&ied, IAX_IE_CALLING_NAME, cidname);
+		iax_ie_append_str(&ied, IAX_IE_CALLING_NAME, (unsigned char *) cidname);
 	
 	session->capability = capabilities;
 	session->pingid = iax_sched_add(NULL,NULL, send_ping, (void *)session, 2 * 1000);
@@ -1796,7 +1790,7 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 	iax_ie_append_int(&ied, IAX_IE_FORMAT, formats);
 	iax_ie_append_int(&ied, IAX_IE_CAPABILITY, capabilities);
 	if (lang)
-		iax_ie_append_str(&ied, IAX_IE_LANGUAGE, lang);
+		iax_ie_append_str(&ied, IAX_IE_LANGUAGE, (unsigned char *) lang);
 	
 	/* Part 1 is [user[:password]@]peer[:port] */
 	part1 = strtok(tmp, "/");
@@ -1840,13 +1834,13 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 		context = NULL;
 	}
 	if (username)
-		iax_ie_append_str(&ied, IAX_IE_USERNAME, username);
+		iax_ie_append_str(&ied, IAX_IE_USERNAME, (unsigned char *) username);
 	if (exten && strlen(exten))
-		iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, exten);
+		iax_ie_append_str(&ied, IAX_IE_CALLED_NUMBER, (unsigned char *) exten);
 	if (dnid && strlen(dnid))
-		iax_ie_append_str(&ied, IAX_IE_DNID, dnid);
+		iax_ie_append_str(&ied, IAX_IE_DNID, (unsigned char *) dnid);
 	if (context && strlen(context))
-		iax_ie_append_str(&ied, IAX_IE_CALLED_CONTEXT, context);
+		iax_ie_append_str(&ied, IAX_IE_CALLED_CONTEXT, (unsigned char *) context);
 
 	/* Setup host connection */
 	hp = gethostbyname(hostname);
@@ -2238,11 +2232,7 @@ static int uncompress_subclass(unsigned char csub)
 		return csub;
 }
 
-static
-#ifndef	WIN32
-inline
-#endif
-char *extract(char *src, char *string)
+static inline char *extract(char *src, char *string)
 {
 	/* Extract and duplicate what we need from a string */
 	char *s, *t;
@@ -2490,7 +2480,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 						REJECT event.
 					 */
 					memset(&ied, 0, sizeof(ied));
-					iax_ie_append_str(&ied, IAX_IE_CAUSE, "Unable to negotiate codec");
+					iax_ie_append_str(&ied, IAX_IE_CAUSE, (unsigned char *) "Unable to negotiate codec");
 					send_command_final(session, AST_FRAME_IAX, IAX_COMMAND_REJECT, 0, ied.buf, ied.pos, -1);
 					e->etype = IAX_EVENT_REJECT;
 				}
@@ -2725,10 +2715,10 @@ void iax_destroy(struct iax_session *session)
 
 static struct iax_event *iax_net_read(void)
 {
-	char buf[65536];
+	unsigned char buf[65536];
 	int res;
 	struct sockaddr_in sin;
-	int sinlen;
+	unsigned int sinlen;
 	sinlen = sizeof(sin);
 	res = iax_recvfrom(netfd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
 	if (res < 0) {
@@ -2752,7 +2742,7 @@ static struct iax_session *iax_txcnt_session(struct ast_iax2_full_hdr *fh, int d
 				struct sockaddr_in *sin, short callno, short dcallno)
 {
 	int subclass = uncompress_subclass(fh->csub);
-	char buf[ 65536 ]; /* allocated on stack with same size as iax_net_read() */
+	unsigned char buf[ 65536 ]; /* allocated on stack with same size as iax_net_read() */
 	struct iax_ies ies;
 	struct iax_session *cur;
 
@@ -3042,5 +3032,5 @@ int iax_quelch_moh(struct iax_session *session, int MOH)
 		session->transfer_moh = 1;
 	}
 		
-	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos, -1);		
+	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_QUELCH, 0, ied.buf, ied.pos, -1);
 }

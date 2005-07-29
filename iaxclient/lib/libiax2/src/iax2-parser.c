@@ -461,7 +461,7 @@ int iax_ie_append_short(struct iax_ie_data *ied, unsigned char ie, unsigned shor
 
 int iax_ie_append_str(struct iax_ie_data *ied, unsigned char ie, unsigned char *str)
 {
-	return iax_ie_append_raw(ied, ie, str, strlen(str));
+	return iax_ie_append_raw(ied, ie, str, strlen((char *) str));
 }
 
 int iax_ie_append_byte(struct iax_ie_data *ied, unsigned char ie, unsigned char dat)
@@ -506,25 +506,25 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 		}
 		switch(ie) {
 		case IAX_IE_CALLED_NUMBER:
-			ies->called_number = data + 2;
+			ies->called_number = (char *) data + 2;
 			break;
 		case IAX_IE_CALLING_NUMBER:
-			ies->calling_number = data + 2;
+			ies->calling_number = (char *) data + 2;
 			break;
 		case IAX_IE_CALLING_ANI:
-			ies->calling_ani = data + 2;
+			ies->calling_ani = (char *) data + 2;
 			break;
 		case IAX_IE_CALLING_NAME:
-			ies->calling_name = data + 2;
+			ies->calling_name = (char *) data + 2;
 			break;
 		case IAX_IE_CALLED_CONTEXT:
-			ies->called_context = data + 2;
+			ies->called_context = (char *) data + 2;
 			break;
 		case IAX_IE_USERNAME:
-			ies->username = data + 2;
+			ies->username = (char *) data + 2;
 			break;
 		case IAX_IE_PASSWORD:
-			ies->password = data + 2;
+			ies->password = (char *) data + 2;
 			break;
 		case IAX_IE_CAPABILITY:
 			if (len != (int)sizeof(unsigned int)) {
@@ -541,7 +541,7 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				ies->format = ntohl(get_uint32(data + 2));
 			break;
 		case IAX_IE_LANGUAGE:
-			ies->language = data + 2;
+			ies->language = (char *) data + 2;
 			break;
 		case IAX_IE_VERSION:
 			if (len != (int)sizeof(unsigned short)) {
@@ -565,10 +565,10 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				ies->samprate = ntohs(get_uint16(data + 2));
 			break;
 		case IAX_IE_DNID:
-			ies->dnid = data + 2;
+			ies->dnid = (char *) data + 2;
 			break;
 		case IAX_IE_RDNIS:
-			ies->rdnis = data + 2;
+			ies->rdnis = (char *) data + 2;
 			break;
 		case IAX_IE_AUTHMETHODS:
 			if (len != (int)sizeof(unsigned short))  {
@@ -578,13 +578,13 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				ies->authmethods = ntohs(get_uint16(data + 2));
 			break;
 		case IAX_IE_CHALLENGE:
-			ies->challenge = data + 2;
+			ies->challenge = (char *) data + 2;
 			break;
 		case IAX_IE_MD5_RESULT:
-			ies->md5_result = data + 2;
+			ies->md5_result = (char *) data + 2;
 			break;
 		case IAX_IE_RSA_RESULT:
-			ies->rsa_result = data + 2;
+			ies->rsa_result = (char *) data + 2;
 			break;
 		case IAX_IE_APPARENT_ADDR:
 			ies->apparent_addr = ((struct sockaddr_in *)(data + 2));
@@ -611,7 +611,7 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				ies->callno = ntohs(get_uint16(data + 2));
 			break;
 		case IAX_IE_CAUSE:
-			ies->cause = data + 2;
+			ies->cause = (char *) data + 2;
 			break;
 		case IAX_IE_CAUSECODE:
 			if (len != 1) {
@@ -664,10 +664,10 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 				ies->firmwarever = ntohs(get_uint16(data + 2));	
 			break;
 		case IAX_IE_DEVICETYPE:
-			ies->devicetype = data + 2;
+			ies->devicetype = (char *) data + 2;
 			break;
 		case IAX_IE_SERVICEIDENT:
-			ies->serviceident = data + 2;
+			ies->serviceident = (char *) data + 2;
 			break;
 		case IAX_IE_FWBLOCKDESC:
 			if (len != (int)sizeof(unsigned int)) {
