@@ -160,11 +160,7 @@ bool theApp::OnInit()
     // Call initialize now, as the frame constructor might read config values
     // and update settings (such as preferred codec).
     if(iaxc_initialize(AUDIO_INTERNAL_PA, nCalls)) {
-#if defined(__UNICODE__)
         wxLogError(_("Couldn't Initialize IAX Client "));
-#else
-        wxFatalError(_("Couldn't Initialize IAX Client "));
-#endif
     }
 
     // Create an instance of the main frame.
@@ -200,7 +196,8 @@ bool theApp::OnInit()
     theFrame->Show( TRUE );
 
   #ifdef __WXMSW__
-    theTaskBarIcon.SetIcon(wxICON(application));
+    theTaskBarIcon = new MyTaskBarIcon();
+    theTaskBarIcon->SetIcon(wxICON(application));
   #endif
 
     SetAudioDevices(InputDevice,
@@ -354,7 +351,9 @@ wxConfig *theApp::getConfig()
 {
     wxConfig  *config = new wxConfig(_T("iaxComm"));
 
+#ifndef __WXMSW__
     config->SetUmask(0077);	// owner only
+#endif
     return config;
 }
 
@@ -368,6 +367,11 @@ END_EVENT_TABLE()
 void MyTaskBarIcon::OnRestore(wxCommandEvent&)
 {
     wxGetApp().theFrame->Show(TRUE);
+}
+
+void MyTaskBarIcon::OnIconize(wxIconizeEvent&)
+{
+    wxGetApp().theFrame->Show(FALSE);
 }
 
 void MyTaskBarIcon::OnHide(wxCommandEvent&)

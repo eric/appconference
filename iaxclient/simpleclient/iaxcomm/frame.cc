@@ -79,7 +79,7 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_MENU    (XRCID("Help"),        MyFrame::OnHelp)
     EVT_SIZE    (                      CallList::OnSize)  
 #ifdef __WXMSW__
-    EVT_ICONIZE (                      MyTaskBarIcon::OnHide)
+    EVT_ICONIZE (                      MyTaskBarIcon::OnIconize)
 #endif
     EVT_BUTTON  (XRCID("0"),           MyFrame::OnOneTouch)
     EVT_BUTTON  (XRCID("1"),           MyFrame::OnOneTouch)
@@ -236,7 +236,7 @@ MyFrame::MyFrame(wxWindow *parent)
 
     wxFileName filename = wxFileName(_T("iaxcomm.htb"));
 
-#ifdef __WXMSW__   
+#ifdef NOHELP
     if (filename.FileExists()) {
 	help->AddBook(filename);
 	return;
@@ -276,11 +276,7 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
         aPanel = wxXmlResource::Get()->LoadPanel(parent, wxT("default"));
 
     if(aPanel == NULL)
-#if defined(__UNICODE__)
         wxLogError(_("Can't Load Panel in frame.cc"));
-#else
-        wxFatalError(_("Can't Load Panel in frame.cc"));
-#endif
 
     //----Reach in for our controls-----------------------------------------------------
     Input        = XRCCTRL(*aPanel, "Input",        wxGauge);
@@ -294,11 +290,7 @@ void MyFrame::AddPanel(wxWindow *parent, wxString Name)
     Calls = new CallList(aPanel, wxGetApp().nCalls);
 
     if(Calls == NULL)
-#if defined(__UNICODE__)
         wxLogError(_("Can't Load CallList in frame.cc"));
-#else
-        wxFatalError(_("Can't Load CallList in frame.cc"));
-#endif
 
     wxXmlResource::Get()->AttachUnknownControl(_T("Calls"), Calls);
 
@@ -371,11 +363,19 @@ void MyFrame::ApplyCodecs()
 
 MyFrame::~MyFrame()
 {
+#ifdef __WXMSW__
+    delete wxGetApp().theTaskBarIcon;
+#endif
+
+#if 0
+    // Getting rid of this block seems to be harmless, and also seems to get rid of the 
+    // frequent hang when exiting on linux.
     iaxc_dump_all_calls();
     for(int i=0;i<10;i++) {
         iaxc_millisleep(100);
     }
     iaxc_stop_processing_thread();
+#endif
     
     if(help != NULL)
         help->Quit();

@@ -1,6 +1,7 @@
 PROVIDER=asterisk
-VERSION=1.0rc3
+VERSION=1.1.0
 CFLAGS=-I../../lib 
+REZFLAGS=/usr/local/include/wx-2.6
 
 #debug
 CFLAGS:= $(CFLAGS) -g -Wall -DVERSION='"$(VERSION)"'
@@ -37,12 +38,15 @@ ifeq ($(OSTYPE),WIN32)
 #include $(WXWIN)/src/makeprog.g95
 PROG=iaxcomm.exe
 TARGET=iaxcomm.exe
-CFLAGS:= $(CFLAGS) -I$(WXWIN)/include -I$(WXWIN)/contrib/include -I$(WXWIN)/lib/mswd -fno-rtti -fno-exceptions -fno-pcc-struct-return -fstrict-aliasing -Wall -D__WXMSW__ -D__GNUWIN32__ -DWINVER=0x400 -D__WIN95__ -DSTRICT -D__WXDEBUG__
+#CFLAGS:= $(CFLAGS) -I$(WXWIN)/include -I$(WXWIN)/contrib/include -I$(WXWIN)/lib/mswd -fno-rtti -fno-exceptions -fno-pcc-struct-return -fstrict-aliasing -Wall -D__WXMSW__ -D__GNUWIN32__ -DWINVER=0x400 -D__WIN95__ -DSTRICT -D__WXDEBUG__
+CFLAGS:= $(CFLAGS) `wx-config --cxxflags`
 WINSYSFLAGS=-Wl,--subsystem,windows -mwindows
 #WINSYSFLAGS=
-EXTRALIBS = -lwxxrc
-SYSLIBS=$(EXTRALIBS) $(WINSYSFLAGS) $(WXWIN)/lib/libwxmswd.a -lpng -lzlib -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib -L$(WXWIN)/contrib/lib
+#EXTRALIBS = -lwxxrc
+#SYSLIBS=$(EXTRALIBS) $(WINSYSFLAGS) $(WXWIN)/lib/libwxmswd.a -lpng -lzlib -lwinmm -lwsock32 -lwxmswd -lcomdlg32 -luser32 -lgdi32 -lole32 -lwsock32 -lcomctl32 -lctl3d32 -lgcc -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -L$(WXWIN)/lib -L$(WXWIN)/contrib/lib
+SYSLIBS=$(EXTRALIBS) $(WINSYSFLAGS) `wx-config --static --libs`
 OBJS:=$(OBJS) iaxcomm_resources.o
+CXX=`wx-config --cxx`
 endif
 
 ifeq ($(OSTYPE),LINUX)
@@ -85,7 +89,7 @@ makelib:
 	(cd ../../lib; make libiaxclient.a)
 
 iaxcomm_resources.o: iaxcomm.rc
-	windres --use-temp-file -i iaxcomm.rc -o iaxcomm_resources.o --include-dir $(WXWIN)/include --define __WIN32__ --define __WIN95__ --define __GNUWIN32__
+	windres --use-temp-file -i iaxcomm.rc -o iaxcomm_resources.o --include-dir $(REZFLAGS) --define __WIN32__ --define __WIN95__ --define __GNUWIN32__
 
 xrc_res.cc: $(XRCS)
 	wxrc -c rc/*xrc -o xrc_res.cc

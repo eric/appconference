@@ -49,6 +49,7 @@ public:
     MyTaskBarIcon() {};
 
     void          OnRestore(wxCommandEvent&);
+    void          OnIconize(wxIconizeEvent&);
     void          OnHide(wxCommandEvent&);
     void          OnExit(wxCommandEvent&);
 
@@ -97,13 +98,14 @@ public:
 
     static wxConfig *getConfig();
 
+  #ifdef __WXMSW__
+    MyTaskBarIcon *theTaskBarIcon;
+  #endif
+
 protected:
 
 private:
 
-  #ifdef __WXMSW__
-    MyTaskBarIcon theTaskBarIcon;
-#endif
     void          RegisterByName(wxString RegName);
     
                   // Helper function. loads the specified XRC XML resource file.
