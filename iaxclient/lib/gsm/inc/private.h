@@ -152,7 +152,7 @@ static __inline__ short GSM_SUB(short a, short b)
 /* Nonportable, but faster: */
 
 #define	GSM_ADD(a, b)	\
-	((ulongword)((ltmp = (longword)(a) + (longword)(b)) - MIN_WORD) > \
+	(short) ((ulongword)((ltmp = (longword)(a) + (longword)(b)) - MIN_WORD) > \
 		MAX_WORD - MIN_WORD ? (ltmp > 0 ? MAX_WORD : MIN_WORD) : ltmp)
 
 # define GSM_SUB(a, b)	\

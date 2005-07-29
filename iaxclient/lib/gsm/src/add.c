@@ -23,13 +23,13 @@
 word gsm_add P2((a,b), word a, word b)
 {
 	longword sum = (longword)a + (longword)b;
-	return saturate(sum);
+	return (word) saturate(sum);
 }
 
 word gsm_sub P2((a,b), word a, word b)
 {
 	longword diff = (longword)a - (longword)b;
-	return saturate(diff);
+	return (word) saturate(diff);
 }
 
 word gsm_mult P2((a,b), word a, word b)

@@ -389,8 +389,8 @@ BSC32=bscmake.exe
 # PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
 # PROP Target_Dir ""
 CPP=clarm.exe
-# ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_LIB" /YX /QRarch4T /QRinterwork-return /O2 /M$(CECrtMT)  /c
-# ADD CPP /nologo /W3 /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D__UNICODE__ /DUNICODE /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_LIB" /YX /QRarch4T /QRinterwork-return /O2 /M$(CECrtMT)  /c
+# ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion)  /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_LIB" /YX /QRarch4T /QRinterwork-return /O2 /M$(CECrtMT)  /c
+# ADD CPP /nologo /W3 /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D__UNICODE__ /DUNICODE /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_LIB" /YX /QRarch4T /QRinterwork-return /O2 /M$(CECrtMT)  /c
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
@@ -415,8 +415,8 @@ BSC32=bscmake.exe
 # PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
 # PROP Target_Dir ""
 CPP=clarm.exe
-# ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /QRarch4T /QRinterwork-return /M$(CECrtMTDebug)  /c
-# ADD CPP /nologo /W3 /Zi /Od /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D__UNICODE__ /DUNICODE /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /QRarch4T /QRinterwork-return /M$(CECrtMTDebug)  /c
+# ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion)  /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /QRarch4T /QRinterwork-return /M$(CECrtMTDebug)  /c
+# ADD CPP /nologo /W3 /Zi /Od /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D__UNICODE__ /DUNICODE /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "ARM" /D "_ARM_" /D "$(CePlatform)" /D "ARMV4I" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /QRarch4T /QRinterwork-return /M$(CECrtMTDebug)  /c
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
@@ -493,8 +493,8 @@ BSC32=bscmake.exe
 # PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
 # PROP Target_Dir ""
 CPP=clarm.exe
-# ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /O2 /M$(CECrtMT)  /c
-# ADD CPP /nologo /W3 /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D__UNICODE__ /DUNICODE /D SPEEX_PREPROCESS=1 /D SPEEX_EC=1 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /O2 /M$(CECrtMT)  /c
+# ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion)  /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /O2 /M$(CECrtMT)  /c
+# ADD CPP /nologo /W3 /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D__UNICODE__ /DUNICODE /D SPEEX_PREPROCESS=1 /D SPEEX_EC=1 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion)  /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /O2 /M$(CECrtMT)  /c
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
@@ -519,8 +519,8 @@ BSC32=bscmake.exe
 # PROP Platform_ID "{8A9A2F80-6887-11D3-842E-005004848CBA}"
 # PROP Target_Dir ""
 CPP=clarm.exe
-# ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /M$(CECrtMTDebug)  /c
-# ADD CPP /nologo /W3 /Zi /Od /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D__UNICODE__ /DUNICODE /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /M$(CECrtMTDebug)  /c
+# ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion)  /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /M$(CECrtMTDebug)  /c
+# ADD CPP /nologo /W3 /Zi /Od /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio"  /Dinline=_inline /D__inline__=_inline /Dstrncasecmp=strnicmp /Drint=floor /Dvsnprintf=_vsnprintf /D__UNICODE__ /DUNICODE /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /M$(CECrtMTDebug)  /c
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo

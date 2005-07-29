@@ -13,7 +13,8 @@
 #include	<stdlib.h>
 //#else
 #	include "proto.h"
-	extern char	* memcpy P((char *, char *, int));
+#	include "string.h"
+	//extern char	* memcpy P((char *, char *, int));
 //#endif
 
 #include	"private.h"
