@@ -60,10 +60,13 @@ PaDriverInfo;
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <fcntl.h>
+#define _BSD_SOURCE
+#define __USE_BSD
 #include <unistd.h>
-#include <signal.h>
 #include <sched.h>
+#define __USE_POSIX199506
 #include <pthread.h>
+#include <signal.h>
 #include <errno.h>
 
 #include "portaudio.h"

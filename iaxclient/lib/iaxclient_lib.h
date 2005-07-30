@@ -181,8 +181,8 @@ struct iaxc_audio_codec {
 	int minimum_frame_size;
 	void *encstate;
 	void *decstate;
-	int (*encode) ( struct iaxc_audio_codec *codec, int *inlen, short *in, int *outlen, char *out );
-	int (*decode) ( struct iaxc_audio_codec *codec, int *inlen, char *in, int *outlen, short *out );
+	int (*encode) ( struct iaxc_audio_codec *codec, int *inlen, short *in, int *outlen, unsigned char *out );
+	int (*decode) ( struct iaxc_audio_codec *codec, int *inlen, unsigned char *in, int *outlen, short *out );
 	void (*destroy) ( struct iaxc_audio_codec *codec);
 };
 

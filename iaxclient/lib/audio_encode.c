@@ -243,7 +243,7 @@ EXPORT void iaxc_set_speex_settings(int decode_enhance, float quality, int bitra
 
 int send_encoded_audio(struct iaxc_call *call, void *data, int format, int samples)
 {
-	char outbuf[1024];
+	unsigned char outbuf[1024];
 	int outsize = 1024;
 	int silent;
 	int insize = samples;
@@ -358,6 +358,3 @@ int decode_audio(struct iaxc_call *call, void *out, void *data, int len, int for
 	*samples = outsize;
 	return len-insize;
 }
-
-
-		 

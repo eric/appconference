@@ -12,7 +12,11 @@
  * the GNU Lesser (Library) General Public License
  */
 
+#define _BSD_SOURCE
+#include <unistd.h>
 #include <sys/time.h>
+#define __USE_POSIX199309
+#include <time.h>
 #include "iaxclient_lib.h"
 
 #ifndef NULL

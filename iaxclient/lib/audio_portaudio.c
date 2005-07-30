@@ -24,6 +24,7 @@
  *
  */
 
+#include <strings.h>
 #include "iaxclient_lib.h"
 #include "pablio.h"
 #include "portmixer/px_common/portmixer.h"

@@ -32,7 +32,7 @@ static void destroy ( struct iaxc_audio_codec *c) {
 
 
 static int decode ( struct iaxc_audio_codec *c, 
-    int *inlen, char *in, int *outlen, short *out ) {
+    int *inlen, unsigned char *in, int *outlen, short *out ) {
     struct state * decstate = (struct state *) c->decstate;
 
     /* use generic interpolation */
@@ -66,7 +66,7 @@ static int decode ( struct iaxc_audio_codec *c,
 }
 
 static int encode ( struct iaxc_audio_codec *c, 
-    int *inlen, short *in, int *outlen, char *out ) {
+    int *inlen, short *in, int *outlen, unsigned char *out ) {
 
     struct state * encstate = (struct state *) c->encstate;
 

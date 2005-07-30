@@ -22,7 +22,7 @@
 
 void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 
-static inline int inet_aton(char *cp, struct in_addr *inp)
+static INLINE int inet_aton(char *cp, struct in_addr *inp)
 {
 	int res;
 	int a1, a2, a3, a4;

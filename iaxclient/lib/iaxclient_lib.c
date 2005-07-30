@@ -678,7 +678,7 @@ static void handle_text_event(struct iax_event *e, int callNo) {
     ev.ev.text.type=IAXC_TEXT_TYPE_IAX;
     ev.ev.text.callNo = callNo;
 
-    strncpy(ev.ev.text.message, e->data, IAXC_EVENT_BUFSIZ);
+    strncpy(ev.ev.text.message, (char *) e->data, IAXC_EVENT_BUFSIZ);
     iaxc_post_event(ev);
 }
 
@@ -700,7 +700,7 @@ void handle_url_event( struct iax_event *e, int callNo ) {
 					fprintf( stderr, "ERROR: URL too long %d > %d\n", 
 							e->datalen, IAXC_EVENT_BUFSIZ );
 				} else {
-					strncpy( ev.ev.url.url, e->data, e->datalen );
+					strncpy( ev.ev.url.url, (char *) e->data, e->datalen );
 				}
 			}
 			/* fprintf( stderr, "URL:%s\n", ev.ev.url.url ); */

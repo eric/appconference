@@ -1,3 +1,8 @@
+#
+# Makefile for iaxcomm
+#
+# $Id$
+#
 PROVIDER=asterisk
 VERSION=1.1.0
 CFLAGS=-I../../lib 

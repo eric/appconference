@@ -86,7 +86,7 @@ static inline unsigned char alawencode (short int linear)
 }
 
 static int decode ( struct iaxc_audio_codec *c, 
-    int *inlen, char *in, int *outlen, short *out ) {
+    int *inlen, unsigned char *in, int *outlen, short *out ) {
     struct state *state = c->decstate;
     short *orig_out = out;
     short sample;
@@ -111,7 +111,7 @@ static int decode ( struct iaxc_audio_codec *c,
 }
 
 static int encode ( struct iaxc_audio_codec *c, 
-    int *inlen, short *in, int *outlen, char *out ) {
+    int *inlen, short *in, int *outlen, unsigned char *out ) {
 
     while ((*inlen > 0) && (*outlen > 0)) {
 	*(out++) = alawencode(*(in++));
