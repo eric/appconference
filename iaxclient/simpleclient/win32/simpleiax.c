@@ -18,7 +18,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <io.h>
-#include <conio.h>
+//#include <conio.h>
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
@@ -35,7 +35,7 @@
 
 //#include "gsm.h"
 #include "iaxclient_lib.h"
-#include "audio_win32.h"
+//#include "audio_win32.h"
 #include "audio_encode.h"
 #include "frame.h"
 #include "miniphone.h"
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 void call(FILE *f, char *num)
 {
 	client_call(f, num);
-/*	struct peer *peer;
+	struct peer *peer;
 
 	if(!newcall)
 		newcall = iax_session_new();
@@ -182,7 +182,7 @@ void call(FILE *f, char *num)
 
 	most_recent_answer = peer;
 
-	iax_call(peer->session, "WinIAX", num, NULL, 10);*/
+	iax_call(peer->session, "WinIAX", num, NULL, 10);
 }
 
 void

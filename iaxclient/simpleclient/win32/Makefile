@@ -1,7 +1,7 @@
 
 EXEEXT=.exe
 
-CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -Iinclude
+CFLAGS=-I../../lib -I../../lib/libiax2/src -I../../lib/gsm/inc -Iinclude
 
 OBJS=	simpleiax.o
 
