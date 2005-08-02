@@ -485,7 +485,7 @@ struct iax_session *iax_session_new(void)
 		{
 			jb_conf jbconf;
 			jbconf.max_jitterbuf = 0;
-			jbconf.resync_threshold = -1;
+			jbconf.resync_threshold = 1000;
 			jbconf.max_contig_interp = 0;
 			jb_setconf(s->jb, &jbconf);
 		}
