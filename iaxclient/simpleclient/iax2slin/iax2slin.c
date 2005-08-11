@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
 	if(output_filename) {
-	  outfile = fopen(output_filename,"w");
+	  outfile = fopen(output_filename,"wb");
 	  iaxc_set_files(NULL, outfile);
 	} else {
 	  iaxc_set_files(NULL, stdout);
