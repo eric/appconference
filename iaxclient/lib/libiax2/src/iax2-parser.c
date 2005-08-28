@@ -303,7 +303,7 @@ static void dump_ies(unsigned char *iedata, int len)
 
 void iax_showframe(struct iax_frame *f, struct ast_iax2_full_hdr *fhi, int rx, struct sockaddr_in *sin, int datalen)
 {
-	char *frames[] = {
+	const char *frames[] = {
 		"(0?)",
 		"DTMF   ",
 		"VOICE  ",
@@ -313,7 +313,7 @@ void iax_showframe(struct iax_frame *f, struct ast_iax2_full_hdr *fhi, int rx, s
 		"IAX    ",
 		"TEXT   ",
 		"IMAGE  " };
-	char *iaxs[] = {
+	const char *iaxs[] = {
 		"(0?)",
 		"NEW    ",
 		"PING   ",
@@ -353,7 +353,7 @@ void iax_showframe(struct iax_frame *f, struct ast_iax2_full_hdr *fhi, int rx, s
 		"FWDOWNLD",
 		"FWDATA"
 	};
-	char *cmds[] = {
+	const char *cmds[] = {
 		"(0?)",
 		"HANGUP ",
 		"RING   ",
@@ -366,9 +366,10 @@ void iax_showframe(struct iax_frame *f, struct ast_iax2_full_hdr *fhi, int rx, s
 	char retries[20];
 	char class2[20];
 	char subclass2[20];
-	char *class;
-	char *subclass;
+	const char *class;
+	const char *subclass;
 	char tmp[256];
+
 	if (f) {
 		fh = f->data;
 		snprintf(retries, (int)sizeof(retries), "%03d", f->retries);
