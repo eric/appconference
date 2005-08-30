@@ -26,8 +26,13 @@
 
 /* static int answered_call; */
 static char *output_filename = NULL;
+static char *username = NULL;
+static char *password = NULL;
+static char *host = NULL;
 int do_levels = 0;
+int intercom = 0;
 int initialized = 0;
+int reg_id = 0;
 
 /* routine called at exit to shutdown audio I/O and close nicely.
 NOTE: If all this isnt done, the system doesnt not handle this
@@ -36,6 +41,9 @@ void killem(void)
 {
 	if (initialized)
 		iaxc_shutdown();
+	if (reg_id){
+		   iaxc_unregister(reg_id);
+	}
 	return;
 }
 
@@ -50,6 +58,12 @@ void mysleep(void)
 	iaxc_millisleep(10);
 }
 
+int state_event_callback(struct iaxc_ev_call_state call){
+    if((call.state & IAXC_CALL_STATE_RINGING) && intercom){
+		  iaxc_select_call(call.callNo);
+    }
+    return 0;
+}
 int levels_callback(float input, float output) {
     if(do_levels) fprintf(stderr, "IN: %f OUT: %f\n", input, output);
     return 0;
@@ -99,7 +113,7 @@ int iaxc_callback(iaxc_event e)
         case IAXC_EVENT_TEXT:
             return 0; // don't handle
         case IAXC_EVENT_STATE:
-            return 0;
+            return state_event_callback(e.ev.call);
         default:
             return 0;  // not handled
     }
@@ -119,7 +133,7 @@ void list_devices()
 
 void usage()
 { 
-    fprintf(stderr, "Usage is XXX\n");
+    fprintf(stderr, "Usage: testcall [-?] [-v] [-i] [-s SILENCE_THRESHOLD] [-f OUTPUT_FILENAME] [-u USERNAME -p PASSWORD -h HOST]\n");
     exit(1);
 }
 
@@ -140,8 +154,14 @@ int main(int argc, char **argv)
 	   {
 	      switch(tolower(argv[i][1]))
 	      {
+		case '?':
+		  usage();
+		  break;
 		case 'v':
 		  do_levels = 1;
+		  break;
+		case 'i':
+		  intercom = 1;
 		  break;
 		case 's':
 		  if(i+1 >= argc) usage();
@@ -150,6 +170,18 @@ int main(int argc, char **argv)
 		case 'f':
 		  if(i+1 >= argc) usage();
 		  output_filename = argv[++i];
+		  break;
+		case 'u':
+		  if(i+1 >= argc) usage();
+		  username = argv[++i];
+		  break;
+		case 'p':
+		  if(i+1 >= argc) usage();
+		  password = argv[++i];
+		  break;
+		case 'h':
+		  if(i+1 >= argc) usage();
+		  host = argv[++i];
 		  break;
 
 		default:
@@ -181,9 +213,10 @@ int main(int argc, char **argv)
 	  initialized = 1;
 	}
 
-	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
-	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
-	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
+//	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
+//	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_SPEEX);
+	iaxc_set_formats(IAXC_FORMAT_GSM,IAXC_FORMAT_GSM);
+	iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
 	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ILBC|IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
 	iaxc_set_silence_threshold(silence_threshold);
 
@@ -207,6 +240,10 @@ int main(int argc, char **argv)
 	}
 
 	iaxc_start_processing_thread();
+	
+	if (username && password && host)
+		   reg_id = iaxc_register(username, password, host);
+
 	printf("ready for keyboard input\n");
 	
 	if(output_filename) {
