@@ -239,7 +239,10 @@ endif
 
 ifeq ($(OSTYPE),SOLARIS)
 OBJS:= $(OBJS) $(OBJS_SOLARIS) 
+# only SPARC solaris machines need the alignment stuff
+ifeq (sparc,$(findstring sparc,$(shell uname -a)))
 CFLAGS:= $(CFLAGS) -DALIGN32 
+endif
 DYNCFLAGS=-fPIC
 DYNLIB=libiaxclient.so
 CC=gcc
