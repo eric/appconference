@@ -10,7 +10,7 @@ LIBS=	../../lib/libiaxclient.a
 
 EXEEXT=
 
-USE_HOTKEY=1
+USE_HOTKEY=0
 
 # glean the platform
 # We will define this as either Linux, Win32, or MacOSX
