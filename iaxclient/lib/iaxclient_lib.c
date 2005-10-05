@@ -830,6 +830,12 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
             break;
 		case IAX_EVENT_VOICE:
 			handle_audio_event(e, callNo); 
+                        if (calls[callNo].state & IAXC_CALL_STATE_RINGING) {
+                                calls[callNo].state &= ~IAXC_CALL_STATE_RINGING;
+                                iaxc_do_state_callback(callNo);
+                                iaxc_usermsg(IAXC_STATUS,"Call %d progress",
+                                             callNo);
+                        }
 			break;
 		case IAX_EVENT_TEXT:
 			handle_text_event(e, callNo);

@@ -250,6 +250,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 SetItem(c.callNo, 1, _T("ring out"));
                 wxGetApp().RingbackTone.Start(0);
             } else {
+                wxGetApp().RingbackTone.Stop();
                 if(complete) {
                     // I really need to clean up this spaghetti code
                     if(selected)
