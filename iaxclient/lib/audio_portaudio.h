@@ -15,6 +15,11 @@
 
 #include "iaxclient_lib.h"
 
+/* normal initialization */
 int pa_initialize (struct iaxc_audio_driver *d, int sr);
+
+/* faster initialization which defers initialization of mixers and levels
+	until the device is started */
+int pa_initialize_deferred (struct iaxc_audio_driver *d, int sr);
 
 #endif

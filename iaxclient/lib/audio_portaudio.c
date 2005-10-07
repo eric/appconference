@@ -55,6 +55,7 @@ static PxMixer *iMixer = NULL, *oMixer = NULL;
 static int selectedInput, selectedOutput, selectedRing;
 
 static int sample_rate = 8000;
+static int mixers_initialized;
 
 
 #define MAX_SAMPLE_RATE	      48000
@@ -133,8 +134,11 @@ static int  nextSoundId = 1;
 
 static MUTEX sound_lock;
 
+/* forward declarations */
 static int pa_start (struct iaxc_audio_driver *d ) ;
 static void handle_paerror(PaError err, char * where);
+static int pa_input_level_set(struct iaxc_audio_driver *d, double level);
+static double pa_input_level_get(struct iaxc_audio_driver *d);
 
 /* scan devices and stash pointers to dev structures. 
  *  But, these structures only remain valid while Pa is initialized,
@@ -671,25 +675,36 @@ static int pa_start (struct iaxc_audio_driver *d ) {
 	}
     }
 
-	/* select the microphone as the input source */
-	if ( iMixer != NULL )
-	{
-		/* try the new method, reverting to the old if it fails */
-		if ( Px_SetCurrentInputSourceByName( iMixer, "microphone" ) != 0 )
-		{
-			int n = Px_GetNumInputSources( iMixer ) - 1 ;
-			for ( ; n > 0 ; --n )
-			{
-				if ( strcasecmp( "microphone", Px_GetInputSourceName( iMixer, n ) ) == 0 )
-				{
-					Px_SetCurrentInputSource( iMixer, n ) ;
-				}
-			}
-		}
-		
-		/* try to set the microphone boost */
-		Px_SetMicrophoneBoost( iMixer, 0 ) ;
-	}
+    /* select the microphone as the input source */
+    if ( iMixer != NULL && !mixers_initialized )
+    {
+	  /* First, select the "microphone" device, if it's available */
+	  /* try the new method, reverting to the old if it fails */
+	  if ( Px_SetCurrentInputSourceByName( iMixer, "microphone" ) != 0 )
+	  {
+		  int n = Px_GetNumInputSources( iMixer ) - 1 ;
+		  for ( ; n > 0 ; --n )
+		  {
+			  if ( strcasecmp( "microphone", Px_GetInputSourceName( iMixer, n ) ) == 0 )
+			  {
+				  Px_SetCurrentInputSource( iMixer, n ) ;
+			  }
+		  }
+	  }
+	  
+	  /* try to set the microphone boost -- we just turn off this "boost" feature, because
+	      it often leads to clipping, which we can't fix later -- but we can deal with low input levels
+	      much more gracefully */
+	  Px_SetMicrophoneBoost( iMixer, 0 ) ;
+
+	  /* if the input level is very low, raise it up a bit.  Otherwise, AGC cannot detect speech, 
+	     and cannot adjust levels */
+	  double level;
+	  level = pa_input_level_get(d);
+	  if(level < 0.5)
+	    pa_input_level_set(d,0.6);
+	  mixers_initialized = 1;
+    }
 
     running = 1;
     return 0;
@@ -871,7 +886,7 @@ int pa_mic_boost_set( struct iaxc_audio_driver* d, int enable )
 }
 
 /* initialize audio driver */
-int pa_initialize (struct iaxc_audio_driver *d, int sr) {
+static int _pa_initialize (struct iaxc_audio_driver *d, int sr) {
     PaError  err;
 
     sample_rate = sr;
@@ -915,16 +930,25 @@ int pa_initialize (struct iaxc_audio_driver *d, int sr) {
 
     running = 0;
 
-    /* start, then stop streams, in order to test devices, and get mixers */
-    pa_start(d);
-    /* if input level is very low, raise it a bit;  helps AAGC work properly */
-    {
-      double level;
-      level = pa_input_level_get(d);
-      if(level < 0.5)
-	pa_input_level_set(d,0.6);
-    }
-    pa_stop(d);
 
     return 0;
 }
+
+/* standard initialization:  Do the normal initialization, and then
+   also initialize mixers and levels */
+int pa_initialize (struct iaxc_audio_driver *d, int sr) {
+    _pa_initialize(d, sr);
+    /* start/stop audio, in order to initialize mixers and levels */
+    pa_start(d);
+    pa_stop(d);
+}
+
+/* alternate initialization:  delay mixer/level initialization until
+   we actually start the device.  This is somewhat useful when you're about to start
+   the device as soon as you've initialized it, and want to avoid the time it
+   takes to start/stop the device before starting it again */
+int pa_initialize_deferred(struct iaxc_audio_driver *d, int sr) {
+    _pa_initialize(d, sr);
+}
+
+
