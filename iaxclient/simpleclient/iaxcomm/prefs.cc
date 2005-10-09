@@ -334,8 +334,18 @@ void PrefsDialog::OnBrowse(wxCommandEvent &event)
 
 void SetCallerID(wxString name, wxString number)
 {
+#if defined(__UNICODE__)
+    wxMBConvUTF8 utf8;
+    char name8[256];
+    char number8[256];
+
+    utf8.WC2MB(name8, name.c_str(), 256);
+    utf8.WC2MB(number8, number.c_str(), 256);
+    iaxc_set_callerid(name8, number8);
+#else
     iaxc_set_callerid((char *) name.c_str(),
                       (char *) number.c_str());
+#endif
 }
 
 void PrefsDialog::OnSaveAudio(wxCommandEvent &event)
