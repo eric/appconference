@@ -96,7 +96,7 @@ static int file_output_level_set(struct iaxc_audio_driver *d, double level){
     return -1;
 }
 
-int iaxc_set_files(FILE *input, FILE *output) {
+EXPORT int iaxc_set_files(FILE *input, FILE *output) {
     inFile = input;
     outFile = output;
     return 0;
