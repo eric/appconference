@@ -22,6 +22,20 @@
 #define JB_LONGMAX 2147483647L
 #define JB_LONGMIN (-JB_LONGMAX - 1L)
 
+/* MS VC can't do __VA_ARGS__ */
+#if defined(WIN32) && defined(_MSC_VER)
+#define jb_warn if (warnf) warnf
+#define jb_err if (errf) errf
+#define jb_dbg if (dbgf) dbgf
+
+#ifdef DEEP_DEBUG
+  #define jb_dbg2 if (dbgf) dbgf
+#else
+  #define jb_dbg2 if (0) dbgf
+#endif
+
+#else
+
 #define jb_warn(...) (warnf ? warnf(__VA_ARGS__) : (void)0)
 #define jb_err(...) (errf ? errf(__VA_ARGS__) : (void)0)
 #define jb_dbg(...) (dbgf ? dbgf(__VA_ARGS__) : (void)0)
@@ -30,6 +44,8 @@
 #define jb_dbg2(...) (dbgf ? dbgf(__VA_ARGS__) : (void)0)
 #else
 #define jb_dbg2(...) ((void)0)
+#endif
+
 #endif
 
 static jb_output_function_t warnf, errf, dbgf;

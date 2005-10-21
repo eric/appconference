@@ -49,6 +49,11 @@
 #define INT16_MIN	(-32767-1)
 #endif
 
+/* msvc doesn't know rint() */
+#if defined(WIN32) && defined(_MSC_VER)
+#define rint(x) floor((x) + 0.5)
+#endif
+
 /* We do a straight line fade to zero volume in 50ms when we are filling in for missing data. */
 #define ATTENUATION_INCREMENT       0.0025                              /* Attenuation per sample */
 
