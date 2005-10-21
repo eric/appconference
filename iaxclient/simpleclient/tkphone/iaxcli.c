@@ -115,6 +115,11 @@ static GdkWindow *hotkeywindow;
 void event_level(double in, double out);
 void event_state(int state, char *rem, char *rem_name, char *loc, char *ln);
 void event_text(int type, char *text);
+void event_netstat(int callno, int rtt, int r_jitter, int r_losspct, int r_losscnt, 
+		                        int r_packets, int r_delay, int r_dropped, int r_ooo,
+                                        int l_jitter, int l_losspct, int l_losscnt, 
+                                        int l_packets, int l_delay, int l_dropped, int l_ooo);
+
 void event_unknown(int type);
 void report(char *text);
 char *map_state(int state);
@@ -125,7 +130,7 @@ extern void tone_dtmf(char tone, int samples, double vol, short *data);
 static char delim='\t';		/* output field delimiter */
 static int last_state=0;	/* previous state of the channel */
 static char states[256];	/* buffer to hold ascii states */
-static char tmp[256];		/* report output buffer */
+static char tmp[1024];		/* report output buffer */
 static int show_levels=0;	/* report volume levels in db */
 static int show_ack_nak=0;	/* report command success/failure */
 static int show_hotkey=0;	/* report hotkey status */
@@ -199,6 +204,16 @@ int iaxc_callback(iaxc_event e) {
 	    event_state(e.ev.call.state, e.ev.call.remote,
 		    e.ev.call.remote_name, e.ev.call.local,
 		    e.ev.call.local_context);
+        case IAXC_EVENT_NETSTAT:
+	  event_netstat(e.ev.netstats.callNo, e.ev.netstats.rtt,
+			e.ev.netstats.local.jitter, e.ev.netstats.local.losspct,
+			e.ev.netstats.local.losscnt, e.ev.netstats.local.packets,
+			e.ev.netstats.local.delay, e.ev.netstats.local.dropped,
+			e.ev.netstats.local.ooo,
+			e.ev.netstats.remote.jitter, e.ev.netstats.remote.losspct,
+			e.ev.netstats.remote.losscnt, e.ev.netstats.remote.packets,
+			e.ev.netstats.remote.delay, e.ev.netstats.remote.dropped,
+			e.ev.netstats.remote.ooo);
 	    break;
         default:
 	    event_unknown(e.type);
@@ -213,11 +228,11 @@ int iaxc_callback(iaxc_event e) {
 
 void event_level(double in, double out) {
     if (show_levels) {
-	sprintf(tmp, "L%c%.1f%c%.1f", delim, in, delim, out);
+	snprintf(tmp, sizeof(tmp), "L%c%.1f%c%.1f", delim, in, delim, out);
 	report(tmp);
     }
     if(show_hotkey) {
-	sprintf(tmp, "H%c%c", delim, hotkeystate() ? '1' : '0');
+	snprintf(tmp, sizeof(tmp), "H%c%c", delim, hotkeystate() ? '1' : '0');
 	report(tmp);
     }
 
@@ -230,18 +245,38 @@ void event_level(double in, double out) {
 void event_state(int state, char *remote, char *remote_name,
 	char *local, char *local_context) {
     last_state=state;
-    sprintf(tmp, "S%c0x%x%c%s%c%.50s%c%.50s%c%.50s%c%.50s",
+    snprintf(tmp, sizeof(tmp), "S%c0x%x%c%s%c%.50s%c%.50s%c%.50s%c%.50s",
 	delim, state, delim, map_state(state), delim, remote, delim,
 	remote_name, delim, local, delim, local_context);
     report(tmp);
 }
 
 /*
+ * Netstat Events
+ */
+
+void event_netstat(int callno, int rtt, 
+		   int l_jitter, int l_losspct, int l_losscnt, 
+		   int l_packets, int l_delay, int l_dropped, int l_ooo,
+		   int r_jitter, int r_losspct, int r_losscnt, 
+		   int r_packets, int r_delay, int r_dropped, int r_ooo) {
+
+  snprintf(tmp, sizeof(tmp), "N%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d", delim, callno, delim, rtt,
+	  delim, l_jitter, delim, l_losspct, delim, l_losscnt,
+	  delim, l_packets, delim, l_delay, delim, l_dropped, delim, l_ooo,
+	  delim, r_jitter, delim, r_losspct, delim, r_losscnt,
+	  delim, r_packets, delim, r_delay, delim, r_dropped, delim, r_ooo);
+  report(tmp);
+}
+
+
+
+/*
  * text events
  */
 
 void event_text(int type, char *message) {
-    sprintf(tmp, "T%c%d%c%.200s", delim, type, delim, message);
+    snprintf(tmp, sizeof(tmp), "T%c%d%c%.200s", delim, type, delim, message);
     report(tmp);
 }
 
@@ -250,7 +285,7 @@ void event_text(int type, char *message) {
  */
 
 void event_unknown(int type) {
-    sprintf(tmp, "U%c%d", delim, type);
+    snprintf(tmp, sizeof(tmp), "U%c%d", delim, type);
     report(tmp);
 }
 
@@ -292,10 +327,10 @@ report_devices(int in) {
     int flag = in ? IAXC_AD_INPUT : IAXC_AD_OUTPUT;
     iaxc_audio_devices_get(&devs,&ndevs,&input,&output,&ring);
     current = in ? input : output;
-    sprintf(tmp,"?%c%s", delim, devs[current].name);
+    snprintf(tmp, sizeof(tmp),"?%c%s", delim, devs[current].name);
     for (i=0;i<ndevs; i++) {
 	if (devs[i].capabilities & flag && i != current) {
-	    sprintf(tmp+strlen(tmp), "%c%s",delim,devs[i].name);
+	    snprintf(tmp+strlen(tmp), sizeof(tmp)-strlen(tmp), "%c%s",delim,devs[i].name);
 	}
     }
     return tmp;
@@ -414,7 +449,7 @@ int main(int argc, char **argv) {
 	    iaxc_reject_call();
 	    ack();
 	case '?':	/* call status */
-	    sprintf(tmp, "?%c%s", delim, map_state(last_state));
+	    snprintf(tmp, sizeof(tmp), "?%c%s", delim, map_state(last_state));
 	    report(tmp);
 	break;
 	case 'r':	/* register */
@@ -438,12 +473,12 @@ int main(int argc, char **argv) {
 	    arg = strtok(NULL, DELIM);	/* 3rd token */
 	    switch (*token) {
 		case 'r':	/* audio input level */
-                    sprintf(tmp, "?%c%d", delim,
+                    snprintf(tmp, sizeof(tmp), "?%c%d", delim,
 			    (int)(100*iaxc_input_level_get()+.5));
 		    report(tmp);
 		break;
 		case 'p':	/* audio output level */
-                    sprintf(tmp, "?%c%d", delim,
+                    snprintf(tmp, sizeof(tmp), "?%c%d", delim,
 				(int)(100*iaxc_output_level_get()+.5));
 		    report(tmp);
 		break;
@@ -452,7 +487,7 @@ int main(int argc, char **argv) {
 		    report(report_devices(*token=='i'));
 		break;
 		case 'f':
-		    sprintf(tmp, "?%c%d", delim,
+		    snprintf(tmp, sizeof(tmp), "?%c%d", delim,
 				iaxc_get_filters());	
 		    report(tmp);
 		break;
