@@ -633,32 +633,39 @@ int MyFrame::HandleStatusEvent(char *msg)
 
 int MyFrame::HandleLevelEvent(float input, float output)
 {
-    int inputLevel, outputLevel;
-
-    if (input < LEVEL_MIN)
-        input = LEVEL_MIN; 
-    else if (input > LEVEL_MAX)
-        input = LEVEL_MAX;
-    inputLevel = (int)input - (LEVEL_MIN); 
-
-    if (output < LEVEL_MIN)
-        output = LEVEL_MIN; 
-    else if (input > LEVEL_MAX)
-        output = LEVEL_MAX;
-    outputLevel = (int)output - (LEVEL_MIN); 
-
     static int lastInputLevel = 0;
     static int lastOutputLevel = 0;
+    int inputLevel;
+    int outputLevel;
 
-    if(wxGetApp().theFrame->Input != NULL) {
-      if(lastInputLevel != inputLevel) {
+    inputLevel = (int) input;
+    if (inputLevel < LEVEL_MIN)
+        inputLevel = LEVEL_MIN; 
+    else if (inputLevel > LEVEL_MAX)
+        inputLevel = LEVEL_MAX;
+    inputLevel -= LEVEL_MIN;
+
+    outputLevel = (int) output;
+    if (outputLevel < LEVEL_MIN)
+        outputLevel = LEVEL_MIN; 
+    else if (outputLevel > LEVEL_MAX)
+        outputLevel = LEVEL_MAX;
+    outputLevel -= LEVEL_MIN;
+
+    inputLevel *= 100;
+    inputLevel /= (LEVEL_MAX - LEVEL_MIN);
+    outputLevel *= 100;
+    outputLevel /= (LEVEL_MAX - LEVEL_MIN);
+
+    if (wxGetApp().theFrame->Input != NULL) {
+      if (lastInputLevel != inputLevel) {
         wxGetApp().theFrame->Input->SetValue(inputLevel); 
         lastInputLevel = inputLevel;
       }
     }
 
-    if(wxGetApp().theFrame->Output != NULL) {
-      if(lastOutputLevel != outputLevel) {
+    if (wxGetApp().theFrame->Output != NULL) {
+      if (lastOutputLevel != outputLevel) {
         wxGetApp().theFrame->Output->SetValue(outputLevel); 
         lastOutputLevel = outputLevel;
       }

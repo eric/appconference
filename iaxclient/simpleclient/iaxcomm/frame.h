@@ -35,9 +35,9 @@
 #include "wx/menu.h"
 #include "wx/html/helpctrl.h"
 
-#define LEVEL_MAX -40
-#define LEVEL_MIN -50
-#define DEFAULT_SILENCE_THRESHOLD 1 // positive is "auto"
+#define LEVEL_MAX                   (0)
+#define LEVEL_MIN                   (-50)
+#define DEFAULT_SILENCE_THRESHOLD   1 // positive is "auto"
 
 //----------------------------------------------------------------------------------------
 // Class definition: MyTimer
