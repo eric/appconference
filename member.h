@@ -7,9 +7,10 @@
  * A channel independent conference application for Asterisk
  *
  * Copyright (C) 2002, 2003 Junghanns.NET GmbH
- * Copyright (C) 2003, 2004 HorizonLive.com, Inc.
+ * Copyright (C) 2003-2005  HorizonLive.com, Inc.
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
+ * Steve Kann <stevek@stevek.com>
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
@@ -26,9 +27,17 @@
 #include "app_conference.h"
 #include "common.h"
 
+
 //
 // struct declarations
 //
+
+struct ast_conf_soundq 
+{
+	struct ast_filestream *stream; // the stream
+	int muted; // should incoming audio be muted while we play?
+	struct ast_conf_soundq *next;
+};
 
 struct ast_conf_member 
 {
@@ -114,6 +123,8 @@ struct ast_conf_member
 #if ( SILDET == 2 )
 	// pointer to speex preprocessor dsp
 	SpeexPreprocessState *dsp ;
+	// number of frames to ignore speex_preprocess()
+	int ignore_speex_count;
 #else
 	// placeholder when preprocessing is not enabled
 	void* dsp ;
@@ -129,6 +140,15 @@ struct ast_conf_member
 	// member frame translators
 	struct ast_trans_pvt* to_slinear ;
 	struct ast_trans_pvt* from_slinear ;
+
+	// For playing sounds
+	struct ast_conf_soundq *soundq;
+
+#ifdef DEBUG_OUTPUT_PCM
+	FILE *incoming_fh;
+#endif
+	
+	int send_dtmf:1;
 } ;
 
 struct conf_member 

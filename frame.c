@@ -511,7 +511,7 @@ struct ast_frame* create_slinear_frame( char* data )
 {
 	struct ast_frame* f ;
 
-	f = malloc( sizeof( struct ast_frame ) ) ;
+	f = calloc( 1, sizeof( struct ast_frame ) ) ;
 	if ( f == NULL ) 
 	{
 		ast_log( LOG_ERROR, "unable to allocate memory for slinear frame\n" ) ;

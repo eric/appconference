@@ -180,6 +180,129 @@ int conference_show_stats_name( int fd, const char* name )
 }
 
 //
+// play sound
+//
+
+static char conference_play_sound_usage[] = 
+	"usage: conference play sound <channel-id> <sound-file> [mute]\n"
+	"       play sound <sound-file> to conference member <channel-id>.\n"
+	"       mute the channel if 'mute' is present.\n"
+;
+
+static struct ast_cli_entry cli_play_sound = { 
+	{ "conference", "play", "sound", NULL }, 
+	conference_play_sound, 
+	"play a sound to a conference member", 
+	conference_play_sound_usage 
+} ;
+
+int conference_play_sound( int fd, int argc, char *argv[] )
+{
+	char *channel, *file;
+	int mute = 0;
+	struct ast_conf_member *member;
+	struct ast_conf_soundq *newsound;
+	struct ast_conf_soundq **q;
+
+	if ( argc < 5 ) 
+		return RESULT_SHOWUSAGE ;
+
+	channel = argv[3];
+	file = argv[4];
+
+	if(argc > 5 && !strcmp(argv[5], "mute"))
+	    mute = 1;
+	
+
+	member = find_member(channel, 1);
+	if(!member) {
+	    ast_cli(fd, "Member %s not found\n", channel);
+	    return RESULT_FAILURE;
+	}
+
+	newsound = calloc(1,sizeof(struct ast_conf_soundq));
+	newsound->stream = ast_openstream(member->chan, file, NULL);
+	if(!newsound->stream) { 
+	    ast_cli(fd, "Sound %s not found\n", file);
+	    free(newsound);
+	    ast_mutex_unlock(&member->lock);
+	    return RESULT_FAILURE;
+	}
+	member->chan->stream = NULL;
+	
+	newsound->muted = mute;	
+
+	// append sound to the end of the list.
+	for(q=&member->soundq; *q; q = &((*q)->next)) ;;
+
+	*q = newsound;
+	
+	ast_mutex_unlock(&member->lock);
+
+	ast_cli( fd, "Playing sound %s to member %s %s\n",
+		      file, channel, mute ? "with mute" : "");	
+	
+
+	return RESULT_SUCCESS ;
+}
+
+//
+// stop sounds
+//
+
+static char conference_stop_sounds_usage[] = 
+	"usage: conference stop sounds <channel-id>\n"
+	"       stop sounds for conference member <channel-id>.\n"
+;
+
+static struct ast_cli_entry cli_stop_sounds = { 
+	{ "conference", "stop", "sounds", NULL }, 
+	conference_stop_sounds, 
+	"stop sounds for a conference member", 
+	conference_stop_sounds_usage 
+} ;
+
+int conference_stop_sounds( int fd, int argc, char *argv[] )
+{
+	char *channel;
+	struct ast_conf_member *member;
+	struct ast_conf_soundq *sound;
+	struct ast_conf_soundq *next;
+
+	if ( argc < 4 ) 
+		return RESULT_SHOWUSAGE ;
+
+	channel = argv[3];
+
+	member = find_member(channel, 1);
+	if(!member) {
+	    ast_cli(fd, "Member %s not found\n", channel);
+	    return RESULT_FAILURE;
+	}
+
+
+
+	// clear all sounds
+	sound = member->soundq;
+	member->soundq = NULL;
+
+	while(sound) {
+	    next = sound->next;
+	    ast_closestream(sound->stream);
+	    free(sound);
+	    sound = next;
+	}
+
+	ast_mutex_unlock(&member->lock);
+
+	ast_cli( fd, "Stopped sounds to member %s\n", channel);	
+	
+
+	return RESULT_SUCCESS ;
+}
+
+
+//
 // cli initialization function
 //
 
@@ -187,10 +310,14 @@ void register_conference_cli( void )
 {
 	ast_cli_register( &cli_debug ) ;
 	ast_cli_register( &cli_show_stats ) ;
+	ast_cli_register( &cli_play_sound ) ;
+	ast_cli_register( &cli_stop_sounds ) ;
 }
 
 void unregister_conference_cli( void )
 {
 	ast_cli_unregister( &cli_debug ) ;
 	ast_cli_unregister( &cli_show_stats ) ;
+	ast_cli_unregister( &cli_play_sound ) ;
+	ast_cli_unregister( &cli_stop_sounds ) ;
 }
