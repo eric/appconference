@@ -33,8 +33,12 @@
 int conference_show_stats( int fd, int argc, char *argv[] ) ;
 int conference_show_stats_name( int fd, const char* name ) ;
 
+
 int conference_debug( int fd, int argc, char *argv[] ) ;
 int conference_no_debug( int fd, int argc, char *argv[] ) ;
+
+int conference_play_sound( int fd, int argc, char *argv[] ) ;
+int conference_stop_sounds( int fd, int argc, char *argv[] ) ;
 
 void register_conference_cli( void ) ;
 void unregister_conference_cli( void ) ;

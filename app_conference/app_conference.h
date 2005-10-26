@@ -65,7 +65,7 @@
 
 // number of times the last non-silent frame should be 
 // repeated after silence starts
-#define AST_CONF_CACHE_LAST_FRAME 1
+//#define AST_CONF_CACHE_LAST_FRAME 1
 
 //
 // debug defines

@@ -237,11 +237,13 @@ if (
 				// ast_log( AST_CONF_DEBUG, "silent member, channel => %s\n", member->channel_name ) ;
 				
 // !!! TESTING !!!
+#if 0
 if ( member->speaking_state == 1 )
 {
 	ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
 		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 }
+#endif
 if ( conf->debug_flag == 1 )
 {
 	ast_log( AST_CONF_DEBUG, "member is silent, channel => %s, incoming => %d, outgoing => %d\n",
@@ -259,11 +261,13 @@ if ( conf->debug_flag == 1 )
 				ast_log( AST_CONF_DEBUG, "got incoming conf_frame with null ast_frame\n" ) ;
 
 // !!! TESTING !!!
+#if 0
 if ( member->speaking_state == 1 )
 {
 	ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
 		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 }
+#endif
 if ( conf->debug_flag == 1 )
 {
 	ast_log( AST_CONF_DEBUG, "member is silent, channel => %s, incoming => %d, outgoing => %d\n",
@@ -293,11 +297,13 @@ if ( conf->debug_flag == 1 )
 				spoken_frames = cfr ;
 				
 // !!! TESTING !!!
+#if 0
 if ( member->speaking_state == 0 )
 {
 	ast_log( AST_CONF_DEBUG, "member has started speaking, channel => %s, incoming => %d, outgoing => %d\n",
 		member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 }
+#endif
 if ( conf->debug_flag == 1 )
 {
 	ast_log( AST_CONF_DEBUG, "member is speaking, channel => %s, incoming => %d, outgoing => %d\n",
@@ -1321,5 +1327,48 @@ int get_conference_stats_by_name( ast_conference_stats* stats, const char* name 
 	ast_mutex_unlock( &conflist_lock ) ;
 
 	return ( stats == NULL ) ? 0 : 1 ;
+}
+
+struct ast_conf_member *find_member ( char *chan, int lock) 
+{
+	struct ast_conf_member *found = NULL;
+	struct ast_conf_member *member;	
+	struct ast_conference *conf;
+
+
+
+	ast_mutex_lock( &conflist_lock ) ;
+
+	conf = conflist;
+
+	// loop through conf list
+	while ( conf != NULL && !found ) 
+	{
+		// lock conference
+		ast_mutex_lock( &conf->lock );
+
+		member = conf->memberlist ;
+
+		while (member != NULL) 
+		{
+		    if(!strcmp(member->channel_name, chan)) {
+			found = member;
+			if(lock) 
+			    ast_mutex_lock(&member->lock);
+			break;
+		    }
+		    member = member->next;
+		}
+
+		// unlock conference
+		ast_mutex_unlock( &conf->lock );
+
+		conf = conf->next ;
+	}
+
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return found;
 }
 
