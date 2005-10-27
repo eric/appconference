@@ -586,8 +586,9 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	ast_mutex_init( &conf->lock ) ;
 	
 	// build translation paths	
-	
-	for ( int c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
+
+	int c;	
+	for ( c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
 	{
 		if ( c == AC_SLINEAR_INDEX )
 			conf->from_slinear_paths[ c ] = NULL;
@@ -686,8 +687,8 @@ void remove_conf( struct ast_conference *conf )
 			//
 			// do some frame clean up
 			//
-		
-			for ( int c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
+			int c;	
+			for ( c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
 			{				
 				// free the translation paths
 				if ( conf_current->from_slinear_paths[ c ] != NULL )
@@ -1160,7 +1161,8 @@ int queue_silent_frame(
 		{
 			// attempt ( five times ) to get a silent frame
 			// to make sure we provice the translator with enough data 
-			for ( int c = 0 ; c < 5 ; ++c )
+			int c;
+			for ( c = 0 ; c < 5 ; ++c )
 			{
 				// translate the frame
 				qf = ast_translate( trans, silent_frame->fr, 0 ) ;
