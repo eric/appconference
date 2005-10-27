@@ -47,7 +47,7 @@ INCLUDE = -I$(ASTERISK_INCLUDE_DIR)
 LIBS = -ldl -lpthread -lm
 DEBUG := -g 
 
-CFLAGS = -pipe -std=c99 -Wall -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
+CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
 #CFLAGS += -O2
 #CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math 
 # PERF: below is 10% faster than -O2 or -O3 alone.

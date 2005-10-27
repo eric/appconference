@@ -141,8 +141,9 @@ int conference_show_stats( int fd, int argc, char *argv[] )
 
 	char ct[64] ;
 	char mt[64] ;
-
-	for ( int i = 0 ; i < count ; ++i )
+	
+	int i;
+	for ( i = 0 ; i < count ; ++i )
 	{
 		s = &(stats[i]) ;
 	

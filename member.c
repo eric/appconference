@@ -697,7 +697,8 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// temp pointer to flags string
 	char* flags = member->flags ;
 
-	for ( int i = 0 ; i < strlen( flags ) ; ++i )
+	int i;
+	for ( i = 0 ; i < strlen( flags ) ; ++i )
 	{
 		// allowed flags are M, L, S, V, D, A
 		switch ( flags[i] )

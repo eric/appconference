@@ -411,7 +411,8 @@ conf_frame* delete_conf_frame( conf_frame* cf )
 	}
 		
 	// make sure converted frames are set to null
-	for ( int c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
+	int c;
+	for ( c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
 	{
 		if ( cf->converted[ c ] != NULL )
 		{
