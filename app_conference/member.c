@@ -194,6 +194,15 @@ again:
 	member->soundq = toboot->next;
 
 	//ast_log( LOG_WARNING, "finished playing a sound, next = %x\n", member->soundq);
+	// notify applications via mgr interface that this sound has been played
+	manager_event(
+		EVENT_FLAG_CALL, 
+		"ConferenceSoundComplete", 
+		"Channel: %s\r\n"
+		"Sound: %s\r\n",
+		member->channel_name, 
+		toboot->name
+	);
 
 	free(toboot);
 	if(member->soundq) goto again;
