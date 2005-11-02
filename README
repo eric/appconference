@@ -85,6 +85,24 @@ Features / CLI/Manager Commands
     * conference play sound <channel-id> <sound-file> [mute]
 	play a sound to a conference member, optionally muting them.
 
+Manager Events
+app_conference generates several detailed manager events so that applications
+interfacing with the manager API can monitor conferences:
+
+    * ConferenceState:  sent as members begin/end speaking.
+	Channel: The channel
+	State: "speaking" or "silent"
+
+    * ConferenceDTMF: sent when conference members send DTMF to the conference
+	Channel: The channel
+	Key: The DTMF key send [0-9*#]
+
+    * ConferenceSoundComplete: send when the conference has finished playing 
+		a sound to a user	
+	Channel: The channel
+	Sound: The first 255 bytes of the file requested in conference play 
+		sound CLI/Mgr command.	
+
 
 Benchmarking
 It would be nice to have solid benchmarks to present, but a good size 

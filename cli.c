@@ -232,6 +232,7 @@ int conference_play_sound( int fd, int argc, char *argv[] )
 	member->chan->stream = NULL;
 	
 	newsound->muted = mute;	
+	ast_copy_string(newsound->name, file, sizeof(newsound->name));
 
 	// append sound to the end of the list.
 	for(q=&member->soundq; *q; q = &((*q)->next)) ;;

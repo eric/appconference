@@ -34,6 +34,7 @@
 
 struct ast_conf_soundq 
 {
+	char name[256];
 	struct ast_filestream *stream; // the stream
 	int muted; // should incoming audio be muted while we play?
 	struct ast_conf_soundq *next;
