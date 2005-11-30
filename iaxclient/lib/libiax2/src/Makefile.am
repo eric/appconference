@@ -1,9 +1,9 @@
-CFLAGS = -Wall -O2
-CFLAGS += -g -Wall -Wstrict-prototypes -I .
-CFLAGS += -DDEBUG_SUPPORT -DLIBIAX
-CFLAGS += -fsigned-char
+AM_CFLAGS = -Wall -O2
+AM_CFLAGS += -g -Wall -Wstrict-prototypes -I .
+AM_CFLAGS += -DDEBUG_SUPPORT -DLIBIAX
+AM_CFLAGS += -fsigned-char
 # -DDEBUG_DEFAULT 
-CFLAGS += $(UCFLAGS)
+AM_CFLAGS += $(UCFLAGS)
 
 
 pkgdir = $(libdir)
