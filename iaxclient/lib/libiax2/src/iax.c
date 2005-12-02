@@ -1431,10 +1431,12 @@ static struct iax_event *handle_event(struct iax_event *event)
 			/* Lag requests are never actually sent to the client, but
 			   other than that are handled as normal packets */
 			switch(event->etype) {
+				/* the user on the outside may need to look at the session so we will not free 
+				   it here anymore we will test for hangup event in iax_event_free and do it
+				   there.
+				 */
 			case IAX_EVENT_REJECT:
 			case IAX_EVENT_HANGUP:
-				/* Destroy this session -- it's no longer valid */
-				destroy_session(event->session);
 				return event;
 			case IAX_EVENT_LAGRQ:
 				event->etype = IAX_EVENT_LAGRP;
@@ -3005,8 +3007,28 @@ struct sockaddr_in iax_get_peer_addr(struct iax_session *session)
 	return session->peeraddr;
 }
 
+void iax_session_destroy(struct iax_session **session) 
+{
+	destroy_session(*session);
+	*session = NULL;
+}
+
 void iax_event_free(struct iax_event *event)
 {
+	/* 
+	   We gave the user a chance to play with the session now we need to destroy it 
+	   if you are not calling this function on every event you read you are now going
+	   to leak sessions as well as events!
+	*/
+	switch(event->etype) {
+	case IAX_EVENT_REJECT:
+	case IAX_EVENT_HANGUP:
+		/* Destroy this session -- it's no longer valid */
+		if (event->session) { /* maybe the user did it already */
+			destroy_session(event->session);
+		}
+		break;
+	}
 	free(event);
 }
 

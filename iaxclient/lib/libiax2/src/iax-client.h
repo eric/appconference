@@ -209,6 +209,8 @@ void iax_set_sendto(struct iax_session *s, sendto_t sendto);
  * and pass in sendto and recvfrom replacements.  blocking reads may not be implemented */
 void iax_set_networking(sendto_t st, recvfrom_t rf);
 
+/* destroy an iax session */
+void iax_session_destroy(struct iax_session **session);
 
 /* Handle externally received frames */
 struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_in *sin);
