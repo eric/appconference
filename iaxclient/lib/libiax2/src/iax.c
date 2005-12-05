@@ -164,6 +164,10 @@ struct iax_session {
 	sendto_t sendto;
 	/* Is voice quelched (e.g. hold) */
 	int quelch;
+	/* Codec Pref Order */
+	char codec_order[32];
+	/* Codec Pref Order Index*/
+	int codec_order_len;
 	/* Last received voice format */
 	int voiceformat;
 	/* Last transmitted voice format */
@@ -1778,6 +1782,56 @@ int iax_dialplan_request(struct iax_session *session, char *number)
 	return send_command(session, AST_FRAME_IAX, IAX_COMMAND_DPREQ, 0, ied.buf, ied.pos, -1);
 }
 
+static inline int which_bit(unsigned int i)
+{
+    char x;
+    for(x = 0; x < 32; x++) {
+        if((1<<x) == i) {
+            return x;
+        }
+    }
+    return 0;
+}
+
+char iax_pref_codec_add(struct iax_session *session, unsigned int format)
+{
+	int diff = (int) 'A';
+	session->codec_order[session->codec_order_len++] = which_bit(format) + diff;
+	session->codec_order[session->codec_order_len] = '\0';
+	return session->codec_order[session->codec_order_len-1];
+}
+
+
+void iax_pref_codec_del(struct iax_session *session, unsigned int format)
+{
+	int diff = (int) 'A';
+	int x;
+	char old[32];
+	char remove = which_bit(format) + diff;
+
+	strncpy(old, session->codec_order, sizeof(old));
+	session->codec_order_len = 0;
+
+	for (x = 0; x < strlen(old) ; x++) {
+		if(old[x] != remove) {
+			session->codec_order[session->codec_order_len++] = old[x];
+		}
+	}
+	session->codec_order[session->codec_order_len] = '\0';
+}
+
+int iax_pref_codec_get(struct iax_session *session, unsigned int *array, int len)
+{
+	int diff = (int) 'A';
+	int x;
+	
+	for (x = 0; x < session->codec_order_len && x < len; x++) {
+		array[x] = ((1<<session->codec_order[x]) - diff);
+	}
+
+	return x;
+}
+
 int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich, char *lang, int wait, int formats, int capabilities)
 {
 	char tmp[256]="";
@@ -1801,7 +1855,11 @@ int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich
 		iax_ie_append_str(&ied, IAX_IE_CALLING_NUMBER, (unsigned char *) cidnum);
 	if (cidname)
 		iax_ie_append_str(&ied, IAX_IE_CALLING_NAME, (unsigned char *) cidname);
-	
+
+	if (session->codec_order_len) {
+		iax_ie_append_str(&ied, IAX_IE_CODEC_PREFS, (unsigned char *) session->codec_order);
+	}
+
 	session->capability = capabilities;
 	session->pingid = iax_sched_add(NULL,NULL, send_ping, (void *)session, 2 * 1000);
 

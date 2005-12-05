@@ -216,6 +216,9 @@ void iax_session_destroy(struct iax_session **session);
 /* Handle externally received frames */
 struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_in *sin);
 unsigned int iax_session_get_capability(struct iax_session *s);
+char iax_pref_codec_add(struct iax_session *session, unsigned int format);
+void iax_pref_codec_del(struct iax_session *session, unsigned int format);
+int iax_pref_codec_get(struct iax_session *session, unsigned int *array, int len);
 
 #if defined(__cplusplus)
 }
