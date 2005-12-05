@@ -156,6 +156,7 @@ extern int iax_send_ping(struct iax_session *session);
 extern int iax_load_complete(struct iax_session *session);
 extern int iax_reject(struct iax_session *session, char *reason);
 extern int iax_busy(struct iax_session *session);
+extern int iax_congestion(struct iax_session *session);
 extern int iax_hangup(struct iax_session *session, char *byemsg);
 extern int iax_call(struct iax_session *session, char *cidnum, char *cidname, char *ich, char *lang, int wait, int format, int capability);
 extern int iax_accept(struct iax_session *session, int format);
@@ -214,6 +215,7 @@ void iax_session_destroy(struct iax_session **session);
 
 /* Handle externally received frames */
 struct iax_event *iax_net_process(unsigned char *buf, int len, struct sockaddr_in *sin);
+unsigned int iax_session_get_capability(struct iax_session *s);
 
 #if defined(__cplusplus)
 }

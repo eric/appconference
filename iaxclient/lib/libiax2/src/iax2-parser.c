@@ -124,7 +124,6 @@ static void dump_ipaddr(char *output, int maxlen, void *value, int len)
 
 static void dump_prov_flags(char *output, int maxlen, void *value, int len)
 {
-	char buf[256] = "";
 	if (len == (int)sizeof(unsigned int))
 		snprintf(output, maxlen, "%lu (%s)", (unsigned long)ntohl(get_uint32(value)),
 			"PROVISION_PARSING_NOT_IMPLEMENTED");
@@ -227,9 +226,7 @@ static void dump_prov_ies(char *output, int maxlen, unsigned char *iedata, int l
 {
 	int ielen;
 	int ie;
-	int x;
 	int found;
-	char interp[80];
 	char tmp[256];
 	if (len < 2)
 		return;

@@ -31,6 +31,7 @@
 
 #if defined(_MSC_VER)
 #define	close		_close
+#define inline __inline
 #endif
 
 void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
@@ -43,7 +44,9 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #include <sys/time.h>
 #include <stdlib.h>
 #ifdef __GNUC__
+#ifndef __USE_SVID
 #define __USE_SVID
+#endif
 #endif
 #include <string.h>
 #include <stdarg.h>
@@ -147,8 +150,8 @@ static int maxretries = 10;
 static int iax_dropcount = 3;
 
 /* external global networking replacements */
-static sendto_t	  iax_sendto = sendto;
-static recvfrom_t iax_recvfrom = recvfrom;
+static sendto_t	  iax_sendto = (sendto_t) sendto;
+static recvfrom_t iax_recvfrom = (recvfrom_t) recvfrom;
 
 /* ping interval (seconds) */
 static int ping_time = 10;
@@ -291,6 +294,11 @@ void iax_set_sendto(struct iax_session *s, sendto_t ptr)
 	s->sendto = ptr;
 }
 
+unsigned int iax_session_get_capability(struct iax_session *s)
+{
+	return s->capability;
+}
+
 
 /* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ 
 #ifdef	WIN32
@@ -427,12 +435,13 @@ static int iax_sched_del(struct iax_event *event, struct iax_frame *frame, sched
 			cur = cur->next;	
 			free(tmp);
 			if (!all)
-				break;
+				return -1;
 		} else {
 			prev = cur;
 			cur = cur->next;
 		}
 	}
+	return 0;
 
 }
 
@@ -636,6 +645,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 	return ms;
 }
 
+#ifdef NEWJB
 static unsigned char get_n_bits_at(unsigned char *data, int n, int bit)
 {
 	int byte = bit / 8;       /* byte containing first bit */
@@ -791,6 +801,7 @@ static int get_sample_cnt(struct iax_event *e)
 	}
 	return cnt;
 }
+#endif
 
 static int iax_xmit_frame(struct iax_frame *f)
 {
@@ -856,7 +867,7 @@ int iax_init(int preferredportno)
 	unsigned int sinlen;
 	int flags;
 
-	if(iax_recvfrom == recvfrom) {
+	if(iax_recvfrom == (recvfrom_t) recvfrom) {
 	    if (netfd > -1) {
 		    /* Sokay, just don't do anything */
 		    DEBU(G "Already initialized.");
@@ -1565,6 +1576,12 @@ int iax_busy(struct iax_session *session)
 	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_BUSY, 0, NULL, 0, -1);
 }
 
+int iax_congestion(struct iax_session *session)
+{
+	return send_command(session, AST_FRAME_CONTROL, AST_CONTROL_CONGESTION, 0, NULL, 0, -1);
+}
+
+
 int iax_accept(struct iax_session *session, int format)
 {
 	struct iax_ie_data ied;
@@ -1878,6 +1895,7 @@ static int calc_rxstamp(struct iax_session *session)
 		return ms;
 }
 
+#ifdef notdef_cruft
 static int match(struct sockaddr_in *sin, short callno, short dcallno, struct iax_session *cur)
 {
 	if ((cur->peeraddr.sin_addr.s_addr == sin->sin_addr.s_addr) &&
@@ -1898,6 +1916,7 @@ static int match(struct sockaddr_in *sin, short callno, short dcallno, struct ia
 	}
 	return 0;
 }
+#endif
 
 /* splitted match into 2 passes otherwise causing problem of matching
    up the wrong session using the dcallno and the peercallno because
