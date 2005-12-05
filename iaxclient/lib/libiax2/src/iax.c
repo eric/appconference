@@ -1787,7 +1787,7 @@ static inline int which_bit(unsigned int i)
     char x;
     for(x = 0; x < 32; x++) {
         if((1<<x) == i) {
-            return x;
+            return x + 1;
         }
     }
     return 0;
@@ -1796,7 +1796,7 @@ static inline int which_bit(unsigned int i)
 char iax_pref_codec_add(struct iax_session *session, unsigned int format)
 {
 	int diff = (int) 'A';
-	session->codec_order[session->codec_order_len++] = which_bit(format) + diff;
+	session->codec_order[session->codec_order_len++] = (which_bit(format)) + diff;
 	session->codec_order[session->codec_order_len] = '\0';
 	return session->codec_order[session->codec_order_len-1];
 }
@@ -2491,6 +2491,10 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				/* This is a new, incoming call */
 				/* save the capability for validation */
 				session->capability = e->ies.capability;
+				if (e->ies.codec_prefs) {
+					strncpy(session->codec_order, e->ies.codec_prefs, sizeof(session->codec_order));
+					session->codec_order_len = strlen(session->codec_order);
+				}
 				e->etype = IAX_EVENT_CONNECT;
 				e = schedule_delivery(e, ts, updatehistory);
 				break;

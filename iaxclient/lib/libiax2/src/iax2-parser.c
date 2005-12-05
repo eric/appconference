@@ -179,6 +179,7 @@ static struct iax2_ie {
 	{ IAX_IE_CAPABILITY, "CAPABILITY", dump_int },
 	{ IAX_IE_FORMAT, "FORMAT", dump_int },
 	{ IAX_IE_LANGUAGE, "LANGUAGE", dump_string },
+	{ IAX_IE_CODEC_PREFS, "CODEC_PREFS", dump_string },
 	{ IAX_IE_VERSION, "VERSION", dump_short },
 	{ IAX_IE_ADSICPE, "ADSICPE", dump_short },
 	{ IAX_IE_DNID, "DNID", dump_string },
@@ -540,6 +541,9 @@ int iax_parse_ies(struct iax_ies *ies, unsigned char *data, int datalen)
 			break;
 		case IAX_IE_LANGUAGE:
 			ies->language = (char *) data + 2;
+			break;
+		case IAX_IE_CODEC_PREFS:
+			ies->codec_prefs = (char *) data + 2;
 			break;
 		case IAX_IE_VERSION:
 			if (len != (int)sizeof(unsigned short)) {
