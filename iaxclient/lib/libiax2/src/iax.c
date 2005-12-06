@@ -287,27 +287,6 @@ void iax_disable_debug(void)
 	debug = 0;
 }
 
-void iax_set_private(struct iax_session *s, void *ptr)
-{
-	s->pvt = ptr;
-}
-
-void *iax_get_private(struct iax_session *s)
-{
-	return s->pvt;
-}
-
-void iax_set_sendto(struct iax_session *s, sendto_t ptr)
-{
-	s->sendto = ptr;
-}
-
-unsigned int iax_session_get_capability(struct iax_session *s)
-{
-	return s->capability;
-}
-
-
 /* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ 
 #ifdef	WIN32
 #define G __FILE__, __LINE__,
@@ -373,6 +352,29 @@ static struct iax_sched *schedq = NULL;
 static struct iax_session *sessions = NULL;
 static int callnums = 1;
 static int transfer_id = 1;		/* for attended transfer */
+
+
+void iax_set_private(struct iax_session *s, void *ptr)
+{
+	s->pvt = ptr;
+}
+
+void *iax_get_private(struct iax_session *s)
+{
+	return s->pvt;
+}
+
+void iax_set_sendto(struct iax_session *s, sendto_t ptr)
+{
+	s->sendto = ptr;
+}
+
+
+unsigned int iax_session_get_capability(struct iax_session *s)
+{
+	return s->capability;
+}
+
 
 static int inaddrcmp(struct sockaddr_in *sin1, struct sockaddr_in *sin2)
 {

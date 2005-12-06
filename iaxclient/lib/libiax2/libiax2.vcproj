@@ -41,7 +41,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				InlineFunctionExpansion="0"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;LIBIAX"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;LIBIAX;DEBUG_SUPPORT;_CRT_SECURE_NO_DEPRECATE;NEWJB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -156,6 +156,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\jitterbuf.c"
+				>
+			</File>
+			<File
 				RelativePath=".\src\md5.c"
 				>
 			</File>
@@ -195,6 +199,10 @@
 			</File>
 			<File
 				RelativePath=".\src\iax2.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\jitterbuf.h"
 				>
 			</File>
 			<File
