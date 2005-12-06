@@ -1786,7 +1786,7 @@ static inline int which_bit(unsigned int i)
 {
     char x;
     for(x = 0; x < 32; x++) {
-        if((1<<x) == i) {
+        if ((1 << x) == i) {
             return x + 1;
         }
     }
@@ -1813,7 +1813,7 @@ void iax_pref_codec_del(struct iax_session *session, unsigned int format)
 	session->codec_order_len = 0;
 
 	for (x = 0; x < strlen(old) ; x++) {
-		if(old[x] != remove) {
+		if (old[x] != remove) {
 			session->codec_order[session->codec_order_len++] = old[x];
 		}
 	}
@@ -1826,7 +1826,7 @@ int iax_pref_codec_get(struct iax_session *session, unsigned int *array, int len
 	int x;
 	
 	for (x = 0; x < session->codec_order_len && x < len; x++) {
-		array[x] = ((1<<session->codec_order[x]) - diff);
+		array[x] = (1 << (session->codec_order[x] - diff - 1));
 	}
 
 	return x;
