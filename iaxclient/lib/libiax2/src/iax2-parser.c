@@ -210,6 +210,13 @@ static struct iax2_ie {
 	{ IAX_IE_CALLINGTON, "CALLING TYPEOFNUM", dump_byte },
 	{ IAX_IE_CALLINGTNS, "CALLING TRANSITNET", dump_short },
 	{ IAX_IE_SAMPLINGRATE, "SAMPLINGRATE", dump_samprate },
+	{ IAX_IE_CODEC_PREFS, "CODEC_PREFS", dump_string },
+	{ IAX_IE_RR_JITTER, "RR_JITTER", dump_int },
+	{ IAX_IE_RR_LOSS, "RR_LOSS", dump_int },
+	{ IAX_IE_RR_PKTS, "RR_PKTS", dump_int },
+	{ IAX_IE_RR_DELAY, "RR_DELAY", dump_short },
+	{ IAX_IE_RR_DROPPED, "RR_DROPPED", dump_int },
+	{ IAX_IE_RR_OOO, "RR_OOO", dump_int },
 };
 
 const char *iax_ie2str(int ie)
