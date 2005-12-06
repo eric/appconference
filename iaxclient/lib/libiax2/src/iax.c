@@ -1,4 +1,4 @@
-/*
+ /*
  * libiax: An implementation of Inter-Asterisk eXchange
  *
  * Copyright (C) 2001, Linux Support Services, Inc.
@@ -133,6 +133,7 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 #define TRANSFER_READY 2
 #define TRANSFER_REL   3
 
+#ifndef NEWJB
 /* No more than 4 seconds of jitter buffer */
 static int max_jitterbuffer = 4000;
 /* No more than 50 extra milliseconds of jitterbuffer than needed */
@@ -140,14 +141,17 @@ static int max_extra_jitterbuffer = 50;
 /* To use or not to use the jitterbuffer */
 static int iax_use_jitterbuffer = 1;
 
+/* Dropcount (in per-MEMORY_SIZE) usually percent */
+static int iax_dropcount = 3;
+#endif
+
 /* UDP Socket (file descriptor) */
 static int netfd = -1;
 
 /* Max timeouts */
 static int maxretries = 10;
 
-/* Dropcount (in per-MEMORY_SIZE) usually percent */
-static int iax_dropcount = 3;
+
 
 /* external global networking replacements */
 static sendto_t	  iax_sendto = (sendto_t) sendto;
@@ -2115,10 +2119,11 @@ static struct iax_event *schedule_delivery(struct iax_event *e, unsigned int ts,
 	 * Dynamically adjust the jitterbuffer and decide how long to wait
 	 * before delivering the packet.
 	 */
+#ifndef NEWJB
 	int ms, x;
 	int drops[MEMORY_SIZE];
 	int min, max=0, maxone=0, y, z, match;
-
+#endif
 
 #ifdef EXTREME_DEBUG	
 	DEBU(G "[%p] We are at %d, packet is for %d\n", e->session, calc_rxstamp(e->session), ts);

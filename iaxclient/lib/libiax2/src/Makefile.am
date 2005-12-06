@@ -8,8 +8,8 @@ AM_CFLAGS += $(UCFLAGS)
 
 pkgdir = $(libdir)
 pkg_LTLIBRARIES=libiax.la
-libiax_la_SOURCES = iax2-parser.c iax.c md5.c 
-EXTRA_DIST = md5.h frame.h iax-client.h iax2.h iax2-parser.h
+libiax_la_SOURCES = iax2-parser.c iax.c md5.c jitterbuf.c
+EXTRA_DIST = md5.h frame.h iax-client.h iax2.h iax2-parser.h jitterbuf.h
 
 install-data-local:
 	mkdir -p $(includedir)/iax

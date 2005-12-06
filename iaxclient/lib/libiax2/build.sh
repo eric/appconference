@@ -1,7 +1,7 @@
 echo configuring automake
 ./bootstrap.sh
 echo configuring libiax2
-./configure
+./configure --enable-newjb
 echo building libiax2
 make
 echo 
