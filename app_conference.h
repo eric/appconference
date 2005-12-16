@@ -19,6 +19,8 @@
 #ifndef _ASTERISK_CONF_H
 #define _ASTERISK_CONF_H
 
+#include <stdio.h>
+
 /* asterisk includes */
 #include <asterisk/pbx.h>
 #include <asterisk/module.h>
@@ -36,9 +38,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <stdlib.h>
 #include <math.h>
-#include <stdio.h>
 
 #include <pthread.h>
 
