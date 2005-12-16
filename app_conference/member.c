@@ -27,7 +27,24 @@ static int process_incoming(struct ast_conf_member *member, struct ast_frame *f)
 
 	int silent_frame = 0;
 
-	if ( member->type == 'L' )
+	if ( 
+		f->frametype == AST_FRAME_DTMF
+		&& member->send_dtmf
+	)
+	{	// send the DTMF event to the MGR interface..
+		manager_event(
+			EVENT_FLAG_CALL,
+			"ConferenceDTMF",
+			"Channel: %s\r\n"
+			"Key: %c\r\n",
+			member->channel_name,
+			f->subclass
+		) ;
+
+		ast_frfree(f);
+		f = NULL;
+	}
+	else if ( member->type == 'L' )
 	{
 		// this is a listen-only user, ignore the frame
 		ast_frfree( f ) ;
@@ -152,23 +169,6 @@ static int process_incoming(struct ast_conf_member *member, struct ast_frame *f)
 		
 		// break out of the while ( 42 == 42 )
 		return 1 ;
-	}
-	else if ( 
-		f->frametype == AST_FRAME_DTMF
-		&& member->send_dtmf
-	)
-	{	// send the DTMF event to the MGR interface..
-		manager_event(
-			EVENT_FLAG_CALL,
-			"ConferenceDTMF",
-			"Channel: %s\r\n"
-			"Key: %c\r\n",
-			member->channel_name,
-			f->subclass
-		) ;
-
-		ast_frfree(f);
-		f = NULL;
 	}
 	else
 	{
