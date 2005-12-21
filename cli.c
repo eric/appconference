@@ -295,6 +295,13 @@ int conference_stop_sounds( int fd, int argc, char *argv[] )
 	    sound = next;
 	}
 
+	// reset write format, since we're done playing the sound
+	if ( ast_set_write_format( member->chan, member->write_format ) < 0 ) 
+	{
+		ast_log( LOG_ERROR, "unable to set write format to %d\n",
+		    member->write_format ) ;
+	}
+
 	ast_mutex_unlock(&member->lock);
 
 	ast_cli( fd, "Stopped sounds to member %s\n", channel);	
