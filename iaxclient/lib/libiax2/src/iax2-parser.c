@@ -11,7 +11,7 @@
  * the GNU Lesser (Library) General Public License
  */
 
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #include <winsock.h>
 #define snprintf _snprintf
 #else

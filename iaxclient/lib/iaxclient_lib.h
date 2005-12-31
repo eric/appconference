@@ -27,15 +27,15 @@ extern "C" {
 #include <stdio.h>
 #include <string.h>
 
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #include "winpoop.h" // Win32 Support Functions
 #include <winsock.h>
+#if !defined(_WIN32_WCE)
 #include <process.h>
+#endif
 #include <stddef.h>
 #include <time.h>
-
 #else
-/* not win32 */
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -54,7 +54,7 @@ extern "C" {
 
 
 /* os-dependent macros, etc */
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #define THREAD HANDLE
 #define THREADID unsigned
 #define THREADCREATE(func, args, thread, id) \

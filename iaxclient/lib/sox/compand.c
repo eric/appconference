@@ -223,7 +223,7 @@ int st_compand_start(compand_t *lH, char **opts, int nopts)
   }
 
   /* Allocate the delay buffer */
-  l->delay_buf_size = l->delay * ST_SAMPLE_RATE * ST_CHANNELS;
+  l->delay_buf_size = (int) (l->delay * ST_SAMPLE_RATE * ST_CHANNELS);
   if (l->delay_buf_size > 0
    && (l->delay_buf = malloc(sizeof(long) * l->delay_buf_size)) == NULL) {
     st_fail("Out of memory");
@@ -308,13 +308,13 @@ int st_compand_flow(compand_t l, st_sample_t *ibuf, st_sample_t *obuf,
 
       if (l->delay_buf_size <= 0)
       {
-        checkbuf = ibuf[chan]*(outv/v)*l->outgain;
+        checkbuf = (long int) (ibuf[chan]*(outv/v)*l->outgain);
         if(checkbuf > ST_SAMPLE_MAX)
          obuf[odone] = ST_SAMPLE_MAX;
         else if(checkbuf < ST_SAMPLE_MIN)
          obuf[odone] = ST_SAMPLE_MIN;
         else
-         obuf[odone] = checkbuf;
+         obuf[odone] = (st_sample_t) checkbuf;
 
         idone++;
         odone++;
@@ -324,13 +324,13 @@ int st_compand_flow(compand_t l, st_sample_t *ibuf, st_sample_t *obuf,
 	if (l->delay_buf_cnt >= l->delay_buf_size)
         {
             l->delay_buf_full=1; //delay buffer is now definetly full
-	    checkbuf = l->delay_buf[l->delay_buf_ptr]*(outv/v)*l->outgain;
+	        checkbuf = (long int) (l->delay_buf[l->delay_buf_ptr]*(outv/v)*l->outgain);
             if(checkbuf > ST_SAMPLE_MAX)
              obuf[odone] = ST_SAMPLE_MAX;
             else if(checkbuf < ST_SAMPLE_MIN)
              obuf[odone] = ST_SAMPLE_MIN;
             else
-             obuf[odone] = checkbuf;
+             obuf[odone] = (st_sample_t) checkbuf;
 
             odone++;
             idone++;

@@ -8,12 +8,17 @@
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
  */
- 
-#ifdef	WIN32
+
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #undef __STRICT_ANSI__ //for strdup with ms
 
-#include <string.h>
+#if !defined(_WIN32_WCE)
 #include <process.h>
+#include <fcntl.h>
+#include <io.h>
+#include <errno.h>
+#endif
+#include <string.h>
 #include <windows.h>
 #include <winsock.h>
 #include <time.h>
@@ -21,9 +26,6 @@
 #include <malloc.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <fcntl.h>
-#include <io.h>
-#include <errno.h>
 #include <limits.h>
 
 
@@ -31,7 +33,9 @@
 
 #if defined(_MSC_VER)
 #define	close		_close
+#if !defined(_WIN32_WCE)
 #define inline __inline
+#endif
 #endif
 
 void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
@@ -86,7 +90,7 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 
 /* Define socket options for IAX2 sockets, based on platform
  * availability of flags */
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #define IAX_SOCKOPTS 0
 #else
 #ifdef MACOSX
@@ -288,14 +292,14 @@ void iax_disable_debug(void)
 }
 
 /* This is a little strange, but to debug you call DEBU(G "Hello World!\n"); */ 
-#ifdef	WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #define G __FILE__, __LINE__,
 #else
 #define G __FILE__, __LINE__, __PRETTY_FUNCTION__, 
 #endif
 
 #define DEBU __debug 
-#ifdef	WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 static int __debug(char *file, int lineno, char *fmt, ...) 
 {
 	va_list args;
@@ -322,7 +326,7 @@ static int __debug(char *file, int lineno, char *func, char *fmt, ...)
 #endif
 #else /* No debug support */
 
-#ifdef	WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #define	DEBU
 #else
 #define DEBU(fmt...) \
@@ -908,7 +912,7 @@ int iax_init(int preferredportno)
 		    DEBU(G "Unable to figure out what I'm bound to.");
 		    IAXERROR "Unable to determine bound port number.");
 	    }
-#ifdef	WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 	    flags = 1;
 	    if (ioctlsocket(netfd,FIONBIO,(unsigned long *) &flags)) {
 		    _close(netfd);
@@ -2812,7 +2816,7 @@ static struct iax_event *iax_net_read(void)
 	sinlen = sizeof(sin);
 	res = iax_recvfrom(netfd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
 	if (res < 0) {
-#ifdef	WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 		if (WSAGetLastError() != WSAEWOULDBLOCK) {
 			DEBU(G "Error on read: %d\n", WSAGetLastError());
 			IAXERROR "Read error on network socket: %s", strerror(errno));

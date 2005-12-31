@@ -24,7 +24,7 @@ extern "C" {
  * require the inclusion of library internals (or sub-libraries) */
 
 #include <stdio.h>
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #include <windows.h>
 #include <winsock.h>
 #else
@@ -32,16 +32,16 @@ extern "C" {
 #endif
 
 #ifdef BUILDING_DLL
-# ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #  define EXPORT  __stdcall __declspec(dllexport)
-# else
+#else
 #  define EXPORT
-# endif
+#endif
 #else
 # define EXPORT
 #endif
 
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #if defined(_MSC_VER)
 	typedef int (__stdcall *iaxc_sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
 	typedef int (__stdcall *iaxc_recvfrom_t)(SOCKET, char *, int, int, struct sockaddr *, int *);

@@ -24,9 +24,9 @@ void gettimeofday(struct timeval *tv, void /*struct timezone*/ *tz);
 
 static INLINE int inet_aton(char *cp, struct in_addr *inp)
 {
-	int res;
 	int a1, a2, a3, a4;
 	unsigned int saddr;
+
 	if (sscanf(cp, "%d.%d.%d.%d", &a1, &a2, &a3, &a4) != 4)
 		return 0;
 	a1 &= 0xff;

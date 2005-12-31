@@ -35,11 +35,7 @@
 #ifdef SOLARIS
 #include <sys/int_types.h>
 #else
-#if defined(__OpenBSD__) || defined( __FreeBSD__)
 #include <inttypes.h>
-#else
-#include <stdint.h>
-#endif
 #endif
 
 /*! \page plc_page Packet loss concealment

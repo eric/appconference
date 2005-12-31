@@ -23,7 +23,7 @@
 #define JB_LONGMIN (-JB_LONGMAX - 1L)
 
 /* MS VC can't do __VA_ARGS__ */
-#if defined(WIN32) && defined(_MSC_VER)
+#if (defined(WIN32)  ||  defined(_WIN32_WCE))  &&  defined(_MSC_VER)
 #define jb_warn if (warnf) warnf
 #define jb_err if (errf) errf
 #define jb_dbg if (dbgf) dbgf

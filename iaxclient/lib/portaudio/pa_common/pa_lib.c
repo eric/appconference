@@ -45,13 +45,13 @@
 #include <math.h>
 
 /* PLB20010422 - "memory.h" doesn't work on CodeWarrior for PC. Thanks Mike Berry for the mod. */
-#ifdef _WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #ifndef __MWERKS__
 #include <memory.h>
 #endif  /* __MWERKS__ */
-#else   /* !_WIN32 */
+#else
 #include <memory.h>
-#endif  /* _WIN32 */
+#endif
 
 #include "portaudio.h"
 #include "pa_host.h"

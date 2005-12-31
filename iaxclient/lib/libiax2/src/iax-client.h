@@ -87,7 +87,7 @@ struct iax_session;
 
 #define IAX_SCHEDULE_FUZZ 0			/* ms of fuzz to drop */
 
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #if defined(_MSC_VER)
 typedef int (__stdcall *sendto_t)(SOCKET, const char *, int, int, const struct sockaddr *, int);
 typedef int (__stdcall *recvfrom_t)(SOCKET, char *, int, int, struct sockaddr *, int *);

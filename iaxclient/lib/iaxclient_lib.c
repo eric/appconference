@@ -78,7 +78,7 @@ static iaxc_recvfrom_t iaxc_recvfrom = recvfrom;
 
 
 static THREAD procThread;
-#ifdef WIN32
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 static THREADID procThreadID;
 #endif
 
