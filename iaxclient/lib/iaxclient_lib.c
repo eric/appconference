@@ -13,14 +13,18 @@
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
  */
-#include "iaxclient_lib.h"
-#include "jitterbuf.h"
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
+#include <stdlib.h>
+#endif
 
 #if defined(__STDC__) || defined(_MSC_VER)
 #include <stdarg.h>
 #else
 #include <varargs.h>
 #endif
+
+#include "iaxclient_lib.h"
+#include "jitterbuf.h"
 
 #define IAXC_ERROR  IAXC_TEXT_TYPE_ERROR
 #define IAXC_STATUS IAXC_TEXT_TYPE_STATUS
@@ -1323,6 +1327,6 @@ EXPORT int iaxc_mic_boost_set( int enable )
 
 EXPORT char* iaxc_version(char* ver)
 {
-	strncpy(ver,   LIBVER,   IAXC_EVENT_BUFSIZ);
+	strncpy(ver, LIBVER, IAXC_EVENT_BUFSIZ);
 	return ver;
 }

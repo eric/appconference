@@ -24,7 +24,13 @@
  *
  */
 
+#if defined(_WIN32_WCE)
+#include <stdlib.h>
+#define strcasecmp _stricmp
+#else
 #include <strings.h>
+#endif
+
 #include "iaxclient_lib.h"
 #include "pablio.h"
 #include "portmixer/px_common/portmixer.h"
@@ -262,7 +268,7 @@ static int pa_mix_sounds (void *outputBuffer, unsigned long frames, int channel)
 	  }
 
 	  /* how many frames do we add in this loop? */
-	  n = ((frames - outpos) < (s->len - s->pos)) ? (frames - outpos) : (s->len - s->pos);
+	  n = ((frames - outpos) < (unsigned long int) (s->len - s->pos)) ? (frames - outpos) : (s->len - s->pos);
 
 	  /* mix in the frames */
 	  mix_slin((short *)outputBuffer + outpos, s->data+s->pos, n); 
@@ -335,8 +341,8 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 
     /* remove bias -- whether ec is on or not. */
     for(i = 0; i < n; i++) {
-	bias +=  ((((long)inputBuffer[i]) << 15) - bias) >> 14;
-	inputBuffer[i] -= (bias >> 15);
+	bias +=  ((((long int) inputBuffer[i]) << 15) - bias) >> 14;
+	inputBuffer[i] -= (short int) (bias >> 15);
     }
 
 
@@ -768,7 +774,7 @@ static int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 	outRingLenAvg = (outRingLenAvg * 9 + outRingLen ) / 10;
 
 	/* if we've got a big output buffer, drop this */
-	if(outRingLen > (RBOUTTARGET_BYTES) && outRingLenAvg > RBOUTTARGET_BYTES)  {
+	if(outRingLen > (int) RBOUTTARGET_BYTES  &&  outRingLenAvg > (int) RBOUTTARGET_BYTES)  {
 	  //fprintf(stderr, "*O*");
 	  return outRingLen/2;
 	}
