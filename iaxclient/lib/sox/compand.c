@@ -361,7 +361,7 @@ int st_compand_drain(compand_t l, st_sample_t *obuf, st_size_t *osamp)
    * Drain out delay samples.  Note that this loop does all channels.
    */
   if(l->delay_buf_full==0) l->delay_buf_ptr=0;
-  for (done = 0;  done < *osamp  &&  l->delay_buf_cnt > 0;  done++) {
+  for (done = 0;  done < (int) *osamp  &&  l->delay_buf_cnt > 0;  done++) {
     obuf[done] = l->delay_buf[l->delay_buf_ptr++];
     l->delay_buf_ptr %= l->delay_buf_size;
     l->delay_buf_cnt--;

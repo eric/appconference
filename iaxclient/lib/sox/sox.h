@@ -144,4 +144,7 @@ int st_compand_flow(compand_t l, st_sample_t *ibuf, st_sample_t *obuf,
 int st_compand_drain(compand_t l, st_sample_t *obuf, st_size_t *osamp);
 int st_compand_stop(compand_t l);
 
-
+void st_report(const char *fmt, ...);
+void st_fail(const char *fmt, ...);
+void st_warn(const char *fmt, ...);
+long st_gcd(long a, long b);

@@ -637,7 +637,7 @@ static int calc_timestamp(struct iax_session *session, unsigned int ts, struct a
 		/* On a dataframe, use last value + 3 (to accomodate jitter buffer shrinking) 
 		   if appropriate unless it's a genuine frame */
 		if (genuine) {
-			if (ms <= session->lastsent)
+			if (ms <= (int) session->lastsent)
 				ms = session->lastsent + 3;
 		} else if (abs(ms - session->lastsent) <= 240) {
 			ms = session->lastsent + 3;
@@ -819,7 +819,6 @@ static int get_sample_cnt(struct iax_event *e)
 
 static int iax_xmit_frame(struct iax_frame *f)
 {
-	struct ast_iax2_full_hdr *h = (f->data);
 	/* Send the frame raw */
 #ifdef DEBUG_SUPPORT
 	if (ntohs(h->scallno) & IAX_FLAG_FULL)
@@ -1796,7 +1795,7 @@ static inline int which_bit(unsigned int i)
 {
     char x;
     for(x = 0; x < 32; x++) {
-        if ((1 << x) == i) {
+        if ((1U << x) == i) {
             return x + 1;
         }
     }
@@ -1822,7 +1821,7 @@ void iax_pref_codec_del(struct iax_session *session, unsigned int format)
 	strncpy(old, session->codec_order, sizeof(old));
 	session->codec_order_len = 0;
 
-	for (x = 0; x < strlen(old) ; x++) {
+	for (x = 0;  x < (int) strlen(old);  x++) {
 		if (old[x] != remove) {
 			session->codec_order[session->codec_order_len++] = old[x];
 		}
@@ -2852,7 +2851,7 @@ static struct iax_session *iax_txcnt_session(struct ast_iax2_full_hdr *fh, int d
 		return NULL;	/* TXCNT without proper IAX_IE_TRANSFERID */
 	}
 	for( cur=sessions; cur; cur=cur->next ) {
-		if ((cur->transferring) && (cur->transferid == ies.transferid) &&
+		if ((cur->transferring) && (cur->transferid == (int) ies.transferid) &&
 		   	(cur->callno == dcallno) && (cur->transfercallno == callno)) {
 			/* We're transferring ---
 			 * 	skip address/port checking which would fail while remote peer behind symmetric NAT

@@ -858,7 +858,7 @@ static void Long_term_analysis_filtering P6((bc,Nc,dp,d,dpp,e),
 #	define STEP(BP)					\
 	for (k = 0; k <= 39; k++) {			\
 		dpp[k]  = GSM_MULT_R( BP, dp[k - Nc]);	\
-		e[k]	= GSM_SUB( d[k], dpp[k] );	\
+		e[k]	= (word) GSM_SUB( d[k], dpp[k] );	\
 	}
 
 	switch (bc) {
