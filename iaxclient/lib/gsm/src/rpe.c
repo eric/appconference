@@ -108,8 +108,8 @@ static void Weighting_filter P2((e, x),
 		 */
 
 		L_result = SASR( L_result, 13 );
-		x[k] =  (  L_result < MIN_WORD ? MIN_WORD
-			: (L_result > MAX_WORD ? MAX_WORD : L_result ));
+		x[k] = (word) (L_result < MIN_WORD ? MIN_WORD
+			: (L_result > MAX_WORD ? MAX_WORD : L_result));
 	}
 }
 #endif /* K6OPT */

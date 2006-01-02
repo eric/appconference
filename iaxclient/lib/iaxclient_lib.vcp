@@ -494,7 +494,7 @@ BSC32=bscmake.exe
 # PROP Target_Dir ""
 CPP=clarm.exe
 # ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D inline=_inline /D __inline__=_inline /D strncasecmp=strnicmp /D rint=floor /D vsnprintf=_vsnprintf /D "UNICODE" /D "_UNICODE" /D "_LIB" /YX /O2 /M$(CECrtMT) /c
-# ADD CPP /nologo /W3 /I "." /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D "__UNICODE__" /D "UNICODE" /D SPEEX_PREPROCESS=1 /D SPEEX_EC=1 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D inline=_inline /D __inline__=_inline /D strncasecmp=strnicmp /D rint=floor /D vsnprintf=_vsnprintf /D "_UNICODE" /D "_LIB" /D "LIBIAX" /YX /O2 /M$(CECrtMT) /c
+# ADD CPP /nologo /W3 /I "." /I ".\libiax2\src" /I ".\libspeex\include" /I ".\gsm\inc" /I ".\portaudio\pa_common" /I ".\portaudio\pablio" /D "__UNICODE__" /D "UNICODE" /D SPEEX_PREPROCESS=1 /D SPEEX_EC=1 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "NDEBUG" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D inline=_inline /D __inline__=_inline /D strncasecmp=strnicmp /D rint=floor /D vsnprintf=_vsnprintf /D "_UNICODE" /D "_LIB" /D "LIBIAX" /D LIBVER=\"42\" /YX /O2 /M$(CECrtMT) /c
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
@@ -1371,6 +1371,7 @@ DEP_CPP_AUDIO=\
 	".\gsm\inc\gsm.h"\
 	".\iaxclient.h"\
 	".\iaxclient_lib.h"\
+	".\inttypes.h"\
 	".\libiax2\src\iax-client.h"\
 	".\libiax2\src\iax2-parser.h"\
 	".\libiax2\src\iax2.h"\
@@ -1902,6 +1903,7 @@ DEP_CPP_AUDIO_=\
 	".\gsm\inc\gsm.h"\
 	".\iaxclient.h"\
 	".\iaxclient_lib.h"\
+	".\inttypes.h"\
 	".\libiax2\src\iax-client.h"\
 	".\libiax2\src\iax2-parser.h"\
 	".\libiax2\src\iax2.h"\
@@ -2533,6 +2535,7 @@ DEP_CPP_AUDIO_P=\
 	".\gsm\inc\gsm.h"\
 	".\iaxclient.h"\
 	".\iaxclient_lib.h"\
+	".\inttypes.h"\
 	".\libiax2\src\iax-client.h"\
 	".\libiax2\src\iax2-parser.h"\
 	".\libiax2\src\iax2.h"\
@@ -2755,61 +2758,6 @@ NODEP_CPP_AUDIO_P=\
 	".\ec\echo.h"\
 	".\mec3.h"\
 	
-
-!ENDIF 
-
-# End Source File
-# Begin Source File
-
-SOURCE=.\audio_win32.c
-
-!IF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSII_FP) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSII_FP) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSII) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSII) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE SH4) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE SH4) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE SH3) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE SH3) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSIV) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSIV) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE emulator) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE emulator) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE ARMV4I) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE ARMV4I) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSIV_FP) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSIV_FP) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE ARMV4) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE ARMV4) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPS16) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPS16) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE ARMV4T) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE ARMV4T) Debug"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE x86) Release"
-
-!ELSEIF  "$(CFG)" == "iaxclient_lib - Win32 (WCE x86) Debug"
 
 !ENDIF 
 
@@ -6086,6 +6034,7 @@ DEP_CPP_IAXCL=\
 	".\gsm\inc\gsm.h"\
 	".\iaxclient.h"\
 	".\iaxclient_lib.h"\
+	".\inttypes.h"\
 	".\jitterbuf.h"\
 	".\libiax2\src\iax-client.h"\
 	".\libiax2\src\iax2-parser.h"\
@@ -7125,6 +7074,7 @@ DEP_CPP_MISC_=\
 
 DEP_CPP_MISC_=\
 	".\gsm\inc\config.h"\
+	".\inttypes.h"\
 	".\libspeex\arch.h"\
 	".\libspeex\fixed_arm4.h"\
 	".\libspeex\fixed_arm5e.h"\
@@ -7437,7 +7387,7 @@ DEP_CPP_PA_LI=\
 # End Source File
 # Begin Source File
 
-SOURCE=.\portaudio\pa_win_wmme\pa_win_pocket_pc_wmme.c
+SOURCE=.\portaudio\pa_win_wmme\pa_win_wmme_pocketpc.c
 
 !IF  "$(CFG)" == "iaxclient_lib - Win32 (WCE MIPSII_FP) Release"
 
@@ -8178,6 +8128,7 @@ DEP_CPP_PREPR=\
 
 DEP_CPP_PREPR=\
 	".\gsm\inc\config.h"\
+	".\inttypes.h"\
 	".\libspeex\arch.h"\
 	".\libspeex\fixed_arm4.h"\
 	".\libspeex\fixed_arm5e.h"\
@@ -9198,6 +9149,7 @@ DEP_CPP_SMALL=\
 
 DEP_CPP_SMALL=\
 	".\gsm\inc\config.h"\
+	".\inttypes.h"\
 	".\libspeex\arch.h"\
 	".\libspeex\fixed_arm4.h"\
 	".\libspeex\fixed_arm5e.h"\
@@ -10024,6 +9976,7 @@ DEP_CPP_WINFU=\
 	".\gsm\inc\gsm.h"\
 	".\iaxclient.h"\
 	".\iaxclient_lib.h"\
+	".\inttypes.h"\
 	".\libiax2\src\iax-client.h"\
 	".\libiax2\src\iax2-parser.h"\
 	".\libiax2\src\iax2.h"\

@@ -12,7 +12,9 @@
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
 #undef __STRICT_ANSI__ //for strdup with ms
 
-#if !defined(_WIN32_WCE)
+#if defined(_WIN32_WCE)
+#define strdup _strdup
+#else
 #include <process.h>
 #include <fcntl.h>
 #include <io.h>
@@ -32,9 +34,9 @@
 #define	snprintf _snprintf
 
 #if defined(_MSC_VER)
-#define	close		_close
+#define	close		closesocket
 #if !defined(_WIN32_WCE)
-#define inline __inline
+#define inline      __inline
 #endif
 #endif
 
@@ -914,7 +916,7 @@ int iax_init(int preferredportno)
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
 	    flags = 1;
 	    if (ioctlsocket(netfd,FIONBIO,(unsigned long *) &flags)) {
-		    _close(netfd);
+		    closesocket(netfd);
 		    netfd = -1;
 		    DEBU(G "Unable to set non-blocking mode.");
 		    IAXERROR "Unable to set non-blocking mode.");
@@ -2815,7 +2817,12 @@ static struct iax_event *iax_net_read(void)
 	sinlen = sizeof(sin);
 	res = iax_recvfrom(netfd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
 	if (res < 0) {
-#if defined(WIN32)  ||  defined(_WIN32_WCE)
+#if defined(_WIN32_WCE)
+		if (WSAGetLastError() != WSAEWOULDBLOCK) {
+			DEBU(G "Error on read: %d\n", WSAGetLastError());
+			IAXERROR "Read error on network socket: ???");
+		}
+#elif defined(WIN32)  ||  defined(_WIN32_WCE)
 		if (WSAGetLastError() != WSAEWOULDBLOCK) {
 			DEBU(G "Error on read: %d\n", WSAGetLastError());
 			IAXERROR "Read error on network socket: %s", strerror(errno));

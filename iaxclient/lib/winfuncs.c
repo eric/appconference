@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 
+#if !defined(_WIN32_WCE)
 #include <sys/timeb.h>
 
 /* Win-doze doesnt have gettimeofday(). This sux. So, what we did is
@@ -38,12 +39,12 @@ provide some gettimeofday-like functionality that works for our purposes. */
 void gettimeofday( struct timeval* tv, void* tz )
 {
 	struct _timeb curSysTime;
+
 	_ftime(&curSysTime);
 	tv->tv_sec = curSysTime.time;
 	tv->tv_usec = curSysTime.millitm * 1000;
-
-	return ;
 }
+#endif
 
 void os_init(void)
 {
@@ -77,12 +78,14 @@ int post_event_callback(iaxc_event ev) {
  */
 
 int iaxc_prioboostbegin() {
-      if ( !SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_TIME_CRITICAL)  ) {
-            fprintf(stderr, "SetThreadPriority failed: %ld.\n", GetLastError());
-      }
+    if ( !SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_TIME_CRITICAL)  ) {
+        fprintf(stderr, "SetThreadPriority failed: %ld.\n", GetLastError());
+    }
+    return 0;
 }
 
 int iaxc_prioboostend() {
     /* TODO */
+    return 0;
 }
 
