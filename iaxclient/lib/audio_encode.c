@@ -62,7 +62,8 @@ static int do_level_callback()
 {
     static struct timeval last = {0,0};
     struct timeval now;
-	double input_db, output_db ;
+	double input_db;
+	double output_db;
 
     gettimeofday(&now,NULL); 
     if(last.tv_sec != 0 && iaxc_usecdiff(&now,&last) < 100000) return 0;
@@ -71,13 +72,13 @@ static int do_level_callback()
 
 	/* if input has not been processed in the last second, set to silent */
 	input_db = ( iaxc_usecdiff( &now, &timeLastInput ) < 1000000 ) 
-		? vol_to_db( input_level ) : -99.9 ;
+		? vol_to_db( input_level ) : -99.9;
 
 	/* if output has not been processed in the last second, set to silent */
 	output_db = ( iaxc_usecdiff( &now, &timeLastOutput ) < 1000000 ) 
-		? vol_to_db( output_level ) : -99.9 ;
+		? vol_to_db( output_level ) : -99.9;
 
-    iaxc_do_levels_callback( input_db, output_db ) ;
+    iaxc_do_levels_callback((float) input_db, (float) output_db);
 
     return 0;
 }

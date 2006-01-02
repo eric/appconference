@@ -608,6 +608,7 @@ static int pa_openauxstream (struct iaxc_audio_driver *d ) {
 static int pa_start (struct iaxc_audio_driver *d ) {
     PaError err;
     static int errcnt=0;
+    double level;
 
     if(running) return 0;
 
@@ -699,7 +700,6 @@ static int pa_start (struct iaxc_audio_driver *d ) {
 
 	  /* if the input level is very low, raise it up a bit.  Otherwise, AGC cannot detect speech, 
 	     and cannot adjust levels */
-	  double level;
 	  level = pa_input_level_get(d);
 	  if(level < 0.5)
 	    pa_input_level_set(d,0.6);
@@ -846,7 +846,7 @@ static int pa_input_level_set(struct iaxc_audio_driver *d, double level){
 		return -1 ;
 
     //fprintf(stderr, "setting input level to %f\n", level);
-    Px_SetInputVolume(iMixer, level);
+    Px_SetInputVolume(iMixer, (float) level);
     return 0;
 }
 
@@ -862,9 +862,9 @@ static int pa_output_level_set(struct iaxc_audio_driver *d, double level){
 
 	/* prefer the pcm output, but default to the master output */
 	if ( Px_SupportsPCMOutputVolume( mix ) ) 
-		Px_SetPCMOutputVolume( mix, level );
+		Px_SetPCMOutputVolume(mix, (float) level);
 	else 
-		Px_SetMasterVolume( mix, level );
+		Px_SetMasterVolume(mix, (float) level);
 
     return 0;
 }
@@ -941,6 +941,7 @@ int pa_initialize (struct iaxc_audio_driver *d, int sr) {
     /* start/stop audio, in order to initialize mixers and levels */
     pa_start(d);
     pa_stop(d);
+    return 0;
 }
 
 /* alternate initialization:  delay mixer/level initialization until
@@ -949,6 +950,7 @@ int pa_initialize (struct iaxc_audio_driver *d, int sr) {
    takes to start/stop the device before starting it again */
 int pa_initialize_deferred(struct iaxc_audio_driver *d, int sr) {
     _pa_initialize(d, sr);
+    return 0;
 }
 
 
