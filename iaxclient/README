@@ -100,6 +100,7 @@ Stephan Kauss <Stephan@kauss.org> [ 32-bit alignment for IAX2 ]
 Stephen Uhler <suhler@sun.com> [Solaris build, tkiaxphone]
 Steve Underwood <steveu@coppice.org> [PLC implementation from spandsp]
 Jean-Denis Girard <jd.girard@sysnux.pf> [URL Receive implementation]
+Panfilov Dmitry <dima@bdpu.org> [Basic ALSA-native audio driver]
 
 
 
@@ -227,5 +228,26 @@ The source presently is set up for the draft-5 version.
 The iLBC license and software can be found here 
 http://www.ilbcfreeware.org/software.html
 (sources are also in asterisk).  
+
+=========================================================================
+
+AUDIO DRIVERS
+
+The supported audio driver for iaxclient is audio_portaudio; which uses
+the portaudio v18 library (included, with some minor modifications) to
+access native audio services on each platform.  It includes an OSS layer
+for Linux, a WMME layer for Win32, a CoreAudio layer for Mac OS X, and a
+layer for Solaris.
+
+There is a (presently broken) WMME-native audio driver which was used
+during early development, and is no longer maintained.  You probably
+don't want to use this.
+
+Dmitry Panfilov has contributed a basic native ALSA driver for Linux.
+Not all features are supported with this driver.  It is not compiled in
+by default, because this would add alsa libraries to the build and link
+dependencies -- and we don't have a good way of communicating that to
+applications (like pkg-config stuff, etc). To use it, though, you just
+need to change AUDIO_ALSA=0 to AUDIO_ALSA=1 in the Makefile.
 
 
