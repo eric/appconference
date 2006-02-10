@@ -168,7 +168,7 @@ OBJS_LINUX=\
 	unixfuncs.o \
 	portmixer/px_unix_oss/px_unix_oss.o \
 	portaudio/pa_unix_oss/pa_unix_oss.o \
-	portaudio/pa_unix_oss/pa_unix.o 
+	portaudio/pa_unix_oss/pa_unix.o
 
 OBJS_SOLARIS=\
 	unixfuncs.o \
@@ -235,6 +235,8 @@ ifeq ($(OSTYPE),LINUX)
 OBJS:= $(OBJS) $(OBJS_LINUX) 
 DYNCFLAGS=-fPIC
 DYNLIB=libiaxclient.so
+# change below to 1 to include audio_alsa;
+AUDIO_ALSA=0  
 endif
 
 ifeq ($(OSTYPE),SOLARIS)
@@ -274,6 +276,11 @@ ifeq ($(USE_VIDEO),1)
   endif
 endif
 
+
+ifeq ($(AUDIO_ALSA),1)
+OBJS:= $(OBJS) audio_alsa.o
+CFLAGS:= $(CFLAGS) -DAUDIO_ALSA
+endif
 
 
 OBJS:= $(OBJS) $(OBJS_IAX2)

@@ -20,6 +20,10 @@
 #include "codec_alaw.h"
 #include "codec_speex.h"
 
+#ifdef CODEC_ILBC
+	#include "codec_ilbc.h"
+#endif
+
 double iaxc_silence_threshold = -9e99;
 
 static double input_level = 0, output_level = 0;
