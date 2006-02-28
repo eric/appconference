@@ -37,7 +37,7 @@ simpleclient/tkiaxphone	A command-line client, with a Tcl/Tk GUI
 
 The home page for iaxclient is "http://iaxclient.sourceforge.net/"
 
-Up-to-date versions of iaxclient are available from a sourceforge CVS
+Up-to-date versions of iaxclient are available from a sourceforge SVN
 repository.
 
 CVS tarballs are also available as a link from the home page.
