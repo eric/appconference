@@ -49,6 +49,21 @@ endif
 # CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG
 
 OBJS=\
+	portaudio/pa_common/pa_lib.o \
+	portaudio/pablio/pablio.o \
+	portaudio/pablio/ringbuffer.o \
+	spandsp/plc.o \
+	audio_encode.o \
+	audio_portaudio.o \
+	audio_file.o \
+	codec_gsm.o \
+	codec_ulaw.o \
+	codec_alaw.o \
+	codec_speex.o \
+	jitterbuf.o \
+	iaxclient_lib.o 
+
+OBJS_GSM=\
 	gsm/src/add.o \
 	gsm/src/code.o \
 	gsm/src/debug.o \
@@ -66,20 +81,7 @@ OBJS=\
 	gsm/src/preprocess.o \
 	gsm/src/rpe.o \
 	gsm/src/short_term.o \
-	gsm/src/table.o \
-	portaudio/pa_common/pa_lib.o \
-	portaudio/pablio/pablio.o \
-	portaudio/pablio/ringbuffer.o \
-	spandsp/plc.o \
-	audio_encode.o \
-	audio_portaudio.o \
-	audio_file.o \
-	codec_gsm.o \
-	codec_ulaw.o \
-	codec_alaw.o \
-	codec_speex.o \
-	jitterbuf.o \
-	iaxclient_lib.o 
+	gsm/src/table.o
 
 OBJS_LIBSPEEX=\
         libspeex/nb_celp.o \
@@ -152,7 +154,7 @@ OBJS_VIDEO=\
 	codec_theora.o
 
 
-OBJS:= $(OBJS) $(OBJS_LIBSPEEX) 
+OBJS:= $(OBJS) $(OBJS_GSM) $(OBJS_LIBSPEEX) 
 
 ifeq ($(CODEC_ILBC),1)
 OBJS:= $(OBJS) $(OBJS_ILBC) codec_ilbc.o
@@ -301,6 +303,13 @@ CFLAGS:= $(CFLAGS) -DUSE_MEC2=1
 endif
 
 CFLAGS:= $(CFLAGS) -D$(OSTYPE)
+
+
+# Treat some included libraries specially:
+# compile gsm w/o warnings, because it was written to less strict warning systems.
+gsm/%.o: gsm/%.c
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -Wno-all $< -o $@
+
 
 
 $(LIB): $(OBJS)

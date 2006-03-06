@@ -46,7 +46,6 @@ static int decode ( struct iaxc_audio_codec *c,
     struct state * decstate = (struct state *) c->decstate;
     int ret =0;
     int bits_left = 0;
-    int bits_read = 0;
     int start_bits = 0;
 
     if(*inlen == 0) {

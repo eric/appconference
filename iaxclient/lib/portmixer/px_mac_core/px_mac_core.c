@@ -132,14 +132,11 @@ void Px_CloseMixer(PxMixer *mixer)
 
 PxVolume Px_GetMasterVolume( PxMixer *mixer )
 {
-   PxInfo *info = (PxInfo *)mixer;
-
    return 0.0;
 }
 
 void Px_SetMasterVolume( PxMixer *mixer, PxVolume volume )
 {
-   PxInfo *info = (PxInfo *)mixer;
 }
 
 /*
@@ -153,7 +150,6 @@ static PxVolume Px_GetVolume(AudioDeviceID device, Boolean isInput)
    Float32  vol, maxvol=0.0;
    UInt32   mute, anymuted=0;
    int ch;
-   PxVolume max;
 
    for(ch=0; ch<=2; ch++) {
       outSize = sizeof(Float32);
@@ -233,8 +229,6 @@ void Px_SetPCMOutputVolume( PxMixer *mixer, PxVolume volume )
 
 int Px_GetNumOutputVolumes( PxMixer *mixer )
 {
-   PxInfo *info = (PxInfo *)mixer;
-
    return 1;
 }
 
@@ -262,28 +256,21 @@ void Px_SetOutputVolume( PxMixer *mixer, int i, PxVolume volume )
 
 int Px_GetNumInputSources( PxMixer *mixer )
 {
-   PxInfo *info = (PxInfo *)mixer;
-
    return 1 ;
 }
 
 const char *Px_GetInputSourceName( PxMixer *mixer, int i)
 {
-   PxInfo *info = (PxInfo *)mixer;
-
    return "Default Input Source" ;
 }
 
 int Px_GetCurrentInputSource( PxMixer *mixer )
 {
-   PxInfo *info = (PxInfo *)mixer;
-
    return -1; /* none */
 }
 
 void Px_SetCurrentInputSource( PxMixer *mixer, int i )
 {
-   PxInfo *info = (PxInfo *)mixer;
 }
 
 /*

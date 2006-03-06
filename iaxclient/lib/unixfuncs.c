@@ -61,6 +61,9 @@ int post_event_callback(iaxc_event ev) {
      * too much).  See
      * http://lists.apple.com/archives/darwin-development/2004/Feb/msg00079.html
      */
+/* include mach stuff for declaration of thread_policy stuff */
+#include <mach/mach.h>
+
 int iaxc_prioboostbegin() {
       struct thread_time_constraint_policy ttcpolicy;
       int params [2] = {CTL_HW,HW_BUS_FREQ};
@@ -86,10 +89,12 @@ int iaxc_prioboostbegin() {
         THREAD_TIME_CONSTRAINT_POLICY_COUNT)) != KERN_SUCCESS) {
             fprintf(stderr, "thread_policy_set failed: %d.\n", ret);
       }    
+      return 0;
 }
 
 int iaxc_prioboostend() {
     /* TODO */
+    return 0;
 }
 
 #else

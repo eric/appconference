@@ -33,6 +33,8 @@
 #define DEFAULT_CALLERID_NAME    "Not Available"
 #define DEFAULT_CALLERID_NUMBER  "7005551212"
 
+#undef JB_DEBUGGING
+
 struct iaxc_registration {
     struct iax_session *session;
     struct timeval last;
@@ -77,8 +79,8 @@ static void iaxc_service_network();
 static int service_audio();
 
 /* external global networking replacements */
-static iaxc_sendto_t   iaxc_sendto = sendto;
-static iaxc_recvfrom_t iaxc_recvfrom = recvfrom;
+static iaxc_sendto_t   iaxc_sendto = (iaxc_sendto_t)sendto;
+static iaxc_recvfrom_t iaxc_recvfrom = (iaxc_recvfrom_t)recvfrom;
 
 
 static THREAD procThread;
@@ -389,6 +391,7 @@ static void jb_warnf(const char *fmt, ...)
     iaxc_usermsg(IAXC_NOTICE, buf);
 }
 
+#ifdef JB_DEBUGGING
 static void jb_dbgf(const char *fmt, ...)
 {
     va_list args;
@@ -397,10 +400,14 @@ static void jb_dbgf(const char *fmt, ...)
     vfprintf(stderr, fmt, args);
     va_end(args);
 }
+#endif
 
 static void setup_jb_output() {
-      //jb_setoutput(jb_errf, jb_warnf, jb_dbgf);
+#ifdef JB_DEBUGGING
+      jb_setoutput(jb_errf, jb_warnf, jb_dbgf);
+#else
       jb_setoutput(jb_errf, jb_warnf, NULL);
+#endif
 }
 
 // Parameters:
@@ -416,7 +423,7 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 
 	MUTEXINIT(&iaxc_lock);
 
-	if(iaxc_sendto == sendto) {
+	if(iaxc_sendto == (iaxc_sendto_t)sendto) {
 	    if ( (port = iax_init(0) < 0)) {
 		    iaxc_usermsg(IAXC_ERROR, "Fatal error: failed to initialize iax with port %d", port);
 		    return -1;

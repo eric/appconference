@@ -203,6 +203,7 @@ static const char sMapperSuffixOutput[] = " - Output";
 /* Debug support. */
 //static int sMaxBackgroundErrorMessages = 100;
 //static int sCoverageCounter = 1; // used to check code coverage during validation
+#ifdef DEBUG
 static char *FourCharCode2Str(unsigned int code)
 {
   static char str[5];
@@ -214,6 +215,7 @@ static char *FourCharCode2Str(unsigned int code)
 
   return str;
 }
+#endif
 
 /* We index the input devices first, then the output devices. */
 #define LOWEST_INPUT_DEVID     (0)
@@ -1172,6 +1174,7 @@ static PaError PaOSX_SetFormat( AudioDeviceID devID, Boolean isInput,
     return result;
 }
 
+#if 0
 /*******************************************************************
  * Check volume level of device. If below threshold, then set to newLevel.
  * Using volume instead of decibels because decibel range varies by device.
@@ -1192,7 +1195,7 @@ static void PaOSX_FixVolumeScalars( AudioDeviceID devID, Boolean isInput,
         err = AudioDeviceGetProperty( devID, iChannel, isInput, 
             kAudioDevicePropertyVolumeScalar, &dataSize, &fdata32 );
 
-        printf("devID=%d\n", devID);
+        printf("devID=%d\n", (int)devID);
 
         printf("Channel=%d input=%d volume=%f\n",
                iChannel, (int)isInput, fdata32);
@@ -1252,7 +1255,6 @@ static void PaOSX_FixVolumeScalars( AudioDeviceID devID, Boolean isInput,
 
 }
 
-#if 0
 static void PaOSX_DumpDeviceInfo( AudioDeviceID devID, Boolean isInput )
 {
     OSStatus err = noErr;
@@ -2101,7 +2103,6 @@ void Pa_Sleep( long msec )
 /*************************************************************************/
 PaTimestamp Pa_StreamTime( PortAudioStream *stream )
 {
-    AudioTimeStamp timeStamp;
     PaTimestamp streamTime;
     PaHostSoundControl *pahsc;
     internalPortAudioStream   *past = (internalPortAudioStream *) stream;
