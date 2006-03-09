@@ -17,6 +17,12 @@ CONTRIBUTORS:
 iaxComm evolved from Steve Kann's original wx client.
 
 =======================================================================
+VERSION:
+
+Work will begin soon on new features, so we're going to call 1.0rc3
+1.0final, and resume development with 1.1.x version numbers.
+
+=======================================================================
 BUILDING THE APPLICATION:
 
 Here are new, updated instructions for the new wxWidgets 2.6 series:

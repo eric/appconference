@@ -1,10 +1,9 @@
 #
 # Makefile for iaxcomm
 #
-# $Id$
 #
 PROVIDER=asterisk
-VERSION=1.1.0
+VERSION=1.1.0final
 CFLAGS=-I../../lib 
 REZFLAGS=/usr/local/include/wx-2.6
 
