@@ -112,8 +112,9 @@ bool theApp::OnInit()
 
     wxXmlResource::Get()->InitAllHandlers();
 
-    // Load up enough XML resources to construct a main frame
+    // Load up XML resources
 
+    load_xrc_resource(_T("preferences.xrc"));
     load_xrc_resource(_T("frame.xrc"));
     load_xrc_resource(_T("menubar.xrc"));
     load_xrc_resource(_T("panel.xrc"));
