@@ -308,17 +308,17 @@ void MyFrame::ApplyFilters()
     // Clear these filters
     int flag = ~(IAXC_FILTER_AGC | IAXC_FILTER_AAGC | IAXC_FILTER_CN |
                  IAXC_FILTER_DENOISE | IAXC_FILTER_ECHO);
-    iaxc_set_filters(iaxc_get_filters() & flag);
 
-    flag = 0;
+    flag = flag & iaxc_get_filters();
+
     if(AGC)
-       flag = IAXC_FILTER_AGC;
+       flag |= IAXC_FILTER_AGC;
 
     if(AAGC)
-       flag = IAXC_FILTER_AAGC;
+       flag |= IAXC_FILTER_AAGC;
 
     if(CN)
-       flag = IAXC_FILTER_CN;
+       flag |= IAXC_FILTER_CN;
 
     if(NoiseReduce)
        flag |= IAXC_FILTER_DENOISE;
@@ -326,7 +326,7 @@ void MyFrame::ApplyFilters()
     if(EchoCancel)
        flag |= IAXC_FILTER_ECHO;
 
-    iaxc_set_filters(iaxc_get_filters() | flag);
+    iaxc_set_filters(flag);
 }
 
 void MyFrame::ApplyCodecs()
