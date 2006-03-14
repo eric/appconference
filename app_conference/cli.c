@@ -310,6 +310,41 @@ int conference_stop_sounds( int fd, int argc, char *argv[] )
 	return RESULT_SUCCESS ;
 }
 
+//
+// end conference
+//
+
+static char conference_end_usage[] = 
+	"usage: conference end <conference name>\n"
+	"       ends a conference.\n"
+;
+
+static struct ast_cli_entry cli_end = { 
+	{ "conference", "end", NULL }, 
+	conference_end, 
+	"stops a conference", 
+	conference_end_usage 
+} ;
+
+int conference_end( int fd, int argc, char *argv[] )
+{
+	// check the args length
+	if ( argc < 3 ) 
+		return RESULT_SHOWUSAGE ;
+
+	// conference name
+	const char* name = argv[2] ;
+
+	// get the conference
+	if ( end_conference( find_conf( name ) ) != 0 )
+	{
+		ast_cli( fd, "unable to end the conference, name => %s\n", name ) ;
+		return RESULT_SHOWUSAGE ;
+	}	
+
+	return RESULT_SUCCESS ;
+}
+
 
 //
 // cli initialization function
@@ -321,6 +356,7 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_show_stats ) ;
 	ast_cli_register( &cli_play_sound ) ;
 	ast_cli_register( &cli_stop_sounds ) ;
+	ast_cli_register( &cli_end ) ;
 }
 
 void unregister_conference_cli( void )
@@ -329,4 +365,6 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_show_stats ) ;
 	ast_cli_unregister( &cli_play_sound ) ;
 	ast_cli_unregister( &cli_stop_sounds ) ;
+	ast_cli_unregister( &cli_end ) ;
 }
+
