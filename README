@@ -85,6 +85,9 @@ Features / CLI/Manager Commands
     * conference play sound <channel-id> <sound-file> [mute]
 	play a sound to a conference member, optionally muting them.
 
+    * confernce end <conference_name>
+	kills a conference ( by name ) and hangups on members
+
 Manager Events
 app_conference generates several detailed manager events so that applications
 interfacing with the manager API can monitor conferences:

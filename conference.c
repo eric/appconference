@@ -78,7 +78,6 @@ void conference_exec( struct ast_conference *conf )
 	// main conference thread loop
 	//
 
- 
 	while ( 42 == 42 )
 	{
 		// update the current timestamp
@@ -736,6 +735,38 @@ void remove_conf( struct ast_conference *conf )
 	ast_mutex_unlock( &start_stop_conf_lock ) ;
 
 	return ;
+}
+
+int end_conference( struct ast_conference* conf ) 
+{
+	if ( conf == NULL ) {
+		ast_log( LOG_WARNING, "null conference passed\n" ) ;
+		return -1 ;
+	}
+	
+	// acquire the conference lock
+	ast_mutex_lock( &conf->lock ) ;
+
+	// get list of conference members
+	struct ast_conf_member* member = conf->memberlist ;
+
+	// loop over member list and request hangup
+	while ( member != NULL )
+	{
+		// acquire member mutex and request hangup
+		ast_mutex_lock( &member->lock ) ;
+		ast_softhangup( member->chan, 1 ) ;
+		ast_mutex_unlock( &member->lock ) ;
+		
+		// go on to the next member
+		// ( we have the conf lock, so we know this is okay )
+		member = member->next ;
+	}
+	
+	// release the conference lock
+	ast_mutex_unlock( &conf->lock ) ;	
+		
+	return 0 ;
 }
 
 //
