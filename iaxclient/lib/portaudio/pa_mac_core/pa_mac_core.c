@@ -142,6 +142,14 @@ typedef enum PaDeviceMode
 #define PA_USING_OUTPUT   (pahsc->mode != PA_MODE_INPUT_ONLY)
 #define PA_USING_INPUT    (pahsc->mode != PA_MODE_OUTPUT_ONLY)
 
+/* Endian-ness */
+#ifdef __LITTLE_ENDIAN__
+#define kAUDIOFORMATENDIANFLAG 0
+#else
+#define kAUDIOFORMATENDIANFLAG kAudioFormatFlagIsBigEndian
+#endif
+
+
 /**************************************************************
  * Information needed by PortAudio specific to a CoreAudio device.
  */
@@ -579,7 +587,7 @@ static int PaOSX_QueryDeviceInfo( PaHostDeviceInfo *hostDeviceInfo, int coreDevi
     formatDesc.mFormatID = kAudioFormatLinearPCM;
     formatDesc.mFormatFlags =
        kAudioFormatFlagIsFloat |
-       kAudioFormatFlagIsBigEndian |
+       kAUDIOFORMATENDIANFLAG |
        kAudioFormatFlagIsPacked;
 
     outSize = sizeof(formatDesc);
@@ -1380,7 +1388,7 @@ static OSStatus PAOSX_DevicePropertyListener (AudioDeviceID					inDevice,
 	userStreamFormat.mFormatID = kAudioFormatLinearPCM;
 	userStreamFormat.mFormatFlags =
 	  kAudioFormatFlagIsFloat |
-	  kAudioFormatFlagIsBigEndian |
+	  kAUDIOFORMATENDIANFLAG |
 	  kAudioFormatFlagIsPacked;
 	userStreamFormat.mBitsPerChannel = 32;
         userStreamFormat.mSampleRate = past->past_SampleRate;	// sample rate of the user synthesis code

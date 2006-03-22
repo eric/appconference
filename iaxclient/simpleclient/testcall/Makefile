@@ -20,6 +20,7 @@ OSTYPE=LINUX
 else
 ifneq (,$(findstring Darwin,$(shell uname)))
 OSTYPE=MACOSX
+CC=NEXT_ROOT=/Developer/SDKs/MacOSX10.4u.sdk/ MACOSX_DEPLOYMENT_TARGET=10.3 gcc -arch i386 -arch ppc
 else
 # CYGWIN reports CYGWIN_NT-5.0 under Win2K
 ifneq (,$(findstring WIN,$(shell uname)))

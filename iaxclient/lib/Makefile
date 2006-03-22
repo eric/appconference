@@ -258,6 +258,8 @@ RANLIB= ranlib
 # comment these lines in to build against version  10.2.7.
 #CC=MACOSX_DEPLOYMENT_TARGET=10.2 NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk cc
 #CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.2.7.sdk/usr/include
+# Build Universal Binaries on MacOSX
+CC=NEXT_ROOT=/Developer/SDKs/MacOSX10.4u.sdk/ MACOSX_DEPLOYMENT_TARGET=10.3 gcc -arch i386 -arch ppc
 DYNLIB=libiaxclient.dylib
 endif
 
@@ -335,7 +337,7 @@ shared: CFLAGS := $(CFLAGS) $(DYNCFLAGS)
 #shared: clean libiaxclient.a
 shared: libiaxclient.a
 ifeq ($(OSTYPE),MACOSX)
-	libtool -single_module -dynamic -o libiaxclient.dylib libiaxclient.a -lc -framework CoreAudio -framework AudioToolbox -lcc_dynamic
+	$(CC) -single_module -dylib -dynamiclib -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS) -framework CoreAudio -framework AudioToolbox -framework System
 else
 	$(CC) -shared -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS)
 endif
