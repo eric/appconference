@@ -48,8 +48,6 @@ int preferredportno = 0;
 
 #define JM_BUCKETS 500
 
-struct jm_frame jm_buckets[JM_BUCKETS];
-
 static int jm_buckets_full= 0;
 
 static int jm_dropped = 0;
@@ -70,6 +68,9 @@ struct jm_frame {
     unsigned deltime;
 };
 
+struct jm_frame jm_buckets[JM_BUCKETS];
+
+
 long jm_time() {
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -79,7 +80,7 @@ long jm_time() {
 int jm_init() {
         int portno = preferredportno;
         struct sockaddr_in sin;
-        int sinlen;
+        unsigned int sinlen;
         int flags;
 
         if (netfd > -1) {
