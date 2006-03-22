@@ -310,7 +310,7 @@ CFLAGS:= $(CFLAGS) -D$(OSTYPE)
 # Treat some included libraries specially:
 # compile gsm w/o warnings, because it was written to less strict warning systems.
 gsm/%.o: gsm/%.c
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) -Wno-all $< -o $@
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -w $< -o $@
 
 
 
