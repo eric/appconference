@@ -6,6 +6,7 @@
  *
  * Contributors:
  * Steve Kann <stevek@stevek.com>
+ * Frik Strecker <frik@gatherworks.com>
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
@@ -211,6 +212,7 @@ EXPORT struct iaxc_ev_levels *iaxc_get_event_levels(iaxc_event *e);
 EXPORT struct iaxc_ev_text *iaxc_get_event_text(iaxc_event *e);
 EXPORT struct iaxc_ev_call_state *iaxc_get_event_state(iaxc_event *e);
 
+EXPORT void iaxc_set_preferred_source_udp_port(int sourceUdpPort);	//must be called before iaxc_initialize()
 EXPORT int iaxc_initialize(int audType, int nCalls);
 EXPORT void iaxc_shutdown();
 EXPORT void iaxc_set_formats(int preferred, int allowed);

@@ -8,6 +8,7 @@
  * Steve Kann <stevek@stevek.com>
  * Michael Van Donselaar <mvand@vandonselaar.org> 
  * Shawn Lawrence <shawn.lawrence@terracecomm.com>
+ * Frik Strecker <frik@gatherworks.com>
  *
  *
  * This program is free software, distributed under the terms of
@@ -410,6 +411,12 @@ static void setup_jb_output() {
 #endif
 }
 
+int iaxc_sourceUdpPort	= -1;		//default to use port 4569 unless set by iaxc_set_preferred_source_udp_port
+//frik: added a new function instead of modifying iaxc_initialize() for backwards compatibility (must be called before iaxc_initialize())
+EXPORT void iaxc_set_preferred_source_udp_port(int sourceUdpPort) {	
+	iaxc_sourceUdpPort	= sourceUdpPort;
+}
+
 // Parameters:
 // audType - Define whether audio is handled by library or externally
 EXPORT int iaxc_initialize(int audType, int inCalls) {
@@ -424,7 +431,7 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 	MUTEXINIT(&iaxc_lock);
 
 	if(iaxc_sendto == (iaxc_sendto_t)sendto) {
-	    if ( (port = iax_init(0) < 0)) {
+	    if ( (port = iax_init(iaxc_sourceUdpPort) < 0)) {
 		    iaxc_usermsg(IAXC_ERROR, "Fatal error: failed to initialize iax with port %d", port);
 		    return -1;
 	    }

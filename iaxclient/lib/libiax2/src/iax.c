@@ -4,6 +4,7 @@
  * Copyright (C) 2001, Linux Support Services, Inc.
  *
  * Mark Spencer <markster@linux-support.net>
+ * Frik Strecker <frik@gatherworks.com>
  *
  * This program is free software, distributed under the terms of
  * the GNU Lesser (Library) General Public License
@@ -908,10 +909,11 @@ int iax_init(int preferredportno)
 		    return -1;
 	    }
 	    
-	    if (preferredportno == 0) 
-		    preferredportno = IAX_DEFAULT_PORTNO;
-		    
-	    if (preferredportno > 0) {
+		//frik: 0 must be used for a random source port, so -1 is used for a default value (4569)
+		if (preferredportno == -1)		
+			preferredportno = IAX_DEFAULT_PORTNO;
+
+		if (preferredportno >= 0) {
 		    sin.sin_family = AF_INET;
 		    sin.sin_addr.s_addr = 0;
 		    sin.sin_port = htons((short)preferredportno);
