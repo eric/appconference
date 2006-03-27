@@ -411,8 +411,10 @@ static void setup_jb_output() {
 #endif
 }
 
-int iaxc_sourceUdpPort	= -1;		//default to use port 4569 unless set by iaxc_set_preferred_source_udp_port
-//frik: added a new function instead of modifying iaxc_initialize() for backwards compatibility (must be called before iaxc_initialize())
+// default to use port 4569 unless set by iaxc_set_preferred_source_udp_port
+int iaxc_sourceUdpPort	= 0;		
+
+// Note: Must be called before iaxc_initialize()
 EXPORT void iaxc_set_preferred_source_udp_port(int sourceUdpPort) {	
 	iaxc_sourceUdpPort	= sourceUdpPort;
 }
