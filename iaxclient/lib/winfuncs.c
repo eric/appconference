@@ -67,7 +67,6 @@ int post_event_callback(iaxc_event ev) {
 	e = malloc(sizeof(ev));
 	*e = ev;
 
-	PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e);
 	if (!PostMessage(post_event_handle,post_event_id,(WPARAM) NULL, (LPARAM) e))
 		free(e);
 	return 0;
