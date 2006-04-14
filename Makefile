@@ -17,10 +17,10 @@
 # app_conference defines which can be passed on the command-line
 #
 
-INSTALL_PREFIX := /opt/horizon
+INSTALL_PREFIX := /usr
 INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/lib/asterisk/modules
 
-ASTERISK_INCLUDE_DIR := $(HOME)/local/asterisk/asterisk/include
+ASTERISK_INCLUDE_DIR := $(INSTALL_PREFIX)/include/asterisk/
 
 # turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
 APP_CONFERENCE_DEBUG := 1
@@ -109,7 +109,6 @@ vad_test: vad_test.o libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
 
 install: all
 	for x in $(SHAREDOS); do $(INSTALL) -m 755 $$x $(INSTALL_MODULES_DIR) ; done
-	/var/horizon/mojo/lib/horizoncmd restart asterisk
 
 # config: all
 # 	cp conf.conf /etc/asterisk/
