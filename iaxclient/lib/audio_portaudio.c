@@ -293,7 +293,6 @@ static int pa_play_sound(struct iaxc_sound *inSound, int ring) {
   *sound = *inSound;
   
   MUTEXLOCK(&sound_lock);
-  sound->malloced = 1;
   sound->channel = ring;
   sound->id = nextSoundId++; 
   sound->pos = 0;
