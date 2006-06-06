@@ -34,7 +34,7 @@ CFLAGS= -I. -Igsm/inc \
 #CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
 CFLAGS:= $(CFLAGS) -g -O2
 
-CFLAGS:= $(CFLAGS) -DLIBVER='"CVS-$(shell date +%Y/%m/%d-%H:%M)"'
+CFLAGS:= $(CFLAGS) -DLIBVER='"SVN $(shell svnversion)"'
 
 ifeq ($(SPEEX_PREPROCESS),1)
 CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
