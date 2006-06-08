@@ -1,12 +1,13 @@
 
-CFLAGS=-I../../lib -I../../lib/libiax/src -I../../lib/gsm/inc -I../../lib/portaudio/pa_common -I../../lib/portaudio/pablio -Iinclude
+ROOT=../..
+CFLAGS=-I$(ROOT)/lib -I$(ROOT)/lib/libiax/src -I$(ROOT)/lib/gsm/inc -I$(ROOT)/lib/portaudio/pa_common -I$(ROOT)/lib/portaudio/pablio -Iinclude
 
 #debug
 CFLAGS:= $(CFLAGS) -g -Wall
 
 OBJS=	iaxcli.o tones.o
 
-LIBS=	../../lib/libiaxclient.a
+LIBS=	$(ROOT)/lib/libiaxclient.a
 
 EXEEXT=
 
@@ -89,6 +90,14 @@ SYSLIBS:= $(SYSLIBS) `gtk-config --libs`
 endif
 endif
 
+# This allows us to build for multiple architectures and keep
+# the executables from being confused.  The TK gui uses these names
+# to idetify the proper command line binary to use.  All non-windows
+# platforms seem to support the "-s" and "-m" flags to uname
+ifneq ($(OSTYPE),WIN32)
+EXEEXT=-$(shell uname -s)-$(shell uname -m)
+endif
+
 PROGS= iaxcli$(EXEEXT)
 
 all: makelib $(PROGS)
@@ -97,10 +106,10 @@ clean:
 	rm -f $(OBJS) $(PROGS)
 
 makelib:
-	(cd ../../lib; $(MAKE) libiaxclient.a)
+	(cd $(ROOT)/lib; $(MAKE) libiaxclient.a)
 
-../../lib/libiaxclient.a: 
-	(cd ../../lib; $(MAKE) libiaxclient.a)
+$(ROOT)/lib/libiaxclient.a: 
+	(cd $(ROOT)/lib; $(MAKE) libiaxclient.a)
 
 iaxcli$(EXEEXT): $(OBJS) $(LIBS)
 	gcc $(OBJS) $(LIBS) $(SYSLIBS) -o iaxcli$(EXEEXT)

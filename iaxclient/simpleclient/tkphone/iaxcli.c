@@ -1,5 +1,5 @@
 /* iaxcli: A command line interface to the iax client library.
- * Copyright 2004 Sun Microsystems, by Stephen Uhler
+ * Copyright 2004,2006 Sun Microsystems, by Stephen Uhler
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -42,6 +42,7 @@
 			active,outgoing,ringing,complete,selected
 	r <usr> <pass> <server> 
 			register with a server
+	u <id>		unregister
 
 	g r		return audio record level (% of max)
 	g p		return audio play level (% of max)
@@ -49,11 +50,16 @@
 	g o		list audio output devices
 	g f		get current filters (bitmask as defined in iaxclient.h)
 
-	s i <number> <name>
+	M 1|0		Mute or un-mute the call
+	R [ms] [vol%]	generate a ring tone for "ms" ms (default=forever)
+	R o(ff)		turn off ringing
+
+	s n <number> <name>
 			set caller id info
 	s m <on|off>	monitor audio levels
 	s a <on|off>	monitor command results
 	s h <on|off>	monitor hotkey status (if USE_HOTKEY defined)
+	s s <on|off>	monitor network statistics
 	s p <level>	set playback level (% of max)
 	s r <level>	set record level (% of max)
 	s d <c>		set event delimiter to character <c> (default=' ')
@@ -63,6 +69,8 @@
 	s f <filters>	set audio filters (as defined in iaxclient.h)
 	s c u|g|s	set preferred codec: (u)law, (g)sm, (s)peex
 
+	T <text>	send text
+	U <url>		send a url??
 	# ??		call transfer (not implemented)
    Status is returned by reading stdin.  tokens in the return value are
    delimited with "set delim X".  X defaults to "\t".
@@ -72,6 +80,8 @@
 			report audio levels (in db).  Enabled|diabled with:
 			"set monitor on|off"
 	H 1|0		Hotkey is pressed (1) not pressed (0)
+	R id result count	Registration event
+	N id <stuff>	Network statistics event
 	T <type> <message>
 			text event.
 	S <state_code> <state> <remote> <remote_name> <local> <local_context>
@@ -82,6 +92,7 @@
 			remote_name:	caller name
 			local		local extension called (e.g. s)
 			locate_context	asterisk context
+	U Unknown or not implemented message
 	? <request response>
 */
 
@@ -93,6 +104,7 @@
 #include <time.h>
 
 #include "iaxclient.h"
+#include "tones.h"
 
 #ifdef USE_HOTKEY
 #ifdef WIN32
@@ -115,11 +127,8 @@ static GdkWindow *hotkeywindow;
 void event_level(double in, double out);
 void event_state(int state, char *rem, char *rem_name, char *loc, char *ln);
 void event_text(int type, char *text);
-void event_netstat(int callno, int rtt, int r_jitter, int r_losspct, int r_losscnt, 
-		                        int r_packets, int r_delay, int r_dropped, int r_ooo,
-                                        int l_jitter, int l_losspct, int l_losscnt, 
-                                        int l_packets, int l_delay, int l_dropped, int l_ooo);
-
+void event_register(int id, int reply, int count);
+void event_netstats(struct iaxc_ev_netstats netstat);
 void event_unknown(int type);
 void report(char *text);
 char *map_state(int state);
@@ -133,6 +142,7 @@ static char states[256];	/* buffer to hold ascii states */
 static char tmp[1024];		/* report output buffer */
 static int show_levels=0;	/* report volume levels in db */
 static int show_ack_nak=0;	/* report command success/failure */
+static int show_netstats=0;	/* report network statistics */
 static int show_hotkey=0;	/* report hotkey status */
 
 void fatal_error(char *err) {
@@ -142,7 +152,8 @@ void fatal_error(char *err) {
 }
 
 static char *map[] = {
-    "unknown", "active", "outgoing", "ringing", "complete", "selected", NULL
+    "unknown", "active", "outgoing", "ringing", "complete", "selected", 
+    "busy",    "transfer", NULL
 };
 
 char *map_state(int state) {
@@ -204,16 +215,14 @@ int iaxc_callback(iaxc_event e) {
 	    event_state(e.ev.call.state, e.ev.call.remote,
 		    e.ev.call.remote_name, e.ev.call.local,
 		    e.ev.call.local_context);
+	    break;
         case IAXC_EVENT_NETSTAT:
-	  event_netstat(e.ev.netstats.callNo, e.ev.netstats.rtt,
-			e.ev.netstats.local.jitter, e.ev.netstats.local.losspct,
-			e.ev.netstats.local.losscnt, e.ev.netstats.local.packets,
-			e.ev.netstats.local.delay, e.ev.netstats.local.dropped,
-			e.ev.netstats.local.ooo,
-			e.ev.netstats.remote.jitter, e.ev.netstats.remote.losspct,
-			e.ev.netstats.remote.losscnt, e.ev.netstats.remote.packets,
-			e.ev.netstats.remote.delay, e.ev.netstats.remote.dropped,
-			e.ev.netstats.remote.ooo);
+	    if (show_netstats) {
+	        event_netstats(e.ev.netstats);
+	    }
+	    break;
+        case IAXC_EVENT_REGISTRATION:
+	    event_register(e.ev.reg.id, e.ev.reg.reply, e.ev.reg.msgcount);
 	    break;
         default:
 	    event_unknown(e.type);
@@ -252,32 +261,43 @@ void event_state(int state, char *remote, char *remote_name,
 }
 
 /*
- * Netstat Events
- */
-
-void event_netstat(int callno, int rtt, 
-		   int l_jitter, int l_losspct, int l_losscnt, 
-		   int l_packets, int l_delay, int l_dropped, int l_ooo,
-		   int r_jitter, int r_losspct, int r_losscnt, 
-		   int r_packets, int r_delay, int r_dropped, int r_ooo) {
-
-  snprintf(tmp, sizeof(tmp), "N%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d", delim, callno, delim, rtt,
-	  delim, l_jitter, delim, l_losspct, delim, l_losscnt,
-	  delim, l_packets, delim, l_delay, delim, l_dropped, delim, l_ooo,
-	  delim, r_jitter, delim, r_losspct, delim, r_losscnt,
-	  delim, r_packets, delim, r_delay, delim, r_dropped, delim, r_ooo);
-  report(tmp);
-}
-
-
-
-/*
  * text events
  */
 
 void event_text(int type, char *message) {
     snprintf(tmp, sizeof(tmp), "T%c%d%c%.200s", delim, type, delim, message);
     report(tmp);
+}
+
+/*
+ * Registration events
+ */
+
+void event_register(int id, int reply, int count) {
+    char *reason;
+    switch(reply) {
+	case IAXC_REGISTRATION_REPLY_ACK: reason="accepted"; break;
+	case IAXC_REGISTRATION_REPLY_REJ: reason="denied"; break;
+	case IAXC_REGISTRATION_REPLY_TIMEOUT: reason="timeout"; break;
+	default: reason="unknown";
+    }
+    snprintf(tmp, sizeof(tmp), "R%c%d%c%s%c%d", delim, id, delim, reason, delim, count);
+    report(tmp);
+}
+
+void event_netstats(struct iaxc_ev_netstats stat) {
+    struct iaxc_netstat local = stat.local;
+    struct iaxc_netstat remote = stat.remote;
+    snprintf(tmp, sizeof(tmp),
+	  "N%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d%c%d",
+	  delim, stat.callNo, delim, stat.rtt,
+	  delim, local.jitter, delim, local.losspct, delim, local.losscnt,
+	  delim, local.packets, delim, local.delay, delim, local.dropped,
+	  delim, local.ooo,
+	  delim, remote.jitter, delim, remote.losspct, delim, remote.losscnt,
+	  delim, remote.packets, delim, remote.delay, delim, remote.dropped,
+	  delim, remote.ooo);
+     report(tmp);
 }
 
 /*
@@ -304,13 +324,13 @@ void report(char *text) {
 
 void ack() {
     if (show_ack_nak) {
-	report(NAK);
+	report(ACK);
     }
 }
 
 void nak() {
     if (show_ack_nak) {
-	report(ACK);
+	report(NAK);
     }
 }
 
@@ -327,7 +347,7 @@ report_devices(int in) {
     int flag = in ? IAXC_AD_INPUT : IAXC_AD_OUTPUT;
     iaxc_audio_devices_get(&devs,&ndevs,&input,&output,&ring);
     current = in ? input : output;
-    snprintf(tmp, sizeof(tmp),"?%c%s", delim, devs[current].name);
+    snprintf(tmp,sizeof(tmp), "?%c%s", delim, devs[current].name);
     for (i=0;i<ndevs; i++) {
 	if (devs[i].capabilities & flag && i != current) {
 	    snprintf(tmp+strlen(tmp), sizeof(tmp)-strlen(tmp), "%c%s",delim,devs[i].name);
@@ -364,9 +384,26 @@ int set_device(char *name, int out) {
     return 0;
 }
 
+/* Generate the ring tone */
+
+#define RING_SAMPLES	2000	/*must be multiple of 200 */
+static short ring_buffer[RING_SAMPLES];
+static int haveRing = 0;
+void
+gen_ring_samples(int vol) {
+    if (vol < 5) vol=5;
+    if (vol > 100) vol=100;
+    if (haveRing != vol) {
+        tone_gen gen;
+        tone_create(440.0, 480.0, (double)vol, 8000.0, &gen);
+        tone_dual(&gen, RING_SAMPLES, ring_buffer);
+	haveRing = vol;
+    }
+}
 
 int main(int argc, char **argv) {
     char line[256];
+    int sound_id = -1;
 
 #if defined(USE_HOTKEY) && !defined(MACOSX) && !defined(WIN32)
     // window used for getting keyboard state
@@ -393,6 +430,7 @@ int main(int argc, char **argv) {
 	char *arg;				/* another token */
 	int value;				/* an integer value */
 	if (cmd == NULL) {
+	    nak();
 	    continue;
 	}
 	switch (*cmd) {
@@ -403,8 +441,12 @@ int main(int argc, char **argv) {
 	    report("X");
 	    exit(0);
 	case '#':	/* transfer */
-	    iaxc_blind_transfer_call(0, token); /* XXX broken? */
-	    ack();
+	    if (token) {
+	        iaxc_blind_transfer_call(0, token); /* XXX broken? */
+	        ack();
+	    } else {
+		nak();
+	    }
 	break;		
 	case 't':	/* send tone */
 	    if (token != NULL) {
@@ -414,18 +456,77 @@ int main(int argc, char **argv) {
 		nak();
 	    }
         break;
-	case 'p': {	/* play tone locally (experimental) */
+	case 'p': {	/* play tone locally: <tone> [<vol %>] */
             struct iaxc_sound sound; /* sound to play */
 	    short buff[2000]; /* touch tone buffer */
 	    sound.data=buff;
 	    sound.len = 2000;
 	    sound.malloced=0;
 	    sound.repeat=0;
-            tone_dtmf(*token,1600,100.0, buff);
-	    tone_dtmf('X',400,100.0, buff+1600);
+
+	    if (!token) {
+		nak();
+		break;
+	    }
+	    arg = strtok(NULL, DELIM);	/* volume in % */
+	    value = arg ? atoi(arg) : 90;
+
+            tone_dtmf(*token, 1600, (double)value, buff);
+	    tone_dtmf('X',400, (double)value, buff+1600);
 	    iaxc_play_sound(&sound, 0);
+	    ack();
 	   }
 	   break;
+	case 'R': {	/* ring [o(ff)|<ms>] [<vol %>] */
+	    if (token && *token == 'o')  {
+	       if (sound_id != -1) {
+	           iaxc_stop_sound(sound_id);
+	           sound_id = -1;
+		   ack();
+	       } else {
+		   nak();
+	       }
+	       break;
+	    }
+	    value = token ? atoi(token) : 0;	/* duration in ms */
+	    arg = strtok(NULL, DELIM);	/* volume in % */
+
+            struct iaxc_sound sound; /* sound to play */
+	    int repeat = -1;	/* -1 => forever (or 'til ring off) */
+
+	    gen_ring_samples(arg ? atoi(arg) : 90);
+
+	    if (token != NULL && value>0) {
+		repeat = value * (FREQ/RING_SAMPLES) / 1000; /* value=ms */
+		/* fprintf(stderr, "Repeat value=%d\n", repeat); */
+	    }
+	    sound.data=ring_buffer;
+	    sound.len = RING_SAMPLES;
+	    sound.malloced=0;
+	    sound.repeat=repeat;
+	    sound_id = iaxc_play_sound(&sound, 1);
+	   }
+	   ack();
+	   break;
+	case 'X':	/* this will go away soon */
+	   if (sound_id != -1) {
+	       iaxc_stop_sound(sound_id);
+	       sound_id = -1;
+	   }
+	   break;
+	case 'M':	/* mute a call 1/0 */
+	   if (token) {
+	       char c = *token;
+	       if (c == '1') {
+		   iaxc_set_silence_threshold(0.0);
+	       } else {
+		   iaxc_set_silence_threshold(-9e99);
+	       }
+	       ack();
+	    } else {
+	       nak();
+	    }
+	    break;
 	case 'a':	/* answer a call */
 	  iaxc_answer_call(0);
 	  iaxc_select_call(0);
@@ -465,6 +566,14 @@ int main(int argc, char **argv) {
 		}
 	    }
 	break;
+	case 'u':	/* unregister (use the id retured from the 'R' event */
+	    if (token != NULL && (value=atoi(token))>0 &&
+			(iaxc_unregister(value) > 0)) {
+		ack();
+	    } else {
+		nak();
+            }
+	    break;
 	case 'g':	/* get some parameter */
 	    if (token == NULL) {
 		nak();
@@ -486,7 +595,7 @@ int main(int argc, char **argv) {
 		case 'o':	/* audio output devices */
 		    report(report_devices(*token=='i'));
 		break;
-		case 'f':
+		case 'f':	/* filter values */
 		    snprintf(tmp, sizeof(tmp), "?%c%d", delim,
 				iaxc_get_filters());	
 		    report(tmp);
@@ -519,25 +628,30 @@ int main(int argc, char **argv) {
 		case 'm':	/* monitor voice  on/off */
 		case 'a':	/* ack/nak  on/off */
 		case 'h':	/* show hotkey state */
+		case 's':	/* show network statistics */
 		    arg = strtok(NULL, DELIM);	/* 3rd token */
 		    if (arg != NULL && strcmp(arg, "on")==0) {
 		        if (*token=='m') {
-			    fprintf(stderr, "Monitoring is ON\n");
+			    // fprintf(stderr, "Monitoring is ON\n");
 			    show_levels=1;
 #ifdef USE_HOTKEY
 			} else if (*token == 'h') {
 			    show_hotkey=1;
 #endif
+			} else if (*token == 's') {
+			    show_netstats = 1;
 			} else {
 			    show_ack_nak=1;
 			}
 			ack();
 		    } else if (arg != NULL &&  strcmp(arg, "off")==0) {
 		        if (*token=='m') {
-			    fprintf(stderr, "Monitoring is OFF\n");
+			    // fprintf(stderr, "Monitoring is OFF\n");
 			    show_levels=0;
 			} else if (*token == 'h') {
 			    show_hotkey=0;
+			} else if (*token == 's') {
+			    show_netstats = 0;
 			} else {
 			    show_ack_nak=0;
 			}
@@ -593,7 +707,7 @@ int main(int argc, char **argv) {
                         nak();
                     }
 		break;
-		case 'f':
+		case 'f':	/* filter values */
 		    arg = strtok(NULL, "\n");	/* 3rd token */
 		    if (arg != NULL && (value=atoi(arg))>=0) {
 			ack();
@@ -607,6 +721,14 @@ int main(int argc, char **argv) {
 		break;
 	    }
         break;
+	case 'T':	/* send a text string */
+	    iaxc_send_text(token);
+	    fprintf(stderr,"Sending text:  %s\n", token);
+	    ack();
+	case 'U':	/* send a URL (preliminary) */
+	    iaxc_send_url(token, 1);
+	    ack();
+	break;
 	default:
 	   nak();
 	break;

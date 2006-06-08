@@ -1,4 +1,4 @@
-WidGet file, version 1.2, created:  Mon Oct 25 12:05:09 PDT 2004
+WidGet file, version 1.2, created:  Wed May 24 13:00:44 PDT 2006
 Widget button#1
 	other ActionCommand {}
 	other ActionListener {}
@@ -278,13 +278,16 @@ Widget f
 		} entry {
 		} frame {
 		} label {
+		} labelframe {
 		} listbox {
 		} menu {
 		} menubutton {
 		} message {
+		} panedwindow {
 		} radiobutton {
 		} scale {
 		} scrollbar {
+		} spinbox {
 		} text {
 		}
 	}
@@ -292,20 +295,20 @@ Widget f
 	other item_name f
 	other level 0
 	other master {}
-	other min_column {30 30 30}
-	other min_row {30 30 30 30 30 30 30}
-	other pad_column {0 0 0}
-	other pad_row {0 0 0 0 0 0 0}
+	other min_column {30 30 30 0}
+	other min_row {30 30 30 30 30 7 5 5}
+	other pad_column {0 0 0 0}
+	other pad_row {0 0 0 0 0 0 0 0}
 	other panel {}
 	other pathname f
-	other resize_column {0 0 0}
-	other resize_row {0 0 0 0 0 0 0}
+	other resize_column {0 0 0 0}
+	other resize_row {0 0 0 0 0 0 0 3}
 	other subclass {}
 	other tabbing {}
 	other tags {}
 	other type frame
-	other weight_column {0 0 0}
-	other weight_row {0 0 0 0 0 0 0}
+	other weight_column {0 0 0 0}
+	other weight_row {0 0 0 0 0 0 0 1}
 Widget frame#1
 	geometry column 1
 	geometry columnspan 3
@@ -329,9 +332,33 @@ Widget frame#1
 	other type frame
 	other weight_column {0 0}
 	other weight_row 0
+Widget frame#4
+	geometry column 4
+	other comments {}
+	other error {}
+	other help {}
+	other item_name extra
+	other level 1
+	other master {}
+	other min_column 5
+	other min_row 6
+	other pad_column 0
+	other pad_row 0
+	other panel {}
+	other pathname frame#4
+	other resize_column 3
+	other resize_row 3
+	geometry row 3
+	geometry rowspan 4
+	geometry sticky new
+	other tabbing {}
+	other tags {}
+	other type frame
+	other weight_column 1
+	other weight_row 1
 Widget label#1
 	geometry column 1
-	geometry columnspan 3
+	geometry columnspan 4
 	other comments {}
 	other error {}
 	other help {}
@@ -348,4 +375,25 @@ Widget label#1
 	configure textvariable status
 	other type label
 	configure width 20
+Widget label#2
+	configure anchor nw
+	geometry column 1
+	geometry columnspan 4
+	other comments {}
+	configure cursor hand1
+	other error {}
+	other help {}
+	other item_name message
+	configure justify left
+	other level {}
+	other master {}
+	other pathname label#2
+	configure relief ridge
+	geometry row 8
+	geometry sticky new
+	other tabbing {}
+	other tags {}
+	configure text {- messages -}
+	configure textvariable Messages
+	other type label
 
