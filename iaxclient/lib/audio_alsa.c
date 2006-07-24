@@ -42,7 +42,8 @@ int alsa_stop (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-void alsa_shutdown_audio() {
+void alsa_shutdown_audio() 
+{
     return;
 }
 
@@ -106,7 +107,9 @@ int alsa_selected_devices (struct iaxc_audio_driver *d, int *input, int *output,
     return 0;
 }
 
-int alsa_destroy (struct iaxc_audio_driver *d ) {
+int alsa_destroy (struct iaxc_audio_driver *d ) 
+{
+	/* TODO: something should happen here */
     return 0;
 }
 

@@ -896,58 +896,87 @@ int iax_init(int preferredportno)
 	unsigned int sinlen;
 	int flags;
 
-	if(iax_recvfrom == (recvfrom_t) recvfrom) {
-	    if (netfd > -1) {
+	if(iax_recvfrom == (recvfrom_t) recvfrom) 
+	{
+	    if (netfd > -1) 
+	    {
 		    /* Sokay, just don't do anything */
 		    DEBU(G "Already initialized.");
 		    return 0;
 	    }
 	    netfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-	    if (netfd < 0) {
+	    if (netfd < 0) 
+	    {
 		    DEBU(G "Unable to allocate UDP socket\n");
 		    IAXERROR "Unable to allocate UDP socket\n");
 		    return -1;
 	    }
 	    
-	    if (preferredportno == 0)		
-		    preferredportno = IAX_DEFAULT_PORTNO;
+	    if (preferredportno == 0) preferredportno = IAX_DEFAULT_PORTNO;
+		if (preferredportno < 0)  preferredportno = 0;
 
-	    if (preferredportno > 0) {
-		    sin.sin_family = AF_INET;
-		    sin.sin_addr.s_addr = 0;
-		    sin.sin_port = htons((short)preferredportno);
-		    if (bind(netfd, (struct sockaddr *) &sin, sizeof(sin)) < 0) {
-			    DEBU(G "Unable to bind to preferred port.  Using random one instead.");
-		    }
-	    }
+		sin.sin_family = AF_INET;
+		sin.sin_addr.s_addr = 0;
+		sin.sin_port = htons((short)preferredportno);
+		if (bind(netfd, (struct sockaddr *) &sin, sizeof(sin)) < 0) 
+		{
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
+			if (WSAGetLastError() == WSAEADDRINUSE)
+#else
+			if (errno == EADDRINUSE)
+#endif
+			{
+				/*the port is already in use, so bind to a free port chosen by the IP stack*/
+				DEBU(G "Unable to bind to preferred port - port is in use. Trying to bind to a free one");
+				sin.sin_port = htons((short)0);
+				if (bind(netfd, (struct sockaddr *) &sin, sizeof(sin)) < 0)
+				{
+					IAXERROR "Unable to bind UDP socket\n");
+					return -1;
+				}
+			} else
+			{
+				IAXERROR "Unable to bind UDP socket\n");
+				return -1;
+			}
+		}
+
 	    sinlen = sizeof(sin);
-	    if (getsockname(netfd, (struct sockaddr *) &sin, &sinlen) < 0) {
+	    if (getsockname(netfd, (struct sockaddr *) &sin, &sinlen) < 0) 
+	    {
 		    close(netfd);
 		    netfd = -1;
 		    DEBU(G "Unable to figure out what I'm bound to.");
 		    IAXERROR "Unable to determine bound port number.");
+		    return -1;
 	    }
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
 	    flags = 1;
-	    if (ioctlsocket(netfd,FIONBIO,(unsigned long *) &flags)) {
+	    if (ioctlsocket(netfd,FIONBIO,(unsigned long *) &flags)) 
+	    {
 		    closesocket(netfd);
 		    netfd = -1;
 		    DEBU(G "Unable to set non-blocking mode.");
 		    IAXERROR "Unable to set non-blocking mode.");
+		    return -1;
 	    }
 	    
 #else
-	    if ((flags = fcntl(netfd, F_GETFL)) < 0) {
+	    if ((flags = fcntl(netfd, F_GETFL)) < 0) 
+	    {
 		    close(netfd);
 		    netfd = -1;
 		    DEBU(G "Unable to retrieve socket flags.");
 		    IAXERROR "Unable to retrieve socket flags.");
+		    return -1;
 	    }
-	    if (fcntl(netfd, F_SETFL, flags | O_NONBLOCK) < 0) {
+	    if (fcntl(netfd, F_SETFL, flags | O_NONBLOCK) < 0) 
+	    {
 		    close(netfd);
 		    netfd = -1;
 		    DEBU(G "Unable to set non-blocking mode.");
 		    IAXERROR "Unable to set non-blocking mode.");
+		    return -1;
 	    }
 #endif
 	    portno = ntohs(sin.sin_port);
@@ -1488,6 +1517,13 @@ static struct iax_event *handle_event(struct iax_event *event)
 				iax_send_pong(event->session, event->ts);
 				iax_event_free(event);
 				break;
+			case IAX_EVENT_POKE:
+				event->etype = IAX_EVENT_PONG;
+				iax_send_pong(event->session, event->ts);
+				destroy_session(event->session);
+				iax_event_free(event);
+				break;         
+				
 			default:
 				return event;
 			}
@@ -2559,8 +2595,11 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				e->ts = ts;
 				e = schedule_delivery(e, ts, updatehistory);
 				break;
-			case IAX_COMMAND_PING:
 			case IAX_COMMAND_POKE:
+				e->etype = IAX_EVENT_POKE;
+				e->ts = ts;
+				break;
+			case IAX_COMMAND_PING:
 				/* PINGS and PONGS don't get scheduled; */
 				e->etype = IAX_EVENT_PING;
 				e->ts = ts;

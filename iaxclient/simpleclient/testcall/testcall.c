@@ -21,8 +21,11 @@
 #include <time.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "iaxclient.h"
+
+#define LEVEL_INCREMENT	0.10
 
 /* static int answered_call; */
 static char *output_filename = NULL;
@@ -47,6 +50,15 @@ void killem(void)
 	return;
 }
 
+void signal_handler(int signum)
+{
+	if ( signum == SIGTERM || signum == SIGINT ) 
+	{
+		killem();
+		exit(0);
+	}
+}
+
 void fatal_error(char *err) {
 	killem();
 	fprintf(stderr, "FATAL ERROR: %s\n", err);
@@ -59,8 +71,14 @@ void mysleep(void)
 }
 
 int state_event_callback(struct iaxc_ev_call_state call){
-    if((call.state & IAXC_CALL_STATE_RINGING) && intercom){
-		  iaxc_select_call(call.callNo);
+    if((call.state & IAXC_CALL_STATE_RINGING))
+    {
+		printf("Receiving Incoming Call Request...\n");
+		if ( intercom ) 
+		{
+			printf("Intercom mode, answer automatically\n");
+			return iaxc_select_call(call.callNo);
+		}
     }
     return 0;
 }
@@ -144,7 +162,7 @@ int main(int argc, char **argv)
 	int i;
 	char *dest = NULL;
 	double silence_threshold = -99;
-
+	double level;
 
 	f = stdout;
 
@@ -200,6 +218,10 @@ int main(int argc, char **argv)
 	/* activate the exit handler */
 	atexit(killem);
 	
+	/* install signal handler to catch CRTL-Cs */
+	signal(SIGINT, signal_handler);
+	signal(SIGTERM, signal_handler);
+	
 	if(output_filename) {
 	  FILE *outfile;
 	  if(iaxc_initialize(AUDIO_INTERNAL_FILE,1))
@@ -231,16 +253,23 @@ int main(int argc, char **argv)
 	    You must hit 'enter' for your keypresses to be recognized,\n\
 	    although you can type more than one key on a line\n\
 \n\
-	    q: drop the call and hangup.\n\
-	    0-9 * or #: dial those DTMF digits.\n");
+	    q: hangup and exit.\n\
+	    a: answer incoming call\n\
+	    t: terminate call\n\
+	    0-9 * or #: dial those DTMF digits.\n\
+	    g: increase input level\n\
+	    b: decrease input level\n\
+	    h: increase output level\n\
+	    n: decrease output level\n\
+	    Enter: display current audio levels\n");
 	if(dest) {
 	    fprintf(f, "Calling %s\n", dest);
-	    
+
 	    iaxc_call(dest);
 	}
 
 	iaxc_start_processing_thread();
-	
+
 	if (username && password && host)
 		   reg_id = iaxc_register(username, password, host);
 
@@ -248,28 +277,68 @@ int main(int argc, char **argv)
 	
 	if(output_filename) {
 	    for(;;)
-	      sleep(10);
+	      iaxc_millisleep(10*1000);
 	}
-	while((c = getc(stdin))) {
-	    switch (tolower(c)) {
-	      case 'a':
-		printf("Answering call 0\n");
-		iaxc_select_call(0);
-	      break;		
-	      case 'q':
-		printf("Hanging up and exiting\n");
-		iaxc_dump_call();
-		iaxc_millisleep(1000);
-		iaxc_stop_processing_thread();
-		exit(0);
-	      break;		
-
-	      case '1': case '2': case '3': case '4': case '5':
-	      case '6': case '7': case '8': case '9': case '0':
-	      case '#': case '*':
-		printf ("sending %c\n", c);
-		iaxc_send_dtmf(c);
-	      break;
+	while((c = getc(stdin))) 
+	{
+	    switch (tolower(c)) 
+	    {
+	    case 'a':
+			printf("Answering call 0\n");
+			iaxc_select_call(0);
+	      	break;	
+	    case 'g':
+	    	level = iaxc_input_level_get();
+	    	level += LEVEL_INCREMENT;
+	    	if ( level > 1.00 ) level = 1.00;
+	    	printf("Increasing input level to %f\n", level);
+	    	iaxc_input_level_set(level);
+	    	break;
+	    case 'b':
+	    	level = iaxc_input_level_get();
+	    	level -= LEVEL_INCREMENT;
+	    	if ( level < 0 ) level = 0.00;
+	    	printf("Decreasing input level to %f\n", level);
+	    	iaxc_input_level_set(level);
+	    	break;
+	    case 'h': 
+	    	level = iaxc_output_level_get();
+	    	level += LEVEL_INCREMENT;
+	    	if ( level > 1.00 ) level = 1.00;
+	    	printf("Increasing output level to %f\n", level);
+	    	iaxc_output_level_set(level);
+	    	break;
+	    case 'n':
+	    	level = iaxc_output_level_get();
+	    	level -= LEVEL_INCREMENT;
+	    	if ( level < 0 ) level = 0.00;
+	    	printf("Decreasing output level to %f\n", level);
+	    	iaxc_output_level_set(level);
+	    	break;
+	    case 'q':
+			printf("Hanging up and exiting\n");
+			iaxc_dump_call();
+			iaxc_millisleep(1000);
+			iaxc_stop_processing_thread();
+			exit(0);
+	      	break;
+		case 't':
+			 printf("Terminating call 0\n");
+			 iaxc_dump_call();
+			 break;
+	    case '1': case '2': case '3': case '4': case '5':
+	    case '6': case '7': case '8': case '9': case '0':
+	    case '#': case '*':
+			printf ("sending %c\n", c);
+			iaxc_send_dtmf(c);
+	      	break;
+	    case '\r':
+	    	break;
+	    case '\n':
+	    	printf("Input level = %f -- Output level = %f\n", iaxc_input_level_get(), iaxc_output_level_get());
+	    	break;
+	    default:
+	    	printf("Unknown command '%c'\n", c);
 	    }
 	}
 

@@ -231,6 +231,7 @@ EXPORT int iaxc_stop_processing_thread();
 EXPORT void iaxc_call(char *num);
 EXPORT int iaxc_unregister( int id );
 EXPORT int iaxc_register(char *user, char *pass, char *host);
+EXPORT void iaxc_send_busy_on_incoming_call(int callNo);    //frik
 EXPORT void iaxc_answer_call(int callNo); 
 EXPORT void iaxc_blind_transfer_call(int callNo, char *number); 
 EXPORT void iaxc_dump_all_calls(void);

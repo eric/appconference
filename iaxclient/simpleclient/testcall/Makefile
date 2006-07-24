@@ -8,9 +8,16 @@ CFLAGS:= $(CFLAGS) -g
 
 OBJS=	testcall.o
 
-LIBS=	../../lib/libiaxclient.a
+LIBS=	../../lib/libiaxclient.a 
 
 EXEEXT=
+
+# For Linux, you can choose between portaudio with OSS, Alsa and Jack backend,
+# and native Alsa
+# Choice is inclusive
+USE_PA_OSS=1
+USE_PA_ALSA=1
+USE_PA_JACK=1
 
 
 # glean the platform
@@ -63,12 +70,18 @@ ifeq ($(OSTYPEREAL),FREEBSD)
 SYSLIBS=-lc_r -lm
 else
 SYSLIBS=-lpthread -lm
+ifeq ($(USE_PA_ALSA),1)
+SYSLIBS:=$(SYSLIBS) -lasound
+endif
+ifeq ($(USE_PA_JACK),1)
+SYSLIBS:=$(SYSLIBS) -ljack
+endif
 endif
 endif
 
 ifeq ($(OSTYPE),MACOSX)
 CFLAGS:= $(CFLAGS) -DPOSIXSLEEP
-SYSLIBS=-framework CoreAudio -framework AudioToolbox
+SYSLIBS=-framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework Carbon
 endif
 
 ifeq ($(OSTYPE),SOLARIS)

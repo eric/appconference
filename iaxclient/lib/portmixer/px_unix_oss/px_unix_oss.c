@@ -35,8 +35,10 @@
  *
  */
 
-#ifdef __linux__
+#if defined(__linux__)
 #include <linux/soundcard.h>
+#elif defined(__FreeBSD__)
+#include <sys/soundcard.h>
 #else
 #include <machine/soundcard.h> /* JH20010905 */
 #endif
@@ -327,7 +329,7 @@ PxVolume Px_GetInputVolume( PxMixer *mixer )
    if (i < 0)
       return 0.0;
 
-   return GetVolume(info->fd, SOUND_MIXER_IGAIN);
+   return GetVolume(info->fd, info->recs[i]);
 }
 
 void Px_SetInputVolume( PxMixer *mixer, PxVolume volume )
@@ -342,7 +344,7 @@ void Px_SetInputVolume( PxMixer *mixer, PxVolume volume )
 
    vol = (int)((volume * 100.0) + 0.5);
    vol = (vol | (vol<<8));
-   ioctl(info->fd, MIXER_WRITE(SOUND_MIXER_IGAIN), &vol);
+   ioctl(info->fd, MIXER_WRITE(info->recs[i]), &vol);
 }
 
 /*
@@ -369,34 +371,16 @@ void Px_SetOutputBalance( PxMixer *mixer, PxBalance balance )
 
 int Px_SupportsPlaythrough( PxMixer *mixer )
 {
-   return 1;
+   return 0;
 }
 
 PxVolume Px_GetPlaythrough( PxMixer *mixer )
 {
-   PxInfo *info = (PxInfo *)mixer;
-   int i;
-
-   i = Px_GetCurrentInputSource(mixer);
-   if (i < 0)
-      return 0.0;
-
-   return GetVolume(info->fd, info->recs[i]);
+   return 0.0;
 }
 
 void Px_SetPlaythrough( PxMixer *mixer, PxVolume volume )
 {
-   PxInfo *info = (PxInfo *)mixer;
-   int vol;
-   int i;
-
-   i = Px_GetCurrentInputSource(mixer);
-   if (i < 0)
-      return;
-
-   vol = (int)((volume * 100.0) + 0.5);
-   vol = (vol | (vol<<8));
-   ioctl(info->fd, MIXER_WRITE(info->recs[i]), &vol);
 }
 
 
@@ -418,4 +402,3 @@ int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* line_name )
 {
 	return 1 ;
 }
-

@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: pablio.c,v 1.3 2006/06/10 21:30:55 dmazzoni Exp $
  * pablio.c
  * Portable Audio Blocking Input/Output utility.
  *
@@ -32,11 +32,6 @@
  * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
  * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- */
-
-/* History:
- * PLB021214 - check for valid stream in CloseAudioStream() to prevent hang.
- *             add timeOutMSec to CloseAudioStream() to prevent hang.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -228,18 +223,6 @@ PaError OpenAudioStream( PABLIO_Stream **rwblPtr, double sampleRate,
      */
     minNumBuffers = 2 * Pa_GetMinNumBuffers( FRAMES_PER_BUFFER, sampleRate );
     numFrames = minNumBuffers * FRAMES_PER_BUFFER;
-    /* The PortAudio callback runs in a high priority thread. But PABLIO
-     * runs in a normal foreground thread. So we may have much worse
-     * latency in PABLIO. So adjust latency to a safe level.
-     */
-    {
-        const int safeLatencyMSec = 200;
-        int minLatencyMSec = (int) ((1000 * numFrames) / sampleRate);
-        if( minLatencyMSec < safeLatencyMSec )
-        {
-            numFrames = (int) ((safeLatencyMSec * sampleRate) / 1000);
-        }
-    }
     numFrames = RoundUpToNextPowerOf2( numFrames );
 
     /* Initialize Ring Buffers */
@@ -295,31 +278,28 @@ error:
 /************************************************************/
 PaError CloseAudioStream( PABLIO_Stream *aStream )
 {
-    PaError err = paNoError;
+    PaError err;
     int bytesEmpty;
     int byteSize = aStream->outFIFO.bufferSize;
 
-    if( aStream->stream != NULL ) /* Make sure stream was opened. PLB021214 */
+    /* If we are writing data, make sure we play everything written. */
+    if( byteSize > 0 )
     {
-        /* If we are writing data, make sure we play everything written. */
-        if( byteSize > 0 )
+        bytesEmpty = RingBuffer_GetWriteAvailable( &aStream->outFIFO );
+        while( bytesEmpty < byteSize )
         {
-            int timeOutMSec = 2000;
+            Pa_Sleep( 10 );
             bytesEmpty = RingBuffer_GetWriteAvailable( &aStream->outFIFO );
-            while( (bytesEmpty < byteSize) && (timeOutMSec > 0) )
-            {
-                Pa_Sleep( 20 );
-                timeOutMSec -= 20;
-                bytesEmpty = RingBuffer_GetWriteAvailable( &aStream->outFIFO );
-            }
         }
-        err = Pa_StopStream( aStream->stream );
-        if( err != paNoError ) goto error;
-        err = Pa_CloseStream( aStream->stream );
     }
 
-error:
+    err = Pa_StopStream( aStream->stream );
+    if( err != paNoError ) goto error;
+    err = Pa_CloseStream( aStream->stream );
+    if( err != paNoError ) goto error;
     Pa_Terminate();
+
+error:
     PABLIO_TermFIFO( &aStream->inFIFO );
     PABLIO_TermFIFO( &aStream->outFIFO );
     free( aStream );

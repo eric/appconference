@@ -75,8 +75,9 @@ static int file_selected_devices (struct iaxc_audio_driver *d, int *input, int *
     return 0;
 }
 
-static int file_destroy (struct iaxc_audio_driver *d ) {
-    //implementme
+static int file_destroy (struct iaxc_audio_driver *d ) 
+{
+	/* TODO: something should happen here */
     return 0;
 }
 

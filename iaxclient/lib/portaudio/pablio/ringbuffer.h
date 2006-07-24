@@ -6,7 +6,7 @@ extern "C"
 #endif /* __cplusplus */
 
 /*
- * $Id$
+ * $Id: ringbuffer.h,v 1.3 2006/06/10 21:30:55 dmazzoni Exp $
  * ringbuffer.h
  * Ring Buffer utility..
  *
@@ -49,9 +49,8 @@ extern "C"
 typedef struct
 {
     long   bufferSize; /* Number of bytes in FIFO. Power of 2. Set by RingBuffer_Init. */
-/* These are declared volatile because they are written by a different thread than the reader. */
-    volatile long   writeIndex; /* Index of next writable byte. Set by RingBuffer_AdvanceWriteIndex. */
-    volatile long   readIndex;  /* Index of next readable byte. Set by RingBuffer_AdvanceReadIndex. */
+    long   writeIndex; /* Index of next writable byte. Set by RingBuffer_AdvanceWriteIndex. */
+    long   readIndex;  /* Index of next readable byte. Set by RingBuffer_AdvanceReadIndex. */
     long   bigMask;    /* Used for wrapping indices with extra bit to distinguish full/empty. */
     long   smallMask;  /* Used for fitting indices to buffer. */
     char *buffer;

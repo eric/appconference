@@ -500,7 +500,8 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 	return 0;
 }
 
-EXPORT void iaxc_shutdown() {
+EXPORT void iaxc_shutdown()
+{
 	iaxc_dump_all_calls();
 
 	get_iaxc_lock();
@@ -517,7 +518,8 @@ EXPORT void iaxc_set_formats(int preferred, int allowed)
 	audio_format_preferred = preferred;
 }
 
-EXPORT void iaxc_set_min_outgoing_framesize(int samples) {
+EXPORT void iaxc_set_min_outgoing_framesize(int samples) 
+{
     minimum_outgoing_framesize = samples;
 }
 
@@ -1018,6 +1020,14 @@ iaxc_call_bail:
 	put_iaxc_lock();
 }
 
+//frik
+EXPORT void iaxc_send_busy_on_incoming_call(int callNo)
+{
+   if(callNo < 0) return;
+
+   iax_busy(calls[callNo].session);
+}
+
 EXPORT void iaxc_answer_call(int callNo) 
 {
 	if(callNo < 0)
@@ -1187,10 +1197,13 @@ static void iaxc_service_network() {
 			int format = 0;
 			callNo = iaxc_first_free_call();
 
-			if(callNo < 0) {
+			if(callNo < 0) 
+			{
 				iaxc_usermsg(IAXC_STATUS, "Incoming Call, but no appearances");
 				// XXX Reject this call!, or just ignore?
-				iax_reject(e->session, "Too many calls, we're busy!");
+				//iax_reject(e->session, "Too many calls, we're busy!"); //frik:  replaced this with busy instead
+               	iax_accept(e->session,audio_format_preferred & e->ies.capability);
+               	iax_busy(e->session);
 				goto bail;
 			}
 

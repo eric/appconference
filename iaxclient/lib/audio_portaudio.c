@@ -55,7 +55,7 @@ static SpeexEchoState *ec;
 
 typedef short SAMPLE;
 
-static PortAudioStream *iStream, *oStream, *aStream;
+static PaStream *iStream, *oStream, *aStream;
 static PxMixer *iMixer = NULL, *oMixer = NULL;
 
 static int selectedInput, selectedOutput, selectedRing;
@@ -153,40 +153,51 @@ static double pa_input_level_get(struct iaxc_audio_driver *d);
  *  PaDeviceID's associated with devices (since their index in these
  *  input/output arrays isn't the same as their index in the combined
  *  array */
-static int scan_devices(struct iaxc_audio_driver *d) {
+static int scan_devices(struct iaxc_audio_driver *d) 
+{
     int nDevices; 
     int i;
 
-    d->nDevices = nDevices = Pa_CountDevices();
+    d->nDevices = nDevices = Pa_GetDeviceCount();
     d->devices = malloc(nDevices * sizeof(struct iaxc_audio_device));
 
     for(i=0;i<nDevices;i++)
     {
-	const PaDeviceInfo *pa;	
-	struct iaxc_audio_device *dev;
+		const PaDeviceInfo *pa;	
+		struct iaxc_audio_device *dev;
 
-	pa=Pa_GetDeviceInfo(i);
-	dev = &(d->devices[i]);
+		pa=Pa_GetDeviceInfo(i);
+		dev = &(d->devices[i]);
 
-	dev->name = (char *)pa->name;
-	dev->devID = i;
-	dev->capabilities = 0;
+		if ( pa )	//frik: under Terminal Services this is NULL
+        {
+			dev->name = (char *)pa->name;
+			dev->devID = i;
+			dev->capabilities = 0;
 
-	if(pa->maxInputChannels > 0)
-	  dev->capabilities |= IAXC_AD_INPUT;
+			if(pa->maxInputChannels > 0)
+	  			dev->capabilities |= IAXC_AD_INPUT;
 
-	if(pa->maxOutputChannels > 0) {
-	  dev->capabilities |= IAXC_AD_OUTPUT;
-	  dev->capabilities |= IAXC_AD_RING;
-	}
-
-	if(i == Pa_GetDefaultInputDeviceID())
-	  dev->capabilities |= IAXC_AD_INPUT_DEFAULT;
-
-	if(i == Pa_GetDefaultOutputDeviceID()) {
-	  dev->capabilities |= IAXC_AD_OUTPUT_DEFAULT;
-	  dev->capabilities |= IAXC_AD_RING_DEFAULT;
-	}
+			if(pa->maxOutputChannels > 0) 
+			{
+				dev->capabilities |= IAXC_AD_OUTPUT;
+				dev->capabilities |= IAXC_AD_RING;
+			}
+		
+			if(i == Pa_GetDefaultInputDevice())
+				dev->capabilities |= IAXC_AD_INPUT_DEFAULT;
+		
+			if(i == Pa_GetDefaultOutputDevice()) 
+			{
+				dev->capabilities |= IAXC_AD_OUTPUT_DEFAULT;
+				dev->capabilities |= IAXC_AD_RING_DEFAULT;
+			} 
+		} else	//frik: under Terminal Services
+		{
+			dev->name = "Not usable device";
+			dev->devID = i;
+			dev->capabilities = 0;
+		}
     }
     return 0;
 }
@@ -405,7 +416,7 @@ static void iaxc_echo_can(short *inputBuffer, short *outputBuffer, int n)
 }
 
 static int pa_callback(void *inputBuffer, void *outputBuffer,
-	    unsigned long samplesPerFrame, PaTimestamp outTime, void *userData ) {
+	    unsigned long samplesPerFrame, const PaStreamCallbackTimeInfo* outTime, PaStreamCallbackFlags statusFlags, void *userData ) {
 
     int totBytes = samplesPerFrame * sizeof(SAMPLE);
 
@@ -469,7 +480,7 @@ static int pa_callback(void *inputBuffer, void *outputBuffer,
 }
 
 static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
-	    unsigned long samplesPerFrame, PaTimestamp outTime, void *userData ) {
+	    unsigned long samplesPerFrame, const PaStreamCallbackTimeInfo* outTime, PaStreamCallbackFlags statusFlags, void *userData ) {
 
     int totBytes = samplesPerFrame * sizeof(SAMPLE);
 
@@ -484,59 +495,80 @@ static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 
 static int pa_open(int single, int inMono, int outMono)
 {
-    PaError err;
-    if (single) {
-        err = Pa_OpenStream(&iStream, 
-	      selectedInput, (inMono ? 1 : 2), paInt16, NULL,
-	      selectedOutput, (outMono ? 1 : 2), paInt16, NULL,
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,
-	      PA_NUMBUFFERS,
-	      0,
-	      pa_callback, 
-	      NULL);
-    
-        if (err != paNoError) {
-            return -1;
-        }
+	PaDeviceInfo	*result;
+	
+	struct PaStreamParameters in_stream_params, out_stream_params, no_device;
+	in_stream_params.device = selectedInput;
+	in_stream_params.channelCount = (inMono ? 1 : 2);
+	in_stream_params.sampleFormat = paInt16;
+	result = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedInput);
+	if ( result == NULL ) return -1;
+	in_stream_params.suggestedLatency = result->defaultLowInputLatency;
+	in_stream_params.hostApiSpecificStreamInfo = NULL;
 
-        oStream = iStream;
-        oneStream = 1;
-    } else {
-        err = Pa_OpenStream(&iStream, 
-	      selectedInput, (inMono ? 1 : 2), paInt16, NULL,
-	      paNoDevice, 0, paInt16, NULL,
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,
-	      PA_NUMBUFFERS,
-	      0,
-	      pa_callback, 
-	      NULL);
-        if (err != paNoError) {
-	    return -1;
-        }
+	out_stream_params.device = selectedOutput;
+	out_stream_params.channelCount = (outMono ? 1 : 2);
+	out_stream_params.sampleFormat = paInt16;
+	result = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedOutput);
+	if ( result == NULL ) return -1;
+	out_stream_params.suggestedLatency = result->defaultLowOutputLatency;
+	out_stream_params.hostApiSpecificStreamInfo = NULL;
 
-        err = Pa_OpenStream(&oStream, 
-	      paNoDevice, 0, paInt16, NULL,
-	      selectedOutput, (outMono ? 1 : 2), paInt16, NULL,
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,
-	      PA_NUMBUFFERS,
-	      0,
-	      pa_callback, 
-	      NULL);
-        if (err != paNoError) {
-	    Pa_CloseStream(iStream);
-            iStream = NULL;
-	    return -1;
-        }
+	no_device.device = paNoDevice;
+	no_device.channelCount = 0;
+	no_device.sampleFormat = paInt16;
+	result = (PaDeviceInfo *)Pa_GetDeviceInfo(selectedInput);
+	if ( result == NULL ) return -1;
+	no_device.suggestedLatency = result->defaultLowInputLatency; // FEEDBACK - unsure if appropriate
+	no_device.hostApiSpecificStreamInfo = NULL;
 
-        oneStream = 0;
-    }
-
-    virtualMonoIn = (inMono ? 0 : 1);
-    virtualMonoOut = (outMono ? 0 : 1);
-    return 0;
+	PaError err;
+	if ( single ) 
+	{
+		err = Pa_OpenStream(&iStream, 
+			&in_stream_params,
+			&out_stream_params,
+			sample_rate, 
+			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+			paNoFlag,
+			(PaStreamCallback *)pa_callback,
+			NULL);
+		if (err != paNoError) return -1;
+		oStream = iStream;
+		oneStream = 1;
+    } else 
+	{
+		err = Pa_OpenStream(&iStream, 
+			&in_stream_params,
+			&no_device,
+			sample_rate, 
+			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+			paNoFlag,
+			(PaStreamCallback *)pa_callback,
+			NULL);
+		if ( err != paNoError ) return -1;
+		
+		err = Pa_OpenStream(&oStream, 
+			&no_device,
+			&out_stream_params,
+			sample_rate, 
+			paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+			paNoFlag,
+			(PaStreamCallback *)pa_callback,
+			NULL);
+		
+		if ( err != paNoError ) 
+		{
+			Pa_CloseStream(iStream);
+			iStream = NULL;
+			return -1;
+		}
+		oneStream = 0;
+	}
+	
+	virtualMonoIn = (inMono ? 0 : 1);
+	virtualMonoOut = (outMono ? 0 : 1);
+	return 0;
 }
 
 /* some commentary here:
@@ -561,8 +593,10 @@ static int pa_open(int single, int inMono, int outMono)
  * where we will fail (i.e. if the user has only mono in and out on a Mac).
  *
  * */
-static int pa_openstreams (struct iaxc_audio_driver *d ) {
-    int err;
+static int pa_openstreams (struct iaxc_audio_driver *d ) 
+{
+	int err;
+	
 #ifdef LINUX
     err = pa_open(0, 1, 1) && /* two stream mono */
         pa_open(1, 1, 1) &&   /* one stream mono */
@@ -581,28 +615,68 @@ static int pa_openstreams (struct iaxc_audio_driver *d ) {
 #endif /*MACOSX */
 #endif /* LINUX */
 
-    if (err) {
-	handle_paerror(err, "Unable to open streams");
-	return -1;
+    if (err) 
+	{
+		handle_paerror(err, "Unable to open streams");
+		return -1;
     }
     return 0;
 }
 
 static int pa_openauxstream (struct iaxc_audio_driver *d ) {
+
+	/* FEEDBACK - iaxclient seems to assume that the ring device is a mono device.
+	I can't find any mono devices on the Mac and so ring device opening will fail.
+	My code assumes the ring device is a stereo device - this might break stuff */
+	struct PaStreamParameters ring_stream_params, no_device;
+
+	struct PaStreamParameters in_stream_params;
+	in_stream_params.device = selectedInput;
+	in_stream_params.channelCount = virtualMonoOut + 1;
+	in_stream_params.sampleFormat = paInt16;
+	in_stream_params.suggestedLatency = Pa_GetDeviceInfo(selectedInput)->defaultLowInputLatency;
+	in_stream_params.hostApiSpecificStreamInfo = NULL;
+
+	ring_stream_params.device = selectedRing;
+	ring_stream_params.channelCount = virtualMonoOut+1;
+	ring_stream_params.sampleFormat = paInt16;
+	ring_stream_params.suggestedLatency = Pa_GetDeviceInfo(selectedRing)->defaultLowOutputLatency;
+	ring_stream_params.hostApiSpecificStreamInfo = NULL;
+
+	no_device.device = paNoDevice;
+	no_device.channelCount = 0;
+	no_device.sampleFormat = paInt16;
+	no_device.suggestedLatency=Pa_GetDeviceInfo(selectedInput)->defaultLowInputLatency; //TODOC
+	no_device.hostApiSpecificStreamInfo = NULL;
+
     PaError err;
 
-    err = Pa_OpenStream ( &aStream, 
-	      paNoDevice, 0, paInt16, NULL,  /* input info */
-	      selectedRing,  virtualMonoOut+1, paInt16, NULL,  /* output info */
-	      sample_rate, 
-	      SAMPLES_PER_FRAME,  /* frames per buffer -- 10ms */
-	      PA_NUMBUFFERS,   /* numbuffers */  /* use default */
-	      0,   /* flags */
-	      pa_aux_callback, 
-	      NULL /* userdata */
-      );
+    err = Pa_OpenStream ( &aStream,
+		&in_stream_params,
+		&ring_stream_params,
+		sample_rate,
+		paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+		paNoFlag,
+		(PaStreamCallback *)pa_aux_callback,
+		NULL); 
     if( err != paNoError ) 
     {
+	/* FEEDBACK, we try one more time, maybe ring device is a mono output device */
+	err = Pa_OpenStream ( &aStream,
+		&no_device,
+		&ring_stream_params,
+		sample_rate,
+		paFramesPerBufferUnspecified, //FEEBACK - unsure if appropriate
+              	paNoFlag,   /* flags */
+		(PaStreamCallback *)pa_aux_callback,
+		NULL);
+    }
+
+    // mmok, failure...
+    if(err != paNoError)
+    {
+	//fprintf(stderr, "Failure opening ring device with params: id: %d, output %d, default output %d\n", selectedRing, selectedOutput, Pa_GetDefaultOutputDevice());
+
 	handle_paerror(err, "opening separate ring stream");
 	return -1;
     }
@@ -610,7 +684,8 @@ static int pa_openauxstream (struct iaxc_audio_driver *d ) {
     return 0;
 }
 
-static int pa_start (struct iaxc_audio_driver *d ) {
+static int pa_start (struct iaxc_audio_driver *d ) 
+{
     PaError err;
     static int errcnt=0;
     double level;
@@ -632,39 +707,41 @@ static int pa_start (struct iaxc_audio_driver *d ) {
 	
     //fprintf(stderr, "starting pa\n");
 
-    if(errcnt > 5) {
-	iaxc_usermsg(IAXC_TEXT_TYPE_FATALERROR,
-		"iaxclient audio: Can't open Audio Device.  Perhaps you do not have an input or output device?");
-	/* OK, we'll give the application the option to abort or not here, but we will throw a fatal error
-	 * anyway */
-	iaxc_millisleep(1000);
-	//return -1; // Give Up.  Too many errors.
+    if(errcnt > 5) 
+	{
+		iaxc_usermsg(IAXC_TEXT_TYPE_FATALERROR, "iaxclient audio: Can't open Audio Device.  Perhaps you do not have an input or output device?");
+		/* OK, we'll give the application the option to abort or not here, but we will throw a fatal error
+	 	* anyway */
+		iaxc_millisleep(1000);
+		//return -1; // Give Up.  Too many errors.
     }
 
     /* flush the ringbuffers */
     RingBuffer_Init(&inRing, INRBSZ, inRingBuf);
     RingBuffer_Init(&outRing, OUTRBSZ, outRingBuf);
 
-    if(pa_openstreams(d))  {
-	errcnt++;
+    if ( pa_openstreams(d) )  
+	{
+		errcnt++;
         return -1;
     }
 
     errcnt = 0; // only count consecutive errors.
 
     err = Pa_StartStream(iStream); 
-    if(err != paNoError)
-	return -1;
+    if(err != paNoError) return -1;
 
     iMixer = Px_OpenMixer(iStream, 0);
 
-    if(!oneStream){ 
-	err = Pa_StartStream(oStream);
-	oMixer = Px_OpenMixer(oStream, 0);
-	if(err != paNoError) {
-	    Pa_StopStream(iStream);
-	    return -1;
-	}
+    if ( !oneStream )
+	{ 
+		err = Pa_StartStream(oStream);
+		oMixer = Px_OpenMixer(oStream, 0);
+		if(err != paNoError) 
+		{
+	    	Pa_StopStream(iStream);
+	    	return -1;
+		}
     }
     
     if(selectedRing != selectedOutput) {
@@ -738,13 +815,14 @@ static int pa_stop (struct iaxc_audio_driver *d ) {
     running = 0;
     return 0;
 }
-
+/* Mihai: apparently nobody loves this function. Some actually hate it.
+ * I bet if it's gone, no one will miss it.  Such a cold, cold world!
 static void pa_shutdown() {
     CloseAudioStream( iStream );
     if(!oneStream) CloseAudioStream( oStream );
     if(auxStream) CloseAudioStream( aStream );
 }
-
+*/
 static void handle_paerror(PaError err, char * where) {
 	fprintf(stderr, "PortAudio error at %s: %s\n", where, Pa_GetErrorText(err));
 }
@@ -787,7 +865,8 @@ static int pa_output(struct iaxc_audio_driver *d, void *samples, int nSamples) {
 
 }
 
-static int pa_select_devices (struct iaxc_audio_driver *d, int input, int output, int ring) {
+static int pa_select_devices (struct iaxc_audio_driver *d, int input, int output, int ring) 
+{
     selectedInput = input;
     selectedOutput = output;
     selectedRing = ring;
@@ -805,9 +884,9 @@ static int pa_selected_devices (struct iaxc_audio_driver *d, int *input, int *ou
     return 0;
 }
 
-static int pa_destroy (struct iaxc_audio_driver *d ) {
-    //implementme
-    return 0;
+static int pa_destroy (struct iaxc_audio_driver *d ) 
+{
+	return Pa_Terminate();
 }
 
 static double pa_input_level_get(struct iaxc_audio_driver *d)
@@ -922,9 +1001,9 @@ static int _pa_initialize (struct iaxc_audio_driver *d, int sr) {
     d->mic_boost_set = pa_mic_boost_set;
 
     /* setup private data stuff */
-    selectedInput  = Pa_GetDefaultInputDeviceID();
-    selectedOutput = Pa_GetDefaultOutputDeviceID();
-    selectedRing   = Pa_GetDefaultOutputDeviceID();
+    selectedInput  = Pa_GetDefaultInputDevice();
+    selectedOutput = Pa_GetDefaultOutputDevice();
+    selectedRing   = Pa_GetDefaultOutputDevice();
     sounds	   = NULL;
     MUTEXINIT(&sound_lock);
 

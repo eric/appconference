@@ -234,14 +234,19 @@ http://www.ilbcfreeware.org/software.html
 AUDIO DRIVERS
 
 The supported audio driver for iaxclient is audio_portaudio; which uses
-the portaudio v18 library (included, with some minor modifications) to
-access native audio services on each platform.  It includes an OSS layer
-for Linux, a WMME layer for Win32, a CoreAudio layer for Mac OS X, and a
-layer for Solaris.
+a snapshot of the portaudio v19 library (included, with some minor 
+modifications) to access native audio services on each platform.  
+It includes support for Windows (WMME), Linux (OSS, ALSA, JACK) and
+MacOS X (CoreAudio). 
 
 There is a (presently broken) WMME-native audio driver which was used
 during early development, and is no longer maintained.  You probably
 don't want to use this.
+
+All three Linux PortAudio drivers are enabled by default and supporting
+libraries need to be present on the system in order to build. If you
+prefer to disable one or more of the drivers, use the USE_PA_* options
+in the main Makefile.  
 
 Dmitry Panfilov has contributed a basic native ALSA driver for Linux.
 Not all features are supported with this driver.  It is not compiled in

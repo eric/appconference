@@ -44,8 +44,15 @@
 #include <stdlib.h>
 
 #include "portaudio.h"
-#include "pa_host.h"
 #include "portmixer.h"
+
+#if defined(PaStream)
+#define PA_V18
+#include "pa_host.h"
+#else
+#define PA_V19
+#include "pa_mac_core_internal.h"
+#endif
 
 typedef enum PaDeviceMode
 {
@@ -62,9 +69,6 @@ typedef struct PaHostInOut_s
     AudioConverterRef  converter;
     void              *converterBuffer;
     int                numChannels;
-    /** Used for interleaving or de-interleaving multiple streams for devices like MOTU828. */
-//    int                streamInterleavingBufferLen; /**< size in bytes */
-//    Float32           *streamInterleavingBuffer;
 } PaHostInOut;
 
 /**************************************************************
@@ -101,15 +105,31 @@ const char *Px_GetMixerName( void *pa_stream, int index )
 PxMixer *Px_OpenMixer( void *pa_stream, int index )
 {
    PxInfo                      *info;
-   internalPortAudioStream     *past;
    PaHostSoundControl          *macInfo;
    
    info = (PxInfo *)malloc(sizeof(PxInfo));   
+   if (!info) {
+      return (PxMixer *)info;
+   }
+
+#if defined(PA_V18)
+   internalPortAudioStream     *past;
+   
    past = (internalPortAudioStream *) pa_stream;
    macInfo = (PaHostSoundControl *) past->past_DeviceData;
 
    info->input = macInfo->input.audioDeviceID;
    info->output = macInfo->output.audioDeviceID;
+#endif
+
+#if defined(PA_V19)
+   PaMacCoreStream             *pamcs;
+   
+   pamcs = (PaMacCoreStream *) pa_stream;
+
+   info->input = pamcs->inputDevice;
+   info->output = pamcs->outputDevice;
+#endif 
 
    return (PxMixer *)info;
 }
@@ -132,11 +152,14 @@ void Px_CloseMixer(PxMixer *mixer)
 
 PxVolume Px_GetMasterVolume( PxMixer *mixer )
 {
+   PxInfo *info = (PxInfo *)mixer;
+
    return 0.0;
 }
 
 void Px_SetMasterVolume( PxMixer *mixer, PxVolume volume )
 {
+   PxInfo *info = (PxInfo *)mixer;
 }
 
 /*
@@ -150,6 +173,7 @@ static PxVolume Px_GetVolume(AudioDeviceID device, Boolean isInput)
    Float32  vol, maxvol=0.0;
    UInt32   mute, anymuted=0;
    int ch;
+   PxVolume max;
 
    for(ch=0; ch<=2; ch++) {
       outSize = sizeof(Float32);
@@ -229,6 +253,8 @@ void Px_SetPCMOutputVolume( PxMixer *mixer, PxVolume volume )
 
 int Px_GetNumOutputVolumes( PxMixer *mixer )
 {
+   PxInfo *info = (PxInfo *)mixer;
+
    return 1;
 }
 
@@ -256,21 +282,28 @@ void Px_SetOutputVolume( PxMixer *mixer, int i, PxVolume volume )
 
 int Px_GetNumInputSources( PxMixer *mixer )
 {
+   PxInfo *info = (PxInfo *)mixer;
+
    return 1 ;
 }
 
 const char *Px_GetInputSourceName( PxMixer *mixer, int i)
 {
+   PxInfo *info = (PxInfo *)mixer;
+
    return "Default Input Source" ;
 }
 
 int Px_GetCurrentInputSource( PxMixer *mixer )
 {
+   PxInfo *info = (PxInfo *)mixer;
+
    return -1; /* none */
 }
 
 void Px_SetCurrentInputSource( PxMixer *mixer, int i )
 {
+   PxInfo *info = (PxInfo *)mixer;
 }
 
 /*
@@ -349,7 +382,6 @@ void Px_SetPlaythrough( PxMixer *mixer, PxVolume volume )
                                  sizeof(UInt32), &flag);
 }
 
-
 /*
   unimplemented stubs
 */
@@ -368,4 +400,5 @@ int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* line_name )
 {
 	return 1 ;
 }
+
 

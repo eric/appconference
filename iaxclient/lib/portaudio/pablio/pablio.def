@@ -1,4 +1,4 @@
-LIBRARY      PABLIOV18
+LIBRARY      PABLIO
 DESCRIPTION  'PABLIO   Portable Audio Blocking I/O'
 
 EXPORTS

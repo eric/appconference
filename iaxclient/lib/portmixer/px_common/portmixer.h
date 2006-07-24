@@ -147,6 +147,7 @@ int Px_GetMicrophoneBoost( PxMixer* mixer ) ;
 /* returns 0 on sucess, 1 on failure */
 int Px_SetCurrentInputSourceByName( PxMixer* mixer, const char* line_name ) ;
 
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

@@ -27,14 +27,22 @@ USE_NEWJB=1
 
 USE_VIDEO=0
 
+# For Linux, you can choose between portaudio with OSS, Alsa and Jack backend, 
+# and native Alsa
+# Choice is inclusive
+USE_PA_OSS=1
+USE_PA_ALSA=1
+USE_PA_JACK=1
+AUDIO_ALSA=0
+
 CFLAGS= -I. -Igsm/inc \
-	-Iportaudio/pa_common -Iportaudio/pablio -Iportmixer/px_common \
+	-Iportaudio/include -Iportaudio/src/common -Iportaudio/pablio -Iportmixer/px_common \
 	-Ilibspeex/include --std=c99 -Wall -Wmissing-noreturn
 
 #CFLAGS:= $(CFLAGS) -g -Wall -Wpointer-arith
 CFLAGS:= $(CFLAGS) -g -O2
 
-CFLAGS:= $(CFLAGS) -DLIBVER='"SVN $(shell svnversion)"'
+CFLAGS:= $(CFLAGS) -DLIBVER='"SVN $(shell svnversion .)"'
 
 ifeq ($(SPEEX_PREPROCESS),1)
 CFLAGS:= $(CFLAGS) -DSPEEX_PREPROCESS=1
@@ -47,11 +55,19 @@ endif
 # debug flags
 # CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -DEXTREME_DEBUG -D_DEBUG 
 # CFLAGS := $(CFLAGS) -DDEBUG_SUPPORT -DDEBUG_DEFAULT -D_DEBUG
+# enable this for API level debug info for PortAudio
+# CFLAGS:= $(CFLAGS) -DPA_LOG_API_CALLS
 
 OBJS=\
-	portaudio/pa_common/pa_lib.o \
-	portaudio/pablio/pablio.o \
-	portaudio/pablio/ringbuffer.o \
+	portaudio/src/common/pa_allocation.o \
+	portaudio/src/common/pa_converters.o \
+	portaudio/src/common/pa_cpuload.o \
+	portaudio/src/common/pa_dither.o \
+	portaudio/src/common/pa_front.o \
+	portaudio/src/common/pa_process.o \
+	portaudio/src/common/pa_skeleton.o \
+	portaudio/src/common/pa_stream.o \
+	portaudio/src/common/pa_trace.o \
 	spandsp/plc.o \
 	audio_encode.o \
 	audio_portaudio.o \
@@ -164,13 +180,16 @@ endif
 OBJS_WIN32=\
 	winfuncs.o \
 	portmixer/px_win_wmme/px_win_wmme.o \
-	portaudio/pa_win_wmme/pa_win_wmme.o
+	portaudio/src/hostapi/wmme/pa_win_wmme.o \
+	portaudio/src/os/win/pa_win_hostapis.o \
+	portaudio/src/os/win/pa_win_util.o \
+	portaudio/pablio/ringbuffer.o
 
 OBJS_LINUX=\
 	unixfuncs.o \
 	portmixer/px_unix_oss/px_unix_oss.o \
-	portaudio/pa_unix_oss/pa_unix_oss.o \
-	portaudio/pa_unix_oss/pa_unix.o
+	portaudio/src/os/unix/pa_unix_util.o \
+	portaudio/src/os/unix/pa_unix_hostapis.o
 
 OBJS_SOLARIS=\
 	unixfuncs.o \
@@ -181,8 +200,12 @@ OBJS_SOLARIS=\
 OBJS_MACOSX=\
 	unixfuncs.o \
 	portmixer/px_mac_core/px_mac_core.o \
-	portaudio/pa_common/pa_convert.o \
-	portaudio/pa_mac_core/pa_mac_core.o 
+	portaudio/src/hostapi/coreaudio/pa_mac_core.o \
+	portaudio/src/hostapi/coreaudio/pa_mac_core_utilities.o \
+	portaudio/src/hostapi/coreaudio/pa_mac_core_blocking.o \
+	portaudio/src/os/unix/pa_unix_util.o \
+	portaudio/src/os/mac_osx/pa_mac_hostapis.o \
+	portaudio/src/hostapi/coreaudio/ringbuffer.o
 
 OBJS_IAX2=\
         libiax2/src/md5.o \
@@ -226,7 +249,7 @@ endif
 # Setup platform-specific stuff based on gleaning
 ifeq ($(OSTYPE),WIN32)
 OBJS:= $(OBJS) $(OBJS_WIN32) 
-CFLAGS:= -mno-cygwin $(CFLAGS)
+CFLAGS:= -mno-cygwin -DPA_NO_DS -DPA_NO_ASIO $(CFLAGS)
 DYNLDFLAGS= -mno-cygwin -lwinmm -lwsock32 -lcomdlg32 -luser32 -lgdi32 -lole32 -lcomctl32 -lctl3d32 \
    -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -Wl,--output-def,iaxclient.def,--add-stdcall-alias,--enable-stdcall-fixup,--out-implib,libiaxclient.a
 DYNCFLAGS=-DBUILDING_DLL
@@ -234,12 +257,24 @@ DYNLIB=iaxclient.dll
 endif
 
 ifeq ($(OSTYPE),LINUX)
-OBJS:= $(OBJS) $(OBJS_LINUX) 
+CFLAGS:= $(CFLAGS) -Iportaudio/src/os/unix
 DYNCFLAGS=-fPIC
 DYNLIB=libiaxclient.so
-# change below to 1 to include audio_alsa;
-AUDIO_ALSA=0  
+ifeq ($(USE_PA_OSS),1)
+OBJS_LINUX:= $(OBJS_LINUX) portaudio/src/hostapi/oss/pa_unix_oss.o
+CFLAGS:= $(CFLAGS) -DPA_USE_OSS
 endif
+ifeq ($(USE_PA_ALSA),1)
+OBJS_LINUX:= $(OBJS_LINUX) portaudio/src/hostapi/alsa/pa_linux_alsa.o
+CFLAGS:= $(CFLAGS) -DPA_USE_ALSA
+endif
+ifeq ($(USE_PA_JACK),1)
+OBJS_LINUX:= $(OBJS_LINUX) portaudio/src/hostapi/jack/pa_jack.o
+CFLAGS:= $(CFLAGS) -DPA_USE_JACK
+endif
+OBJS_LINUX:= $(OBJS_LINUX) portaudio/pablio/ringbuffer.o
+OBJS:= $(OBJS) $(OBJS_LINUX) 
+endif # linux
 
 ifeq ($(OSTYPE),SOLARIS)
 OBJS:= $(OBJS) $(OBJS_SOLARIS) 
@@ -257,6 +292,12 @@ OBJS:= $(OBJS) $(OBJS_MACOSX)
 RANLIB= ranlib
 # comment these lines in to build against version  10.2.7.
 #CC=MACOSX_DEPLOYMENT_TARGET=10.2 NEXT_ROOT=/Developer/SDKs/MacOSX10.2.7.sdk cc
+CFLAGS:= $(CFLAGS) -DPA_USE_COREAUDIO=1 -Iportaudio/src/hostapi/coreaudio
+
+#architecture
+CC=NEXT_ROOT=/Developer/SDKs/MacOSX10.4u.sdk/ gcc -arch i386 -arch ppc
+
+
 #CFLAGS:= $(CFLAGS) -isystem /Developer/SDKs/MacOSX10.2.7.sdk/usr/include
 # Build Universal Binaries on MacOSX
 CC=NEXT_ROOT=/Developer/SDKs/MacOSX10.4u.sdk/ MACOSX_DEPLOYMENT_TARGET=10.3 gcc -arch i386 -arch ppc
@@ -312,12 +353,21 @@ CFLAGS:= $(CFLAGS) -D$(OSTYPE)
 gsm/%.o: gsm/%.c
 	$(CC) -c $(CPPFLAGS) $(CFLAGS) -w $< -o $@
 
+# pa_linux_alsa and pa_jack don't compile with c99
+portaudio/src/hostapi/alsa/pa_linux_alsa.o: portaudio/src/hostapi/alsa/pa_linux_alsa.c
+	$(CC) -c $(CFLAGS) --std=gnu89 $< -o $@
+portaudio/src/hostapi/jack/pa_jack.o: portaudio/src/hostapi/jack/pa_jack.c
+	$(CC) -c $(CFLAGS) --std=gnu89 $< -o $@
 
 
 $(LIB): $(OBJS)
 	rm -f $(LIB)
 	ar cru $(LIB) $(OBJS)
 	$(RANLIB) $(LIB)
+
+#	libtool -static -o $(LIB) $(OBJS) portaudio/lib/libportaudio.a
+#	ar cru $(LIB) $(OBJS) 
+
 
 MSLIB=iaxclient.lib
 MGLIBDIR=c:/mingw/lib
@@ -333,14 +383,14 @@ $(MSLIB): $(OBJS)
 	ar rs $(MSLIB) $(OBJS) 
 
 
-shared: CFLAGS := $(CFLAGS) $(DYNCFLAGS)
+#shared: CFLAGS := $(CFLAGS) $(DYNCFLAGS)
 #shared: clean libiaxclient.a
-shared: libiaxclient.a
-ifeq ($(OSTYPE),MACOSX)
-	$(CC) -single_module -dylib -dynamiclib -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS) -framework CoreAudio -framework AudioToolbox -framework System
-else
-	$(CC) -shared -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS)
-endif
+#shared: libiaxclient.a
+#ifeq ($(OSTYPE),MACOSX)
+#	$(CC) -single_module -dylib -dynamiclib -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS) -framework CoreAudio -framework AudioToolbox -framework System -framework Carbon -framework AudioUnit portaudio/lib/libportaudio.a
+#else
+#	$(CC) -shared -o $(DYNLIB) $(OBJS) $(DYNLDFLAGS)
+#endif
 
 
 
