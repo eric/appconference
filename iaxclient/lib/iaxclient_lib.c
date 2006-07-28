@@ -707,6 +707,7 @@ static void handle_text_event(struct iax_event *e, int callNo) {
     ev.ev.text.callNo = callNo;
 
     strncpy(ev.ev.text.message, (char *) e->data, IAXC_EVENT_BUFSIZ);
+    ev.ev.text.message[IAXC_EVENT_BUFSIZ-1] = 0;
     iaxc_post_event(ev);
 }
 
