@@ -166,7 +166,7 @@ PxMixer *Px_OpenMixer( void *pa_stream, int index )
    if (!pa_stream)
       return NULL;
 
-   mixer = (PxMixer *)malloc(sizeof(PxInfo));
+   mixer = (PxInfo *)malloc(sizeof(PxInfo));
    mixer->hInputMixer = NULL;
    mixer->hOutputMixer = NULL;
 
@@ -655,7 +655,7 @@ int Px_SetMicrophoneBoost( PxMixer* mixer, int enable )
 	// get all controls
 	//
 
-	LPMIXERCONTROL mixerControl = malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
+	LPMIXERCONTROL mixerControl = (LPMIXERCONTROL)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 	
 	MIXERLINECONTROLS mixerLineControls ;
 	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;
@@ -779,7 +779,7 @@ int Px_GetMicrophoneBoost( PxMixer* mixer )
 	// get all controls
 	//
 
-	LPMIXERCONTROL mixerControl = malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
+	LPMIXERCONTROL mixerControl = (LPMIXERCONTROL)malloc( sizeof( MIXERCONTROL ) * mixerLine.cControls ) ;
 	
 	MIXERLINECONTROLS mixerLineControls ;
 	mixerLineControls.cbStruct = sizeof( MIXERLINECONTROLS ) ;

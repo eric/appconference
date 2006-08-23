@@ -166,7 +166,9 @@ __extension__ typedef unsigned long long int        uintmax_t;
 #define SIG_ATOMIC_MAX      (32767)
 
 /* Limit of `size_t' type.  */
+#ifndef SIZE_MAX
 #define SIZE_MAX            (65535U)
+#endif
 
 /* Limits of `wchar_t'.  */
 #ifndef WCHAR_MIN

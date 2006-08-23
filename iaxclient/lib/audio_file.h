@@ -13,6 +13,6 @@
 #ifndef _AUDIO_FILE_H
 #define _AUDIO_FILE_H
 
-int file_initialize();
+int file_initialize(struct iaxc_audio_driver *d , int sample_rate);
 
 #endif

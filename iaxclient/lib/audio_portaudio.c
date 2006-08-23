@@ -24,7 +24,7 @@
  *
  */
 
-#if defined(_WIN32_WCE)
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
 #include <stdlib.h>
 #define strcasecmp _stricmp
 #else
@@ -191,13 +191,15 @@ static int scan_devices(struct iaxc_audio_driver *d)
 			{
 				dev->capabilities |= IAXC_AD_OUTPUT_DEFAULT;
 				dev->capabilities |= IAXC_AD_RING_DEFAULT;
-			} 
-		} else	//frik: under Terminal Services
-		{
-			dev->name = "Not usable device";
-			dev->devID = i;
-			dev->capabilities = 0;
+		   	}
 		}
+        else //frik: under Terminal Services
+        {
+            dev->name = "Not usable device";
+            dev->devID = i;
+            dev->capabilities = 0;
+        }
+
     }
     return 0;
 }
@@ -495,6 +497,7 @@ static int pa_aux_callback(void *inputBuffer, void *outputBuffer,
 
 static int pa_open(int single, int inMono, int outMono)
 {
+	PaError err;
 	PaDeviceInfo	*result;
 	
 	struct PaStreamParameters in_stream_params, out_stream_params, no_device;
@@ -522,7 +525,6 @@ static int pa_open(int single, int inMono, int outMono)
 	no_device.suggestedLatency = result->defaultLowInputLatency; // FEEDBACK - unsure if appropriate
 	no_device.hostApiSpecificStreamInfo = NULL;
 
-	PaError err;
 	if ( single ) 
 	{
 		err = Pa_OpenStream(&iStream, 
@@ -625,6 +627,8 @@ static int pa_openstreams (struct iaxc_audio_driver *d )
 
 static int pa_openauxstream (struct iaxc_audio_driver *d ) {
 
+    PaError err;
+
 	/* FEEDBACK - iaxclient seems to assume that the ring device is a mono device.
 	I can't find any mono devices on the Mac and so ring device opening will fail.
 	My code assumes the ring device is a stereo device - this might break stuff */
@@ -648,8 +652,6 @@ static int pa_openauxstream (struct iaxc_audio_driver *d ) {
 	no_device.sampleFormat = paInt16;
 	no_device.suggestedLatency=Pa_GetDeviceInfo(selectedInput)->defaultLowInputLatency; //TODOC
 	no_device.hostApiSpecificStreamInfo = NULL;
-
-    PaError err;
 
     err = Pa_OpenStream ( &aStream,
 		&in_stream_params,

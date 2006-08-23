@@ -105,7 +105,7 @@ static void normalise_history(plc_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-static int __inline__ amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], int len)
+static int inline amdf_pitch(int min_pitch, int max_pitch, int16_t amp[], int len)
 {
     int i;
     int j;
