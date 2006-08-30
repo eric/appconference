@@ -101,7 +101,8 @@ Stephen Uhler <suhler@sun.com> [Solaris build, tkiaxphone]
 Steve Underwood <steveu@coppice.org> [PLC implementation from spandsp]
 Jean-Denis Girard <jd.girard@sysnux.pf> [URL Receive implementation]
 Panfilov Dmitry <dima@bdpu.org> [Basic ALSA-native audio driver]
-
+Mihai Balea <mihai at hates dot ms>
+Bill Welch <welch1820 at gmail dot com> [Project files for several MS development environments]
 
 
 In addition to including libiax, IAXCLIENT is also based in part on code
