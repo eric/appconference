@@ -1,14 +1,10 @@
 /*
- * iaxclient: a cross-platform IAX softphone library
- *
  * Copyrights:
- * Copyright (C) 2003 HorizonLive.com, (c) 2004, Horizon Wimba, Inc.
+ * Copyright (C) 2006 Gatherworks.com
  *
  * Contributors:
- * Steve Kann <stevek@stevek.com>
- * Michael Van Donselaar <mvand@vandonselaar.org> 
- * Shawn Lawrence <shawn.lawrence@terracecomm.com>
  * Frik Strecker <frik@gatherworks.com>
+ * Bill Welch <bill@gatherworks.com>
  *
  *
  * This program is free software, distributed under the terms of
