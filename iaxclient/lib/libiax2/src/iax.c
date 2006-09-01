@@ -2868,7 +2868,7 @@ static struct iax_event *iax_net_read(void)
 	struct sockaddr_in sin;
 	unsigned int sinlen;
 	sinlen = sizeof(sin);
-	res = iax_recvfrom(netfd, buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
+	res = iax_recvfrom(netfd, (char *)buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
 	if (res < 0) {
 #if defined(_WIN32_WCE)
 		if (WSAGetLastError() != WSAEWOULDBLOCK) {
