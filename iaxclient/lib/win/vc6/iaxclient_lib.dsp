@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "ReleaseLIB"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /Gz /MD /w /W0 /GX /I ".." /I "..\..\gsm\inc" /I "..\..\portaudio\include" /I "..\..\portaudio\src\common" /I "..\..\portaudio\pablio" /I "..\..\portmixer\px_common" /I "..\..\libspeex\include" /I "..\..\libiax2\src" /I "..\..\wince" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "PA_NO_DS" /D "PA_NO_ASIO" /D SPEEX_PREPROCESS=1 /D "NEWJB" /D "LIBIAX" /D USE_MEC2=1 /D inline=__inline /D strncasecmp=strnicmp /D vsnprintf=_vsnprintf /FD /c
+# ADD CPP /nologo /Gz /MD /w /W0 /GX /I ".." /I "..\..\gsm\inc" /I "..\..\portaudio\include" /I "..\..\portaudio\src\common" /I "..\..\portaudio\pablio" /I "..\..\portmixer\px_common" /I "..\..\libspeex\include" /I "..\..\libiax2\src" /I "..\..\wince" /D "WIN32" /D "NDEBUG" /D "_LIB" /D "PA_NO_DS" /D "PA_NO_ASIO" /D SPEEX_PREPROCESS=1 /D "NEWJB" /D "LIBIAX" /D SPEEX_EC=1 /D inline=__inline /D strncasecmp=strnicmp /D vsnprintf=_vsnprintf /FD /c
 # SUBTRACT CPP /X /Fr /YX
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
@@ -65,7 +65,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "DebugLIB"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /Gz /MDd /w /W0 /Gm /GX /Zi /Od /I ".." /I "..\..\gsm\inc" /I "..\..\portaudio\include" /I "..\..\portaudio\src\common" /I "..\..\portaudio\pablio" /I "..\..\portmixer\px_common" /I "..\..\libspeex\include" /I "..\..\libiax2\src" /I "..\..\wince" /D "WIN32" /D "_DEBUG" /D "_LIB" /D "PA_NO_DS" /D "PA_NO_ASIO" /D SPEEX_PREPROCESS=1 /D "NEWJB" /D "LIBIAX" /D USE_MEC2=1 /D inline=__inline /D strncasecmp=strnicmp /D vsnprintf=_vsnprintf /FD /GZ /c
+# ADD CPP /nologo /Gz /MDd /w /W0 /Gm /GX /Zi /Od /I ".." /I "..\..\gsm\inc" /I "..\..\portaudio\include" /I "..\..\portaudio\src\common" /I "..\..\portaudio\pablio" /I "..\..\portmixer\px_common" /I "..\..\libspeex\include" /I "..\..\libiax2\src" /I "..\..\wince" /D "WIN32" /D "_DEBUG" /D "_LIB" /D "PA_NO_DS" /D "PA_NO_ASIO" /D SPEEX_PREPROCESS=1 /D "NEWJB" /D "LIBIAX" /D SPEEX_EC=1 /D inline=__inline /D strncasecmp=strnicmp /D vsnprintf=_vsnprintf /FD /GZ /c
 # SUBTRACT CPP /Fr /YX
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
