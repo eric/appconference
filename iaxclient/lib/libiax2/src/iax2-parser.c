@@ -83,7 +83,7 @@ static void dump_string(char *output, int maxlen, void *value, int len)
 	maxlen--;
 	if (maxlen > len)
 		maxlen = len;
-	strncpy(output,value, maxlen);
+	strncpy(output,(const char *)value, maxlen);
 	output[maxlen] = '\0';
 }
 
@@ -161,7 +161,7 @@ static void dump_samprate(char *output, int maxlen, void *value, int len)
 static void dump_prov_ies(char *output, int maxlen, unsigned char *iedata, int len);
 static void dump_prov(char *output, int maxlen, void *value, int len)
 {
-	dump_prov_ies(output, maxlen, value, len);
+	dump_prov_ies(output, maxlen, (unsigned char *)value, len);
 }
 
 static struct iax2_ie {
@@ -376,7 +376,7 @@ void iax_showframe(struct iax_frame *f, struct ast_iax2_full_hdr *fhi, int rx, s
 	char tmp[256];
 
 	if (f) {
-		fh = f->data;
+		fh = (struct ast_iax2_full_hdr *)f->data;
 		snprintf(retries, (int)sizeof(retries), "%03d", f->retries);
 	} else {
 		fh = fhi;
@@ -804,7 +804,7 @@ void iax_frame_wrap(struct iax_frame *fr, struct ast_frame *f)
 struct iax_frame *iax_frame_new(int direction, int datalen)
 {
 	struct iax_frame *fr;
-	fr = malloc((int)sizeof(struct iax_frame) + datalen);
+	fr = (struct iax_frame *)malloc((int)sizeof(struct iax_frame) + datalen);
 	if (fr) {
 		fr->direction = direction;
 		fr->retrans = -1;
