@@ -34,7 +34,11 @@ extern "C" {
 
 #ifdef BUILDING_DLL
 #if defined(WIN32)  ||  defined(_WIN32_WCE)
+# if defined(_MSC_VER)
+#  define EXPORT  __declspec(dllexport)
+# else
 #  define EXPORT  __stdcall __declspec(dllexport)
+# endif
 #else
 #  define EXPORT
 #endif
