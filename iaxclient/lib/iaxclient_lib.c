@@ -1362,7 +1362,7 @@ EXPORT int iaxc_mic_boost_set( int enable )
 }
 
 #ifndef LIBVER
-#define LIBVER "SVN 590M"
+#define LIBVER "SVN UNKNOWN"
 #endif
 
 EXPORT char* iaxc_version(char* ver)
