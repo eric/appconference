@@ -1361,6 +1361,10 @@ EXPORT int iaxc_mic_boost_set( int enable )
 	return audio.mic_boost_set( &audio, enable ) ;
 }
 
+#ifndef LIBVER
+#define LIBVER "SVN 590M"
+#endif
+
 EXPORT char* iaxc_version(char* ver)
 {
 	strncpy(ver, LIBVER, IAXC_EVENT_BUFSIZ);
