@@ -33,8 +33,8 @@ void iaxc_millisleep(long ms)
 {
 	struct timespec req;
 
-        req.tv_nsec=10*1000*1000;  /* 10 ms */
-        req.tv_sec=0;
+        req.tv_nsec = (ms%1000)*1000*1000;
+        req.tv_sec = ms/1000;
 
         /* yes, it can return early.  We don't care */
         nanosleep(&req,NULL);
