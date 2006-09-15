@@ -23,7 +23,7 @@
 #define JB_LONGMIN (-JB_LONGMAX - 1L)
 
 /* MS VC can't do __VA_ARGS__ */
-#if defined(WIN32) && defined(_MSC_VER)
+#if (defined(WIN32)  ||  defined(_WIN32_WCE))  &&  defined(_MSC_VER)
 #define jb_warn if (warnf) warnf
 #define jb_err if (errf) errf
 #define jb_dbg if (dbgf) dbgf
@@ -74,7 +74,7 @@ void jb_reset(jitterbuf *jb)
 	memset(jb,0,sizeof(jitterbuf));
 	jb->info.conf = s;
 
-	/* initialize length */
+	/* initialize length, using the default value */
 	jb->info.current = jb->info.target = JB_TARGET_EXTRA; 
 	jb->info.silence_begin_ts = -1; 
 }
@@ -537,7 +537,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl)
 
 
     /* target */
-    jb->info.target = jb->info.jitter + jb->info.min + JB_TARGET_EXTRA; 
+    jb->info.target = jb->info.jitter + jb->info.min + jb->info.conf.target_extra; 
 
     /* if a hard clamp was requested, use it */
     if((jb->info.conf.max_jitterbuf) && ((jb->info.target - jb->info.min) > jb->info.conf.max_jitterbuf)) {
@@ -623,7 +623,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl)
       /* unless we don't have a frame, then shrink 1 frame */
       /* every 80ms (though perhaps we can shrink even faster */
       /* in this case) */
-      if(diff < -JB_TARGET_EXTRA && 
+      if(diff < -jb->info.conf.target_extra && 
 		((!frame && jb->info.last_adjustment + 80 < now) || 
 		 (jb->info.last_adjustment + 500 < now))) {
 	jb->info.last_adjustment = now;
@@ -700,7 +700,7 @@ static int _jb_get(jitterbuf *jb, jb_frame *frameout, long now, long interpl)
        /* jb->info.silence_begin_ts = 0; */
 
        /* shrink interpl len every 10ms during silence */
-       if (diff < -JB_TARGET_EXTRA &&
+       if (diff < -jb->info.conf.target_extra &&
            jb->info.last_adjustment + 10 <= now) {
          jb->info.current -= interpl;
          jb->info.last_adjustment = now;
@@ -748,7 +748,7 @@ long jb_next(jitterbuf *jb)
       long next = queue_next(jb);
       if(next > 0) { 
         /* shrink during silence */
-        if (jb->info.target - jb->info.current < -JB_TARGET_EXTRA)
+        if (jb->info.target - jb->info.current < -jb->info.conf.target_extra)
           return jb->info.last_adjustment + 10;
         return next + jb->info.target;
       }
@@ -802,6 +802,16 @@ int jb_setconf(jitterbuf *jb, jb_conf *conf)
 	jb->info.conf.max_jitterbuf = conf->max_jitterbuf;
  	jb->info.conf.resync_threshold = conf->resync_threshold;
 	jb->info.conf.max_contig_interp = conf->max_contig_interp;
+	
+	/* -1 indicates use of the default JB_TARGET_EXTRA value */
+	jb->info.conf.target_extra = ( conf->target_extra == -1 )
+		? JB_TARGET_EXTRA
+		: conf->target_extra
+		;
+		
+	/* update these to match new target_extra setting */
+	jb->info.current = jb->info.conf.target_extra;
+	jb->info.target = jb->info.conf.target_extra;
 
   return JB_OK;
 }

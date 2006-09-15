@@ -56,6 +56,7 @@ typedef struct jb_conf {
 	long max_jitterbuf;	/* defines a hard clamp to use in setting the jitter buffer delay */
  	long resync_threshold;  /* the jb will resync when delay increases to (2 * jitter) + this param */
 	long max_contig_interp; /* the max interp frames to return in a row */
+	long target_extra ;      /* amount of additional jitterbuffer adjustment, overrides JB_TARGET_EXTRA */
 } jb_conf;
 
 typedef struct jb_info {
@@ -109,15 +110,15 @@ typedef struct jitterbuf {
 
 
 /* new jitterbuf */
-jitterbuf *		jb_new(void);
+extern jitterbuf *		jb_new(void);
 
 /* destroy jitterbuf */
-void			jb_destroy(jitterbuf *jb);
+extern void			jb_destroy(jitterbuf *jb);
 
 /* reset jitterbuf */
 /* NOTE:  The jitterbuffer should be empty before you call this, otherwise
  * you will leak queued frames, and some internal structures */
-void			jb_reset(jitterbuf *jb);
+extern void			jb_reset(jitterbuf *jb);
 
 /* queue a frame data=frame data, timings (in ms): ms=length of frame (for voice), ts=ts (sender's time) 
  * now=now (in receiver's time) return value is one of 
@@ -125,7 +126,7 @@ void			jb_reset(jitterbuf *jb);
  * JB_DROP: Drop this frame immediately
  * JB_SCHED: Frame added. Call jb_next() to get a new time for the next frame
  */
-int 			jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now);
+extern int 			jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now);
 
 /* get a frame for time now (receiver's time)  return value is one of
  * JB_OK:  You've got frame!
@@ -134,23 +135,23 @@ int 			jb_put(jitterbuf *jb, void *data, int type, long ms, long ts, long now);
  * JB_INTERP: Please interpolate an interpl-length frame for this time (either we need to grow, or there was a lost frame) 
  * JB_EMPTY: The jb is empty.
  */
-int			jb_get(jitterbuf *jb, jb_frame *frame, long now, long interpl);
+extern int			jb_get(jitterbuf *jb, jb_frame *frame, long now, long interpl);
 
 /* unconditionally get frames from jitterbuf until empty */
-int jb_getall(jitterbuf *jb, jb_frame *frameout);
+extern int jb_getall(jitterbuf *jb, jb_frame *frameout);
 
 /* when is the next frame due out, in receiver's time (0=EMPTY) 
  * This value may change as frames are added (esp non-audio frames) */
-long			jb_next(jitterbuf *jb);
+extern long			jb_next(jitterbuf *jb);
 
 /* get jitterbuf info: only "statistics" may be valid */
-int			jb_getinfo(jitterbuf *jb, jb_info *stats);
+extern int			jb_getinfo(jitterbuf *jb, jb_info *stats);
 
 /* set jitterbuf conf */
-int			jb_setconf(jitterbuf *jb, jb_conf *conf);
+extern int			jb_setconf(jitterbuf *jb, jb_conf *conf);
 
 typedef 		void (*jb_output_function_t)(const char *fmt, ...);
-void 			jb_setoutput(jb_output_function_t err, jb_output_function_t warn, jb_output_function_t dbg);
+extern void 			jb_setoutput(jb_output_function_t err, jb_output_function_t warn, jb_output_function_t dbg);
 
 #ifdef __cplusplus
 }
