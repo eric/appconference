@@ -36,6 +36,9 @@
 
 #undef JB_DEBUGGING
 
+/* configurable jitterbuffer options */
+static long jb_target_extra = -1; 
+
 struct iaxc_registration {
     struct iax_session *session;
     struct timeval last;
@@ -368,6 +371,12 @@ EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) {
     iaxc_recvfrom = rf;
 }
 
+EXPORT void iaxc_set_jb_target_extra( long value )
+{
+	/* store in jb_target_extra, a static global */
+	jb_target_extra = value ;
+}
+
 static void jb_errf(const char *fmt, ...)
 {
     va_list args;
@@ -442,6 +451,9 @@ EXPORT int iaxc_initialize(int audType, int inCalls) {
 	    iax_set_networking(iaxc_sendto, iaxc_recvfrom);
 	}
 
+	/* tweak the jitterbuffer settings */
+	iax_set_jb_target_extra( jb_target_extra );
+	
 	nCalls = inCalls;
 	/* initialize calls */
 	if(nCalls <= 0) nCalls = 1; /* 0 == Default? */

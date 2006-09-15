@@ -76,7 +76,6 @@ OBJS=\
 	codec_ulaw.o \
 	codec_alaw.o \
 	codec_speex.o \
-	jitterbuf.o \
 	iaxclient_lib.o 
 
 OBJS_GSM=\
@@ -211,7 +210,7 @@ OBJS_IAX2=\
         libiax2/src/md5.o \
         libiax2/src/iax.o \
         libiax2/src/iax2-parser.o \
-
+        libiax2/src/jitterbuf.o
 
 
 LIB=libiaxclient.a

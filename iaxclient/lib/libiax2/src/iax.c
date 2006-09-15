@@ -158,7 +158,8 @@ static int netfd = -1;
 /* Max timeouts */
 static int maxretries = 10;
 
-
+/* configurable jitterbuffer options */
+static long jb_target_extra = -1; 
 
 /* external global networking replacements */
 static sendto_t	  iax_sendto = (sendto_t) sendto;
@@ -513,6 +514,7 @@ struct iax_session *iax_session_new(void)
 			jbconf.max_jitterbuf = 0;
 			jbconf.resync_threshold = 1000;
 			jbconf.max_contig_interp = 0;
+			jbconf.target_extra = jb_target_extra;
 			jb_setconf(s->jb, &jbconf);
 		}
 #endif
@@ -887,6 +889,12 @@ void iax_set_networking(sendto_t st, recvfrom_t rf)
 {
 	iax_sendto = st;
 	iax_recvfrom = rf;
+}
+
+void iax_set_jb_target_extra( long value )
+{
+	/* store in jb_target_extra, a static global */
+	jb_target_extra = value ;
 }
 
 int iax_init(int preferredportno)
