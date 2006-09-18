@@ -190,7 +190,7 @@
 				RelativePath="..\..\iaxclient_lib.c">
 			</File>
 			<File
-				RelativePath="..\..\jitterbuf.c">
+				RelativePath="..\..\libiax2\src\jitterbuf.c">
 			</File>
 			<File
 				RelativePath="..\..\libiax2\src\md5.c">
@@ -236,7 +236,7 @@
 				RelativePath="..\..\iaxclient_lib.h">
 			</File>
 			<File
-				RelativePath="..\..\jitterbuf.h">
+				RelativePath="..\..\libiax2\src\jitterbuf.h">
 			</File>
 			<File
 				RelativePath="..\..\libiax2\src\md5.h">

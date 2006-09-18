@@ -218,7 +218,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\jitterbuf.c"
+				RelativePath="..\..\libiax2\src\jitterbuf.c"
 				>
 			</File>
 			<File
@@ -279,7 +279,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\jitterbuf.h"
+				RelativePath="..\..\libiax2\src\jitterbuf.h"
 				>
 			</File>
 			<File

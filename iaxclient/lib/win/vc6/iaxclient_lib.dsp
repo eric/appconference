@@ -127,7 +127,7 @@ SOURCE=..\..\iaxclient_lib.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\jitterbuf.c
+SOURCE=..\..\libiax2\src\jitterbuf.c
 # End Source File
 # Begin Source File
 
@@ -187,7 +187,7 @@ SOURCE=..\..\iaxclient_lib.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\jitterbuf.h
+SOURCE=..\..\libiax2\src\jitterbuf.h
 # End Source File
 # Begin Source File
 
