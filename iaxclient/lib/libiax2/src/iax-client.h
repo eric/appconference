@@ -221,6 +221,9 @@ extern char iax_pref_codec_add(struct iax_session *session, unsigned int format)
 extern void iax_pref_codec_del(struct iax_session *session, unsigned int format);
 extern int iax_pref_codec_get(struct iax_session *session, unsigned int *array, int len);
 
+/* Fine tune jitterbuffer */
+extern void iax_set_jb_target_extra( long value );
+
 #if defined(__cplusplus)
 }
 #endif

@@ -258,6 +258,9 @@ EXPORT int iaxc_mic_boost_get( void ) ;
 EXPORT int iaxc_mic_boost_set( int enable ) ;
 EXPORT char* iaxc_version(char *ver);
 
+/* Fine tune jitterbuffer control */
+EXPORT void iaxc_set_jb_target_extra( long value );
+
 /* application-defined networking; give substiture sendto and recvfrom functions,
  * must be called before iaxc_initialize! */
 EXPORT void iaxc_set_networking(iaxc_sendto_t st, iaxc_recvfrom_t rf) ;
