@@ -86,6 +86,13 @@ struct iax_session;
 #define IAX_EVENT_TXACCEPT  1002
 #define IAX_EVENT_TXREADY	1003
 
+/* 
+ * Null event. We use it to notify back the caller that a frame has been
+ * received and is queued for delivery
+ * Applciations should simply ignore it
+ */
+#define IAX_EVENT_NULL		65535
+
 #define IAX_SCHEDULE_FUZZ 0			/* ms of fuzz to drop */
 
 #if defined(WIN32)  ||  defined(_WIN32_WCE)

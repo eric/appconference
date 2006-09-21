@@ -838,6 +838,8 @@ void iaxc_handle_network_event(struct iax_event *e, int callNo)
 	iaxc_note_activity(callNo);
 
 	switch(e->etype) {
+		case IAX_EVENT_NULL:
+			break;
 		case IAX_EVENT_HANGUP:
 			iaxc_usermsg(IAXC_STATUS, "Call disconnected by remote");
 			// XXX does the session go away now?
@@ -1294,7 +1296,13 @@ static void iaxc_service_network() {
 		    
 			iaxc_usermsg(IAXC_STATUS, "Timeout for a non-existant session.  Dropping", e->etype);
 			
-		} else {
+		} else if ( e->etype == IAX_EVENT_NULL )
+		{
+			// Should we do something here
+			// Right now we do nothing, just go with the flow and let the event
+			// be deallocated
+		} else
+		{
 			iaxc_usermsg(IAXC_STATUS, "Event (type %d) for a non-existant session.  Dropping", e->etype);
 		}
 bail:

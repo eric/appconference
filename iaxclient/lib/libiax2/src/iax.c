@@ -1503,11 +1503,15 @@ static struct iax_event *handle_event(struct iax_event *event)
 {
 	/* We have a candidate event to be delievered.  Be sure
 	   the session still exists. */
-	if (event) {
-		if (iax_session_valid(event->session)) {
+	if (event) 
+	{
+		if ( event->etype == IAX_EVENT_NULL ) return event;
+		if (iax_session_valid(event->session)) 
+		{
 			/* Lag requests are never actually sent to the client, but
 			   other than that are handled as normal packets */
-			switch(event->etype) {
+			switch(event->etype) 
+			{
 				/* the user on the outside may need to look at the session so we will not free 
 				   it here anymore we will test for hangup event in iax_event_free and do it
 				   there.
@@ -2875,6 +2879,8 @@ static struct iax_event *iax_net_read(void)
 	int res;
 	struct sockaddr_in sin;
 	unsigned int sinlen;
+	struct iax_event *event;
+	
 	sinlen = sizeof(sin);
 	res = iax_recvfrom(netfd, (char *)buf, sizeof(buf), 0, (struct sockaddr *) &sin, &sinlen);
 	if (res < 0) {
@@ -2896,7 +2902,19 @@ static struct iax_event *iax_net_read(void)
 #endif
 		return NULL;
 	}
-	return iax_net_process(buf, res, &sin);
+	event = iax_net_process(buf, res, &sin); 
+	if ( event == NULL )
+	{
+		// We have received a frame. The corresponding event is queued
+		// We need to motify the entire stack of calling functions so they 
+		// don't go to sleep thinking there are no more frames to process
+		// TODO: this is buttugly from a design point of view. Basically we
+		// change libiax2 behavior to accomodate iaxclient.
+		// There must be a way to do it better.
+		event = (struct event *)malloc(sizeof(struct iax_event));
+		if ( event != NULL ) event->etype = IAX_EVENT_NULL;
+	}
+	return event;
 }
 
 static struct iax_session *iax_txcnt_session(struct ast_iax2_full_hdr *fh, int datalen,
