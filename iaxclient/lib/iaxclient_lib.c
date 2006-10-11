@@ -428,6 +428,23 @@ EXPORT void iaxc_set_preferred_source_udp_port(int sourceUdpPort) {
 	iaxc_sourceUdpPort	= sourceUdpPort;
 }
 
+EXPORT unsigned short iaxc_get_bind_port() 
+{
+	struct sockaddr_in	addtmp;
+	socklen_t		addlen;
+        int			result;
+
+        addlen = sizeof( addtmp );	
+	result = getsockname(netfd,(struct sockaddr *)&addtmp, &addlen );
+	if ( result < 0  ) 
+	{
+		iaxc_usermsg(IAXC_ERROR, "Fatal error: failed to get the iax port\n");
+		return -1;
+	}
+
+	return ntohs(addtmp.sin_port);
+}
+
 // Parameters:
 // audType - Define whether audio is handled by library or externally
 EXPORT int iaxc_initialize(int audType, int inCalls) {

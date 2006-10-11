@@ -223,6 +223,7 @@ EXPORT struct iaxc_ev_call_state *iaxc_get_event_state(iaxc_event *e);
 // NOTE: must be called before iaxc_initialize()
 EXPORT void iaxc_set_preferred_source_udp_port(int sourceUdpPort);	
 
+EXPORT unsigned short iaxc_get_bind_port();
 EXPORT int iaxc_initialize(int audType, int nCalls);
 EXPORT void iaxc_shutdown();
 EXPORT void iaxc_set_formats(int preferred, int allowed);
