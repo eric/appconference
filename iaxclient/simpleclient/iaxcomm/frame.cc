@@ -129,6 +129,8 @@ MyFrame::MyFrame(wxWindow *parent)
     wxString    Name;
     MyTimer    *timer;
 
+    MessageTicks = 0;
+
     // Load up this frame from XRC. [Note, instead of making a class's
     // constructor take a wxWindow* parent with a default value of NULL,
     // we could have just had designed MyFrame class with an empty
@@ -225,9 +227,6 @@ MyFrame::MyFrame(wxWindow *parent)
     keyStateWindow = gdk_window_new(NULL, &attr, 0);
 #endif
 
-    timer = new MyTimer();
-    timer->Start(100);
-
     RePanel(Name);
 
     wxImage::AddHandler(new wxPNGHandler);
@@ -252,6 +251,9 @@ MyFrame::MyFrame(wxWindow *parent)
 	return;
     }
 #endif /* DATADIR */
+
+    timer = new MyTimer();
+    timer->Start(100);
 }
 
 void MyFrame::RePanel(wxString Name)
