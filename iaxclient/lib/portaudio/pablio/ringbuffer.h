@@ -46,6 +46,19 @@ extern "C"
 #include "ringbuffer.h"
 #include <string.h>
 
+#ifdef USE_IAXC_RINGBUFFER_PREFIX
+#define RingBuffer_Init _iaxc_RingBuffer_Init
+#define RingBuffer_Flush _iaxc_RingBuffer_Flush
+#define RingBuffer_GetWriteAvailable _iaxc_RingBuffer_GetWriteAvailable
+#define RingBuffer_GetReadAvailable _iaxc_RingBuffer_GetReadAvailable
+#define RingBuffer_Write _iaxc_RingBuffer_Write
+#define RingBuffer_Read _iaxc_RingBuffer_Read
+#define RingBuffer_GetWriteRegions _iaxc_RingBuffer_GetWriteRegions
+#define RingBuffer_AdvanceWriteIndex _iaxc_RingBuffer_AdvanceWriteIndex
+#define RingBuffer_GetReadRegions _iaxc_RingBuffer_GetReadRegions
+#define RingBuffer_AdvanceReadIndex _iaxc_RingBuffer_AdvanceReadIndex
+#endif
+
 typedef struct
 {
     long   bufferSize; /* Number of bytes in FIFO. Power of 2. Set by RingBuffer_Init. */
