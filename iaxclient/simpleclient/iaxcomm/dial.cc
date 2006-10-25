@@ -76,10 +76,6 @@ void Dial( wxString DialStr )
 {
     wxConfig *config = theApp::getConfig();
     wxString  FQIN;
-#if defined(__UNICODE__)
-    wxMBConvUTF8 utf8;
-    char to[256];
-#endif
 
     wxString  AccountInfo = DialStr.BeforeLast('/');    // Empty   if no '/'
     wxString  Extension   = DialStr.AfterLast('/');     // dialstr if no '/'
@@ -117,11 +113,6 @@ void Dial( wxString DialStr )
                 Host.c_str(),
                 Extension.c_str());
 
-#if defined(__UNICODE__)
-    utf8.WC2MB(to, FQIN.c_str(), 256);
-    iaxc_call(to);
-#else
-    iaxc_call((char *) FQIN.c_str());
-#endif
+    iaxc_call((char *)(const char *)FQIN.mb_str(*(wxGetApp().ConvIax)));
 }
 

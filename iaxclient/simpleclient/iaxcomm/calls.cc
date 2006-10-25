@@ -145,9 +145,6 @@ void CallList::OnRClick(wxListEvent &event)
     int      selected = event.m_itemIndex;
     char     ext[256];
     wxString Title;
-#if defined(__UNICODE__)
-    wxMBConvUTF8 utf8;
-#endif
   
     Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
@@ -158,11 +155,7 @@ void CallList::OnRClick(wxListEvent &event)
 
     if(dialog.ShowModal() != wxID_CANCEL) {
 
-#if defined(__UNICODE__)
-        utf8.WC2MB(ext, dialog.GetValue().c_str(), 256);
-#else
-        strncpy(ext, dialog.GetValue().c_str(), 256);
-#endif
+        strncpy(ext, dialog.GetValue().mb_str(*(wxGetApp().ConvIax)), sizeof(ext));
 
         iaxc_blind_transfer_call(selected, ext);
     }
@@ -193,10 +186,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
     long       dummy;
     bool       bCont;
     static int selectedcall = -1;
-#if defined(__UNICODE__)
-    wchar_t ws[256];
-    wxMBConvUTF8 utf8;
-#endif
+    wxString   ws;
 
     if(c.state & IAXC_CALL_STATE_RINGING) {
       wxGetApp().theFrame->Show();
@@ -227,18 +217,18 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
         wxString Remote;
         
 
-        RemoteName.Printf(_T("%s"), c.remote_name);
+        RemoteName = wxString(c.remote_name, *(wxGetApp().ConvIax));
         Info  = RemoteName.AfterLast('@');	// Hide username:password
         Info  = Info.BeforeFirst('/');          // Remove extension in outbound call
         					// (it will be duplicated in <>)
 
-        Remote.Printf(_T("%s"), c.remote);
+        Remote = wxString(c.remote, *(wxGetApp().ConvIax));
         if(!Remote.IsEmpty())			// Additional info in Remote
             Info += _T(" <") + Remote + _T(">");
 
         Codec = GetCodec(c);			// Negotiated codec
         if(!Codec.IsEmpty())
-            Info += _T(" [") + GetCodec(c) + _T("]");	// Indicate Negotiated codec
+	    Info += _T(" [") + GetCodec(c) + _T("]");	// Indicate Negotiated codec
 
         SetItem(c.callNo, 2, Info );
 
@@ -274,8 +264,7 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 // Look for the caller in our phonebook
                 config->SetPath(_T("/PhoneBook"));
                 bCont = config->GetFirstGroup(str, dummy);
-#if defined(__UNICODE__)
-                utf8.MB2WC(ws, c.remote_name, 256);
+                ws = wxString(c.remote_name, *(wxGetApp().ConvIax));
                 while ( bCont ) {
                     if(str.IsSameAs(ws))
                         break;
@@ -283,31 +272,17 @@ int CallList::HandleStateEvent(struct iaxc_ev_call_state c)
                 }
 
                 if(!str.IsSameAs(ws)) {
-#else
-                while ( bCont ) {
-                    if(str.IsSameAs(c.remote_name))
-                        break;
-                    bCont = config->GetNextGroup(str, dummy);
-                }
-
-                if(!str.IsSameAs(c.remote_name)) {
-#endif
                     // Add to phone book if not there already
-                    str.Printf(_T("%s/Extension"), c.remote_name);
+                    str.Printf(_T("%s/Extension"), wxString(c.remote_name, *(wxGetApp().ConvIax)).c_str());
                     config->Write(str, c.remote);
                 } else {
                     // Since they're in the phone book, look for ringtone
-                    str.Printf(_T("%s/RingTone"), c.remote_name);
+                    str.Printf(_T("%s/RingTone"), wxString(c.remote_name, *(wxGetApp().ConvIax)).c_str());
                     wxGetApp().CallerIDRingName = config->Read(str, _T(""));
                 }
 
                 if(strcmp(c.local_context, "intercom") == 0) {
-#if defined(__UNICODE__)
-                    utf8.MB2WC(ws, c.local, 256);
-                    if(config->Read(_T("/Prefs/IntercomPass"), _T("s")).IsSameAs(ws)) {
-#else
-                    if(config->Read(_T("/Prefs/IntercomPass"), _T("s")).IsSameAs(c.local)) {
-#endif
+                    if(config->Read(_T("/Prefs/IntercomPass"), _T("s")).IsSameAs(wxString(c.local, *(wxGetApp().ConvIax)))) {
                         wxGetApp().IntercomTone.Start(1);
                         iaxc_millisleep(1000);
                         iaxc_unquelch(c.callNo);

@@ -99,21 +99,12 @@ void DevicesDialog::GetAudioDevices()
     int               i;
     long              caps;
     wxString          devname;
-#if defined(__UNICODE__)
-    wchar_t           wdevname[256];
-    wxMBConvUTF8      utf8;
-#endif
 
     iaxc_audio_devices_get(&devices, &nDevs, &input, &output, &ring);
 
     for(i=0; i<nDevs; i++) {
         caps =    devices->capabilities;
-#if defined(__UNICODE__)
-        utf8.MB2WC(wdevname, devices->name, 256);
-        devname = wdevname;
-#else
-        devname = devices->name;
-#endif
+        devname = wxString(devices->name, wxConvUTF8);
 
         if(caps & IAXC_AD_INPUT) {
             InputDevice->Append(devname);
@@ -214,10 +205,6 @@ void SetAudioDevices(wxString inname, wxString outname, wxString ringname)
     int                      input  = 0;
     int                      output = 0;
     int                      ring   = 0;
-#if defined(__UNICODE__)
-    wchar_t                  wdevname[256];
-    wxMBConvUTF8             utf8;
-#endif
 
     // Note that if we're called with an invalid devicename, the deviceID
     // stays 0, which equals default.
@@ -226,32 +213,17 @@ void SetAudioDevices(wxString inname, wxString outname, wxString ringname)
 
     for(i=0; i<nDevs; i++) {
         if(devices->capabilities & IAXC_AD_INPUT) {
-#if defined(__UNICODE__)
-            utf8.MB2WC(wdevname, devices->name, 256);
-            if(inname.Cmp(wdevname) == 0)
-#else
-            if(inname.Cmp(devices->name) == 0)
-#endif
+            if(inname.Cmp(wxString(devices->name, wxConvUTF8)) == 0)
                 input = devices->devID;
         }
 
         if(devices->capabilities & IAXC_AD_OUTPUT) {
-#if defined(__UNICODE__)
-            utf8.MB2WC(wdevname, devices->name, 256);
-            if(outname.Cmp(wdevname) == 0)
-#else
-            if(outname.Cmp(devices->name) == 0)
-#endif
+            if(outname.Cmp(wxString(devices->name, wxConvUTF8)) == 0)
                 output = devices->devID;
         }
 
         if(devices->capabilities & IAXC_AD_RING) {
-#if defined(__UNICODE__)
-            utf8.MB2WC(wdevname, devices->name, 256);
-            if(ringname.Cmp(wdevname) == 0)
-#else
-            if(ringname.Cmp(devices->name) == 0)
-#endif
+            if(ringname.Cmp(wxString(devices->name, wxConvUTF8)) == 0)
                 ring = devices->devID;
         }
         devices++;

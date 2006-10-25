@@ -32,8 +32,9 @@ static char *output_filename = NULL;
 static char *username = NULL;
 static char *password = NULL;
 static char *host = NULL;
+static int  reg = 0;
 int do_levels = 0;
-int intercom = 0;
+int intercom = 1;
 int initialized = 0;
 int reg_id = 0;
 
@@ -201,7 +202,6 @@ int main(int argc, char **argv)
 		  if(i+1 >= argc) usage();
 		  host = argv[++i];
 		  break;
-
 		default:
 		  usage();
 	      }
@@ -236,9 +236,9 @@ int main(int argc, char **argv)
 	}
 
 //	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
-//	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_SPEEX);
-	iaxc_set_formats(IAXC_FORMAT_GSM,IAXC_FORMAT_GSM);
-	iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
+	iaxc_set_formats(IAXC_FORMAT_SPEEX,IAXC_FORMAT_SPEEX);
+//	iaxc_set_formats(IAXC_FORMAT_GSM,IAXC_FORMAT_GSM);
+//	iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ULAW);
 	//iaxc_set_formats(IAXC_FORMAT_ULAW,IAXC_FORMAT_ILBC|IAXC_FORMAT_ULAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX);
 	iaxc_set_silence_threshold(silence_threshold);
 
@@ -262,11 +262,12 @@ int main(int argc, char **argv)
 	    h: increase output level\n\
 	    n: decrease output level\n\
 	    Enter: display current audio levels\n");
-	if(dest) {
-	    fprintf(f, "Calling %s\n", dest);
-
-	    iaxc_call(dest);
-	}
+	
+	if(dest) 
+	{
+		fprintf(f, "Calling %s\n", dest);
+		iaxc_call(dest);
+	} 
 
 	iaxc_start_processing_thread();
 

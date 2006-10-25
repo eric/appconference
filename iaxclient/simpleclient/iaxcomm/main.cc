@@ -89,6 +89,8 @@ bool theApp::OnInit()
     long     dummy;
     bool     bCont;
 
+    ConvIax = &wxConvISO8859_1; /* Caller ID in IAX may be ISO-8859-1 encoded */
+
 #ifndef __WXMAC__
 // XXX this seems broken on mac with wx-2.4.2
     m_single_instance_checker = new wxSingleInstanceChecker(_T("iaxcomm.lock"));
@@ -238,9 +240,6 @@ void theApp::RegisterByName(wxString RegName)
     wxConfig    *config = theApp::getConfig();
     wxChar      KeyPath[256];
     wxListItem  item;
-#if defined(__UNICODE__)
-    wxMBConvUTF8 utf8;
-#endif
 
     wxStringTokenizer tok(RegName, _T(":@"));
     char user[256], pass[256], host[256];
@@ -249,16 +248,9 @@ void theApp::RegisterByName(wxString RegName)
         return;
 
     if(tok.CountTokens() == 3) {
-
-#if defined(__UNICODE__)
-        utf8.WC2MB(user, tok.GetNextToken().c_str(), 256);
-        utf8.WC2MB(pass, tok.GetNextToken().c_str(), 256);
-        utf8.WC2MB(host, tok.GetNextToken().c_str(), 256);
-#else
-        strncpy(user, tok.GetNextToken().c_str(), 256);
-        strncpy(pass, tok.GetNextToken().c_str(), 256);
-        strncpy(host, tok.GetNextToken().c_str(), 256);
-#endif
+        strncpy(user, tok.GetNextToken().mb_str(*ConvIax), sizeof(user));
+        strncpy(pass, tok.GetNextToken().mb_str(*ConvIax), sizeof(pass));
+        strncpy(host, tok.GetNextToken().mb_str(*ConvIax), sizeof(host));
     } else {
         // Check if it's a Speed Dial
         wxStrcpy(KeyPath,     _T("/Accounts/"));
@@ -268,15 +260,9 @@ void theApp::RegisterByName(wxString RegName)
             theFrame->SetStatusText(_T("Register format error"));
             return;
         }
-#if defined(__UNICODE__)
-        utf8.WC2MB(user, config->Read(_T("Username"), _T("")).c_str(), 256);
-        utf8.WC2MB(pass, config->Read(_T("Password"), _T("")).c_str(), 256);
-        utf8.WC2MB(host, config->Read(_T("Host"), _T("")).c_str(), 256);
-#else
-        wxStrcpy(user, config->Read(_T("Username"), _T("")));
-        wxStrcpy(pass, config->Read(_T("Password"), _T("")));
-        wxStrcpy(host, config->Read(_T("Host"), _T("")));
-#endif
+        strncpy(user, config->Read(_T("Username"), _T("")).mb_str(*ConvIax), sizeof(user));
+        strncpy(pass, config->Read(_T("Password"), _T("")).mb_str(*ConvIax), sizeof(pass));;
+        strncpy(host, config->Read(_T("Host"), _T("")).mb_str(*ConvIax), sizeof(host));
     }
     iaxc_register(user, pass, host);
 }

@@ -178,9 +178,6 @@ void AccountsDialog::OnRemoveAccountList(wxCommandEvent &event)
 
 void AddAccountDialog::OnAdd(wxCommandEvent &event)
 {
-#if defined(__UNICODE__)
-    wxMBConvUTF8 utf8;
-#endif
     wxConfig  *config = theApp::getConfig();
 
     if(!Password->GetValue().IsSameAs(Confirm->GetValue())) {
@@ -203,16 +200,11 @@ void AddAccountDialog::OnAdd(wxCommandEvent &event)
     // Thanks, AJ
     char user[256], pass[256], host[256];
 
-#if defined(__UNICODE__)
-    utf8.WC2MB(user, UserName->GetValue().c_str(), 256);
-    utf8.WC2MB(pass, Password->GetValue().c_str(), 256);
-    utf8.WC2MB(host, HostName->GetValue().c_str(), 256);
-#else
-    wxStrcpy(user, UserName->GetValue());
-    wxStrcpy(pass, Password->GetValue());
-    wxStrcpy(host, HostName->GetValue());
-#endif
+    strncpy(user, UserName->GetValue().mb_str(*(wxGetApp().ConvIax)), sizeof(user));
+    strncpy(pass, Password->GetValue().mb_str(*(wxGetApp().ConvIax)), sizeof(pass));
+    strncpy(host, HostName->GetValue().mb_str(*(wxGetApp().ConvIax)), sizeof(host));
     iaxc_register(user, pass, host);
+
 
     AccountName->SetValue(_T(""));
     HostName->SetValue(_T(""));

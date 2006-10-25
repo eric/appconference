@@ -96,6 +96,8 @@ public:
     wxString      Number;
     wxString      DefaultAccount;
 
+    wxMBConv      *ConvIax;
+
     static wxConfig *getConfig();
 
   #ifdef __WXMSW__

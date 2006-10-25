@@ -243,7 +243,7 @@ MyFrame::MyFrame(wxWindow *parent)
 #endif
 
 #ifdef DATADIR
-    filename = wxFileName(wxString(DATADIR) + wxFILE_SEP_PATH +
+    filename = wxFileName(wxString(DATADIR, wxConvUTF8) + wxFILE_SEP_PATH +
 			  _T("iaxcomm.htb"));
 
     if (filename.FileExists()) {
@@ -618,18 +618,8 @@ int MyFrame::HandleIAXEvent(iaxc_event *e)
 
 int MyFrame::HandleStatusEvent(char *msg)
 {
-#if defined(__UNICODE__)
-    wchar_t ws[256];
-    wxMBConvUTF8 utf8;
-#endif
-
     MessageTicks = 0;
-#if defined(__UNICODE__)
-    utf8.MB2WC(ws, msg, 256);
-    wxGetApp().theFrame->SetStatusText(ws);
-#else
-    wxGetApp().theFrame->SetStatusText(msg);
-#endif
+    wxGetApp().theFrame->SetStatusText(wxString(msg, *(wxGetApp().ConvIax)));
     return 1;
 }
 
@@ -691,7 +681,7 @@ void MyFrame::OnAbout(wxCommandEvent& WXUNUSED(event))
     char*     libver = (char *)malloc(256);
     
     libver = iaxc_version(libver);
-    msg.Printf(_T("iaxComm version:\t%s\nlibiaxclient version:\t%s"), VERSION, libver);
+    msg.Printf(_T("iaxComm version:\t%s\nlibiaxclient version:\t%s"), wxString(VERSION, wxConvUTF8).c_str(), wxString(libver, wxConvUTF8).c_str());
     wxMessageBox(msg, _("iaxComm"), wxOK | wxICON_INFORMATION, this);
 }
 
@@ -752,23 +742,19 @@ void MyFrame::OnOneTouch(wxCommandEvent &event)
 void MyFrame::OnKeyPad(wxCommandEvent &event)
 {
     wxString  Message;
-#if defined(__UNICODE__)
-    wchar_t   digit;
-#else
-    char      digit;
-#endif
+    wxChar    digit;
     int       OTNo;
 
     OTNo  = event.GetId() - XRCID("KP0");
-    digit = '0' + (char) OTNo;
+    digit = wxT('0') + OTNo;
 
     if(OTNo == 10)
-        digit = '*';
+        digit = wxT('*');
 
     if(OTNo == 11)
-        digit = '#';
+        digit = wxT('#');
 
-    iaxc_send_dtmf(digit);
+    iaxc_send_dtmf((char)digit);
 
     wxString SM;
     SM.Printf(_T("DTMF %c"), digit); 
@@ -799,9 +785,6 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
     int      selected = iaxc_selected_call();
     char     ext[256];
     wxString Title;
-#if defined(__UNICODE__)
-    wxMBConvUTF8 utf8;
-#endif
   
     Title.Printf(_T("Transfer Call %d"), selected);
     wxTextEntryDialog dialog(this,
@@ -812,11 +795,7 @@ void MyFrame::OnTransfer(wxCommandEvent &event)
 
     if(dialog.ShowModal() != wxID_CANCEL) {
 
-#if defined(__UNICODE__)
-        utf8.WC2MB(ext, dialog.GetValue().c_str(), 256);
-#else
-        strncpy(ext, dialog.GetValue().c_str(), 256);
-#endif
+        strncpy(ext, dialog.GetValue().mb_str(*(wxGetApp().ConvIax)), sizeof(ext));
 
         iaxc_blind_transfer_call(selected, ext);
     }
