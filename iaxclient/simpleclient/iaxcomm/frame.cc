@@ -118,6 +118,8 @@ BEGIN_EVENT_TABLE(MyFrame, wxFrame)
     EVT_TEXT_ENTER    (XRCID("Extension"),    MyFrame::OnDialDirect)
 END_EVENT_TABLE()
 
+static void AddBook(wxHtmlHelpController *help, wxFileName filename);
+
 //----------------------------------------------------------------------------------------
 // Public methods
 //----------------------------------------------------------------------------------------
@@ -234,7 +236,14 @@ MyFrame::MyFrame(wxWindow *parent)
     help = new wxHtmlHelpController;
 
     wxFileName filename = wxFileName(_T("iaxcomm.htb"));
+    AddBook(help, filename);
 
+    timer = new MyTimer();
+    timer->Start(100);
+}
+
+void AddBook(wxHtmlHelpController *help, wxFileName filename)
+{
 #ifdef NOHELP
     if (filename.FileExists()) {
 	help->AddBook(filename);
@@ -251,9 +260,6 @@ MyFrame::MyFrame(wxWindow *parent)
 	return;
     }
 #endif /* DATADIR */
-
-    timer = new MyTimer();
-    timer->Start(100);
 }
 
 void MyFrame::RePanel(wxString Name)
