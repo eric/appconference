@@ -2911,7 +2911,7 @@ static struct iax_event *iax_net_read(void)
 		// TODO: this is buttugly from a design point of view. Basically we
 		// change libiax2 behavior to accomodate iaxclient.
 		// There must be a way to do it better.
-		event = (struct event *)malloc(sizeof(struct iax_event));
+		event = (struct iax_event *)malloc(sizeof(struct iax_event));
 		if ( event != NULL ) event->etype = IAX_EVENT_NULL;
 	}
 	return event;

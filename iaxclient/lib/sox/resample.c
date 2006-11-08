@@ -52,7 +52,7 @@
 
 /* Modified to compile outside of SoX by Steve Kann <stevek@stevek.com>
  * 14Apr2003 */
-
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,6 +61,7 @@
 
 /* sox includes */
 #include "sox.h"
+#include "stdio.h"
 
 /* this Float MUST match that in filter.c */
 #define Float double/*float*/

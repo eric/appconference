@@ -4,6 +4,7 @@
 
 #if defined(__STDC__) || defined(_MSC_VER)
 #include <stdarg.h>
+#include <stdlib.h>
 #else
 #include <varargs.h>
 #endif

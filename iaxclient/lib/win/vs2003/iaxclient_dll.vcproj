@@ -22,22 +22,25 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..,..\..\gsm\inc,..\..\portaudio\include,..\..\portaudio\src\common,..\..\portaudio\pablio,..\..\portmixer\px_common,..\..\libspeex\include,..\..\libiax2\src,..\..\wince"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_WINDLL;_USRDLL;BUILDING_DLL;PA_NO_DS;PA_NO_ASIO;SPEEX_PREPROCESS=1;NEWJB;LIBIAX;SPEEX_EC=1;inline=__inline;strncasecmp=strnicmp;vsnprintf=_vsnprintf"
-				MinimalRebuild="TRUE"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_WINDLL;_USRDLL;BUILDING_DLL;PA_NO_DS;PA_NO_ASIO;SPEEX_PREPROCESS=1;NEWJB;LIBIAX;SPEEX_EC=1;_CRT_SECURE_NO_DEPRECATE;inline=__inline;strncasecmp=_strnicmp;vsnprintf=_vsnprintf"
+				MinimalRebuild="FALSE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				BufferSecurityCheck="TRUE"
 				RuntimeTypeInfo="FALSE"
 				PrecompiledHeaderFile=""
-				AssemblerListingLocation="$(IntDir)/"
-				ObjectFile="$(IntDir)/"
-				ProgramDataBaseFileName="$(IntDir)/"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\vc80.pdb"
 				BrowseInformation="0"
-				WarningLevel="0"
+				BrowseInformationFile="$(TargetDir)$(TargetName).bsc"
+				WarningLevel="3"
 				SuppressStartupBanner="TRUE"
-				Detect64BitPortabilityProblems="FALSE"
+				Detect64BitPortabilityProblems="TRUE"
 				DebugInformationFormat="3"
 				CallingConvention="2"
-				CompileAs="1"/>
+				CompileAs="1"
+				DisableSpecificWarnings="4244;4100;4201;4305;4189;4127;4131"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -91,19 +94,27 @@
 			ATLMinimizesCRunTimeLibraryUsage="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="4"
+				Optimization="2"
+				InlineFunctionExpansion="1"
+				FavorSizeOrSpeed="2"
+				OmitFramePointers="TRUE"
 				AdditionalIncludeDirectories="..\..,..\..\gsm\inc,..\..\portaudio\include,..\..\portaudio\src\common,..\..\portaudio\pablio,..\..\portmixer\px_common,..\..\libspeex\include,..\..\libiax2\src,..\..\wince"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_WINDLL;_USRDLL;BUILDING_DLL;PA_NO_DS;PA_NO_ASIO;SPEEX_PREPROCESS=1;NEWJB;LIBIAX;SPEEX_EC=1;inline=__inline;strncasecmp=strnicmp;vsnprintf=_vsnprintf"
+				StringPooling="TRUE"
 				RuntimeLibrary="2"
+				RuntimeTypeInfo="FALSE"
 				PrecompiledHeaderFile=""
-				AssemblerListingLocation="$(IntDir)/"
-				ObjectFile="$(IntDir)/"
-				ProgramDataBaseFileName="$(IntDir)/"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\vc80.pdb"
 				BrowseInformation="0"
-				WarningLevel="0"
+				BrowseInformationFile="$(TargetDir)$(TargetName).bsc"
+				WarningLevel="3"
 				SuppressStartupBanner="TRUE"
+				DebugInformationFormat="3"
 				CallingConvention="2"
-				CompileAs="1"/>
+				CompileAs="1"
+				DisableSpecificWarnings="4244;4100;4201;4305;4189;4127;4131"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
@@ -230,6 +241,9 @@
 				RelativePath="..\..\libiax2\src\iax2-parser.h">
 			</File>
 			<File
+				RelativePath="..\..\libiax2\src\iax2.h">
+			</File>
+			<File
 				RelativePath="..\..\iaxclient.h">
 			</File>
 			<File
@@ -246,10 +260,19 @@
 			Name="DSP"
 			Filter="c;h">
 			<File
+				RelativePath="..\..\sox\compand.c">
+			</File>
+			<File
 				RelativePath="..\..\spandsp\plc.c">
 			</File>
 			<File
 				RelativePath="..\..\spandsp\plc.h">
+			</File>
+			<File
+				RelativePath="..\..\sox\resample.c">
+			</File>
+			<File
+				RelativePath="..\..\sox\soxcompat.c">
 			</File>
 		</Filter>
 		<Filter
@@ -420,6 +443,14 @@
 				RelativePath="..\..\portaudio\src\common\pa_util.h">
 			</File>
 			<File
+				RelativePath="..\..\portaudio\src\hostapi\dsound\pa_win_ds_dynlink.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\portaudio\src\hostapi\dsound\pa_win_ds_dynlink.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\portaudio\src\os\win\pa_win_hostapis.c">
 			</File>
 			<File
@@ -427,6 +458,12 @@
 			</File>
 			<File
 				RelativePath="..\..\portaudio\src\hostapi\wmme\pa_win_wmme.c">
+			</File>
+			<File
+				RelativePath="..\..\portaudio\src\os\win\pa_x86_plain_converters.c">
+			</File>
+			<File
+				RelativePath="..\..\portaudio\src\os\win\pa_x86_plain_converters.h">
 			</File>
 			<File
 				RelativePath="..\..\portaudio\pablio\ringbuffer.c">
@@ -439,7 +476,7 @@
 			Name="PortMixer"
 			Filter="cpp;h">
 			<File
-				RelativePath="..\..\portmixer\px_win_wmme\px_win_wmme.cpp">
+				RelativePath="..\..\portmixer\px_win_wmme\px_win_wmme.c">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
