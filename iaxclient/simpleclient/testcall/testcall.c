@@ -88,14 +88,18 @@ struct iaxc_sound * load_sound(const char *filename)
 
 	// Find file length
 	fseek(f, 0, SEEK_END);
-	len = ftell(f);
+	len = ftell(f) / 2; // len is the number of samples, not bytes
 	fseek(f, 0, SEEK_SET);
-
+	
 	snd = (struct iaxc_sound *) calloc(1, sizeof(struct iaxc_sound));
-	snd->data = (short *) calloc(len, 1);
-	snd->len = fread((void *)snd->data, 1, len, f);
-
-	for ( i=0 ; i<len/2 ; i++ ) snd->data[i] = ntohs(snd->data[i]);
+	snd->data = (short *) calloc(len, 2);
+	snd->len = fread((void *)snd->data, 2, len, f);
+	
+	// For some reason, on Cygwin, fread does not return the correct number of elements read
+	// We need to set the record straight here
+	snd->len = len;
+	
+	for ( i=0 ; i<len ; i++ ) snd->data[i] = ntohs(snd->data[i]);
 
 	fclose(f);
 
