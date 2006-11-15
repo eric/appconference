@@ -11,13 +11,19 @@
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
+ * Video Conferencing support added by 
+ * Neil Stratford <neils@vipadia.com>
+ * Copyright (C) 2005, 2005 Vipadia Limited
+ *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
  *
  */
 
+#include "asterisk/autoconfig.h"
 #include "app_conference.h"
 #include "common.h"
+#include "asterisk/module.h"
 
 /*
 
@@ -48,14 +54,13 @@ static char *descrip = "  Conference():  returns 0\n"
 // functions defined in asterisk/module.h
 //
 
-STANDARD_LOCAL_USER ;
-LOCAL_USER_DECL;
 
-int unload_module( void )
+static int unload_module( void *mod )
 {
 	ast_log( LOG_NOTICE, "unloading app_conference module\n" ) ;
 
-	STANDARD_HANGUP_LOCALUSERS ; // defined in asterisk/module.h
+	ast_module_user_hangup_all();
+	//STANDARD_HANGUP_LOCALUSERS ; // defined in asterisk/module.h
 
 	// register conference cli functions
 	unregister_conference_cli() ;
@@ -63,7 +68,7 @@ int unload_module( void )
 	return ast_unregister_application( app ) ;
 }
 
-int load_module( void )
+static int load_module( void *mod )
 {
 	ast_log( LOG_NOTICE, "loading app_conference module [ $Revision$ ]\n" ) ;
 
@@ -76,22 +81,26 @@ int load_module( void )
 	return ast_register_application( app, app_conference_main, synopsis, descrip ) ;
 }
 
-char *description( void )
+static const char *description( void )
 {
 	return tdesc ;
 }
 
-int usecount( void )
+#if 0
+static int usecount( void *mod )
 {
 	int res;
 	STANDARD_USECOUNT( res ) ; // defined in asterisk/module.h
 	return res;
 }
+#endif
 
-char *key()
+static char *key( )
 {
 	return ASTERISK_GPL_KEY ;
 }
+
+
 
 //
 // main app_conference function
@@ -100,17 +109,19 @@ char *key()
 int app_conference_main( struct ast_channel* chan, void* data ) 
 {
 	int res = 0 ;
-	struct localuser *u ;
+	struct ast_module_user *u ;
 	
 	// defined in asterisk/module.h
-	LOCAL_USER_ADD( u ) ; 
+	//LOCAL_USER_ADD( u ) ; 
+	u = ast_module_user_add(chan);
 
 	// call member thread function
 	res = member_exec( chan, data ) ;
 
 	// defined in asterisk/module.h
-	LOCAL_USER_REMOVE( u ) ;
-	
+	//LOCAL_USER_REMOVE( u ) ;
+	ast_module_user_remove (u);
+
 	return res ;
 }
 
@@ -144,3 +155,14 @@ void add_milliseconds( struct timeval* tv, long ms )
 
 	return ;
 }
+
+static int reload(void *mod)
+{
+	return 0;	
+}
+
+#define AST_MODULE "conference"
+
+AST_MODULE_INFO_STANDARD(ASTERISK_GPL_KEY, "Conference");
+
+//STD_MOD(MOD_1, reload, NULL, NULL);

@@ -33,12 +33,27 @@
 int conference_show_stats( int fd, int argc, char *argv[] ) ;
 int conference_show_stats_name( int fd, const char* name ) ;
 
+int conference_restart( int fd, int argc, char *argv[] );
 
 int conference_debug( int fd, int argc, char *argv[] ) ;
 int conference_no_debug( int fd, int argc, char *argv[] ) ;
 
+int conference_list( int fd, int argc, char *argv[] ) ;
+int conference_kick( int fd, int argc, char *argv[] ) ;
+
+int conference_mute( int fd, int argc, char *argv[] ) ;
+int conference_unmute( int fd, int argc, char *argv[] ) ;
+int conference_mutechannel( int fd, int argc, char *argv[] ) ;
+int conference_unmutechannel( int fd, int argc, char *argv[] ) ;
+int conference_viewstream( int fd, int argc, char *argv[] ) ;
+int conference_viewchannel( int fd, int argc, char *argv[] ) ;
+
 int conference_play_sound( int fd, int argc, char *argv[] ) ;
 int conference_stop_sounds( int fd, int argc, char *argv[] ) ;
+
+
+int conference_play_video( int fd, int argc, char *argv[] ) ;
+int conference_stop_videos( int fd, int argc, char *argv[] ) ;
 
 int conference_end( int fd, int argc, char *argv[] ) ;
 

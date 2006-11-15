@@ -10,6 +10,10 @@
  * Copyright (C) 2003, 2004 HorizonLive.com, Inc.
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
+ * 
+ * Video Conferencing support added by 
+ * Neil Stratford <neils@vipadia.com>
+ * Copyright (C) 2005, 2005 Vipadia Limited
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
@@ -62,6 +66,7 @@ struct ast_conference
 	// single-linked list of members in conference
 	struct ast_conf_member* memberlist ;
 	int membercount ;
+        int video_id_count;
 	
 	// conference thread id
 	pthread_t conference_thread ;
@@ -85,6 +90,9 @@ struct ast_conference
 	short debug_flag ;	
 } ;
 
+
+#include "member.h"
+
 //
 // function declarations
 //
@@ -101,11 +109,11 @@ int end_conference( struct ast_conference* conf ) ;
 // find a particular member, locking if requested.
 struct ast_conf_member *find_member ( char *chan, int lock) ;
 
-
 int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_silent_frame( struct ast_conference* conf, struct ast_conf_member* member ) ;
 
+int get_new_video_id( struct ast_conference *conf );
 void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
@@ -114,6 +122,19 @@ int count_member( struct ast_conf_member* member, struct ast_conference* conf, s
 void init_conference( void ) ;
 
 int get_conference_count( void ) ;
+
+int show_conference_list ( int fd, const char* name );
+int manager_conference_list( struct mansession *s, struct message *m);
+int show_conference_stats ( int fd );
+int kick_member ( const char* confname, int user_id);
+int kick_all ( void );
+int mute_member ( const char* confname, int user_id);
+int unmute_member ( const char* confname, int user_id);
+int mute_channel ( const char* confname, const char* user_chan);
+int unmute_channel ( const char* confname, const char* user_chan);
+int viewstream_switch ( const char* confname, int user_id, int stream_id);
+int viewchannel_switch ( const char* confname, const char* user_chan, const char* stream_chan);
+
 int get_conference_stats( ast_conference_stats* stats, int requested ) ;
 int get_conference_stats_by_name( ast_conference_stats* stats, const char* name ) ;
 

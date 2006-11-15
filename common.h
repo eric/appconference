@@ -23,11 +23,10 @@
 #include "conf_frame.h"
 
 // function includesee
+//#include "member.h"
 #include "conference.h"
-#include "member.h"
 #include "frame.h"
 #include "cli.h"
-
 
 /* Utility functions */
 

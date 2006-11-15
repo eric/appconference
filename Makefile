@@ -17,13 +17,14 @@
 # app_conference defines which can be passed on the command-line
 #
 
-INSTALL_PREFIX := /usr
-INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/lib/asterisk/modules
+INSTALL_PREFIX := 
+INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/usr/lib/asterisk/modules
+INSTALL_SOUNDS_DIR := $(INSTALL_PREFIX)/var/lib/asterisk/sounds
 
-ASTERISK_INCLUDE_DIR := $(INSTALL_PREFIX)/include/asterisk/
+ASTERISK_INCLUDE_DIR := /home/mihai/dld/asterisk-1.4.0-beta3/include
 
 # turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
-APP_CONFERENCE_DEBUG := 1
+APP_CONFERENCE_DEBUG := 0
 
 # 0 = OFF 1 = astdsp 2 = speex
 SILDET := 2
@@ -34,6 +35,7 @@ SILDET := 2
 
 OBJS = app_conference.o conference.o member.o frame.o cli.o
 SHAREDOS = app_conference.so
+
 
 #
 # standard compile settings
@@ -53,15 +55,8 @@ CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations $(DEBUG) $(INCL
 # PERF: below is 10% faster than -O2 or -O3 alone.
 #CFLAGS += -O3 -ffast-math -funroll-loops
 # below is another 5% faster or so.
-CFLAGS += -O3 -ffast-math -funroll-all-loops -fprefetch-loop-arrays -fsingle-precision-constant
-
-# this is fun for PPC
+#CFLAGS += -O3 -ffast-math -funroll-all-loops -fsingle-precision-constant
 #CFLAGS += -mcpu=7450 -faltivec -mabi=altivec -mdynamic-no-pic
-
-# this is fun for x86
-CFLAGS += -march=pentium3 -msse -mfpmath=sse,387
-
-
 # adding -msse -mfpmath=sse has little effect.
 #CFLAGS += -O3 -msse -mfpmath=sse
 #CFLAGS += $(shell if $(CC) -march=$(PROC) -S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo "-march=$(PROC)"; fi)
@@ -102,15 +97,20 @@ clean:
 	rm -f *.so *.o $(OBJS)
 
 app_conference.so : $(OBJS)
-	$(CC) -pg -shared -Xlinker -x -o $@ $(OBJS)
+	$(CC) -pg $(SOLINK) -o $@ $(OBJS)
 
 vad_test: vad_test.o libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
 	$(CC) $(PROFILE) -o $@ $^ -lm
 
-install: all
+sounds: all
+	for x in sounds/*; do \
+		install -m 644 $$x $(INSTALL_SOUNDS_DIR) ; \
+	done
+
+install: sounds
 	for x in $(SHAREDOS); do $(INSTALL) -m 755 $$x $(INSTALL_MODULES_DIR) ; done
+
 
 # config: all
 # 	cp conf.conf /etc/asterisk/
-	
 

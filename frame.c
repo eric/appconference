@@ -10,12 +10,17 @@
  * Copyright (C) 2003, 2004 HorizonLive.com, Inc.
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
+ * 
+ * Video Conferencing support added by 
+ * Neil Stratford <neils@vipadia.com>
+ * Copyright (C) 2005, 2005 Vipadia Limited
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
  *
  */
 
+#include "asterisk/autoconfig.h"
 #include "frame.h"
 
 conf_frame* mix_frames( conf_frame* frames_in, int speaker_count, int listener_count )
@@ -43,6 +48,7 @@ conf_frame* mix_frames( conf_frame* frames_in, int speaker_count, int listener_c
 	{
 		// pass-through frames
 		frames_out = mix_single_speaker( frames_in ) ;
+		//printf("mix single speaker\n");
 	}
 	else
 	{
@@ -270,7 +276,7 @@ conf_frame* mix_multiple_speakers(
 			else
 			{			
 				// mix the new frame in with the existing buffer			
-				mix_slinear_frames( cp_listenerData, (char*)( cf_spoken->fr->data ), cf_spoken->fr->samples ) ;
+				mix_slinear_frames( cp_listenerData, (char*)( cf_spoken->fr->data ), AST_CONF_BLOCK_SAMPLES);//XXX NAS cf_spoken->fr->samples ) ;
 			}
 		}
 		
@@ -341,7 +347,7 @@ struct ast_frame* convert_frame_from_slinear( struct ast_trans_pvt* trans, struc
 	// check for null translator ( after we've checked that we need to translate )
 	if ( trans == NULL )
 	{
-		ast_log( LOG_ERROR, "unable to translate frame with null translation path\n" ) ;
+		//ast_log( LOG_ERROR, "unable to translate frame with null translation path\n" ) ;
 		return fr ;
 	}
 
@@ -383,7 +389,7 @@ struct ast_frame* convert_frame( struct ast_trans_pvt* trans, struct ast_frame* 
 	// check for errors
 	if ( translated_frame == NULL ) 
 	{
-		ast_log( LOG_ERROR, "unable to translate frame\n" ) ;
+		ast_log( LOG_ERROR, "unable to translate frame" ) ;
 		return NULL ;
 	}
 
@@ -393,6 +399,7 @@ struct ast_frame* convert_frame( struct ast_trans_pvt* trans, struct ast_frame* 
 
 conf_frame* delete_conf_frame( conf_frame* cf )
 {
+  int c;
 	// check for null frames
 	if ( cf == NULL )
 	{
@@ -411,7 +418,6 @@ conf_frame* delete_conf_frame( conf_frame* cf )
 	}
 		
 	// make sure converted frames are set to null
-	int c;
 	for ( c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
 	{
 		if ( cf->converted[ c ] != NULL )
@@ -610,5 +616,16 @@ struct ast_frame* get_silent_slinear_frame( void )
 	
 	return ast_frdup( f ) ;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 

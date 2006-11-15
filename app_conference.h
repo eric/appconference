@@ -19,9 +19,20 @@
 #ifndef _ASTERISK_CONF_H
 #define _ASTERISK_CONF_H
 
+
+/* standard includes */
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <math.h>
 #include <stdio.h>
 
+
+#include <pthread.h>
+
 /* asterisk includes */
+#include <asterisk/utils.h>
 #include <asterisk/pbx.h>
 #include <asterisk/module.h>
 #include <asterisk/logger.h>
@@ -32,15 +43,9 @@
 #include <asterisk/translate.h>
 #include <asterisk/channel.h>
 #include <asterisk/file.h>
+//#include <asterisk/channel_pvt.h>
 #include <asterisk/cli.h>
 
-/* standard includes */
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <math.h>
-
-#include <pthread.h>
 
 #if (SILDET == 2)
 #include "libspeex/speex_preprocess.h"
@@ -65,15 +70,15 @@
 
 // number of times the last non-silent frame should be 
 // repeated after silence starts
-//#define AST_CONF_CACHE_LAST_FRAME 1
+#define AST_CONF_CACHE_LAST_FRAME 1
 
 //
 // debug defines
 //
 
-#define DEBUG_USE_TIMELOG
+//#define DEBUG_USE_TIMELOG
 
-#define DEBUG_FRAME_TIMESTAMPS
+//#define DEBUG_FRAME_TIMESTAMPS
 
 // #define DEBUG_OUTPUT_PCM
 
@@ -88,6 +93,7 @@
 #define AST_CONF_SAMPLE_RATE 8000
 #define AST_CONF_SAMPLE_SIZE 16
 #define AST_CONF_FRAME_INTERVAL 20
+//neils#define AST_CONF_FRAME_INTERVAL 30
 
 //
 // so, since we cycle approximately every 20ms, 
@@ -123,11 +129,17 @@
 // maximum number of frames queued per member
 #define AST_CONF_MAX_QUEUE 100
 
+// max video frames in the queue
+#define AST_CONF_MAX_VIDEO_QUEUE 800
+
+// max dtmf frames in the queue
+#define AST_CONF_MAX_DTMF_QUEUE 8
+
 // minimum number of frames queued per member
 #define AST_CONF_MIN_QUEUE 0
 
 // number of queued frames before we start dropping
-#define AST_CONF_QUEUE_DROP_THRESHOLD 4
+#define AST_CONF_QUEUE_DROP_THRESHOLD 40
 
 // number of milliseconds between frame drops
 #define AST_CONF_QUEUE_DROP_TIME_LIMIT 750
@@ -151,7 +163,7 @@
 //
 
 // number of frames behind before warning
-#define AST_CONF_OUTGOING_FRAMES_WARN 50
+#define AST_CONF_OUTGOING_FRAMES_WARN 70
 
 // number of milliseconds off AST_CONF_FRAME_INTERVAL before warning
 #define AST_CONF_INTERVAL_WARNING 1000
@@ -180,9 +192,9 @@
 // format translation values
 //
 
-// AST_FORMAT_MAX_AUDIO is 1 << 15, so we support 0..15
-#define AC_SUPPORTED_FORMATS 16 
-#define AC_SLINEAR_INDEX 6
+#define AC_SUPPORTED_FORMATS 4
+
+enum { AC_SLINEAR_INDEX = 0, AC_ULAW_INDEX, AC_ALAW_INDEX, AC_GSM_INDEX } ;
 
 //
 // app_conference functions
