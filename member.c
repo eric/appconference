@@ -915,6 +915,9 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	int denoise_flag = 0 ;
 	int agc_flag = 0 ;
 	
+	// is this member using the telephone?
+	int via_telephone = 0 ;
+	
 	// temp pointer to flags string
 	char* flags = member->flags ;
 
@@ -988,10 +991,52 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// set the dsp to null so silence detection is disabled by default
 	member->dsp = NULL ;
 
+#if ( SILDET == 2 )
+	//
+	// configure silence detection and preprocessing
+	// if the user is coming in via the telephone, 
+	// and is not listen-only
+	//
+	if ( 
+		via_telephone == 1 
+		&& member->type != 'L'
+	)
+	{
+		// create a speex preprocessor
+		member->dsp = speex_preprocess_state_init( AST_CONF_BLOCK_SAMPLES, AST_CONF_SAMPLE_RATE ) ;
+		
+		if ( member->dsp == NULL ) 
+		{
+			ast_log( LOG_WARNING, "unable to initialize member dsp, channel => %s\n", chan->name ) ;
+		}
+		else
+		{
+			ast_log( LOG_NOTICE, "member dsp initialized, channel => %s, v => %d, d => %d, a => %d\n", 
+				chan->name, vad_flag, denoise_flag, agc_flag ) ;
+		
+			// set speex preprocessor options
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_VAD, &vad_flag ) ;
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_DENOISE, &denoise_flag ) ;
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_AGC, &agc_flag ) ;
+
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_PROB_START, &member->vad_prob_start ) ;
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &member->vad_prob_continue ) ;
+			
+			ast_log( AST_CONF_DEBUG, "speech_prob_start => %f, speech_prob_continue => %f\n", 
+				member->dsp->speech_prob_start, member->dsp->speech_prob_continue ) ;
+		}
+	}
+#endif
+
 	//
 	// set connection type
 	//
-	if ( strncmp( member->channel_name, "SIP", 3 ) == 0 )
+
+	if ( via_telephone == 1 )
+	{
+		member->connection_type = 'T' ;
+	}
+	else if ( strncmp( member->channel_name, "SIP", 3 ) == 0 )
 	{
 		member->connection_type = 'S' ;
 	}
@@ -1267,7 +1312,7 @@ conf_frame* get_incoming_video_frame( struct ast_conf_member *member )
 
 	// get first frame in line
 	cfr = member->inVideoFramesTail ;
-
+	
 	// if it's the only frame, reset the queue,
 	// else, move the second frame to the front
 	if ( member->inVideoFramesTail == member->inVideoFrames )
@@ -2839,7 +2884,7 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		// ast_log( AST_CONF_DEBUG, "silent member, channel => %s\n", member->channel_name ) ;
 		
 		// !!! TESTING !!!
-#if 0
+#if 1
 		if ( member->speaking_state == 1 )
 		{
 			ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
@@ -2876,7 +2921,7 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		
 		// mark member as silent
 		member->speaking_state = 0 ;
-		
+		fprintf(stderr, "Mihai: member has stopped speaking\n");
 		// count the listeners
 		(*listener_count)++ ;
 	}
@@ -2896,10 +2941,11 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		// point the list at the new frame
 		*spoken_frames = cfr ;
 		
-#if 0				
+#if 1				
 		// !!! TESTING !!!
 		if ( member->speaking_state == 0 )
 		{
+			fprintf(stderr, "Mihai: member has started speaking\n");
 			ast_log( AST_CONF_DEBUG, "member has started speaking, channel => %s, incoming => %d, outgoing => %d\n",
 				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 		}

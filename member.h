@@ -54,15 +54,15 @@ struct ast_conf_member
 	char* flags ;	// raw member-type flags
 	char type ;		// L = ListenOnly, M = Moderator, S = Standard (Listen/Talk)
 	char* id ;		// member id
-
-  char *callerid;
-  char *callername;
-
-        // video conference params
-        int video_id;
-        int initial_id;
-        int req_video_id;
-
+	
+	char *callerid;
+	char *callername;
+	
+	// video conference params
+	int video_id;
+	int initial_id;
+	int req_video_id;
+	
 	// muting options - this member will not be heard/seen
 	int mute_audio;
 	int mute_video;

@@ -517,6 +517,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	conf->from_slinear_paths[ AC_ULAW_INDEX ] = ast_translator_build_path( AST_FORMAT_ULAW, AST_FORMAT_SLINEAR ) ;
 	conf->from_slinear_paths[ AC_ALAW_INDEX ] = ast_translator_build_path( AST_FORMAT_ALAW, AST_FORMAT_SLINEAR ) ;
 	conf->from_slinear_paths[ AC_GSM_INDEX ] = ast_translator_build_path( AST_FORMAT_GSM, AST_FORMAT_SLINEAR ) ;
+	conf->from_slinear_paths[ AC_SPEEX_INDEX ] = ast_translator_build_path( AST_FORMAT_SPEEX, AST_FORMAT_SLINEAR ) ;
 
 	// add the initial member
 	add_member( member, conf ) ;
@@ -1135,8 +1136,8 @@ int manager_conference_list( struct mansession *s, struct message *m )
 						conf->name,
 						member->video_id,
 						member->channel_name,
- member->chan->cid.cid_num ? member->chan->cid.cid_num : "unknown",
- member->chan->cid.cid_name ? member->chan->cid.cid_name : "unknown",
+						member->chan->cid.cid_num ? member->chan->cid.cid_num : "unknown",
+						member->chan->cid.cid_name ? member->chan->cid.cid_name : "unknown",
 						member->mute_audio ? "YES" : "NO",
 						idText);
 			    member = member->next;
