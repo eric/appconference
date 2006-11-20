@@ -2899,6 +2899,7 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		
 		// mark member as silent
 		member->speaking_state = 0 ;
+		fprintf(stderr, "Mihai: member has stopped speaking 1\n");
 		
 		// count the listeners
 		(*listener_count)++ ;
@@ -2910,6 +2911,7 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		// !!! TESTING !!!
 		if ( member->speaking_state == 1 )
 		{
+			fprintf(stderr, "Mihai: member has stopped speaking\n");
 			ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
 				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 		}
@@ -2921,7 +2923,7 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		
 		// mark member as silent
 		member->speaking_state = 0 ;
-		fprintf(stderr, "Mihai: member has stopped speaking\n");
+		
 		// count the listeners
 		(*listener_count)++ ;
 	}
@@ -2945,7 +2947,6 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		// !!! TESTING !!!
 		if ( member->speaking_state == 0 )
 		{
-			fprintf(stderr, "Mihai: member has started speaking\n");
 			ast_log( AST_CONF_DEBUG, "member has started speaking, channel => %s, incoming => %d, outgoing => %d\n",
 				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 		}
