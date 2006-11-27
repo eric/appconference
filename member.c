@@ -525,7 +525,7 @@ int member_exec( struct ast_channel* chan, void* data )
 		ast_log( LOG_ERROR, "unable to set read format to signed linear\n" ) ;
 		delete_member( member ) ;
 		return -1 ;
-	} 
+	}
 
 	if ( ast_set_write_format( chan, member->write_format ) < 0 ) // AST_FORMAT_SLINEAR, chan->nativeformats
 	{
@@ -1085,9 +1085,13 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			
 		case AST_FORMAT_GSM: 
 			member->write_format_index = AC_GSM_INDEX ;
-			break ;			
-		
-		default: 
+			break ;
+			
+		case AST_FORMAT_SPEEX:
+			member->write_format_index = AC_SPEEX_INDEX;
+			break;
+			
+		default:
 			member->write_format_index = 0 ;
 	}
 
@@ -1108,9 +1112,13 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			
 		case AST_FORMAT_GSM: 
 			member->read_format_index = AC_GSM_INDEX ;
-			break ;			
-		
-		default: 
+			break ;
+			
+		case AST_FORMAT_SPEEX:
+			member->read_format_index = AC_SPEEX_INDEX;
+			break;
+			
+		default:
 			member->read_format_index = 0 ;
 	}
 
@@ -2899,7 +2907,6 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		
 		// mark member as silent
 		member->speaking_state = 0 ;
-		fprintf(stderr, "Mihai: member has stopped speaking 1\n");
 		
 		// count the listeners
 		(*listener_count)++ ;
@@ -2911,7 +2918,6 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		// !!! TESTING !!!
 		if ( member->speaking_state == 1 )
 		{
-			fprintf(stderr, "Mihai: member has stopped speaking\n");
 			ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
 				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 		}
