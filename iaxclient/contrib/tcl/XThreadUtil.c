@@ -22,7 +22,12 @@
  *   or when you do not want to execute any callbacks.
  *   The 3. needs to be called from your IAX threads to post callbacks 
  *   to the master thread. 
+ *
+ *   See: http://wiki.tcl.tk/15342
  */
+
+#include <stdio.h>
+#include <string.h>
 
 #if TARGET_API_MAC_CARBON
 #	include <Tcl/tcl.h>

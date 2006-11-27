@@ -7,18 +7,34 @@ Copyright (c) 2006 Antonio Cano damas
 
 BSD-style license
 
-Debian dependencies:
-	tcl8.4-dev
-	tcllib
-	tclthread
+Building:
 
-Compile:
-	./configure --with-tcl=/usr/lib/tcl8.4
-	make
-[Note: /usr/lib/tcl8.4 is the directory where is located the tclConfig.sh script]
+You first need to build the libiaxclient in iaxclient/lib where there
+are a number of methods to build on various platforms. This is how I did:
 
-MacOSX: ProjectBuilder project 
+MacOSX:  ProjectBuilder project
+Linux:   make
 Windows: Dev-C++ (Bloodshed) project
+
+Then you build the tcl package:
+
+MacOSX:  ProjectBuilder project 
+Linux:   ./configure
+         make
+Windows: Dev-C++ (Bloodshed) project
+
+The configure/make method is a generic way to build tcl extensions
+on all platforms, but I only tested on Linux.
+You may need to experiment with the:
+USE_PA_OSS=1
+USE_PA_ALSA=1
+USE_PA_JACK=1
+in the iaxclient/lib/Makefile and don't forget to include relevant link 
+libraries when building the tcl package:
+TEA_ADD_LIBS([-lpthread -lasound])
+etc. in configure.in. Don't forget to run 'autoconf' after you have edit this 
+file.
+
 
 Usage:
 

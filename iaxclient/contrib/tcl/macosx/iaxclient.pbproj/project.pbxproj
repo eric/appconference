@@ -53,6 +53,8 @@
 				F5A272820377DE8D01FEA954,
 				F94429230420B8C2006F146B,
 				9A5373C3095596A100A80065,
+				9A665C310AE8F711002F6F7B,
+				9A665C340AE8F73C002F6F7B,
 				9A5373CF0955A06700A80065,
 				9A5373D10955A08400A80065,
 			);
@@ -122,7 +124,7 @@
 		9A5373C3095596A100A80065 = {
 			isa = PBXFileReference;
 			name = libiaxclient.a;
-			path = ../../../lib/macosx/build/libiaxclient.a;
+			path = ../../../lib/libiaxclient.a;
 			refType = 2;
 		};
 		9A5373C4095596A100A80065 = {
@@ -167,6 +169,30 @@
 		};
 		9A5373D20955A08400A80065 = {
 			fileRef = 9A5373D10955A08400A80065;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9A665C310AE8F711002F6F7B = {
+			isa = PBXFrameworkReference;
+			name = AudioUnit.framework;
+			path = /System/Library/Frameworks/AudioUnit.framework;
+			refType = 0;
+		};
+		9A665C330AE8F711002F6F7B = {
+			fileRef = 9A665C310AE8F711002F6F7B;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		9A665C340AE8F73C002F6F7B = {
+			isa = PBXFrameworkReference;
+			name = CoreServices.framework;
+			path = /System/Library/Frameworks/CoreServices.framework;
+			refType = 0;
+		};
+		9A665C360AE8F73C002F6F7B = {
+			fileRef = 9A665C340AE8F73C002F6F7B;
 			isa = PBXBuildFile;
 			settings = {
 			};
@@ -229,6 +255,8 @@
 				9A5373C4095596A100A80065,
 				9A5373D00955A06700A80065,
 				9A5373D20955A08400A80065,
+				9A665C330AE8F711002F6F7B,
+				9A665C360AE8F73C002F6F7B,
 			);
 			isa = PBXFrameworksBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -241,7 +269,6 @@
 				F96B6BDB0420C430006F146B,
 			);
 			buildSettings = {
-				DEBUGGING_SYMBOLS = NO;
 				DYLIB_COMPATIBILITY_VERSION = 0.1;
 				DYLIB_CURRENT_VERSION = 0.1;
 				DYLIB_INSTALLED_NAME = iaxclient.dylib;
@@ -249,9 +276,10 @@
 				FRAMEWORK_SEARCH_PATHS = "";
 				HEADER_SEARCH_PATHS = "../../../lib ../../../lib/libiax2/src ../../../lib/gsm/inc";
 				INSTALL_PATH = "/Library/Tcl/iaxclient${DYLIB_COMPATIBILITY_VERSION}";
-				LIBRARY_SEARCH_PATHS = "/Library/Frameworks/Tcl.framework ../../../lib/macosx/build";
+				LIBRARY_SEARCH_PATHS = "/Library/Frameworks/Tcl.framework ../../../lib";
 				LIBRARY_STYLE = DYNAMIC;
-				OTHER_CFLAGS = "-DUSE_TCL_STUBS -DTARGET_OS_MAC=1 -DTARGET_API_MAC_CARBON=1 --std=c99 -DTCL_THREADS";
+				OPTIMIZATION_CFLAGS = "-O0";
+				OTHER_CFLAGS = "-DUSE_TCL_STUBS -DTARGET_OS_MAC=1 -DTARGET_API_MAC_CARBON=1 --std=c99";
 				OTHER_LDFLAGS = "";
 				OTHER_LIBTOOL_FLAGS = "";
 				OTHER_REZFLAGS = "";

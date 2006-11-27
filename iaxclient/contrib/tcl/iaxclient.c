@@ -11,15 +11,10 @@
  * $Id$
  */
 
-/*
- * NOTE: The events delivered via iaxc_set_event_callback() appear on 
- * different threads which makes direct script callbacks impossible.
- * I therefore (temporarily) use a static string for passing scripts
- * to the main thread and a timer to poll this string.
- */
- 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 /* On my 10.2.8 box I need this fix. */
 #if TARGET_API_MAC_CARBON
@@ -27,13 +22,20 @@
 #endif
 #include "iaxclient.h"
 
-#include <math.h>
+/* thread support */
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
+// empty
+#else
+#	include <pthread.h>
+#endif
 
 #if TARGET_API_MAC_CARBON
 #	include <Tcl/tcl.h>
 #else
 #	include "tcl.h"
 #endif
+
+#define PACKAGE_VERSION "0.2"
 
 /*
  * There are two methods for sending scripts from the thread where the
@@ -78,7 +80,7 @@ struct Mapper mapRegistration[] = {
 };
 
 struct Mapper mapCallState[] = {
-    {IAXC_CALL_STATE_FREE,		"free"		},
+    {IAXC_CALL_STATE_FREE,		"free"		},		/* = 0 beware! */
     {IAXC_CALL_STATE_ACTIVE,	"active"	},
     {IAXC_CALL_STATE_OUTGOING,	"outgoing"	},
     {IAXC_CALL_STATE_RINGING,	"ringing"	},
@@ -101,6 +103,13 @@ struct Mapper mapFormat[] = {
     {IAXC_FORMAT_G729A,		"G729A"		},
     {IAXC_FORMAT_SPEEX,		"SPEEX"		},
     {IAXC_FORMAT_ILBC,		"ILBC"		},
+    {IAXC_FORMAT_JPEG,      "JPEG"      },
+    {IAXC_FORMAT_PNG,       "PNG"       },
+    {IAXC_FORMAT_H261,      "H.261"     },
+    {IAXC_FORMAT_H263,      "H.263"     },
+    {IAXC_FORMAT_H263_PLUS, "H.263+"    },
+    {IAXC_FORMAT_MPEG4,     "H264"      },
+    {IAXC_FORMAT_THEORA,    "Theora"    },
     {0,						NULL		}
 };
 
@@ -140,13 +149,21 @@ static void 	EventLevels(struct iaxc_ev_levels levels);
 static void 	EventState(struct iaxc_ev_call_state state);
 static void 	EventNetStats(struct iaxc_ev_netstats netstats);
 static void 	EventRegistration(struct iaxc_ev_registration reg);
+static void 	EventUrl(struct iaxc_ev_url eurl);
+static void 	EventVideo(struct iaxc_ev_video video);
 static void 	EventUnknown(int type);
 
-static void 	EvalScriptAsync(Tcl_Obj *cmdObj);
 static int 		GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], char *str, char *errStr, int *iPtr);
 static Tcl_Obj* NewMapFlagStateObj(struct Mapper mapper[], int flag);
 static Tcl_Obj* NewMapStateObj(int flag);
+static char*	GetMapIntString(struct Mapper mapper[], int state);
+static char* 	GetMapFlagDString(Tcl_DString *dsPtr, struct Mapper mapper[], int flag);
+static char*	GetMapStateDString(Tcl_DString *dsPtr, int flag);
+
+#if 0	// Just as a backup
+static void 	EvalScriptAsync(Tcl_Obj *cmdObj);
 static Tcl_Obj* NewMapIntStateObj(struct Mapper mapper[], int state);
+#endif
 
 extern void tone_dtmf(char tone, int samples, double vol, short *data);
 
@@ -205,9 +222,10 @@ enum {
 
 static Tcl_Interp *sInterp = NULL;
 static char *dtmf_tones = "123A456B789C*0#D";	/* valid touch tones */
-static int sLastState = 0;	/* Keep cache of the state (bit) integer */
+static int sLastState = IAXC_CALL_STATE_FREE;	/* Keep cache of the state (bit) integer */
 
-static struct iaxc_sound tone;
+/* Storage for the ring tone. */
+static struct iaxc_sound ringTone;
 
 #define kNotifyCallbackCacheSize 4096
 static char asyncCallbackCache[kNotifyCallbackCacheSize];
@@ -216,13 +234,24 @@ static Tcl_TimerToken sTimerToken = NULL;
 static Tcl_ThreadId sMainThreadID;
 #define kTimerPollEventsMillis 100
 
-TCL_DECLARE_MUTEX(notifyRecordMutex)
-TCL_DECLARE_MUTEX(asyncCallbackMutex)
-#define TCL_THREADS
-
-#ifndef TCL_THREADS
-//#   error "Sorry, you must build this with TCL_THREADS"
+/* os-dependent macros, etc. From iaxclient. */
+#if defined(WIN32)  ||  defined(_WIN32_WCE)
+#define MUTEX CRITICAL_SECTION
+#define MUTEXINIT(m) InitializeCriticalSection(m)
+#define MUTEXLOCK(m) EnterCriticalSection(m)
+#define MUTEXUNLOCK(m) LeaveCriticalSection(m)
+#define MUTEXDESTROY(m) DeleteCriticalSection(m)
+#else
+#define MUTEX pthread_mutex_t
+#define MUTEXINIT(m) pthread_mutex_init(m, NULL) //TODO: check error
+#define MUTEXLOCK(m) pthread_mutex_lock(m)
+#define MUTEXUNLOCK(m) pthread_mutex_unlock(m)
+#define MUTEXDESTROY(m) pthread_mutex_destroy(m)
 #endif
+
+static MUTEX notifyRecordMutex;
+static MUTEX asyncCallbackMutex;
+
 
 /*
  *----------------------------------------------------------------------
@@ -252,10 +281,9 @@ Iaxclient_Init(
     } CmdProcStruct;
 	CmdProcStruct cmdList[] = {
 		{"iaxclient::answer", AnswerObjCmd, NULL},
+		{"iaxclient::applyfilters", ApplyFiltersObjCmd, NULL},
 		{"iaxclient::callerid", CallerIDObjCmd, NULL},
 		{"iaxclient::changeline", ChangelineObjCmd, NULL},
-		{"iaxclient::applyfilters", ApplyFiltersObjCmd, NULL},
-		{"iaxclient::setdevices", SetDevicesObjCmd, NULL},
 		{"iaxclient::devices", DevicesObjCmd, NULL},
 		{"iaxclient::dial", DialObjCmd, NULL},
 		{"iaxclient::formats", FormatsObjCmd, NULL},
@@ -268,15 +296,16 @@ Iaxclient_Init(
 		{"iaxclient::playtone", PlayToneObjCmd, NULL},
 		{"iaxclient::register", RegisterObjCmd, NULL},
 		{"iaxclient::reject", RejectObjCmd, NULL},
-		{"iaxclient::ringstop", RingStopObjCmd, NULL},
 		{"iaxclient::ringstart", RingStartObjCmd, NULL},
+		{"iaxclient::ringstop", RingStopObjCmd, NULL},
 		{"iaxclient::sendtext", SendTextObjCmd, NULL},
 		{"iaxclient::sendtone", SendToneObjCmd, NULL},
+		{"iaxclient::setdevices", SetDevicesObjCmd, NULL},
 		{"iaxclient::state", StateObjCmd, NULL},
+		{"iaxclient::toneinit", ToneInitObjCmd, NULL},
         {"iaxclient::transfer", TransferObjCmd, NULL},
         {"iaxclient::unhold", UnholdObjCmd, NULL},
 		{"iaxclient::unregister", UnregisterObjCmd, NULL},
-		{"iaxclient::toneinit", ToneInitObjCmd, NULL},
 		{NULL, NULL, NULL}
 	};
 
@@ -289,16 +318,23 @@ Iaxclient_Init(
     if (Tcl_InitStubs( interp, "8.1", 0 ) == NULL) {
         return TCL_ERROR;
     }
-    if (iaxc_initialize(AUDIO_INTERNAL_PA, MAX_LINES) < 0) {
+    // Set Preferred UDP Port: 
+    // 0: Use the default port (4569)    
+    iaxc_set_preferred_source_udp_port(0);
+    if (iaxc_initialize(AUDIO_INTERNAL_PA, MAX_LINES)) {
 		Tcl_SetObjResult( interp,  
 			    Tcl_NewStringObj( "cannot initialize iaxclient!", -1 ));
 		return TCL_ERROR;
     }
 
+	MUTEXINIT(&notifyRecordMutex);
+	MUTEXINIT(&asyncCallbackMutex);
+
     iaxc_set_silence_threshold(-99.0); /* the default */
     iaxc_set_audio_output(0);	/* the default */
     iaxc_set_event_callback(IAXCCallback); 
     iaxc_start_processing_thread();
+    ringTone.data = NULL;
 
     Tcl_CreateExitHandler( ExitHandler, (ClientData) NULL );
 
@@ -315,7 +351,7 @@ Iaxclient_Init(
 #else
     sTimerToken = Tcl_CreateTimerHandler(kTimerPollEventsMillis, PollEvents, NULL); 
 #endif
-    return Tcl_PkgProvide( interp, "iaxclient", "0.1" );
+    return Tcl_PkgProvide( interp, "iaxclient", PACKAGE_VERSION );
 }
 
 /*
@@ -514,13 +550,13 @@ static int DevicesObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tc
     if (objc == 3) {
 		str = Tcl_GetStringFromObj(objv[2], &len);
         if (strncmp(str, "-current", len)) {
-            Tcl_SetObjResult(interp, Tcl_NewStringObj("iaxclient::devices type ?-current?", -1));
+            Tcl_SetObjResult(interp, Tcl_NewStringObj("Usage: iaxclient::devices type ?-current?", -1));
             return TCL_ERROR;
         }
     }
     flag = mapFlag[index];
     iaxc_audio_devices_get(&devs, &ndevs, &input, &output, &ring);
-   
+
     listObj = Tcl_NewListObj( 0, (Tcl_Obj **) NULL );
     if (objc == 3) {
         switch (index) {
@@ -593,8 +629,7 @@ static int FormatsObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tc
         codec = Tcl_GetStringFromObj(objv[1], NULL);
         result = GetMapperIntFromString(interp, mapFormat, codec, "iaxclient:formats, codec must be: ", &value);
         if (result == TCL_OK) {
-            iaxc_set_formats(result,
-                    IAXC_FORMAT_ULAW|IAXC_FORMAT_ALAW|IAXC_FORMAT_GSM|IAXC_FORMAT_SPEEX|IAXC_FORMAT_ILBC);
+             iaxc_set_formats(value,value);
         }
     } else {
         Tcl_WrongNumArgs(interp, 1, objv, "codec");
@@ -696,6 +731,10 @@ static int LevelObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
     return TCL_OK;
 }
 
+/*
+ * This is always called from the Tcl main thread.
+ */
+
 static int NotifyObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
     int index;
@@ -709,8 +748,8 @@ static int NotifyObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl
 	        != TCL_OK ) {
 	    return TCL_ERROR;
 	}
-    
-    Tcl_MutexLock(&notifyRecordMutex);
+
+    MUTEXLOCK(&notifyRecordMutex);
     if (objc == 3) {
         if (sNotifyRecord[index]) {
             Tcl_DecrRefCount(sNotifyRecord[index]);
@@ -718,14 +757,22 @@ static int NotifyObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl
         }
         Tcl_GetStringFromObj(objv[2], &len);
         if (len > 0) {
-            sNotifyRecord[index] = Tcl_DuplicateObj(objv[2]);
+            /*
+             * Most command procedures do not have to be concerned about reference counting 
+             * since they use an object's value immediately and don't retain a pointer to 
+             * the object after they return. However, if they do retain a pointer to an 
+             * object in a data structure, they must be careful to increment its reference 
+             * count since the retained pointer is a new reference. 
+             */
+            //sNotifyRecord[index] = Tcl_DuplicateObj(objv[2]);
+            sNotifyRecord[index] = objv[2];
             Tcl_IncrRefCount(sNotifyRecord[index]);
         }
     }
     if (sNotifyRecord[index]) {
         Tcl_SetObjResult(interp, sNotifyRecord[index]);
     }
-    Tcl_MutexUnlock(&notifyRecordMutex);
+    MUTEXUNLOCK(&notifyRecordMutex);
     return TCL_OK;
 }
 
@@ -740,18 +787,18 @@ static int PlayToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
 
     /* Must get dynamic memory for this! */
     buff = (short *)calloc(len, sizeof(short));    
-    
+
     memset(&sound, 0, sizeof(sound));
     sound.data = buff;
     sound.len = len;
-    sound.malloced = 0;
+    sound.malloced = 1;
     sound.repeat = 0;
 
     if (objc == 2) {
         char *s;
-        int len;
-        s = Tcl_GetStringFromObj(objv[1], &len);
-        if (len != 1) {
+        int tlen;
+        s = Tcl_GetStringFromObj(objv[1], &tlen);
+        if (tlen != 1) {
             Tcl_SetObjResult(interp, Tcl_NewStringObj("must be a ring tone", -1));
             return TCL_ERROR;
         }
@@ -764,7 +811,7 @@ static int PlayToneObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, T
         Tcl_WrongNumArgs( interp, 1, objv, "tone" );
         return TCL_ERROR;
     }
-    
+
     tone_dtmf(tone, 1600, vol, buff);
     tone_dtmf('x', 400, vol, buff+1600);
     iaxc_play_sound(&sound, 0);
@@ -838,7 +885,7 @@ static int RingStartObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
         if (Tcl_GetIntFromObj(interp, objv[1], &ringdev) != TCL_OK) {
             return TCL_ERROR;
         }
-		iaxc_play_sound(&tone, ringdev);
+		iaxc_play_sound(&ringTone, ringdev);
 	}  else {
         Tcl_WrongNumArgs( interp, 1, objv, "ringdev" );
         return TCL_ERROR;
@@ -849,7 +896,7 @@ static int RingStartObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, 
 
 static int RingStopObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
-    iaxc_stop_sound(tone.id);
+    iaxc_stop_sound(ringTone.id);
     return TCL_OK;
 }
 
@@ -898,6 +945,60 @@ static int StateObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_
         Tcl_WrongNumArgs( interp, 1, objv, NULL );
         return TCL_ERROR;
     }
+}
+
+static int ToneInitObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) 
+{
+	int F1;
+	int F2;
+	int Dur;
+	int Len;
+	int Repeat;
+    int i;
+	
+    int result = TCL_OK;
+
+    if (objc == 6) {
+        if (Tcl_GetIntFromObj(interp, objv[1], &F1) != TCL_OK) {
+            result = TCL_ERROR;
+        }
+        if (Tcl_GetIntFromObj(interp, objv[2], &F2) != TCL_OK) {
+            result = TCL_ERROR;
+        }
+        if (Tcl_GetIntFromObj(interp, objv[3], &Dur) != TCL_OK) {
+            result = TCL_ERROR;
+        }
+        if (Tcl_GetIntFromObj(interp, objv[4], &Len) != TCL_OK) {
+            result = TCL_ERROR;
+        }
+        if (Tcl_GetIntFromObj(interp, objv[5], &Repeat) != TCL_OK) {
+            result = TCL_ERROR;
+        }
+	} else {
+        Tcl_WrongNumArgs( interp, 1, objv, "F1 F2 Duration Length Repeat" );
+        result = TCL_ERROR;
+    }
+	
+	if ( result == TCL_OK ) {	
+        if (ringTone.data) {
+            iaxc_stop_sound(ringTone.id);
+            free(ringTone.data);
+        }
+
+		// clear tone structures. (otherwise we free un-allocated memory in LoadTone)
+		memset(&ringTone, 0, sizeof(ringTone));
+
+		ringTone.len  = Len;
+		ringTone.data = (short *)calloc(ringTone.len , sizeof(short));
+
+		for(i = 0; i < Dur; i++ ) {
+			ringTone.data[i] = (short)(0x7fff*0.4*sin((double)i*F1*M_PI/8000))
+						+ (short)(0x7fff*0.4*sin((double)i*F2*M_PI/8000));
+		}
+		ringTone.repeat = Repeat;
+	}
+	
+	return result;
 }
 
 static int TransferObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
@@ -984,13 +1085,13 @@ static int UnregisterObjCmd(ClientData clientData, Tcl_Interp *interp, int objc,
 
 static void PollEvents(ClientData clientData)
 {
-    Tcl_MutexLock(&asyncCallbackMutex);
+    MUTEXLOCK(&asyncCallbackMutex);
     if (strlen(asyncCallbackCache) > 0) {
         Tcl_EvalEx(sInterp, asyncCallbackCache, -1, TCL_EVAL_GLOBAL);
         asyncCallbackCache[0] = '\0';
     }
     sTimerToken = Tcl_CreateTimerHandler(kTimerPollEventsMillis, PollEvents, NULL); 
-    Tcl_MutexUnlock(&asyncCallbackMutex);
+    MUTEXUNLOCK(&asyncCallbackMutex);
 }
 
 static void ExitHandler(ClientData clientData)
@@ -1002,10 +1103,13 @@ static void ExitHandler(ClientData clientData)
     iaxc_millisleep(1000);
     iaxc_stop_processing_thread();
     iaxc_shutdown();
+
+    MUTEXDESTROY(&notifyRecordMutex);
+	MUTEXDESTROY(&asyncCallbackMutex);
 }
 
 /*
- * all iax callbacks come here
+ * All iax callbacks come here.
  */
 
 static int IAXCCallback(iaxc_event e) 
@@ -1025,10 +1129,10 @@ static int IAXCCallback(iaxc_event e)
             EventNetStats(e.ev.netstats);
             break;
         case IAXC_EVENT_URL:
-            /* empty */
+            EventUrl(e.ev.url);
             break;
         case IAXC_EVENT_VIDEO:
-            /* empty */
+            EventVideo(e.ev.video);
             break;
         case IAXC_EVENT_REGISTRATION:
             EventRegistration(e.ev.reg);
@@ -1040,155 +1144,254 @@ static int IAXCCallback(iaxc_event e)
     return 1;
 }
 
+/*
+ * All these events come mostly from worker threads but can also
+ * come from the main thread.
+ * NEVER use Tcl_Objs here!
+ */
+
 static void EventText(struct iaxc_ev_text text)
 {
-    Tcl_MutexLock(&notifyRecordMutex);
+    MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdText]) {
-        Tcl_Obj *cmdObj = Tcl_DuplicateObj(sNotifyRecord[kNotifyCmdText]);
-        Tcl_IncrRefCount(cmdObj);
-        if (text.type == IAXC_TEXT_TYPE_STATUS) {
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj("status", -1));
-        } else if (text.type == IAXC_TEXT_TYPE_NOTICE) {
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj("notice", -1));
-        }if (text.type == IAXC_TEXT_TYPE_ERROR) {
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj("error", -1));
-        } else {
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj("-", -1));
-        }		
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(text.callNo));				
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(text.message, -1));				
-        EvalScriptAsync(cmdObj);
-        Tcl_DecrRefCount(cmdObj);
+        char *cmd;
+        char buf[32];
+        int len;
+        Tcl_DString ds;
+
+        Tcl_DStringInit(&ds);
+        cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdText], &len);
+        Tcl_DStringAppend(&ds, cmd, len);
+        switch(text.type) {
+            case IAXC_TEXT_TYPE_STATUS:
+                Tcl_DStringAppendElement(&ds, "status");
+                break;
+            case IAXC_TEXT_TYPE_NOTICE:
+                Tcl_DStringAppendElement(&ds, "notice");
+                break;
+            case IAXC_TEXT_TYPE_ERROR:
+                Tcl_DStringAppendElement(&ds, "error");
+                break;
+            default:
+                Tcl_DStringAppendElement(&ds, "-");
+                break;
+        }
+        sprintf(buf, "%d", text.callNo);
+        Tcl_DStringAppendElement(&ds, buf);
+        Tcl_DStringAppendElement(&ds, text.message);
+        XThread_EvalInThread(sMainThreadID, Tcl_DStringValue(&ds), 0);
+        Tcl_DStringFree(&ds);
     }
-    Tcl_MutexUnlock(&notifyRecordMutex);
+    MUTEXUNLOCK(&notifyRecordMutex);
 }
 
 static void EventLevels(struct iaxc_ev_levels levels)
 {
-    Tcl_MutexLock(&notifyRecordMutex);
-    if (sNotifyRecord[kNotifyCmdLevels]) {
-        Tcl_Obj *cmdObj = Tcl_DuplicateObj(sNotifyRecord[kNotifyCmdLevels]);
-        Tcl_IncrRefCount(cmdObj);
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewDoubleObj(levels.input));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewDoubleObj(levels.output));        
-        EvalScriptAsync(cmdObj);
-        Tcl_DecrRefCount(cmdObj);
+    if (sLastState == IAXC_CALL_STATE_FREE) {
+        return;
     }
-    Tcl_MutexUnlock(&notifyRecordMutex);
+    MUTEXLOCK(&notifyRecordMutex);
+    if (sNotifyRecord[kNotifyCmdLevels]) {
+        char *cmd;
+        char buf[32];
+        int len;
+        Tcl_DString ds;
+
+        Tcl_DStringInit(&ds);
+        cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdLevels], &len);
+        Tcl_DStringAppend(&ds, cmd, len);
+        sprintf(buf, "%.2g", levels.input);
+        Tcl_DStringAppendElement(&ds, buf);
+        sprintf(buf, "%.2g", levels.output);
+        Tcl_DStringAppendElement(&ds, buf);
+        XThread_EvalInThread(sMainThreadID, Tcl_DStringValue(&ds), 0);
+        Tcl_DStringFree(&ds);
+    }
+    MUTEXUNLOCK(&notifyRecordMutex);
 }
 
 static void EventState(struct iaxc_ev_call_state call)
 {
-    Tcl_MutexLock(&notifyRecordMutex);
+    MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdState]) {
-        Tcl_Obj *cmdObj = Tcl_DuplicateObj(sNotifyRecord[kNotifyCmdState]);
-        Tcl_IncrRefCount(cmdObj);
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(call.callNo));
-        Tcl_ListObjAppendElement(NULL, cmdObj, NewMapStateObj(call.state));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(call.format));		// What is this?????? codec???
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(call.remote, -1));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(call.remote_name, -1));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(call.local, -1));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(call.local_context, -1));
-        EvalScriptAsync(cmdObj);
-        Tcl_DecrRefCount(cmdObj);
+        char *cmd;
+        char buf[32];
+        int len;
+        Tcl_DString ds, ds2;
+
+        Tcl_DStringInit(&ds);
+        Tcl_DStringInit(&ds2);
+        cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdState], &len);
+        Tcl_DStringAppend(&ds, cmd, len);
+        sprintf(buf, "%d", call.callNo);
+        Tcl_DStringAppendElement(&ds, buf);
+        Tcl_DStringAppendElement(&ds, GetMapStateDString(&ds2, call.state));        
+        Tcl_DStringAppendElement(&ds, GetMapIntString(mapFormat, call.format));
+        Tcl_DStringAppendElement(&ds, call.remote);
+        Tcl_DStringAppendElement(&ds, call.remote_name);
+        Tcl_DStringAppendElement(&ds, call.local);
+        Tcl_DStringAppendElement(&ds, call.local_context);        
+        XThread_EvalInThread(sMainThreadID, Tcl_DStringValue(&ds), 0);
+        Tcl_DStringFree(&ds);
+        Tcl_DStringFree(&ds2);
     }
-    Tcl_MutexUnlock(&notifyRecordMutex);
+    MUTEXUNLOCK(&notifyRecordMutex);
 }
 
 static void EventNetStats(struct iaxc_ev_netstats netstats)
 {
-    Tcl_MutexLock(&notifyRecordMutex);
+    MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdNetStats]) {
-        int i;
+        char *cmd;
         char str[32];
+        int i, len;
         struct iaxc_netstat *ptr;
         static char *name[] = {
             "-local:", 
             "-remote:"
         };
-        Tcl_Obj *cmdObj = Tcl_DuplicateObj(sNotifyRecord[kNotifyCmdNetStats]);
-        Tcl_IncrRefCount(cmdObj);
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj("-callno", -1));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(netstats.callNo));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj("-rtt", -1));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(netstats.rtt));
+        Tcl_DString ds;
+
+        Tcl_DStringInit(&ds);
+        cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdNetStats], &len);
+        Tcl_DStringAppend(&ds, cmd, len);
+        sprintf(str, "-callno %d -rtt %d", netstats.callNo, netstats.rtt);
+        Tcl_DStringAppendElement(&ds, str);
         for (i = 0, ptr = &(netstats.local); i <= 1; i++, ptr = &(netstats.remote)) {
             strcpy(str, name[i]);
             strcat(str, "jitter");
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(str, -1));
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(ptr->jitter));
+            Tcl_DStringAppendElement(&ds, str);
+            sprintf(str, "%d", ptr->jitter);
+            Tcl_DStringAppendElement(&ds, str);
             strcpy(str, name[i]);
             strcat(str, "losspct");
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(str, -1));
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(ptr->losspct));
+            sprintf(str, "%d", ptr->losspct);
+            Tcl_DStringAppendElement(&ds, str);
             strcpy(str, name[i]);
             strcat(str, "losscnt");
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(str, -1));
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(ptr->losscnt));
+            sprintf(str, "%d", ptr->losscnt);
+            Tcl_DStringAppendElement(&ds, str);
             strcpy(str, name[i]);
             strcat(str, "packets");
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(str, -1));
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(ptr->packets));
+            sprintf(str, "%d", ptr->packets);
+            Tcl_DStringAppendElement(&ds, str);
             strcpy(str, name[i]);
             strcat(str, "delay");
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(str, -1));
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(ptr->delay));
+            sprintf(str, "%d", ptr->delay);
+            Tcl_DStringAppendElement(&ds, str);
             strcpy(str, name[i]);
             strcat(str, "dropped");
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(str, -1));
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(ptr->dropped));
+            sprintf(str, "%d", ptr->dropped);
+            Tcl_DStringAppendElement(&ds, str);
             strcpy(str, name[i]);
             strcat(str, "ooo");
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewStringObj(str, -1));
-            Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(ptr->ooo));
+            sprintf(str, "%d", ptr->ooo);
+            Tcl_DStringAppendElement(&ds, str);
         }
-        EvalScriptAsync(cmdObj);
-        Tcl_DecrRefCount(cmdObj);
+        XThread_EvalInThread(sMainThreadID, Tcl_DStringValue(&ds), 0);
+        Tcl_DStringFree(&ds);
     }
-    Tcl_MutexUnlock(&notifyRecordMutex);
+    MUTEXUNLOCK(&notifyRecordMutex);
+}
+
+static void EventUrl(struct iaxc_ev_url eurl)
+{
+    MUTEXLOCK(&notifyRecordMutex);
+    if (sNotifyRecord[kNotifyCmdUrl]) {
+        char *cmd;
+        char buf[32];
+        int len;
+        Tcl_DString ds;
+
+        Tcl_DStringInit(&ds);
+        cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdUrl], &len);
+        Tcl_DStringAppend(&ds, cmd, len);
+        sprintf(buf, "%d", eurl.callNo);
+        Tcl_DStringAppendElement(&ds, buf);
+        sprintf(buf, "%d", eurl.type);
+        Tcl_DStringAppendElement(&ds, buf);
+        Tcl_DStringAppendElement(&ds, eurl.url);
+        XThread_EvalInThread(sMainThreadID, Tcl_DStringValue(&ds), 0);
+        Tcl_DStringFree(&ds);
+    }
+    MUTEXUNLOCK(&notifyRecordMutex);
+}
+
+static void EventVideo(struct iaxc_ev_video video)
+{
+    MUTEXLOCK(&notifyRecordMutex);
+    if (sNotifyRecord[kNotifyCmdVideo]) {
+        char *cmd;
+        char buf[32];
+        int len;
+        Tcl_DString ds;
+
+        Tcl_DStringInit(&ds);
+        cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdVideo], &len);
+        Tcl_DStringAppend(&ds, cmd, len);
+        sprintf(buf, "%d", video.callNo);
+        Tcl_DStringAppendElement(&ds, buf);
+        Tcl_DStringAppendElement(&ds, GetMapIntString(mapFormat, video.format));
+        sprintf(buf, "%d", video.width);
+        Tcl_DStringAppendElement(&ds, buf);
+        sprintf(buf, "%d", video.height);
+        Tcl_DStringAppendElement(&ds, buf);
+        XThread_EvalInThread(sMainThreadID, Tcl_DStringValue(&ds), 0);
+        Tcl_DStringFree(&ds);
+    }
+    MUTEXUNLOCK(&notifyRecordMutex);
 }
 
 static void EventRegistration(struct iaxc_ev_registration reg)
 {
-    Tcl_MutexLock(&notifyRecordMutex);
+    MUTEXLOCK(&notifyRecordMutex);
     if (sNotifyRecord[kNotifyCmdRegistration]) {
-        Tcl_Obj *cmdObj = Tcl_DuplicateObj(sNotifyRecord[kNotifyCmdRegistration]);
-        Tcl_IncrRefCount(cmdObj);
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(reg.id));
-        Tcl_ListObjAppendElement(NULL, cmdObj, NewMapIntStateObj(mapRegistration, reg.reply));
-        Tcl_ListObjAppendElement(NULL, cmdObj, Tcl_NewIntObj(reg.msgcount));        
-        EvalScriptAsync(cmdObj);        
-        Tcl_DecrRefCount(cmdObj);
+        char *cmd;
+        char buf[32];
+        int len;
+        Tcl_DString ds;
+
+        Tcl_DStringInit(&ds);
+        cmd = Tcl_GetStringFromObj(sNotifyRecord[kNotifyCmdRegistration], &len);
+        Tcl_DStringAppend(&ds, cmd, len);
+        sprintf(buf, "%d", reg.id);
+        Tcl_DStringAppendElement(&ds, buf);
+        Tcl_DStringAppendElement(&ds, GetMapIntString(mapRegistration, reg.reply));
+        sprintf(buf, "%d", reg.msgcount);
+        Tcl_DStringAppendElement(&ds, buf);
+        XThread_EvalInThread(sMainThreadID, Tcl_DStringValue(&ds), 0);
+        Tcl_DStringFree(&ds);
     }
-    Tcl_MutexUnlock(&notifyRecordMutex);
+    MUTEXUNLOCK(&notifyRecordMutex);
 }
 
 static void EventUnknown(int type)
 {
-
+    // empty
 }
 
+#if 0
 static void EvalScriptAsync(Tcl_Obj *cmdObj)
 {
     char *script;
     int len;
-    
+
     script = Tcl_GetStringFromObj(cmdObj, &len);
-    
+
 #if USE_THREAD_EVENTS_METHOD
     XThread_EvalInThread(sMainThreadID, script, 0);
 #else
-    Tcl_MutexLock(&asyncCallbackMutex);
-    
+    MUTEXLOCK(&asyncCallbackMutex);
+
     /* Do not add commands that do not fit. */
     if (strlen(asyncCallbackCache) + len < kNotifyCallbackCacheSize - 2) {
         strcat(asyncCallbackCache, script);
         strcat(asyncCallbackCache, "\n");
     }
-    Tcl_MutexUnlock(&asyncCallbackMutex);
+    MUTEXUNLOCK(&asyncCallbackMutex);
 #endif
 }
+#endif
 
 static int GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], char *str, char *errStr, int *iPtr)
 {
@@ -1203,7 +1406,7 @@ static int GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], ch
         }
     }
     if (result == TCL_ERROR) {
-        Tcl_Obj *resObj =Tcl_NewStringObj(errStr, -1 );
+        Tcl_Obj *resObj = Tcl_NewStringObj(errStr, -1 );
         for (m = mapper; m->s != NULL; m++) {
             Tcl_AppendStringsToObj(resObj, m->s, (char *)NULL);
             if ((m+1)->s != NULL) {
@@ -1215,11 +1418,12 @@ static int GetMapperIntFromString(Tcl_Interp *interp, struct Mapper mapper[], ch
     return result;
 }
 
+#if 0
 static Tcl_Obj *NewMapIntStateObj(struct Mapper mapper[], int state)
 {
     struct Mapper *m;
     Tcl_Obj *obj = NULL;
-    
+
     for (m = mapper; m->s != NULL; m++) {
         if (m->i == state) {
             obj = Tcl_NewStringObj(m->s, -1);
@@ -1227,6 +1431,18 @@ static Tcl_Obj *NewMapIntStateObj(struct Mapper mapper[], int state)
         }
     }
     return obj;
+}
+#endif
+
+static char *GetMapIntString(struct Mapper mapper[], int state)
+{
+    struct Mapper *m;    
+    for (m = mapper; m->s != NULL; m++) {
+        if (m->i == state) {
+            return m->s;
+        }
+    }
+    return NULL;
 }
 
 static Tcl_Obj *NewMapFlagStateObj(struct Mapper mapper[], int flag)
@@ -1242,6 +1458,19 @@ static Tcl_Obj *NewMapFlagStateObj(struct Mapper mapper[], int flag)
     return listObj;
 }
 
+static char *GetMapFlagDString(Tcl_DString *dsPtr, struct Mapper mapper[], int flag)
+{
+    struct Mapper *m;
+
+    /* This fails for flags = 0 */
+    for (m = mapper; m->s != NULL; m++) {
+        if (m->i & flag) {
+            Tcl_DStringAppendElement(dsPtr, m->s);
+        }
+    }
+    return Tcl_DStringValue(dsPtr);
+}
+
 static Tcl_Obj *NewMapStateObj(int flag)
 {
     if (flag == IAXC_CALL_STATE_FREE) {
@@ -1253,55 +1482,13 @@ static Tcl_Obj *NewMapStateObj(int flag)
     }
 }
 
-/*----------------------------------------------------------------------------*/
-static int ToneInitObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) 
+static char *GetMapStateDString(Tcl_DString *dsPtr, int flag)
 {
-	int F1;
-	int F2;
-	int Dur;
-	int Len;
-	int Repeat;
-    int i;
-	
-    int result = TCL_OK;
-
-    if (objc == 6) {
-        if (Tcl_GetIntFromObj(interp, objv[1], &F1) != TCL_OK) {
-            result = TCL_ERROR;
-        }
-        if (Tcl_GetIntFromObj(interp, objv[2], &F2) != TCL_OK) {
-            result = TCL_ERROR;
-        }
-        if (Tcl_GetIntFromObj(interp, objv[3], &Dur) != TCL_OK) {
-            result = TCL_ERROR;
-        }
-        if (Tcl_GetIntFromObj(interp, objv[4], &Len) != TCL_OK) {
-            result = TCL_ERROR;
-        }
-        if (Tcl_GetIntFromObj(interp, objv[5], &Repeat) != TCL_OK) {
-            result = TCL_ERROR;
-        }
-	} else {
-        Tcl_WrongNumArgs( interp, 1, objv, "F1 F2 Duration Length Repeat" );
-        result = TCL_ERROR;
+    if (flag == IAXC_CALL_STATE_FREE) {
+        return "free";
+    } else {
+        return GetMapFlagDString(dsPtr, mapCallState, flag);
     }
-	
-	if ( result == TCL_OK ) {	
-		// clear tone structures. (otherwise we free un-allocated memory in LoadTone)
-		memset(&tone, 0, sizeof(tone));
-
-		tone.len  = Len;
-		tone.data = (short *)calloc(tone.len , sizeof(short));
-
-		for(i = 0; i < Dur; i++ )
-		{
-			tone.data[i] = (short)(0x7fff*0.4*sin((double)i*F1*M_PI/8000))
-						+ (short)(0x7fff*0.4*sin((double)i*F2*M_PI/8000));
-		}
-		tone.repeat = Repeat;
-	}
-	
-	return result;
 }
 
 
