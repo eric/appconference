@@ -54,9 +54,10 @@ CFLAGS:= $(CFLAGS) -DUSE_HOTKEY
 endif
 
 ifeq ($(OSTYPE),WIN32)
-CFLAGS:= $(CFLAGS) -DWIN32
+CFLAGS:= $(CFLAGS) -DWIN32 -mno-cygwin
 EXEEXT=.exe
-SYSLIBS=-lwinmm -lwsock32 
+SYSLIBS=-mno-cygwin -lwinmm -lwsock32 -lcomdlg32 -luser32 -lgdi32 -lole32 -lcomctl32 -lctl3d32 \
+   -lstdc++ -lshell32 -loleaut32 -ladvapi32 -luuid -Wl,--output-def,iaxclient.def,--add-stdcall-alias,--enable-stdcall-fixup,--out-implib,libiaxclient.a 
 endif
 
 ifeq ($(OSTYPE),LINUX)
