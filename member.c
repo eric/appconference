@@ -905,6 +905,9 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// init dropped frame timestamps
 	gettimeofday( &member->last_in_dropped, NULL ) ;
 	gettimeofday( &member->last_out_dropped, NULL ) ;
+	
+	// init state change timestamp
+	gettimeofday( &member->last_state_change, NULL );
 
 	//
 	// parse passed flags
@@ -942,7 +945,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 		}
 		else
 		{
-			// allowed flags are C, c, L, l, V, D, A, C, X, R		
+			// allowed flags are C, c, L, l, V, D, A, C, X, R, T, M, S
 			switch ( flags[i] )
 			{
 			case 'C':
@@ -976,8 +979,16 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			case 'R':
 				member->dtmf_relay = 1;
 				break;
+			case 'S':
+				member->vad_switch = 1;
+				break;
 			case 'M':
 				member->ismoderator = 1;
+				break;
+				
+				//Telephone connection
+			case 'T':
+				via_telephone = 1;
 				break;
 				
 			default:
@@ -1342,7 +1353,7 @@ conf_frame* get_incoming_video_frame( struct ast_conf_member *member )
 	cfr->next = NULL ;
 	cfr->prev = NULL ;
 
-	// decriment frame count
+	// decrement frame count
 	member->inVideoFramesCount-- ;
 
 	ast_mutex_unlock(&member->lock);
@@ -2904,8 +2915,11 @@ void member_process_spoken_frames(struct ast_conference* conf,
 				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 		}
 #endif
+		// If this is a state change, update the timestamp
+		if ( member->speaking_state == 1 )
+			gettimeofday( &member->last_state_change, NULL );
 		
-		// mark member as silent
+		// Mark member as silent
 		member->speaking_state = 0 ;
 		
 		// count the listeners
@@ -2927,7 +2941,11 @@ void member_process_spoken_frames(struct ast_conference* conf,
 				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
 		}
 		
-		// mark member as silent
+		// If this is a state change, update the timestamp
+		if ( member->speaking_state == 1 )
+			gettimeofday( &member->last_state_change, NULL );
+			
+		//Mark member as silent
 		member->speaking_state = 0 ;
 		
 		// count the listeners
@@ -2963,7 +2981,11 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		}
 #endif
 		
-		// mark member as speaker
+		// If this is a state change, update the timestamp
+		if ( member->speaking_state == 0 )
+			gettimeofday( &member->last_state_change, NULL );
+			
+		// Mark member as speaking
 		member->speaking_state = 1 ;
 		member->speaking_state_notify = 1 ;
 		

@@ -71,7 +71,7 @@ struct ast_conf_member
 	int norecv_audio;
 	int norecv_video;
 
-	// is this persion a moderator? 
+	// is this person a moderator?
 	int ismoderator;
 
 	// determine by flags and channel name	
@@ -125,13 +125,16 @@ struct ast_conf_member
 	// LL video switched flag
 	short conference;
 
+	// switch video by VAD?
+	short vad_switch;
 	// switch by dtmf?
 	short dtmf_switch;
 	// relay dtmf to manager?
 	short dtmf_relay;
 	// initial nat delay flag
 	short first_frame_received;
-
+	
+	
 	// time we last dropped a frame
 	struct timeval last_in_dropped ;
 	struct timeval last_out_dropped ;
@@ -144,6 +147,7 @@ struct ast_conf_member
 	short speaking_state_prev ;
 	short speaking_state_notify ;
 	short speaking_state ;
+	struct timeval last_state_change;
 	
 	// pointer to next member in single-linked list	
 	struct ast_conf_member* next ;

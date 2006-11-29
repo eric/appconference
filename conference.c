@@ -265,6 +265,7 @@ void conference_exec( struct ast_conference *conf )
 		//-------//
 
 		// loop over the incoming frames and send to all outgoing
+		// TODO: this is an O(n^2) algorithm. Can we speed it up without sacrificing per-member switching?
 		for (video_source_member = conf->memberlist; 
 		     video_source_member != NULL; 
 		     video_source_member = video_source_member->next)
@@ -273,15 +274,18 @@ void conference_exec( struct ast_conference *conf )
 			{
 				for (member = conf->memberlist; member != NULL; member = member->next)
 				{
-					// skip members that are not ready
-					if ( member->ready_for_outgoing == 0 ) {
+					// skip members that are not ready or are not supposed to receive video
+					if ( !member->ready_for_outgoing || member->norecv_video ) 
 						continue ;
-					}
 					
-					if (member->req_video_id == video_source_member->video_id && member->norecv_video == 0) 
+					if ( member->vad_switch )
 					{
-						
-						// Send the latest frame
+						// VAD-based video switching takes precedence
+						if ( conf->default_video_source_id == video_source_member->video_id )
+							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
+					} else if ( member->req_video_id == video_source_member->video_id )
+					{
+						// If VAD switching is disabled, then we check for DTMF switching
 						queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
 					}
 				}
@@ -336,10 +340,16 @@ void conference_exec( struct ast_conference *conf )
 
 		//
 		// notify the manager of state changes every 500 milliseconds
+		// we piggyback on this for VAD switching logic
 		//
 		
 		if ( ( usecdiff( &curr, &notify ) / AST_CONF_NOTIFICATION_SLEEP ) >= 1 )
 		{
+			// Do VAD switching logic
+			// We need to do this here since send_state_change_notifications
+			// resets the flags
+			conf->default_video_source_id = do_VAD_switching(conf);
+						
 			// send the notifications
 			send_state_change_notifications( conf->memberlist ) ;
 		
@@ -498,6 +508,8 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	conf->debug_flag = 0 ;
 
 	conf->video_id_count = 0;
+	
+	conf->default_video_source_id = 0;
 
 	// zero stats
 	memset(	&conf->stats, 0x0, sizeof( ast_conference_stats ) ) ;
@@ -1684,4 +1696,27 @@ struct ast_conf_member *find_member ( char *chan, int lock)
 	return found;
 }
 
+
+// All the VAD-based video switching magic happens here
+// Returns the new video source id
+int do_VAD_switching(struct ast_conference *conf)
+{
+	struct ast_conf_member *member;
+	
+	for ( member = conf->memberlist ;
+	      member != NULL ;
+	      member = member->next )
+	{
+		if ( member->mute_video ) continue;
+		// Has the state changed since last time through this loop?
+		if ( member->speaking_state_notify != member->speaking_state_prev )
+		{
+			fprintf(stderr, "Mihai: member %s has changed state to %s\n", 
+				member->channel_name, 
+				( ( member->speaking_state_notify == 1 ) ? "speaking" : "silent" )
+			       );
+		}
+	}
+	return conf->default_video_source_id;
+}
 

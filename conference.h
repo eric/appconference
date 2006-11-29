@@ -68,6 +68,9 @@ struct ast_conference
 	int membercount ;
         int video_id_count;
 	
+	// id of the default video source (changes according to VAD)
+	int default_video_source_id;
+	
 	// conference thread id
 	pthread_t conference_thread ;
 
@@ -117,6 +120,8 @@ int get_new_video_id( struct ast_conference *conf );
 void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
+
+int do_VAD_switching(struct ast_conference *conf); 
 
 // called by app_confernce.c:load_module()
 void init_conference( void ) ;
