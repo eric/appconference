@@ -929,14 +929,14 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 		}
 		else
 		{
+			// Mihai: we don't want to kick the conference when one moderator leaves
 			// if member is a moderator, we end the conference when they leave
-							      
-			if (member->ismoderator) 
-			{
-				ast_mutex_lock( &member_list->lock ) ;
-				member_list->kick_flag = 1;
-				ast_mutex_unlock( &member_list->lock ) ;
-			}
+			//if (member->ismoderator) 
+			//{
+			//	ast_mutex_lock( &member_list->lock ) ;
+			//	member_list->kick_flag = 1;
+			//	ast_mutex_unlock( &member_list->lock ) ;
+			//}
 		}
 		
 		
@@ -1696,6 +1696,10 @@ struct ast_conf_member *find_member ( char *chan, int lock)
 	return found;
 }
 
+unsigned long timeval_to_millis(struct timeval tv)
+{
+	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
 
 // All the VAD-based video switching magic happens here
 // Returns the new video source id
@@ -1711,10 +1715,12 @@ int do_VAD_switching(struct ast_conference *conf)
 		// Has the state changed since last time through this loop?
 		if ( member->speaking_state_notify != member->speaking_state_prev )
 		{
-			fprintf(stderr, "Mihai: member %s has changed state to %s\n", 
+			fprintf(stderr, "Mihai: member %s has changed state to %s at timestamp %ld\n", 
 				member->channel_name, 
-				( ( member->speaking_state_notify == 1 ) ? "speaking" : "silent" )
+				((member->speaking_state_notify == 1 ) ? "speaking" : "silent"),
+				timeval_to_millis(member->last_state_change)
 			       );
+			
 		}
 	}
 	return conf->default_video_source_id;
