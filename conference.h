@@ -68,8 +68,16 @@ struct ast_conference
 	int membercount ;
         int video_id_count;
 	
-	// id of the default video source (changes according to VAD)
+	// id of the default video source 
+	// If nobody is talking and video is unlocked, we use this source
 	int default_video_source_id;
+	
+	// id of the current video source
+	// this changes according to VAD rules and lock requests
+	int current_video_source_id;
+	
+	// Video locked flag, 1 -> locked, 0 -> unlocked
+	short video_locked;
 	
 	// conference thread id
 	pthread_t conference_thread ;
@@ -142,6 +150,11 @@ int viewchannel_switch ( const char* confname, const char* user_chan, const char
 
 int get_conference_stats( ast_conference_stats* stats, int requested ) ;
 int get_conference_stats_by_name( ast_conference_stats* stats, const char* name ) ;
+
+int lock_conference(const char *conference, int member_id);
+int unlock_conference(const char *conference);
+
+int set_default_video_id(const char *conference, int member_id);
 
 int set_conference_debugging( const char* name, int state ) ;
 

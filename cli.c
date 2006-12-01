@@ -622,6 +622,112 @@ int conference_end( int fd, int argc, char *argv[] )
 	return RESULT_SUCCESS ;
 }
 
+// 
+// lock conference to a video source
+//
+static char conference_lock_usage[] = 
+	"usage: conference lock <conference name> <member id>\n"
+	"       locks incoming video stream for conference <conference name> to member <member id>\n"
+;
+
+static struct ast_cli_entry cli_lock = {
+	{ "conference", "lock", NULL },
+	conference_lock,
+	"locks incoming video to a member",
+	conference_lock_usage
+} ;
+
+int conference_lock( int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 4 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	int member;
+	sscanf(argv[3], "%d", &member);
+	
+	int res = lock_conference(conference, member);
+	
+	if ( res ) 
+	{
+		ast_cli(fd, "Locking failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// unlock conference
+//
+static char conference_unlock_usage[] = 
+	"usage: conference unlock <conference name>\n"
+	"       unlocks conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_unlock = {
+	{ "conference", "unlock", NULL },
+	conference_unlock,
+	"unlocks conference",
+	conference_unlock_usage
+} ;
+
+int conference_unlock( int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 3 )
+		return RESULT_SHOWUSAGE;
+	 
+	
+	const char *conference = argv[2];
+	
+	int res = unlock_conference(conference);
+	
+	if ( res ) 
+	{
+		ast_cli(fd, "Unlocking failed\n");
+		return RESULT_FAILURE;
+	}
+
+	return RESULT_SUCCESS;
+}
+
+//
+// Set conference default video source
+//
+static char conference_set_default_usage[] = 
+	"usage: conference set default <conference name> <member>\n"
+	"       sets the default video source for conference <conference name> to member <member>\n"
+;
+
+static struct ast_cli_entry cli_set_default = {
+	{ "conference", "set", "default", NULL },
+	conference_set_default,
+	"sets default video source",
+	conference_set_default_usage
+} ;
+
+int conference_set_default(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	int member;
+	sscanf(argv[4], "%d", &member);
+	
+	int res = set_default_video_id(conference, member);
+	
+	if ( res ) 
+	{
+		ast_cli(fd, "Setting default video id failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
 
 //
 // cli initialization function
@@ -643,6 +749,9 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_play_sound ) ;
 	ast_cli_register( &cli_stop_sounds ) ;	
 	ast_cli_register( &cli_end );
+	ast_cli_register( &cli_lock );
+	ast_cli_register( &cli_unlock );
+	ast_cli_register( &cli_set_default );
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
 
 }
@@ -663,5 +772,8 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_play_sound ) ;
 	ast_cli_unregister( &cli_stop_sounds ) ;
 	ast_cli_unregister( &cli_end );
+	ast_cli_unregister( &cli_lock );
+	ast_cli_unregister( &cli_unlock );
+	ast_cli_unregister( &cli_set_default );
 	ast_manager_unregister( "ConferenceList" );
 }

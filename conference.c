@@ -278,15 +278,23 @@ void conference_exec( struct ast_conference *conf )
 					if ( !member->ready_for_outgoing || member->norecv_video ) 
 						continue ;
 					
-					if ( member->vad_switch )
+					if ( conf->video_locked )
 					{
-						// VAD-based video switching takes precedence
-						if ( conf->default_video_source_id == video_source_member->video_id )
+						// Always send video from the locked source
+						if ( conf->current_video_source_id == video_source_member->video_id )
 							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
-					} else if ( member->req_video_id == video_source_member->video_id )
+					} else
 					{
-						// If VAD switching is disabled, then we check for DTMF switching
-						queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
+						if ( member->vad_switch )
+						{
+							// VAD-based video switching takes precedence
+							if ( conf->current_video_source_id == video_source_member->video_id )
+								queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
+						} else if ( member->req_video_id == video_source_member->video_id )
+						{
+							// If VAD switching is disabled, then we check for DTMF switching
+							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
+						}
 					}
 				}
 				// Garbage collection
@@ -510,6 +518,8 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	conf->video_id_count = 0;
 	
 	conf->default_video_source_id = 0;
+	conf->current_video_source_id = 0;
+	conf->video_locked = 0;
 
 	// zero stats
 	memset(	&conf->stats, 0x0, sizeof( ast_conference_stats ) ) ;
@@ -1081,17 +1091,26 @@ int show_conference_list ( int fd, const char *name )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), name, 80 ) == 0 )
 		{
-		        // do the biz
-		        member = conf->memberlist ;
-			while (member != NULL)
-			  {
-			    ast_cli( fd, "User #: %d  ", member->video_id ) ;	
-			    ast_cli( fd, "Channel: %s ", member->channel_name ) ;
-			    if (member->mute_audio == 1)
-				ast_cli ( fd, "Muted ");
-      			    ast_cli( fd, "\n");
-			    member = member->next;
-			  }
+			// do the biz
+			member = conf->memberlist ;
+			while ( member != NULL )
+			{
+				ast_cli( fd, "User #: %d  ", member->video_id ) ;	
+				ast_cli( fd, "Channel: %s ", member->channel_name ) ;
+				if ( member->mute_audio == 1 )
+					ast_cli(fd, "Muted ");
+				if ( member->video_id == conf->default_video_source_id )
+					ast_cli(fd, "Default ");
+				if ( member->video_id == conf->current_video_source_id )
+				{
+					ast_cli(fd, "Showing ");
+					if ( conf->video_locked )
+						ast_cli(fd, "Locked ");
+				}
+				
+				ast_cli( fd, "\n");
+				member = member->next;
+				}
 			break ;
 		}
 	
@@ -1715,14 +1734,139 @@ int do_VAD_switching(struct ast_conference *conf)
 		// Has the state changed since last time through this loop?
 		if ( member->speaking_state_notify != member->speaking_state_prev )
 		{
-			fprintf(stderr, "Mihai: member %s has changed state to %s at timestamp %ld\n", 
+/*			fprintf(stderr, "Mihai: member %s has changed state to %s at timestamp %ld\n", 
 				member->channel_name, 
 				((member->speaking_state_notify == 1 ) ? "speaking" : "silent"),
 				timeval_to_millis(member->last_state_change)
-			       );
+			       );*/
 			
 		}
 	}
 	return conf->default_video_source_id;
 }
 
+int lock_conference(const char *conference, int member_id)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                   res;
+
+	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+		return -1 ;
+
+	// acquire mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	// Look for conference
+	res = 1;
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// Search member list for our member
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( member->video_id == member_id && !member->mute_video )
+				{
+					conf->current_video_source_id = member_id;
+					conf->video_locked = 1;
+					res = 0;
+					
+					// TODO: emit lock event on the management interface here
+					break;
+				}
+			}
+			
+			// Release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			break;
+		}
+	}
+	
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+}
+
+int unlock_conference(const char *conference)
+{
+	struct ast_conference  *conf;
+	int                   res;
+	
+	if ( conference == NULL || strlen(conference) == 0 )
+		return -1;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	// Look for conference
+	res = 1;
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			conf->video_locked = 0;
+			conf->current_video_source_id = conf->default_video_source_id;
+			res = 0;
+			
+			// TODO; emit unlock event on the management interface here
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+}
+
+int set_default_video_id(const char *conference, int member_id)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                   res;
+
+	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+		return -1 ;
+
+	// acquire mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	// Look for conference
+	res = 1;
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// Search member list for our member
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( member->video_id == member_id && !member->mute_video )
+				{
+					conf->default_video_source_id = member_id;
+					res = 0;
+					
+					// TODO: emit default event on the management interface here
+					break;
+				}
+			}
+			
+			// Release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			break;
+		}
+	}
+	
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+	
+}

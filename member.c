@@ -946,6 +946,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 		else
 		{
 			// allowed flags are C, c, L, l, V, D, A, C, X, R, T, M, S
+			// mute/no_recv options
 			switch ( flags[i] )
 			{
 			case 'C':
@@ -972,7 +973,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 				agc_flag = 1 ;
 				break ;
 				
-				// dtmf/moderator options
+				// dtmf/moderator/video switching options
 			case 'X':
 				member->dtmf_switch = 1;
 				break;
