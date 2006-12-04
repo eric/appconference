@@ -76,7 +76,11 @@ struct ast_conference
 	// this changes according to VAD rules and lock requests
 	int current_video_source_id;
 	
-	// Video locked flag, 1 -> locked, 0 -> unlocked
+	// timestamp of when the current source has started talking
+	// TODO: do we really need this?
+	//struct timeval current_video_source_timestamp;
+	
+	// Video source locked flag, 1 -> locked, 0 -> unlocked
 	short video_locked;
 	
 	// conference thread id
@@ -129,7 +133,7 @@ void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
 
-int do_VAD_switching(struct ast_conference *conf); 
+void do_VAD_switching(struct ast_conference *conf); 
 
 // called by app_confernce.c:load_module()
 void init_conference( void ) ;

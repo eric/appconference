@@ -288,8 +288,12 @@ void conference_exec( struct ast_conference *conf )
 						if ( member->vad_switch )
 						{
 							// VAD-based video switching takes precedence
-							if ( conf->current_video_source_id == video_source_member->video_id )
+							if ( (conf->current_video_source_id == video_source_member->video_id) ||
+							     (conf->current_video_source_id < 0 && conf->default_video_source_id == video_source_member->video_id)
+							   )
+							{
 								queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
+							}
 						} else if ( member->req_video_id == video_source_member->video_id )
 						{
 							// If VAD switching is disabled, then we check for DTMF switching
@@ -347,7 +351,7 @@ void conference_exec( struct ast_conference *conf )
 		}
 
 		//
-		// notify the manager of state changes every 500 milliseconds
+		// notify the manager of state changes every 100 milliseconds
 		// we piggyback on this for VAD switching logic
 		//
 		
@@ -356,7 +360,8 @@ void conference_exec( struct ast_conference *conf )
 			// Do VAD switching logic
 			// We need to do this here since send_state_change_notifications
 			// resets the flags
-			conf->default_video_source_id = do_VAD_switching(conf);
+			if ( !conf->video_locked ) 
+				do_VAD_switching(conf);
 						
 			// send the notifications
 			send_state_change_notifications( conf->memberlist ) ;
@@ -519,6 +524,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	
 	conf->default_video_source_id = 0;
 	conf->current_video_source_id = 0;
+	//gettimeofday(&conf->current_video_source_timestamp, NULL);
 	conf->video_locked = 0;
 
 	// zero stats
@@ -1715,34 +1721,89 @@ struct ast_conf_member *find_member ( char *chan, int lock)
 	return found;
 }
 
-unsigned long timeval_to_millis(struct timeval tv)
+long timeval_to_millis(struct timeval tv)
 {
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 
 // All the VAD-based video switching magic happens here
-// Returns the new video source id
-int do_VAD_switching(struct ast_conference *conf)
+// This function should be called inside conference_exec
+// The conference mutex should be locked, we don't have to do it here
+void do_VAD_switching(struct ast_conference *conf)
 {
 	struct ast_conf_member *member;
+	struct timeval         current_time;
+	long                   longest_speaking, tmp;
+	int                    longest_speaking_id;
+	int                    current_silent;
 	
+	gettimeofday(&current_time, NULL);
+	
+	// Scan the member list looking for the longest speaking member
+	// We also check if the currently speaking member has been silent for a while
+	// We say that a member is speaking after his speaking state has been on for 
+	// at least AST_CONF_VIDEO_START_TIMEOUT ms
+	// We say that a member is silent after his speaking state has been off for 
+	// at least AST_CONF_VIDEO_STOP_TIMEOUT ms
+	longest_speaking = 0;
+	longest_speaking_id = -1;
+	current_silent = 0;
 	for ( member = conf->memberlist ;
 	      member != NULL ;
 	      member = member->next )
 	{
 		if ( member->mute_video ) continue;
-		// Has the state changed since last time through this loop?
+		
+		// Check if current speaker has been silent for a while
+		if ( member->video_id == conf->current_video_source_id &&
+		     member->speaking_state_prev == 0 &&
+		     usecdiff(&current_time, &member->last_state_change) > AST_CONF_VIDEO_STOP_TIMEOUT )
+		{
+			current_silent = 1;
+		}
+		
+		// Find the longest speaking member
+		if ( member->speaking_state_prev == 1 )
+		{
+			tmp = usecdiff(&current_time, &member->last_state_change );
+			if ( tmp > AST_CONF_VIDEO_START_TIMEOUT && tmp > longest_speaking )
+			{
+				longest_speaking = tmp;
+				longest_speaking_id = member->video_id;
+			}
+		}
+		
+		// Has the state changed since last time through this loop? Notify!
 		if ( member->speaking_state_notify != member->speaking_state_prev )
 		{
-/*			fprintf(stderr, "Mihai: member %s has changed state to %s at timestamp %ld\n", 
+			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s at timestamp %ld\n", 
+				member->video_id,
 				member->channel_name, 
 				((member->speaking_state_notify == 1 ) ? "speaking" : "silent"),
 				timeval_to_millis(member->last_state_change)
-			       );*/
-			
+			       );			
 		}
 	}
-	return conf->default_video_source_id;
+	
+	// We got our results, now let's make a decision
+	// If the currently speaking member has been silent, then we take the longest 
+	// speaking member.  If no member is speaking, we go to default
+	// As a policy we don't want to switch away from a member that is speaking
+	// however, we might need to refine this to avoid a situation when a member has a 
+	// low noise threshold or its VAD is simply stuck 
+	if ( current_silent )
+	{
+		fprintf(stderr, "Mihai: current speaker is silent, longest_speaking_id = %d\n", longest_speaking_id);
+		if ( longest_speaking_id >= 0 )
+		{
+			conf->current_video_source_id = longest_speaking_id;
+			//conf->current_video_source_timestamp = current_time;
+			fprintf(stderr, "Mihai: VAD switching to member %d\n", longest_speaking_id);
+		} else
+		{
+			conf->current_video_source_id = conf->default_video_source_id;
+		}
+	}
 }
 
 int lock_conference(const char *conference, int member_id)
@@ -1772,6 +1833,7 @@ int lock_conference(const char *conference, int member_id)
 				if ( member->video_id == member_id && !member->mute_video )
 				{
 					conf->current_video_source_id = member_id;
+					//gettimeofday(&conf->current_video_source_timestamp, NULL);
 					conf->video_locked = 1;
 					res = 0;
 					
@@ -1811,6 +1873,7 @@ int unlock_conference(const char *conference)
 		{
 			conf->video_locked = 0;
 			conf->current_video_source_id = conf->default_video_source_id;
+			//gettimeofday(&conf->current_video_source_timestamp, NULL);
 			res = 0;
 			
 			// TODO; emit unlock event on the management interface here
@@ -1833,7 +1896,7 @@ int set_default_video_id(const char *conference, int member_id)
 	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
 		return -1 ;
 
-	// acquire mutex
+	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	// Look for conference
@@ -1864,7 +1927,7 @@ int set_default_video_id(const char *conference, int member_id)
 		}
 	}
 	
-	// release mutex
+	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
 	
 	return res;

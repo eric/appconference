@@ -156,7 +156,7 @@
 #define AST_CONF_CONFERENCE_SLEEP 40 
 
 // milliseconds to wait between state notification updates
-#define AST_CONF_NOTIFICATION_SLEEP 500
+#define AST_CONF_NOTIFICATION_SLEEP 100
 
 //
 // warning threshold values
@@ -195,6 +195,17 @@
 #define AC_SUPPORTED_FORMATS 5
 
 enum { AC_SLINEAR_INDEX = 0, AC_ULAW_INDEX, AC_ALAW_INDEX, AC_GSM_INDEX, AC_SPEEX_INDEX } ;
+
+//
+// VAD based video switching parameters
+// All time related values are in ms
+//
+
+// Amount of silence required before we decide somebody stopped talking
+#define AST_CONF_VIDEO_STOP_TIMEOUT 2000
+
+// Amount of audio required before we decide somebody started talking
+#define AST_CONF_VIDEO_START_TIMEOUT 2000
 
 //
 // app_conference functions

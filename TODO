@@ -1,0 +1,5 @@
+Things we need to do for the next release
+- implement manager events for video locking and unlocking as well as 
+for changing the default/current video source.
+- implement video switching on Key frame (prolly needs some Asterisk work)
+- Documentation!
