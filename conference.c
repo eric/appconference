@@ -917,6 +917,15 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			// update conference stats
 			count = count_member( member, conf, 0 ) ;
 
+			// Check if member is the default or current video source
+			if ( conf->current_video_source_id == member->video_id )
+			{
+				switch_to_default(conf, 0);
+			} else if ( conf->default_video_source_id == member->video_id )
+			{
+				conf->default_video_source_id = -1;
+			}
+			
 			// output to manager...
 			manager_event(
 				EVENT_FLAG_CALL,
@@ -1721,6 +1730,42 @@ struct ast_conf_member *find_member ( char *chan, int lock)
 	return found;
 }
 
+void switch_to_default ( struct ast_conference *conf, int lock )
+{
+	struct ast_conf_member *member;
+	
+	// Sanity check
+	if ( conf == NULL ) return;
+	
+	// Acquire conference lock if needed
+	if ( lock ) ast_mutex_lock(&conf->lock);
+	
+	// No need to do anything if we're already at default
+	if ( conf->current_video_source_id != conf->default_video_source_id )
+	{
+		conf->current_video_source_id = conf->default_video_source_id;
+		
+		// Search for the corresponding member so we can find the channel and send the event
+		for ( member = conf->memberlist ; 
+		member != NULL ; 
+		member = member->next )
+		{
+			if ( member->video_id == conf->current_video_source_id )
+			{
+				manager_event(EVENT_FLAG_CALL, 
+					"ConferenceSwitch", 
+					"ConferenceName: %s\r\nChannel: %s\r\n", 
+					conf->name, 
+					member->channel_name);
+			}
+		}
+		fprintf(stderr, "Mihai: switching to default (%d)\n", conf->current_video_source_id);
+	}
+	
+	// Release conference lock if needed
+	if ( lock ) ast_mutex_unlock(&conf->lock);
+}
+
 long timeval_to_millis(struct timeval tv)
 {
 	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -1807,28 +1852,7 @@ void do_VAD_switching(struct ast_conference *conf)
 				      longest_speaking_member->channel_name);
 		} else
 		{
-			// If no member is speaking, then switch to default
-			// unless we already are at default
-			if ( conf->current_video_source_id != conf->default_video_source_id )
-			{
-				conf->current_video_source_id = conf->default_video_source_id;
-				
-				// Search for the corresponding member so we can find the channel
-				for ( member = conf->memberlist ; 
-				member != NULL ; 
-				member = member->next )
-				{
-					if ( member->video_id == conf->current_video_source_id )
-					{
-						manager_event(EVENT_FLAG_CALL, 
-							"ConferenceSwitch", 
-							"ConferenceName: %s\r\nChannel: %s\r\n", 
-							conf->name, 
-							member->channel_name);
-					}
-				}
-				fprintf(stderr, "Mihai: VAD switching to member %d\n", conf->current_video_source_id);
-			}
+			switch_to_default(conf, 0);
 		}
 	}
 }
