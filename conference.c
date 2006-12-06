@@ -921,7 +921,7 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			manager_event(
 				EVENT_FLAG_CALL,
 				"ConferenceLeave",
-				"SwitchName: %s\r\n"
+				"ConferenceName: %s\r\n"
 				"Member: %d\r\n"
 				"Channel: %s\r\n"
 				"CallerID: %s\r\n"
@@ -1162,7 +1162,7 @@ int manager_conference_list( struct mansession *s, struct message *m )
 			while (member != NULL)
 			  {
 					astman_append(s, "Event: ConferenceEntry\r\n"
-						"SwitchName: %s\r\n"	
+						"ConferenceName: %s\r\n"	
 						"Member: %d\r\n"	
 						"Channel: %s\r\n"
 						"CallerID: %s\r\n"
@@ -1734,7 +1734,7 @@ void do_VAD_switching(struct ast_conference *conf)
 	struct ast_conf_member *member;
 	struct timeval         current_time;
 	long                   longest_speaking, tmp;
-	int                    longest_speaking_id;
+	struct ast_conf_member *longest_speaking_member;
 	int                    current_silent;
 	
 	gettimeofday(&current_time, NULL);
@@ -1746,7 +1746,7 @@ void do_VAD_switching(struct ast_conference *conf)
 	// We say that a member is silent after his speaking state has been off for 
 	// at least AST_CONF_VIDEO_STOP_TIMEOUT ms
 	longest_speaking = 0;
-	longest_speaking_id = -1;
+	longest_speaking_member = NULL;
 	current_silent = 0;
 	for ( member = conf->memberlist ;
 	      member != NULL ;
@@ -1769,19 +1769,19 @@ void do_VAD_switching(struct ast_conference *conf)
 			if ( tmp > AST_CONF_VIDEO_START_TIMEOUT && tmp > longest_speaking )
 			{
 				longest_speaking = tmp;
-				longest_speaking_id = member->video_id;
+				longest_speaking_member = member;
 			}
 		}
 		
 		// Has the state changed since last time through this loop? Notify!
 		if ( member->speaking_state_notify != member->speaking_state_prev )
 		{
-			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s at timestamp %ld\n", 
+/*			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s at timestamp %ld\n", 
 				member->video_id,
 				member->channel_name, 
 				((member->speaking_state_notify == 1 ) ? "speaking" : "silent"),
 				timeval_to_millis(member->last_state_change)
-			       );			
+			       );			*/
 		}
 	}
 	
@@ -1793,15 +1793,42 @@ void do_VAD_switching(struct ast_conference *conf)
 	// low noise threshold or its VAD is simply stuck 
 	if ( current_silent )
 	{
-		fprintf(stderr, "Mihai: current speaker is silent, longest_speaking_id = %d\n", longest_speaking_id);
-		if ( longest_speaking_id >= 0 )
+		//fprintf(stderr, "Mihai: current speaker is silent, longest_speaking_id = %d\n", longest_speaking_id);
+		if ( longest_speaking_member != NULL )
 		{
-			conf->current_video_source_id = longest_speaking_id;
+			conf->current_video_source_id = longest_speaking_member->video_id;
 			//conf->current_video_source_timestamp = current_time;
-			fprintf(stderr, "Mihai: VAD switching to member %d\n", longest_speaking_id);
+			fprintf(stderr, "Mihai: VAD switching to member %d\n", longest_speaking_member->video_id);
+			
+			manager_event(EVENT_FLAG_CALL, 
+				      "ConferenceSwitch", 
+				      "ConferenceName: %s\r\nChannel: %s\r\n", 
+				      conf->name, 
+				      longest_speaking_member->channel_name);
 		} else
 		{
-			conf->current_video_source_id = conf->default_video_source_id;
+			// If no member is speaking, then switch to default
+			// unless we already are at default
+			if ( conf->current_video_source_id != conf->default_video_source_id )
+			{
+				conf->current_video_source_id = conf->default_video_source_id;
+				
+				// Search for the corresponding member so we can find the channel
+				for ( member = conf->memberlist ; 
+				member != NULL ; 
+				member = member->next )
+				{
+					if ( member->video_id == conf->current_video_source_id )
+					{
+						manager_event(EVENT_FLAG_CALL, 
+							"ConferenceSwitch", 
+							"ConferenceName: %s\r\nChannel: %s\r\n", 
+							conf->name, 
+							member->channel_name);
+					}
+				}
+				fprintf(stderr, "Mihai: VAD switching to member %d\n", conf->current_video_source_id);
+			}
 		}
 	}
 }
@@ -1833,11 +1860,57 @@ int lock_conference(const char *conference, int member_id)
 				if ( member->video_id == member_id && !member->mute_video )
 				{
 					conf->current_video_source_id = member_id;
-					//gettimeofday(&conf->current_video_source_timestamp, NULL);
 					conf->video_locked = 1;
 					res = 0;
 					
-					// TODO: emit lock event on the management interface here
+					manager_event(EVENT_FLAG_CALL, "ConferenceLock", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+					break;
+				}
+			}
+			
+			// Release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			break;
+		}
+	}
+	
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+}
+
+int lock_conference_channel(const char *conference, const char *channel)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                   res;
+
+	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+		return -1 ;
+
+	// acquire mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	// Look for conference
+	res = 1;
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// Search member list for our member
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
+				{
+					conf->current_video_source_id = member->video_id;
+					conf->video_locked = 1;
+					res = 0;
+					
+					manager_event(EVENT_FLAG_CALL, "ConferenceLock", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
 				}
 			}
@@ -1873,10 +1946,10 @@ int unlock_conference(const char *conference)
 		{
 			conf->video_locked = 0;
 			conf->current_video_source_id = conf->default_video_source_id;
-			//gettimeofday(&conf->current_video_source_timestamp, NULL);
 			res = 0;
 			
-			// TODO; emit unlock event on the management interface here
+			manager_event(EVENT_FLAG_CALL, "ConferenceUnlock", "ConferenceName: %s\r\n", conf->name);
+			
 			break;
 		}
 	}
@@ -1916,7 +1989,54 @@ int set_default_video_id(const char *conference, int member_id)
 					conf->default_video_source_id = member_id;
 					res = 0;
 					
-					// TODO: emit default event on the management interface here
+					manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+					break;
+				}
+			}
+			
+			// Release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+	
+}
+
+int set_default_video_channel(const char *conference, const char *channel)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                   res;
+
+	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+		return -1 ;
+
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	// Look for conference
+	res = 1;
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// Search member list for our member
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
+				{
+					conf->default_video_source_id = member->video_id;
+					res = 0;
+					
+					manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
 				}
 			}

@@ -58,9 +58,11 @@ int conference_stop_videos( int fd, int argc, char *argv[] ) ;
 int conference_end( int fd, int argc, char *argv[] ) ;
 
 int conference_lock( int fd, int argc, char *argv[] ) ;
+int conference_lockchannel( int fd, int argc, char *argv[] ) ;
 int conference_unlock( int fd, int argc, char *argv[] ) ;
 
 int conference_set_default(int fd, int argc, char *argv[] ) ;
+int conference_set_defaultchannel(int fd, int argc, char *argv[] ) ;
 
 void register_conference_cli( void ) ;
 void unregister_conference_cli( void ) ;

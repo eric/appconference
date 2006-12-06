@@ -156,7 +156,7 @@
 #define AST_CONF_CONFERENCE_SLEEP 40 
 
 // milliseconds to wait between state notification updates
-#define AST_CONF_NOTIFICATION_SLEEP 100
+#define AST_CONF_NOTIFICATION_SLEEP 200
 
 //
 // warning threshold values

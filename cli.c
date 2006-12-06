@@ -658,6 +658,41 @@ int conference_lock( int fd, int argc, char *argv[] )
 	return RESULT_SUCCESS;
 }
 
+// 
+// lock conference to a video source channel
+//
+static char conference_lockchannel_usage[] = 
+	"usage: conference lockchannel <conference name> <channel>\n"
+	"       locks incoming video stream for conference <conference name> to channel <channel>\n"
+;
+
+static struct ast_cli_entry cli_lockchannel = {
+	{ "conference", "lockchannel", NULL },
+	conference_lockchannel,
+	"locks incoming video to a channel",
+	conference_lockchannel_usage
+} ;
+
+int conference_lockchannel( int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 4 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	const char *channel = argv[3];
+	
+	int res = lock_conference_channel(conference, channel);
+	
+	if ( res ) 
+	{
+		ast_cli(fd, "Locking failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
 //
 // unlock conference
 //
@@ -730,6 +765,42 @@ int conference_set_default(int fd, int argc, char *argv[] )
 }
 
 //
+// Set conference default video source channel
+//
+static char conference_set_defaultchannel_usage[] = 
+	"usage: conference set defaultchannel <conference name> <channel>\n"
+	"       sets the default video source channel for conference <conference name> to channel <channel>\n"
+;
+
+static struct ast_cli_entry cli_set_defaultchannel = {
+	{ "conference", "set", "defaultchannel", NULL },
+	conference_set_defaultchannel,
+	"sets default video source channel",
+	conference_set_defaultchannel_usage
+} ;
+
+int conference_set_defaultchannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	const char *channel = argv[4];
+	
+	int res = set_default_video_channel(conference, channel);
+	
+	if ( res ) 
+	{
+		ast_cli(fd, "Setting default video id failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+
+//
 // cli initialization function
 //
 
@@ -750,8 +821,10 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_stop_sounds ) ;	
 	ast_cli_register( &cli_end );
 	ast_cli_register( &cli_lock );
+	ast_cli_register( &cli_lockchannel );
 	ast_cli_register( &cli_unlock );
 	ast_cli_register( &cli_set_default );
+	ast_cli_register( &cli_set_defaultchannel );
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
 
 }
@@ -773,7 +846,9 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_stop_sounds ) ;
 	ast_cli_unregister( &cli_end );
 	ast_cli_unregister( &cli_lock );
+	ast_cli_unregister( &cli_lockchannel );
 	ast_cli_unregister( &cli_unlock );
 	ast_cli_unregister( &cli_set_default );
+	ast_cli_unregister( &cli_set_defaultchannel );
 	ast_manager_unregister( "ConferenceList" );
 }

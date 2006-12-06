@@ -156,9 +156,11 @@ int get_conference_stats( ast_conference_stats* stats, int requested ) ;
 int get_conference_stats_by_name( ast_conference_stats* stats, const char* name ) ;
 
 int lock_conference(const char *conference, int member_id);
+int lock_conference_channel(const char *conference, const char *channel);
 int unlock_conference(const char *conference);
 
 int set_default_video_id(const char *conference, int member_id);
+int set_default_video_channel(const char *conference, const char *channel);
 
 int set_conference_debugging( const char* name, int state ) ;
 

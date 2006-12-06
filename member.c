@@ -86,7 +86,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 			manager_event(
 				EVENT_FLAG_CALL,
 				"ConferenceDTMF",
-				"SwitchName: %s\r\n"
+				"ConferenceName: %s\r\n"
 				"Channel: %s\r\n"
 				"CallerID: %s\r\n"
 				"CallerIDName: %s\r\n"
@@ -551,7 +551,7 @@ int member_exec( struct ast_channel* chan, void* data )
 	manager_event(
 		EVENT_FLAG_CALL,
 		"ConferenceJoin",
-		"SwitchName: %s\r\n"
+		"ConferenceName: %s\r\n"
 		"Member: %d\r\n"
 		"Channel: %s\r\n"
 		"CallerID: %s\r\n"
