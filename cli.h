@@ -64,6 +64,11 @@ int conference_unlock( int fd, int argc, char *argv[] ) ;
 int conference_set_default(int fd, int argc, char *argv[] ) ;
 int conference_set_defaultchannel(int fd, int argc, char *argv[] ) ;
 
+int conference_video_mute(int fd, int argc, char *argv[] ) ;
+int conference_video_mutechannel(int fd, int argc, char *argv[] ) ;
+int conference_video_unmute(int fd, int argc, char *argv[] ) ;
+int conference_video_unmutechannel(int fd, int argc, char *argv[] ) ;
+
 void register_conference_cli( void ) ;
 void unregister_conference_cli( void ) ;
 

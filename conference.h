@@ -165,6 +165,11 @@ int unlock_conference(const char *conference);
 int set_default_video_id(const char *conference, int member_id);
 int set_default_video_channel(const char *conference, const char *channel);
 
+int video_mute_member(const char *conference, int member_id);
+int video_unmute_member(const char *conference, int member_id);
+int video_mute_channel(const char *conference, const char *channel);
+int video_unmute_channel(const char *conference, const char *channel);
+
 int set_conference_debugging( const char* name, int state ) ;
 
 #endif

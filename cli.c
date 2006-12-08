@@ -649,7 +649,7 @@ int conference_lock( int fd, int argc, char *argv[] )
 	
 	int res = lock_conference(conference, member);
 	
-	if ( res ) 
+	if ( !res ) 
 	{
 		ast_cli(fd, "Locking failed\n");
 		return RESULT_FAILURE;
@@ -684,7 +684,7 @@ int conference_lockchannel( int fd, int argc, char *argv[] )
 	
 	int res = lock_conference_channel(conference, channel);
 	
-	if ( res ) 
+	if ( !res ) 
 	{
 		ast_cli(fd, "Locking failed\n");
 		return RESULT_FAILURE;
@@ -719,7 +719,7 @@ int conference_unlock( int fd, int argc, char *argv[] )
 	
 	int res = unlock_conference(conference);
 	
-	if ( res ) 
+	if ( !res ) 
 	{
 		ast_cli(fd, "Unlocking failed\n");
 		return RESULT_FAILURE;
@@ -755,7 +755,7 @@ int conference_set_default(int fd, int argc, char *argv[] )
 	
 	int res = set_default_video_id(conference, member);
 	
-	if ( res ) 
+	if ( !res ) 
 	{
 		ast_cli(fd, "Setting default video id failed\n");
 		return RESULT_FAILURE;
@@ -790,9 +790,151 @@ int conference_set_defaultchannel(int fd, int argc, char *argv[] )
 	
 	int res = set_default_video_channel(conference, channel);
 	
-	if ( res ) 
+	if ( !res ) 
 	{
 		ast_cli(fd, "Setting default video id failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Mute video from a member
+//
+static char conference_video_mute_usage[] = 
+	"usage: conference video mute <conference name> <member>\n"
+	"       mutes video from member <member> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_mute = {
+	{ "conference", "video", "mute", NULL },
+	conference_video_mute,
+	"mutes video from a member",
+	conference_video_mute_usage
+} ;
+
+int conference_video_mute(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	int member;
+	sscanf(argv[4], "%d", &member);
+	
+	int res = video_mute_member(conference, member);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Muting video from member %d failed\n", member);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Unmute video from a member
+//
+static char conference_video_unmute_usage[] = 
+	"usage: conference video unmute <conference name> <member>\n"
+	"       unmutes video from member <member> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_unmute = {
+	{ "conference", "video", "unmute", NULL },
+	conference_video_unmute,
+	"unmutes video from a member",
+	conference_video_unmute_usage
+} ;
+
+int conference_video_unmute(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	int member;
+	sscanf(argv[4], "%d", &member);
+	
+	int res = video_unmute_member(conference, member);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Unmuting video from member %d failed\n", member);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Mute video from a channel
+//
+static char conference_video_mutechannel_usage[] = 
+	"usage: conference video mutechannel <conference name> <member>\n"
+	"       mutes video from channel <channel> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_mutechannel = {
+	{ "conference", "video", "mutechannel", NULL },
+	conference_video_mutechannel,
+	"mutes video from a channel",
+	conference_video_mutechannel_usage
+} ;
+
+int conference_video_mutechannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	const char *channel = argv[4];
+	
+	int res = video_mute_channel(conference, channel);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Muting video from channel %s failed\n", channel);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Unmute video from a channel
+//
+static char conference_video_unmutechannel_usage[] = 
+	"usage: conference video unmutechannel <conference name> <member>\n"
+	"       unmutes video from channel <channel> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_unmutechannel = {
+	{ "conference", "video", "unmutechannel", NULL },
+	conference_video_unmutechannel,
+	"unmutes video from a channel",
+	conference_video_unmutechannel_usage
+} ;
+
+int conference_video_unmutechannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	const char *channel = argv[4];
+	
+	int res = video_unmute_channel(conference, channel);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Unmuting video from channel %s failed\n", channel);
 		return RESULT_FAILURE;
 	}
 	
@@ -825,6 +967,10 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_unlock );
 	ast_cli_register( &cli_set_default );
 	ast_cli_register( &cli_set_defaultchannel );
+	ast_cli_register( &cli_video_mute ) ;
+	ast_cli_register( &cli_video_unmute ) ;
+	ast_cli_register( &cli_video_mutechannel ) ;
+	ast_cli_register( &cli_video_unmutechannel ) ;
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
 
 }
@@ -850,5 +996,9 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_unlock );
 	ast_cli_unregister( &cli_set_default );
 	ast_cli_unregister( &cli_set_defaultchannel );
+	ast_cli_unregister( &cli_video_mute ) ;
+	ast_cli_unregister( &cli_video_unmute ) ;
+	ast_cli_unregister( &cli_video_mutechannel ) ;
+	ast_cli_unregister( &cli_video_unmutechannel ) ;	
 	ast_manager_unregister( "ConferenceList" );
 }

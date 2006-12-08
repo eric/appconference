@@ -1177,6 +1177,9 @@ int manager_conference_list( struct mansession *s, struct message *m )
 						"CallerID: %s\r\n"
 						"CallerIDName: %s\r\n"
 						"Muted: %s\r\n"
+						"VideoMuted: %s\r\n"
+						"Default: %s\r\n"
+						"Current: %s\r\n"
 						"%s"
 						"\r\n",
 						conf->name,
@@ -1185,6 +1188,9 @@ int manager_conference_list( struct mansession *s, struct message *m )
 						member->chan->cid.cid_num ? member->chan->cid.cid_num : "unknown",
 						member->chan->cid.cid_name ? member->chan->cid.cid_name : "unknown",
 						member->mute_audio ? "YES" : "NO",
+						member->mute_video ? "YES" : "NO",
+						member->video_id == conf->default_video_source_id ? "YES" : "NO",
+						member->video_id == conf->current_video_source_id ? "YES" : "NO",
 						idText);
 			    member = member->next;
 			  }
@@ -1759,7 +1765,6 @@ void switch_to_default ( struct ast_conference *conf, int lock )
 					member->channel_name);
 			}
 		}
-		fprintf(stderr, "Mihai: switching to default (%d)\n", conf->current_video_source_id);
 	}
 	
 	// Release conference lock if needed
@@ -1797,7 +1802,10 @@ void do_VAD_switching(struct ast_conference *conf)
 	      member != NULL ;
 	      member = member->next )
 	{
-		if ( member->mute_video ) continue;
+		// We check for video-muted members 
+		// However, if the member is the currently speaking member we still go on
+		if ( member->video_id != conf->current_video_source_id && member->mute_video ) 
+			continue;
 		
 		// Check if current speaker has been silent for a while
 		if ( member->video_id == conf->current_video_source_id &&
@@ -1838,12 +1846,9 @@ void do_VAD_switching(struct ast_conference *conf)
 	// low noise threshold or its VAD is simply stuck 
 	if ( current_silent )
 	{
-		//fprintf(stderr, "Mihai: current speaker is silent, longest_speaking_id = %d\n", longest_speaking_id);
 		if ( longest_speaking_member != NULL )
 		{
 			conf->current_video_source_id = longest_speaking_member->video_id;
-			//conf->current_video_source_timestamp = current_time;
-			fprintf(stderr, "Mihai: VAD switching to member %d\n", longest_speaking_member->video_id);
 			
 			manager_event(EVENT_FLAG_CALL, 
 				      "ConferenceSwitch", 
@@ -1870,7 +1875,7 @@ int lock_conference(const char *conference, int member_id)
 	ast_mutex_lock( &conflist_lock ) ;
 
 	// Look for conference
-	res = 1;
+	res = 0;
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
@@ -1885,7 +1890,7 @@ int lock_conference(const char *conference, int member_id)
 				{
 					conf->current_video_source_id = member_id;
 					conf->video_locked = 1;
-					res = 0;
+					res = 1;
 					
 					manager_event(EVENT_FLAG_CALL, "ConferenceLock", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
@@ -1917,7 +1922,7 @@ int lock_conference_channel(const char *conference, const char *channel)
 	ast_mutex_lock( &conflist_lock ) ;
 
 	// Look for conference
-	res = 1;
+	res = 0;
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
@@ -1932,7 +1937,7 @@ int lock_conference_channel(const char *conference, const char *channel)
 				{
 					conf->current_video_source_id = member->video_id;
 					conf->video_locked = 1;
-					res = 0;
+					res = 1;
 					
 					manager_event(EVENT_FLAG_CALL, "ConferenceLock", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
@@ -1963,16 +1968,15 @@ int unlock_conference(const char *conference)
 	ast_mutex_lock( &conflist_lock ) ;
 
 	// Look for conference
-	res = 1;
+	res = 0;
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			conf->video_locked = 0;
-			conf->current_video_source_id = conf->default_video_source_id;
-			res = 0;
-			
 			manager_event(EVENT_FLAG_CALL, "ConferenceUnlock", "ConferenceName: %s\r\n", conf->name);
+			switch_to_default(conf, 0);
+			res = 1;
 			
 			break;
 		}
@@ -1997,7 +2001,7 @@ int set_default_video_id(const char *conference, int member_id)
 	ast_mutex_lock( &conflist_lock ) ;
 
 	// Look for conference
-	res = 1;
+	res = 0;
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
@@ -2011,7 +2015,7 @@ int set_default_video_id(const char *conference, int member_id)
 				if ( member->video_id == member_id && !member->mute_video )
 				{
 					conf->default_video_source_id = member_id;
-					res = 0;
+					res = 1;
 					
 					manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
@@ -2044,7 +2048,7 @@ int set_default_video_channel(const char *conference, const char *channel)
 	ast_mutex_lock( &conflist_lock ) ;
 
 	// Look for conference
-	res = 1;
+	res = 0;
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
@@ -2058,7 +2062,7 @@ int set_default_video_channel(const char *conference, const char *channel)
 				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
 				{
 					conf->default_video_source_id = member->video_id;
-					res = 0;
+					res = 1;
 					
 					manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
@@ -2075,5 +2079,224 @@ int set_default_video_channel(const char *conference, const char *channel)
 	ast_mutex_unlock( &conflist_lock ) ;
 	
 	return res;
-	
 }
+
+int video_mute_member(const char *conference, int member_id)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                    res;
+
+	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( member->video_id == member_id )
+				{
+					// acquire member mutex
+					ast_mutex_lock( &member->lock );
+					
+					member->mute_video = 1;
+					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+					
+					if ( member->video_id == conf->current_video_source_id )
+					{
+						switch_to_default(conf, 0);
+					}
+					
+					// release member mutex
+					ast_mutex_unlock( &member->lock );
+					
+					res = 1;
+					break;
+				}
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return res;
+}
+
+int video_unmute_member(const char *conference, int member_id)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                    res;
+
+	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( member->video_id == member_id )
+				{
+					// acquire member mutex
+					ast_mutex_lock( &member->lock );
+					
+					member->mute_video = 0;
+					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+					
+					// release member mutex
+					ast_mutex_unlock( &member->lock );
+					
+					res = 1;
+					break;
+				}
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return res;
+}
+
+int video_mute_channel(const char *conference, const char *channel)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                    res;
+
+	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( strcmp(channel, member->channel_name) == 0 )
+				{
+					// acquire member mutex
+					ast_mutex_lock( &member->lock );
+					
+					member->mute_video = 1;
+					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+					
+					if ( member->video_id == conf->current_video_source_id )
+					{
+						switch_to_default(conf, 0);
+					}
+					
+					// release member mutex
+					ast_mutex_unlock( &member->lock );
+					
+					res = 1;
+					break;
+				}
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return res;
+}
+
+int video_unmute_channel(const char *conference, const char *channel)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	int                    res;
+
+	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( strcmp(channel, member->channel_name) == 0 )
+				{
+					// acquire member mutex
+					ast_mutex_lock( &member->lock );
+					
+					member->mute_video = 0;
+					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+					
+					// release member mutex
+					ast_mutex_unlock( &member->lock );
+					
+					res = 1;
+					break;
+				}
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+			
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return res;
+}
+
+
