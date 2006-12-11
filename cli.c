@@ -943,6 +943,117 @@ int conference_video_unmutechannel(int fd, int argc, char *argv[] )
 
 
 //
+// Text message functions
+// Send a text message to a member
+//
+static char conference_text_usage[] = 
+	"usage: conference text <conference name> <member> <text>\n"
+	"        Sends text message <text> to member <member> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_text = {
+	{ "conference", "text", NULL },
+	conference_text,
+	"sends a text message to a member",
+	conference_text_usage
+} ;
+
+int conference_text(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	int member;
+	sscanf(argv[3], "%d", &member);
+	const char *text = argv[4];
+	
+	int res = send_text(conference, member, text);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Sending a text message to member %d failed\n", member);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Send a text message to a channel
+//
+static char conference_textchannel_usage[] = 
+	"usage: conference textchannel <conference name> <channel> <text>\n"
+	"        Sends text message <text> to channel <channel> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_textchannel = {
+	{ "conference", "textchannel", NULL },
+	conference_textchannel,
+	"sends a text message to a channel",
+	conference_textchannel_usage
+} ;
+
+int conference_textchannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	const char *channel = argv[3];
+	const char *text = argv[4];
+	
+	int res = send_text_channel(conference, channel, text);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Sending a text message to channel %s failed\n", channel);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Send a text message to all members in a conference
+//
+static char conference_textbroadcast_usage[] = 
+	"usage: conference textbroadcast <conference name> <text>\n"
+	"        Sends text message <text> to all members in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_textbroadcast = {
+	{ "conference", "textbroadcast", NULL },
+	conference_textbroadcast,
+	"sends a text message to all members in a conference",
+	conference_textbroadcast_usage
+} ;
+
+int conference_textbroadcast(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 4 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	const char *text = argv[3];
+	
+	int res = send_text_broadcast(conference, text);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Sending a text broadcast to conference %s failed\n", conference);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+
+
+//
 // cli initialization function
 //
 
@@ -971,6 +1082,9 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_video_unmute ) ;
 	ast_cli_register( &cli_video_mutechannel ) ;
 	ast_cli_register( &cli_video_unmutechannel ) ;
+	ast_cli_register( &cli_text );
+	ast_cli_register( &cli_textchannel );
+	ast_cli_register( &cli_textbroadcast );
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
 
 }
@@ -999,6 +1113,9 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_video_mute ) ;
 	ast_cli_unregister( &cli_video_unmute ) ;
 	ast_cli_unregister( &cli_video_mutechannel ) ;
-	ast_cli_unregister( &cli_video_unmutechannel ) ;	
+	ast_cli_unregister( &cli_video_unmutechannel ) ;
+	ast_cli_unregister( &cli_text );
+	ast_cli_unregister( &cli_textchannel );
+	ast_cli_unregister( &cli_textbroadcast );
 	ast_manager_unregister( "ConferenceList" );
 }

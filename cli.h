@@ -51,7 +51,6 @@ int conference_viewchannel( int fd, int argc, char *argv[] ) ;
 int conference_play_sound( int fd, int argc, char *argv[] ) ;
 int conference_stop_sounds( int fd, int argc, char *argv[] ) ;
 
-
 int conference_play_video( int fd, int argc, char *argv[] ) ;
 int conference_stop_videos( int fd, int argc, char *argv[] ) ;
 
@@ -68,6 +67,10 @@ int conference_video_mute(int fd, int argc, char *argv[] ) ;
 int conference_video_mutechannel(int fd, int argc, char *argv[] ) ;
 int conference_video_unmute(int fd, int argc, char *argv[] ) ;
 int conference_video_unmutechannel(int fd, int argc, char *argv[] ) ;
+
+int conference_text( int fd, int argc, char *argv[] ) ;
+int conference_textchannel( int fd, int argc, char *argv[] ) ;
+int conference_textbroadcast( int fd, int argc, char *argv[] ) ;
 
 void register_conference_cli( void ) ;
 void unregister_conference_cli( void ) ;

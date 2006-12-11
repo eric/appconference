@@ -94,7 +94,11 @@ struct ast_conf_member
 	conf_frame* inDTMFFrames ;
 	conf_frame* inDTMFFramesTail ;	
 	unsigned int inDTMFFramesCount ;
+	conf_frame* inTextFrames ;
+	conf_frame* inTextFramesTail ;	
+	unsigned int inTextFramesCount ;
 
+	
 	// input/output smoother
 	struct ast_smoother *inSmoother;
 	struct ast_packer *outPacker;
@@ -121,6 +125,9 @@ struct ast_conf_member
 	conf_frame* outDTMFFrames ;
 	conf_frame* outDTMFFramesTail ;	
 	unsigned int outDTMFFramesCount ;
+	conf_frame* outTextFrames ;
+	conf_frame* outTextFramesTail ;	
+	unsigned int outTextFramesCount ;	
 
 	// LL video switched flag
 	short conference;
@@ -168,6 +175,11 @@ struct ast_conf_member
 	unsigned long dtmf_frames_out ;
 	unsigned long dtmf_frames_out_dropped ;
 
+	unsigned long text_frames_in ; 
+	unsigned long text_frames_in_dropped ;
+	unsigned long text_frames_out ;
+	unsigned long text_frames_out_dropped ;
+	
 	// for counting sequentially dropped frames
 	unsigned int sequential_drops ;
 	unsigned long since_dropped ;
@@ -239,7 +251,9 @@ conf_frame* get_outgoing_frame( struct ast_conf_member* member ) ;
 int queue_outgoing_video_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
 conf_frame* get_outgoing_video_frame( struct ast_conf_member* member ) ;
 int queue_outgoing_dtmf_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
+int queue_outgoing_text_frame( struct ast_conf_member* member, const struct ast_frame* fr ) ;
 conf_frame* get_outgoing_dtmf_frame( struct ast_conf_member* member ) ;
+conf_frame* get_outgoing_text_frame( struct ast_conf_member* member ) ;
 
 void send_state_change_notifications( struct ast_conf_member* member ) ;
 

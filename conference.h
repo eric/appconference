@@ -170,6 +170,10 @@ int video_unmute_member(const char *conference, int member_id);
 int video_mute_channel(const char *conference, const char *channel);
 int video_unmute_channel(const char *conference, const char *channel);
 
+int send_text(const char *conference, int member, const char *text);
+int send_text_channel(const char *conference, const char *channel, const char *text);
+int send_text_broadcast(const char *conference, const char *text);
+
 int set_conference_debugging( const char* name, int state ) ;
 
 #endif

@@ -511,6 +511,46 @@ conf_frame* copy_conf_frame( conf_frame* src )
 }
 
 //
+// Create a TEXT frame based on a given string
+//
+struct ast_frame* create_text_frame(const char *text, int copy)
+{
+	struct ast_frame *f;
+	char             *t;
+	
+	f = calloc(1, sizeof(struct ast_frame));
+	if ( f == NULL ) 
+	{
+		ast_log( LOG_ERROR, "unable to allocate memory for text frame\n" ) ;
+		return NULL ;
+	}
+	if ( copy )
+	{
+		t = calloc(strlen(text) + 1, 1);
+		if ( t == NULL )
+		{
+			ast_log( LOG_ERROR, "unable to allocate memory for text data\n" ) ;
+			free(f);
+			return NULL ;
+		}
+		strncpy(t, text, strlen(text));
+	} else
+	{
+		t = (char *)text;
+	}
+	
+	f->frametype = AST_FRAME_TEXT;
+	f->offset = AST_FRIENDLY_OFFSET;
+	f->mallocd = AST_MALLOCD_HDR;
+	if ( copy ) f->mallocd |= AST_MALLOCD_DATA;
+	f->datalen = strlen(t);
+	f->data = t;
+	f->src = NULL;
+	
+	return f;
+}
+
+//
 // slinear frame functions
 //
 

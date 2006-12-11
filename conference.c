@@ -1771,11 +1771,6 @@ void switch_to_default ( struct ast_conference *conf, int lock )
 	if ( lock ) ast_mutex_unlock(&conf->lock);
 }
 
-long timeval_to_millis(struct timeval tv)
-{
-	return tv.tv_sec * 1000 + tv.tv_usec / 1000;
-}
-
 // All the VAD-based video switching magic happens here
 // This function should be called inside conference_exec
 // The conference mutex should be locked, we don't have to do it here
@@ -1868,7 +1863,7 @@ int lock_conference(const char *conference, int member_id)
 	struct ast_conf_member *member;
 	int                   res;
 
-	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+	if ( conference == NULL || member_id < 0 )
 		return -1 ;
 
 	// acquire mutex
@@ -1915,7 +1910,7 @@ int lock_conference_channel(const char *conference, const char *channel)
 	struct ast_conf_member *member;
 	int                   res;
 
-	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+	if ( conference == NULL || channel == NULL )
 		return -1 ;
 
 	// acquire mutex
@@ -1961,7 +1956,7 @@ int unlock_conference(const char *conference)
 	struct ast_conference  *conf;
 	int                   res;
 	
-	if ( conference == NULL || strlen(conference) == 0 )
+	if ( conference == NULL )
 		return -1;
 	
 	// acquire conference list mutex
@@ -1994,7 +1989,7 @@ int set_default_video_id(const char *conference, int member_id)
 	struct ast_conf_member *member;
 	int                   res;
 
-	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+	if ( conference == NULL || member_id < 0 )
 		return -1 ;
 
 	// acquire conference list mutex
@@ -2041,7 +2036,7 @@ int set_default_video_channel(const char *conference, const char *channel)
 	struct ast_conf_member *member;
 	int                   res;
 
-	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+	if ( conference == NULL || channel == NULL )
 		return -1 ;
 
 	// acquire conference list mutex
@@ -2087,7 +2082,7 @@ int video_mute_member(const char *conference, int member_id)
 	struct ast_conf_member *member;
 	int                    res;
 
-	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+	if ( conference == NULL || member_id < 0 )
 		return -1;
 	
 	res = 0;
@@ -2110,15 +2105,16 @@ int video_mute_member(const char *conference, int member_id)
 					ast_mutex_lock( &member->lock );
 					
 					member->mute_video = 1;
+					
+					// release member mutex
+					ast_mutex_unlock( &member->lock );
+					
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					
 					if ( member->video_id == conf->current_video_source_id )
 					{
 						switch_to_default(conf, 0);
 					}
-					
-					// release member mutex
-					ast_mutex_unlock( &member->lock );
 					
 					res = 1;
 					break;
@@ -2144,7 +2140,7 @@ int video_unmute_member(const char *conference, int member_id)
 	struct ast_conf_member *member;
 	int                    res;
 
-	if ( conference == NULL || strlen(conference) == 0 || member_id < 0 )
+	if ( conference == NULL || member_id < 0 )
 		return -1;
 	
 	res = 0;
@@ -2167,11 +2163,12 @@ int video_unmute_member(const char *conference, int member_id)
 					ast_mutex_lock( &member->lock );
 					
 					member->mute_video = 0;
-					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					
 					// release member mutex
 					ast_mutex_unlock( &member->lock );
-					
+
+					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+										
 					res = 1;
 					break;
 				}
@@ -2196,7 +2193,7 @@ int video_mute_channel(const char *conference, const char *channel)
 	struct ast_conf_member *member;
 	int                    res;
 
-	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+	if ( conference == NULL || channel == NULL )
 		return -1;
 	
 	res = 0;
@@ -2219,16 +2216,17 @@ int video_mute_channel(const char *conference, const char *channel)
 					ast_mutex_lock( &member->lock );
 					
 					member->mute_video = 1;
+					
+					// release member mutex
+					ast_mutex_unlock( &member->lock );
+
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					
 					if ( member->video_id == conf->current_video_source_id )
 					{
 						switch_to_default(conf, 0);
 					}
-					
-					// release member mutex
-					ast_mutex_unlock( &member->lock );
-					
+										
 					res = 1;
 					break;
 				}
@@ -2253,7 +2251,7 @@ int video_unmute_channel(const char *conference, const char *channel)
 	struct ast_conf_member *member;
 	int                    res;
 
-	if ( conference == NULL || strlen(conference) == 0 || channel == NULL || strlen(channel) == 0 )
+	if ( conference == NULL || channel == NULL )
 		return -1;
 	
 	res = 0;
@@ -2276,10 +2274,11 @@ int video_unmute_channel(const char *conference, const char *channel)
 					ast_mutex_lock( &member->lock );
 					
 					member->mute_video = 0;
-					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					
 					// release member mutex
-					ast_mutex_unlock( &member->lock );
+					ast_mutex_unlock( &member->lock );					
+					
+					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					
 					res = 1;
 					break;
@@ -2299,4 +2298,147 @@ int video_unmute_channel(const char *conference, const char *channel)
 	return res;
 }
 
+//
+// Text message functions
+//
+int send_text(const char *conference, int member_id, const char *text)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	struct ast_frame       *f;
+	int                    res;
 
+	if ( conference == NULL || member_id < 0 || text == NULL )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( member->video_id == member_id )
+				{
+					f = create_text_frame(text, 1);
+					if ( f == NULL ) return 0;
+					
+					res = queue_outgoing_text_frame(member, f) == 0;
+					
+					break;
+				}
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+		
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+}
+
+int send_text_channel(const char *conference, const char *channel, const char *text)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	struct ast_frame       *f;
+	int                    res;
+
+	if ( conference == NULL || channel == NULL || text == NULL )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( strcmp(member->channel_name, channel) == 0 )
+				{
+					f = create_text_frame(text, 1);
+					if ( f == NULL ) return 0;
+					
+					res = queue_outgoing_text_frame(member, f) == 0;
+					
+					break;
+				}
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+		
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+}
+
+int send_text_broadcast(const char *conference, const char *text)
+{
+	struct ast_conference  *conf;
+	struct ast_conf_member *member;
+	struct ast_frame       *f;
+	int                    res;
+
+	if ( conference == NULL || text == NULL )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				f = create_text_frame(text, 1);
+				if ( f == NULL ) return 0;
+				
+				res = queue_outgoing_text_frame(member, f) == 0;				
+			}
+			
+			res = 1;
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+		
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+}
+		

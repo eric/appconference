@@ -449,6 +449,38 @@ static int process_outgoing(struct ast_conf_member *member)
 		delete_conf_frame( cf ) ;
 	}  
 
+        // Do the same for text, hell, why not?
+	for(;;)
+	{
+		// acquire member mutex and grab a frame.
+		cf = get_outgoing_text_frame( member ) ;
+		
+		// if there's no frames exit the loop.
+		if(!cf) break;
+		
+		// send the dtmf frame
+		if ( ast_write( member->chan, cf->fr ) == 0 )
+		{
+			struct timeval tv ;
+			gettimeofday( &tv, NULL ) ;
+			ast_log( AST_CONF_DEBUG, "SENT TEXT FRAME, channel => %s, frames_out => %ld, s => %ld, ms => %ld\n", 
+				 member->channel_name, member->frames_out, tv.tv_sec, tv.tv_usec ) ;
+			
+		}
+		else
+		{
+			// log 'dropped' outgoing frame
+			ast_log( AST_CONF_DEBUG, "unable to write text frame to channel, channel => %s\n", member->channel_name ) ;
+			
+			// accounting: count dropped outgoing frames
+			member->text_frames_out_dropped++ ;
+		}
+		
+		// clean up frame
+		delete_conf_frame( cf ) ;
+	}  
+
+	
 	return 0;
 }
 
@@ -838,6 +870,10 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->inDTMFFramesTail = NULL ;
 	member->inDTMFFramesCount = 0 ;
 
+	member->inTextFrames = NULL ;
+	member->inTextFramesTail = NULL ;
+	member->inTextFramesCount = 0 ;
+	
 	member->conference = 1; // we have switched req_id
 	member->dtmf_switch = 0; // no dtmf switch by default
 	member->dtmf_relay = 0; // no dtmf relay by default
@@ -857,13 +893,18 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->outFrames = NULL ;
 	member->outFramesTail = NULL ;
 	member->outFramesCount = 0 ;
+	
 	member->outVideoFrames = NULL ;
 	member->outVideoFramesTail = NULL ;
 	member->outVideoFramesCount = 0 ;
+	
 	member->outDTMFFrames = NULL ;
 	member->outDTMFFramesTail = NULL ;
 	member->outDTMFFramesCount = 0 ;
 	
+	member->outTextFrames = NULL ;
+	member->outTextFramesTail = NULL ;
+	member->outTextFramesCount = 0 ;
 
 	// ( not currently used )
 	// member->samplesperframe = AST_CONF_BLOCK_SAMPLES ;
@@ -890,6 +931,10 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->dtmf_frames_in_dropped = 0 ;
 	member->dtmf_frames_out = 0 ;
 	member->dtmf_frames_out_dropped = 0 ;
+	member->text_frames_in = 0 ;
+	member->text_frames_in_dropped = 0 ;
+	member->text_frames_out = 0 ;
+	member->text_frames_out_dropped = 0 ;
 
 	// for counting sequentially dropped frames
 	member->sequential_drops = 0 ;
@@ -2243,6 +2288,53 @@ conf_frame* get_outgoing_dtmf_frame( struct ast_conf_member *member )
 	return NULL ;
 }
 
+conf_frame* get_outgoing_text_frame( struct ast_conf_member *member )
+{
+	if ( member == NULL )
+	{
+		ast_log( LOG_WARNING, "unable to get frame from null member\n" ) ;
+		return NULL ;
+	}
+
+	conf_frame* cfr ;
+
+	// ast_log( AST_CONF_DEBUG, "getting member frames, count => %d\n", member->outFramesCount ) ;
+ 
+	ast_mutex_lock(&member->lock);
+
+	if ( member->outTextFramesCount > AST_CONF_MIN_QUEUE ) 
+	{
+		cfr = member->outTextFramesTail ;
+	
+		// if it's the only frame, reset the queu,
+		// else, move the second frame to the front
+		if ( member->outTextFramesTail == member->outTextFrames )
+		{
+			member->outTextFrames = NULL ;
+			member->outTextFramesTail = NULL ;
+		} 
+		else 
+		{
+			// move the pointer to the next frame
+			member->outTextFramesTail = member->outTextFramesTail->prev ;
+
+			// reset it's 'next' pointer
+			if ( member->outTextFramesTail != NULL ) 
+				member->outTextFramesTail->next = NULL ;
+		}
+
+		// separate the conf frame from the list
+		cfr->next = NULL ;
+		cfr->prev = NULL ;
+
+		// decriment frame count
+		member->outTextFramesCount-- ;
+		ast_mutex_unlock(&member->lock);
+		return cfr ;
+	} 
+	ast_mutex_unlock(&member->lock);
+	return NULL ;
+}
 
 
 int queue_outgoing_dtmf_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) 
@@ -2318,6 +2410,85 @@ int queue_outgoing_dtmf_frame( struct ast_conf_member* member, const struct ast_
 	
 	// increment member frame count
 	member->outDTMFFramesCount++ ;
+	
+	ast_mutex_unlock(&member->lock);
+	// return success
+	return 0 ;
+}
+
+int queue_outgoing_text_frame( struct ast_conf_member* member, const struct ast_frame* fr) 
+{
+	// check on frame
+	if ( fr == NULL ) 
+	{
+		ast_log( LOG_ERROR, "unable to queue null frame\n" ) ;
+		return -1 ;
+	}
+
+	// check on member
+	if ( member == NULL )
+	{
+		ast_log( LOG_ERROR, "unable to queue frame for null member\n" ) ;
+		return -1 ;
+	}
+
+	ast_mutex_lock(&member->lock);
+	
+	// accounting: count the number of outgoing frames for this member
+	member->text_frames_out++ ;	
+
+	//
+	// we have to drop frames, so we'll drop new frames
+	// because it's easier ( and doesn't matter much anyway ).
+	//
+	if ( member->outTextFramesCount >= AST_CONF_MAX_TEXT_QUEUE) 
+	{
+		ast_log( 
+			AST_CONF_DEBUG,
+			"unable to queue outgoing text frame, channel => %s, incoming => %d, outgoing => %d\n",
+			member->channel_name, member->inTextFramesCount, member->outTextFramesCount
+		) ;
+
+		// accounting: count dropped outgoing frames
+		member->text_frames_out_dropped++ ;
+		ast_mutex_unlock(&member->lock);
+		return -1 ;
+	}
+
+	//
+	// create new conf frame from passed data frame
+	//
+	
+	conf_frame* cfr = create_conf_frame( member, member->outTextFrames, fr ) ;
+	
+	if ( cfr == NULL ) 
+	{
+		ast_log( LOG_ERROR, "unable to create new conf frame\n" ) ;
+
+		// accounting: count dropped outgoing frames
+		member->text_frames_out_dropped++ ;
+		ast_mutex_unlock(&member->lock);
+		return -1 ;
+	}
+
+#ifdef RTP_SEQNO_ZERO
+	cfr->fr->seqno = 0;
+#endif
+
+	if ( member->outTextFrames == NULL )
+	{
+		// this is the first frame in the buffer
+		member->outTextFramesTail = cfr ;
+		member->outTextFrames = cfr ;
+	}
+	else
+	{
+		// put the new frame at the head of the list
+		member->outTextFrames = cfr ;
+	}
+	
+	// increment member frame count
+	member->outTextFramesCount++ ;
 	
 	ast_mutex_unlock(&member->lock);
 	// return success
