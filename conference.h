@@ -124,9 +124,6 @@ int end_conference( struct ast_conference* conf ) ;
 // find a particular member, locking if requested.
 struct ast_conf_member *find_member ( char *chan, int lock) ;
 
-// switch a conference to the default member, locking if necessary
-void switch_to_default ( struct ast_conference *conf, int lock );
-
 int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_silent_frame( struct ast_conference* conf, struct ast_conf_member* member ) ;
@@ -137,6 +134,8 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
 
 void do_VAD_switching(struct ast_conference *conf); 
+int send_text_message_to_member(struct ast_conf_member *member, const char *text);
+void do_video_switching(struct ast_conference *conf, int new_id, int lock);
 
 // called by app_confernce.c:load_module()
 void init_conference( void ) ;

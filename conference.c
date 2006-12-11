@@ -921,7 +921,7 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			// Check if member is the default or current video source
 			if ( conf->current_video_source_id == member->video_id )
 			{
-				switch_to_default(conf, 0);
+				do_video_switching(conf, conf->default_video_source_id, 0);
 			} else if ( conf->default_video_source_id == member->video_id )
 			{
 				conf->default_video_source_id = -1;
@@ -1737,41 +1737,6 @@ struct ast_conf_member *find_member ( char *chan, int lock)
 	return found;
 }
 
-void switch_to_default ( struct ast_conference *conf, int lock )
-{
-	struct ast_conf_member *member;
-	
-	// Sanity check
-	if ( conf == NULL ) return;
-	
-	// Acquire conference lock if needed
-	if ( lock ) ast_mutex_lock(&conf->lock);
-	
-	// No need to do anything if we're already at default
-	if ( conf->current_video_source_id != conf->default_video_source_id )
-	{
-		conf->current_video_source_id = conf->default_video_source_id;
-		
-		// Search for the corresponding member so we can find the channel and send the event
-		for ( member = conf->memberlist ; 
-		member != NULL ; 
-		member = member->next )
-		{
-			if ( member->video_id == conf->current_video_source_id )
-			{
-				manager_event(EVENT_FLAG_CALL, 
-					"ConferenceSwitch", 
-					"ConferenceName: %s\r\nChannel: %s\r\n", 
-					conf->name, 
-					member->channel_name);
-			}
-		}
-	}
-	
-	// Release conference lock if needed
-	if ( lock ) ast_mutex_unlock(&conf->lock);
-}
-
 // All the VAD-based video switching magic happens here
 // This function should be called inside conference_exec
 // The conference mutex should be locked, we don't have to do it here
@@ -1844,16 +1809,10 @@ void do_VAD_switching(struct ast_conference *conf)
 	{
 		if ( longest_speaking_member != NULL )
 		{
-			conf->current_video_source_id = longest_speaking_member->video_id;
-			
-			manager_event(EVENT_FLAG_CALL, 
-				      "ConferenceSwitch", 
-				      "ConferenceName: %s\r\nChannel: %s\r\n", 
-				      conf->name, 
-				      longest_speaking_member->channel_name);
+			do_video_switching(conf, longest_speaking_member->video_id, 0);
 		} else
 		{
-			switch_to_default(conf, 0);
+			do_video_switching(conf, conf->default_video_source_id, 0);
 		}
 	}
 }
@@ -1971,7 +1930,7 @@ int unlock_conference(const char *conference)
 		{
 			conf->video_locked = 0;
 			manager_event(EVENT_FLAG_CALL, "ConferenceUnlock", "ConferenceName: %s\r\n", conf->name);
-			switch_to_default(conf, 0);
+			do_video_switching(conf, conf->default_video_source_id, 0);
 			res = 1;
 			
 			break;
@@ -2114,7 +2073,7 @@ int video_mute_member(const char *conference, int member_id)
 					
 					if ( member->video_id == conf->current_video_source_id )
 					{
-						switch_to_default(conf, 0);
+						do_video_switching(conf, conf->default_video_source_id, 0);
 					}
 					
 					res = 1;
@@ -2225,9 +2184,9 @@ int video_mute_channel(const char *conference, const char *channel)
 					
 					if ( member->video_id == conf->current_video_source_id )
 					{
-						switch_to_default(conf, 0);
+						do_video_switching(conf, conf->default_video_source_id, 0);
 					}
-										
+					
 					res = 1;
 					break;
 				}
@@ -2306,7 +2265,6 @@ int send_text(const char *conference, int member_id, const char *text)
 {
 	struct ast_conference  *conf;
 	struct ast_conf_member *member;
-	struct ast_frame       *f;
 	int                    res;
 
 	if ( conference == NULL || member_id < 0 || text == NULL )
@@ -2328,11 +2286,7 @@ int send_text(const char *conference, int member_id, const char *text)
 			{
 				if ( member->video_id == member_id )
 				{
-					f = create_text_frame(text, 1);
-					if ( f == NULL ) return 0;
-					
-					res = queue_outgoing_text_frame(member, f) == 0;
-					
+					res = send_text_message_to_member(member, text) == 0;
 					break;
 				}
 			}
@@ -2354,7 +2308,6 @@ int send_text_channel(const char *conference, const char *channel, const char *t
 {
 	struct ast_conference  *conf;
 	struct ast_conf_member *member;
-	struct ast_frame       *f;
 	int                    res;
 
 	if ( conference == NULL || channel == NULL || text == NULL )
@@ -2376,11 +2329,7 @@ int send_text_channel(const char *conference, const char *channel, const char *t
 			{
 				if ( strcmp(member->channel_name, channel) == 0 )
 				{
-					f = create_text_frame(text, 1);
-					if ( f == NULL ) return 0;
-					
-					res = queue_outgoing_text_frame(member, f) == 0;
-					
+					res = send_text_message_to_member(member, text) == 0;
 					break;
 				}
 			}
@@ -2402,7 +2351,6 @@ int send_text_broadcast(const char *conference, const char *text)
 {
 	struct ast_conference  *conf;
 	struct ast_conf_member *member;
-	struct ast_frame       *f;
 	int                    res;
 
 	if ( conference == NULL || text == NULL )
@@ -2422,13 +2370,9 @@ int send_text_broadcast(const char *conference, const char *text)
 			
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
-				f = create_text_frame(text, 1);
-				if ( f == NULL ) return 0;
-				
-				res = queue_outgoing_text_frame(member, f) == 0;				
+				if ( send_text_message_to_member(member, text) == 0 )
+					res = res && 1;
 			}
-			
-			res = 1;
 			
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
@@ -2442,4 +2386,67 @@ int send_text_broadcast(const char *conference, const char *text)
 	
 	return res;
 }
+
+// Creates a text frame and sends it to a given member
+// Returns 0 on success, -1 on failure
+int send_text_message_to_member(struct ast_conf_member *member, const char *text)
+{
+	struct ast_frame *f;
+	
+	if ( member == NULL || text == NULL ) return -1;
+	
+	f = create_text_frame(text, 1);
+	if ( f == NULL || queue_outgoing_text_frame(member, f) == 0) return -1;
+	
+	return 0;
+}
+
+// Switches video source
+// Sends a manager event as well as 
+// a text message notifying members of a video switch 
+// The notification is sent to the current member and to the new member
+// The function locks the conference mutex as required
+void do_video_switching(struct ast_conference *conf, int new_id, int lock)
+{
+	struct ast_conf_member *member;
+	struct ast_conf_member *new_member;
+	
+	if ( conf == NULL ) return;
 		
+	if ( lock )
+	{
+		// acquire conference mutex
+		ast_mutex_lock( &conf->lock );
+	}
+	
+	// No need to do anything if the current member is the same as the new member
+	if ( new_id != conf->current_video_source_id )
+	{
+		for ( member = conf->memberlist ; member != NULL ; member = member->next )
+		{
+			if ( member->video_id == conf->current_video_source_id )
+			{
+				send_text_message_to_member(member, "CONTROL:STOPVIDEO");
+			}
+			if ( member->video_id == new_id )
+			{
+				send_text_message_to_member(member, "CONTROL:STARTVIDEO");
+				new_member = member;	
+			}
+		}
+		
+		conf->current_video_source_id = new_id;	
+
+		manager_event(EVENT_FLAG_CALL, 
+			"ConferenceSwitch", 
+			"ConferenceName: %s\r\nChannel: %s\r\n", 
+			conf->name, 
+			new_member->channel_name);
+	}
+	
+	if ( lock )
+	{
+		// acquire conference mutex
+		ast_mutex_unlock( &conf->lock );
+	}
+}
