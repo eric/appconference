@@ -312,26 +312,27 @@ void conference_exec( struct ast_conference *conf )
 
 		// loop over the incoming frames and send to all outgoing
 		for (dtmf_source_member = conf->memberlist; dtmf_source_member != NULL; dtmf_source_member = dtmf_source_member->next)
-		  {
-		    while ((cfr = get_incoming_dtmf_frame( dtmf_source_member )))
-		      {
-			      for (member = conf->memberlist; member != NULL; member = member->next)
-			      {
-				      // skip members that are not ready
-				      if ( member->ready_for_outgoing == 0 ) {
-					      continue ;
-				      }
-				      
-				      if (member != dtmf_source_member)
-				      {
- 					      // Send the latest frame
-					      queue_outgoing_dtmf_frame(member, cfr->fr);
-				      }
-			      }
-			      // Garbage collection
-			      delete_conf_frame(cfr);
-		      }
-		  }
+		{
+			while ((cfr = get_incoming_dtmf_frame( dtmf_source_member )))
+			{
+				for (member = conf->memberlist; member != NULL; member = member->next)
+				{
+					// skip members that are not ready
+					if ( member->ready_for_outgoing == 0 ) 
+					{
+						continue ;
+					}
+					
+					if (member != dtmf_source_member)
+					{
+ 						// Send the latest frame
+						queue_outgoing_dtmf_frame(member, cfr->fr);
+					}
+				}
+				// Garbage collection
+				delete_conf_frame(cfr);
+			}
+		}
 
 		//---------//
 		// CLEANUP //
