@@ -325,7 +325,7 @@ void conference_exec( struct ast_conference *conf )
 				      if (member != dtmf_source_member)
 				      {
  					      // Send the latest frame
-					      queue_outgoing_dtmf_frame(member, cfr->fr, conf->delivery_time);
+					      queue_outgoing_dtmf_frame(member, cfr->fr);
 				      }
 			      }
 			      // Garbage collection

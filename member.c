@@ -2337,7 +2337,7 @@ conf_frame* get_outgoing_text_frame( struct ast_conf_member *member )
 }
 
 
-int queue_outgoing_dtmf_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) 
+int queue_outgoing_dtmf_frame( struct ast_conf_member* member, const struct ast_frame* fr ) 
 {
 	// check on frame
 	if ( fr == NULL ) 
