@@ -140,6 +140,8 @@ struct ast_conf_member
 	short dtmf_relay;
 	// initial nat delay flag
 	short first_frame_received;
+	// does text messages?
+	short does_text;
 	
 	
 	// time we last dropped a frame

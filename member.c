@@ -990,7 +990,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 		}
 		else
 		{
-			// allowed flags are C, c, L, l, V, D, A, C, X, R, T, M, S
+			// allowed flags are C, c, L, l, V, D, A, C, X, R, T, t, M, S
 			// mute/no_recv options
 			switch ( flags[i] )
 			{
@@ -1031,6 +1031,9 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			case 'M':
 				member->ismoderator = 1;
 				break;
+			case 't':
+				member->does_text = 1;
+				break;	
 				
 				//Telephone connection
 			case 'T':

@@ -211,6 +211,12 @@ enum { AC_SLINEAR_INDEX = 0, AC_ULAW_INDEX, AC_ALAW_INDEX, AC_GSM_INDEX, AC_SPEE
 #define AST_CONF_VIDEO_START_TIMEOUT 2000
 
 //
+// Text frame control protocol
+//
+#define AST_CONF_CONTROL_START_VIDEO "CONTROL:STARTVIDEO"
+#define AST_CONF_CONTROL_STOP_VIDEO  "CONTROL:STOPVIDEO"
+
+//
 // app_conference functions
 //
 

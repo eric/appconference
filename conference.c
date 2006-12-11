@@ -2395,8 +2395,11 @@ int send_text_message_to_member(struct ast_conf_member *member, const char *text
 	
 	if ( member == NULL || text == NULL ) return -1;
 	
-	f = create_text_frame(text, 1);
-	if ( f == NULL || queue_outgoing_text_frame(member, f) == 0) return -1;
+	if ( member->does_text )
+	{
+		f = create_text_frame(text, 1);
+		if ( f == NULL || queue_outgoing_text_frame(member, f) == 0) return -1;
+	}
 	
 	return 0;
 }
@@ -2426,11 +2429,11 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 		{
 			if ( member->video_id == conf->current_video_source_id )
 			{
-				send_text_message_to_member(member, "CONTROL:STOPVIDEO");
+				send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
 			}
 			if ( member->video_id == new_id )
 			{
-				send_text_message_to_member(member, "CONTROL:STARTVIDEO");
+				send_text_message_to_member(member, AST_CONF_CONTROL_START_VIDEO);
 				new_member = member;	
 			}
 		}
