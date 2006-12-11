@@ -2784,6 +2784,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 			e->etype = IAX_EVENT_TEXT;
 			if (datalen) {
 				memcpy(e->data, fh->iedata, datalen);
+				e->datalen = datalen;
 			}
 			e = schedule_delivery(e, ts, updatehistory);
 			break;

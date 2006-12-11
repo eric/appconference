@@ -726,18 +726,22 @@ static int service_audio()
 }
 
 /* handle IAX text events */
-static void handle_text_event(struct iax_event *e, int callNo) {
-    iaxc_event ev;
-
-   if(callNo < 0)
-       return;
-    ev.type=IAXC_EVENT_TEXT;
-    ev.ev.text.type=IAXC_TEXT_TYPE_IAX;
-    ev.ev.text.callNo = callNo;
-
-    strncpy(ev.ev.text.message, (char *) e->data, IAXC_EVENT_BUFSIZ);
-    ev.ev.text.message[IAXC_EVENT_BUFSIZ-1] = 0;
-    iaxc_post_event(ev);
+static void handle_text_event(struct iax_event *e, int callNo) 
+{
+	iaxc_event ev;
+	int        len;
+	
+	if(callNo < 0)
+		return;
+	
+	memset(&ev, 0, sizeof(iaxc_event));
+	ev.type=IAXC_EVENT_TEXT;
+	ev.ev.text.type=IAXC_TEXT_TYPE_IAX;
+	ev.ev.text.callNo = callNo;
+	
+	len = e->datalen <= IAXC_EVENT_BUFSIZ - 1 ? e->datalen : IAXC_EVENT_BUFSIZ - 1;
+	strncpy(ev.ev.text.message, (char *) e->data, len);
+	iaxc_post_event(ev);
 }
 
 /* handle IAX URL events */
