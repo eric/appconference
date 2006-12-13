@@ -596,13 +596,22 @@ int member_exec( struct ast_channel* chan, void* data )
 		member->chan->cid.cid_name ? member->chan->cid.cid_name: "unknown",
 		conf->membercount
 	) ;
-
+	
 	// Store the CID information
-	member->callerid = malloc(strlen(member->chan->cid.cid_num)+1);
-	memcpy(member->callerid, member->chan->cid.cid_num, strlen(member->chan->cid.cid_num)+1);
-	member->callername = malloc(strlen(member->chan->cid.cid_name)+1);
-	memcpy(member->callername, member->chan->cid.cid_name, strlen(member->chan->cid.cid_name)+1);
-
+	if ( member->chan->cid.cid_num )
+	{
+		if ( member->callerid = malloc(strlen(member->chan->cid.cid_num)+1) )
+			memcpy(member->callerid,member->chan->cid.cid_num, strlen(member->chan->cid.cid_num)+1);
+	} else
+		member->callerid = NULL;
+	
+	if ( member->chan->cid.cid_name ) 
+	{
+		if ( member->callername =malloc(strlen(member->chan->cid.cid_name)+1) )
+			memcpy(member->callername, member->chan->cid.cid_name, strlen(member->chan->cid.cid_name)+1);
+	} else
+		member->callername = NULL;
+	
 		
 	//
 	// process loop for new member ( this runs in it's own thread )
