@@ -955,14 +955,13 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 		}
 		else
 		{
-			// Mihai: we don't want to kick the conference when one moderator leaves
 			// if member is a moderator, we end the conference when they leave
-			//if (member->ismoderator) 
-			//{
-			//	ast_mutex_lock( &member_list->lock ) ;
-			//	member_list->kick_flag = 1;
-			//	ast_mutex_unlock( &member_list->lock ) ;
-			//}
+			if (member->ismoderator) 
+			{
+				ast_mutex_lock( &member_list->lock ) ;
+				member_list->kick_flag = 1;
+				ast_mutex_unlock( &member_list->lock ) ;
+			}
 		}
 		
 		
@@ -1843,7 +1842,7 @@ int lock_conference(const char *conference, int member_id)
 			{
 				if ( member->video_id == member_id && !member->mute_video )
 				{
-					conf->current_video_source_id = member_id;
+					do_video_switching(conf, member_id, 0);
 					conf->video_locked = 1;
 					res = 1;
 					
@@ -1890,7 +1889,7 @@ int lock_conference_channel(const char *conference, const char *channel)
 			{
 				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
 				{
-					conf->current_video_source_id = member->video_id;
+					do_video_switching(conf, member->video_id, 0);
 					conf->video_locked = 1;
 					res = 1;
 					

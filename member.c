@@ -600,14 +600,14 @@ int member_exec( struct ast_channel* chan, void* data )
 	// Store the CID information
 	if ( member->chan->cid.cid_num )
 	{
-		if ( member->callerid = malloc(strlen(member->chan->cid.cid_num)+1) )
+		if ( (member->callerid = malloc(strlen(member->chan->cid.cid_num)+1)) )
 			memcpy(member->callerid,member->chan->cid.cid_num, strlen(member->chan->cid.cid_num)+1);
 	} else
 		member->callerid = NULL;
 	
 	if ( member->chan->cid.cid_name ) 
 	{
-		if ( member->callername =malloc(strlen(member->chan->cid.cid_name)+1) )
+		if ( (member->callername = malloc(strlen(member->chan->cid.cid_name)+1)) )
 			memcpy(member->callername, member->chan->cid.cid_name, strlen(member->chan->cid.cid_name)+1);
 	} else
 		member->callername = NULL;
