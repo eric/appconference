@@ -875,7 +875,7 @@ int conference_video_unmute(int fd, int argc, char *argv[] )
 // Mute video from a channel
 //
 static char conference_video_mutechannel_usage[] = 
-	"usage: conference video mutechannel <conference name> <member>\n"
+	"usage: conference video mutechannel <conference name> <channel>\n"
 	"       mutes video from channel <channel> in conference <conference name>\n"
 ;
 
@@ -910,7 +910,7 @@ int conference_video_mutechannel(int fd, int argc, char *argv[] )
 // Unmute video from a channel
 //
 static char conference_video_unmutechannel_usage[] = 
-	"usage: conference video unmutechannel <conference name> <member>\n"
+	"usage: conference video unmutechannel <conference name> <channel>\n"
 	"       unmutes video from channel <channel> in conference <conference name>\n"
 ;
 
