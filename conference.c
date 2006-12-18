@@ -789,10 +789,18 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 				othermember = othermember->next;
 			}
 		}
+		if ( member->video_id == conf->current_video_source_id )
+		{
+			send_text_message_to_member(member, AST_CONF_CONTROL_START_VIDEO);
+		} else
+		{
+			send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
+		}
 	}
 	else
 	{
 		member->video_id = -1;
+		send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
 	}
 
 	// set a long term id
