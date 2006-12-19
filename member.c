@@ -1160,6 +1160,10 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			member->write_format_index = AC_SPEEX_INDEX;
 			break;
 			
+		case AST_FORMAT_G729A:
+			member->write_format_index = AC_G729A_INDEX;
+			break;
+			
 		default:
 			member->write_format_index = 0 ;
 	}
@@ -1187,6 +1191,10 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			member->read_format_index = AC_SPEEX_INDEX;
 			break;
 			
+		case AST_FORMAT_G729A:
+			member->read_format_index = AC_G729A_INDEX;
+			break;
+			
 		default:
 			member->read_format_index = 0 ;
 	}
@@ -1199,32 +1207,33 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->outPacker= NULL;
 
 	switch (member->read_format){
-			/* these assumptions may be incorrect */
-			case AST_FORMAT_ULAW:
-			case AST_FORMAT_ALAW:				
-				member->smooth_size_in  = 160; //bytes
-				member->smooth_size_out = 160; //samples				
-				break;
-			case AST_FORMAT_GSM:
-				/*
-				member->smooth_size_in  = 33; //bytes
-				member->smooth_size_out = 160;//samples
-				*/
-				break;
-			case AST_FORMAT_SPEEX:
-				/* this assumptions are wrong 
-				member->smooth_multiple = 2 ;  // for testing, force to dual frame
-				member->smooth_size_in  = 39;  // bytes
-				member->smooth_size_out = 160; // samples
-				*/
-				break;
-			case AST_FORMAT_SLINEAR:
-				member->smooth_size_in  = 320; //bytes
-				member->smooth_size_out = 160; //samples
-				break;
-			default:
-				member->inSmoother = NULL; //don't use smoother for this type.
-				//ast_log( AST_CONF_DEBUG, "smoother is NULL for member->read_format => %d\n", member->read_format);
+		/* these assumptions may be incorrect */
+		case AST_FORMAT_ULAW:
+		case AST_FORMAT_ALAW:				
+			member->smooth_size_in  = 160; //bytes
+			member->smooth_size_out = 160; //samples				
+			break;
+		case AST_FORMAT_GSM:
+			/*
+			member->smooth_size_in  = 33; //bytes
+			member->smooth_size_out = 160;//samples
+			*/
+			break;
+		case AST_FORMAT_SPEEX:
+		case AST_FORMAT_G729A:
+			/* this assumptions are wrong 
+			member->smooth_multiple = 2 ;  // for testing, force to dual frame
+			member->smooth_size_in  = 39;  // bytes
+			member->smooth_size_out = 160; // samples
+			*/
+			break;
+		case AST_FORMAT_SLINEAR:
+			member->smooth_size_in  = 320; //bytes
+			member->smooth_size_out = 160; //samples
+			break;
+		default:
+			member->inSmoother = NULL; //don't use smoother for this type.
+			//ast_log( AST_CONF_DEBUG, "smoother is NULL for member->read_format => %d\n", member->read_format);
 	}
 
 	if (member->smooth_size_in > 0){

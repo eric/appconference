@@ -195,9 +195,9 @@
 // format translation values
 //
 
-#define AC_SUPPORTED_FORMATS 5
+#define AC_SUPPORTED_FORMATS 6
 
-enum { AC_SLINEAR_INDEX = 0, AC_ULAW_INDEX, AC_ALAW_INDEX, AC_GSM_INDEX, AC_SPEEX_INDEX } ;
+enum { AC_SLINEAR_INDEX = 0, AC_ULAW_INDEX, AC_ALAW_INDEX, AC_GSM_INDEX, AC_SPEEX_INDEX, AC_G729A_INDEX } ;
 
 //
 // VAD based video switching parameters
