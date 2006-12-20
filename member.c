@@ -117,13 +117,15 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 		// Stream a picture to the recipient if no active video
 		if (!src_member)
 		{
-			if (member->norecv_video == 0)
-			{
-				if(!ast_streamfile(member->chan,"novideo",member->chan->language))
-				{
-					ast_waitstream(member->chan,"");
-				}
-			}
+			// Mihai: we don't want to send video here, we cannot negotiate codec
+			// and we don't know what codec the conference is using
+			//if (member->norecv_video == 0)
+			//{
+			//	if(!ast_streamfile(member->chan,"novideo",member->chan->language))
+			//	{
+			//		ast_waitstream(member->chan,"");
+			//	}
+			//}
 		} 
 		else 
 		{
