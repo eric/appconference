@@ -19,7 +19,7 @@ DTMF options:
 
 Moderator/video switch options:
 'M' : member is a "moderator". When a moderator quits, all members are kicked and the conference is disabled.
-'S' : member accepts VAD controlled video switching.  Do not use with 'x'.
+'S' : member accepts VAD controlled video switching.  Do not use with 'X'.
 
 Miscellaneous:
 't' : member accepts text based control messages.  The messages are described in a separate document
