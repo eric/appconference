@@ -63,6 +63,12 @@ CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG
 CFLAGS += $(shell if uname -m | grep -q ppc; then echo "-fsigned-char"; fi)
 CFLAGS += -DCRYPTO
 
+#
+# Uncomment this if you want G.729A support (need to have the actual codec installed
+#
+# CFLAGS += -DAC_USE_G729A
+
+
 ifeq ($(APP_CONFERENCE_DEBUG), 1)
 CFLAGS += -DAPP_CONFERENCE_DEBUG
 endif
