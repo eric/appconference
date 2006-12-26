@@ -837,14 +837,14 @@ static int get_sample_cnt(struct iax_event *e)
 
 static int iax_xmit_frame(struct iax_frame *f)
 {
-	/* Send the frame raw */
 #ifdef DEBUG_SUPPORT
+	struct ast_iax2_full_hdr *h = (struct ast_iax2_full_hdr *)(f->data);
 	if (ntohs(h->scallno) & IAX_FLAG_FULL)
 		iax_showframe(f, NULL, 0, f->transfer ? 
 						&(f->session->transfer) :
 					&(f->session->peeraddr), f->datalen - sizeof(struct ast_iax2_full_hdr));
 #endif
-
+	/* Send the frame raw */
 	return f->session->sendto(netfd, (const char *) f->data, f->datalen,
 		IAX_SOCKOPTS,
 					f->transfer ? 
