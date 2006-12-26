@@ -2710,7 +2710,7 @@ static struct iax_event *iax_header_to_event(struct iax_session *session,
 				break;
 			case IAX_COMMAND_TXREL:
 				/* Release the transfer */
-			   send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, fh->ts, NULL, 0, fh->iseqno);
+			   send_command_immediate(session, AST_FRAME_IAX, IAX_COMMAND_ACK, ts, NULL, 0, fh->iseqno);
 				if (session->transferring) {
 					complete_transfer(session, e->ies.callno, 1, 0);
 				}
