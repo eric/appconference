@@ -2451,7 +2451,7 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 		conf->current_video_source_id = new_id;	
 
 		manager_event(EVENT_FLAG_CALL, 
-			"ConferenceSwitch", 
+			"ConferenceVideoSwitch", 
 			"ConferenceName: %s\r\nChannel: %s\r\n", 
 			conf->name, 
 			new_member->channel_name);
