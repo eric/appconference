@@ -523,8 +523,8 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 
 	conf->video_id_count = 0;
 	
-	conf->default_video_source_id = 0;
-	conf->current_video_source_id = 0;
+	conf->default_video_source_id = -1;
+	conf->current_video_source_id = -1;
 	//gettimeofday(&conf->current_video_source_timestamp, NULL);
 	conf->video_locked = 0;
 
@@ -554,6 +554,9 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	// add the initial member
 	add_member( member, conf ) ;
 	
+	// if the new member is video enabled, we make it default
+	if ( !member->mute_video && !member->mute_audio )
+		do_video_switching(conf, member->video_id, 1);
 	//
 	// prepend new conference to conflist
 	//
