@@ -2315,7 +2315,6 @@ int send_text(const char *conference, int member_id, const char *text)
 	
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
 	return res;
 }
 
@@ -2413,7 +2412,7 @@ int send_text_message_to_member(struct ast_conf_member *member, const char *text
 	if ( member->does_text )
 	{
 		f = create_text_frame(text, 1);
-		if ( f == NULL || queue_outgoing_text_frame(member, f) == 0) return -1;
+		if ( f == NULL || queue_outgoing_text_frame(member, f) != 0) return -1;
 	}
 	
 	return 0;
