@@ -244,7 +244,28 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 		ast_frfree( f ) ;
 		f = NULL ;
 	}
-	else
+	else if ( f->frametype == AST_FRAME_TEXT  && member->does_text )
+	{
+		if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_DISABLED, strlen(AST_CONF_CONTROL_CAMERA_DISABLED)) == 0 )
+		{
+			manager_event(EVENT_FLAG_CALL, 
+			"ConferenceCameraDisabled", 
+			"ConferenceName: %s\r\nChannel: %s\r\n", 
+			conf->name, 
+			member->channel_name);
+			member->no_camera = 1;
+		} else if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_CAMERA_ENABLED)) == 0 )
+		{
+			manager_event(EVENT_FLAG_CALL, 
+			"ConferenceCameraEnabled", 
+			"ConferenceName: %s\r\nChannel: %s\r\n", 
+			conf->name, 
+			member->channel_name);
+			member->no_camera = 0;
+		}
+		ast_frfree(f);
+		f = NULL;
+	} else
 	{
 		// undesirables
 		ast_frfree( f ) ;
@@ -861,6 +882,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->mute_video = 0;
 	member->norecv_audio = 0;
 	member->norecv_video = 0;
+	member->no_camera = 0;
 
 	// moderator?
 	member->ismoderator = 0;

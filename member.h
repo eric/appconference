@@ -70,6 +70,9 @@ struct ast_conf_member
 	// this member will not hear/see
 	int norecv_audio;
 	int norecv_video;
+	
+	// this member does not have a camera
+	int no_camera;
 
 	// is this person a moderator?
 	int ismoderator;

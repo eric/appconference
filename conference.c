@@ -1778,9 +1778,13 @@ void do_VAD_switching(struct ast_conference *conf)
 	      member != NULL ;
 	      member = member->next )
 	{
-		// We check for video-muted members 
+		// We check for video-muted
 		// However, if the member is the currently speaking member we still go on
 		if ( member->video_id != conf->current_video_source_id && member->mute_video ) 
+			continue;
+		
+		// If the member has disabled his camera, move along
+		if ( member->no_camera )
 			continue;
 		
 		// Check if current speaker has been silent for a while
