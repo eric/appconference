@@ -2385,7 +2385,7 @@ int send_text_broadcast(const char *conference, const char *text)
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( send_text_message_to_member(member, text) == 0 )
-					res = res && 1;
+					res = res || 1;
 			}
 			
 			// release conference mutex
