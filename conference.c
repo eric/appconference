@@ -2430,7 +2430,7 @@ int send_text_message_to_member(struct ast_conf_member *member, const char *text
 void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 {
 	struct ast_conf_member *member;
-	struct ast_conf_member *new_member;
+	struct ast_conf_member *new_member = NULL;
 	
 	if ( conf == NULL ) return;
 		
@@ -2458,16 +2458,25 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 		
 		conf->current_video_source_id = new_id;	
 
-		manager_event(EVENT_FLAG_CALL, 
-			"ConferenceVideoSwitch", 
-			"ConferenceName: %s\r\nChannel: %s\r\n", 
-			conf->name, 
-			new_member->channel_name);
+		if ( new_member != NULL )
+		{
+			manager_event(EVENT_FLAG_CALL,
+				"ConferenceVideoSwitch", 
+				"ConferenceName: %s\r\nChannel: %s\r\n",
+				conf->name,
+				new_member->channel_name);
+		} else
+		{
+			manager_event(EVENT_FLAG_CALL,
+				"ConferenceVideoSwitch",
+				"ConferenceName: %s\r\nChannel: empty\r\n",
+				conf->name);
+		}
 	}
 	
 	if ( lock )
 	{
-		// acquire conference mutex
+		// release conference mutex
 		ast_mutex_unlock( &conf->lock );
 	}
 }
