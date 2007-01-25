@@ -10,13 +10,41 @@
  * Copyright (C) 2003, 2004 HorizonLive.com, Inc.
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
+ * 
+ * Video Conferencing support added by 
+ * Neil Stratford <neils@vipadia.com>
+ * Copyright (C) 2005, 2005 Vipadia Limited
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
  *
  */
 
+#include "asterisk/autoconfig.h"
 #include "cli.h"
+
+static char conference_restart_usage[] = 
+	"usage: conference restart\n"
+	"       kick all users in all conferences\n"
+;
+
+static struct ast_cli_entry cli_restart = { 
+	{ "conference", "restart", NULL }, 
+	conference_restart, 
+	"restart a conference", 
+	conference_restart_usage 
+} ;
+
+
+int conference_restart( int fd, int argc, char *argv[] )
+{
+	if ( argc < 2 ) 
+		return RESULT_SHOWUSAGE ;
+
+	kick_all();
+	return RESULT_SUCCESS ;
+}
+
 
 //
 // debug functions
@@ -43,7 +71,7 @@ int conference_debug( int fd, int argc, char *argv[] )
 	// get the conference name
 	const char* name = argv[2] ;
 		
-	// get the new state
+   	// get the new state
 	int state = 0 ;
 	
 	if ( argc == 3 )
@@ -53,9 +81,9 @@ int conference_debug( int fd, int argc, char *argv[] )
 	}
 	else
 	{
-		if ( strncasecmp( name, "YES", 4 ) == 0 )
+		if ( strncasecmp( argv[3], "on", 4 ) == 0 )
 			state = 1 ;
-		else if ( strncasecmp( name, "NO", 3 ) == 0 )
+		else if ( strncasecmp( argv[3], "off", 3 ) == 0 )
 			state = 0 ;
 		else
 			return RESULT_SHOWUSAGE ;
@@ -134,29 +162,19 @@ int conference_show_stats( int fd, int argc, char *argv[] )
 	//
 
 	// output header
-	ast_cli( fd, "%-20.20s  %-40.40s  %-40.40s\n", "Name", "Connection Type", "Member Type" ) ;
-	ast_cli( fd, "%-20.20s  %-40.40s  %-40.40s\n", "----", "---------------", "-----------" ) ;
+	ast_cli( fd, "%-20.20s  %-40.40s\n", "Name", "Stats") ;
+	ast_cli( fd, "%-20.20s  %-40.40s\n", "----", "-----") ;
 
 	ast_conference_stats* s = NULL ;
 
-	char ct[64] ;
-	char mt[64] ;
-	
 	int i;
+
 	for ( i = 0 ; i < count ; ++i )
 	{
 		s = &(stats[i]) ;
-	
-		// format connection type
-		snprintf( ct, 40, "phone( %d ), iax( %d ), sip( %d )", 
-			s->phone, s->iaxclient, s->sip ) ;
-		
-		// format memeber type
-		snprintf( mt, 40, "moderators( %d ), listeners( %d )",
-			s->moderators, s->listeners ) ;
-			
+
 		// output this conferences stats
-		ast_cli( fd, "%-20.20s  %-40.40s  %-40.40s\n", (char*)( &(s->name) ), ct, mt ) ;
+		ast_cli( fd, "%-20.20s\n", (char*)( &(s->name) )) ;
 	}
 
 	ast_cli( fd, "\n" ) ;	
@@ -180,14 +198,275 @@ int conference_show_stats_name( int fd, const char* name )
 	return RESULT_SUCCESS ;
 }
 
+static char conference_list_usage[] = 
+	"usage: conference list {<conference_name>}\n"
+	"       list members of a conference\n"
+;
+
+static struct ast_cli_entry cli_list = { 
+	{ "conference", "list", NULL }, 
+	conference_list, 
+	"list members of a conference", 
+	conference_list_usage 
+} ;
+
+
+
+int conference_list( int fd, int argc, char *argv[] )
+{
+	int index;
+
+	if ( argc < 2 ) 
+		return RESULT_SHOWUSAGE ;
+
+	if (argc >= 3) 
+	{
+		for (index = 2; index < argc; index++)
+		{
+			// get the conference name
+			const char* name = argv[index] ;
+			show_conference_list( fd, name );
+		}
+	}
+	else
+	{
+		show_conference_stats(fd);
+	}
+	return RESULT_SUCCESS ;
+}
+
+
+int conference_kick( int fd, int argc, char *argv[] )
+{
+	if ( argc < 4 ) 
+		return RESULT_SHOWUSAGE ;
+
+	// get the conference name
+	const char* name = argv[2] ;
+
+	int member_id;
+	sscanf(argv[3], "%d", &member_id);
+	
+	int res = kick_member( name, member_id );
+	
+	if (res) ast_cli( fd, "User #: %d kicked\n", member_id) ;
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_kick_usage[] = 
+	"usage: conference kick <conference_name> <member no>\n"
+	"       kick member form a conference\n"
+;
+
+static struct ast_cli_entry cli_kick = { 
+	{ "conference", "kick", NULL }, 
+	conference_kick, 
+	"kick member from a conference", 
+	conference_kick_usage 
+} ;
+
+int conference_mute( int fd, int argc, char *argv[] )
+{
+	if ( argc < 4 ) 
+		return RESULT_SHOWUSAGE ;
+
+	// get the conference name
+	const char* name = argv[2] ;
+
+	int member_id;
+	sscanf(argv[3], "%d", &member_id);
+	
+	int res = mute_member( name, member_id );
+	
+	if (res) ast_cli( fd, "User #: %d muted\n", member_id) ;
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_mute_usage[] = 
+	"usage: conference mute <conference_name> <member no>\n"
+	"       mute member in a conference\n"
+;
+
+static struct ast_cli_entry cli_mute = { 
+	{ "conference", "mute", NULL }, 
+	conference_mute, 
+	"mute member in a conference", 
+	conference_mute_usage 
+} ;
+
+int conference_mutechannel( int fd, int argc, char *argv[] )
+{
+  	struct ast_conf_member *member;
+	char *channel;
+
+	if ( argc < 3 ) 
+		return RESULT_SHOWUSAGE ;
+
+	channel = argv[2];
+
+	member = find_member(channel, 1);
+	if(!member) {
+	    ast_cli(fd, "Member %s not found\n", channel);
+	    return RESULT_FAILURE;
+	}
+
+	member->mute_audio = 1;
+	ast_mutex_unlock( &member->lock ) ;
+	
+	ast_cli( fd, "Channel #: %s muted\n", argv[2]) ;
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_mutechannel_usage[] = 
+	"usage: conference mutechannel <channel>\n"
+	"       mute channel in a conference\n"
+;
+
+static struct ast_cli_entry cli_mutechannel = { 
+	{ "conference", "mutechannel", NULL }, 
+	conference_mutechannel, 
+	"mute channel in a conference", 
+	conference_mutechannel_usage 
+} ;
+
+int conference_viewstream( int fd, int argc, char *argv[] )
+{
+	int res;
+
+	if ( argc < 5 ) 
+		return RESULT_SHOWUSAGE ;
+
+	// get the conference name
+	const char* switch_name = argv[2] ;
+
+	int member_id, viewstream_id;
+	sscanf(argv[3], "%d", &member_id);
+	sscanf(argv[4], "%d", &viewstream_id);
+
+	res = viewstream_switch( switch_name, member_id, viewstream_id );
+		
+	if (res) ast_cli( fd, "User #: %d viewing %d\n", member_id, viewstream_id) ;
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_viewstream_usage[] = 
+	"usage: conference viewstream <conference_name> <member no> <stream no>\n"
+	"       member <member no> will receive video stream <stream no>\n"
+;
+
+static struct ast_cli_entry cli_viewstream = { 
+	{ "conference", "viewstream", NULL }, 
+	conference_viewstream, 
+	"switch view in a conference", 
+	conference_viewstream_usage 
+} ;
+
+int conference_viewchannel( int fd, int argc, char *argv[] )
+{
+	int res;
+
+	if ( argc < 5 ) 
+		return RESULT_SHOWUSAGE ;
+
+	// get the conference name
+	const char* switch_name = argv[2] ;
+
+	res = viewchannel_switch( switch_name, argv[3], argv[4] );
+		
+	if (res) ast_cli( fd, "Channel #: %s viewing %s\n", argv[3], argv[4]) ;
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_viewchannel_usage[] = 
+	"usage: conference viewchannel <conference_name> <dest channel> <src channel>\n"
+	"       channel <dest channel> will receive video stream <src channel>\n"
+;
+
+static struct ast_cli_entry cli_viewchannel = { 
+	{ "conference", "viewchannel", NULL }, 
+	conference_viewchannel, 
+	"switch channel in a conference", 
+	conference_viewchannel_usage 
+} ;
+
+int conference_unmute( int fd, int argc, char *argv[] )
+{
+	if ( argc < 3 ) 
+		return RESULT_SHOWUSAGE ;
+
+	// get the conference name
+	const char* name = argv[2] ;
+
+	int member_id;
+	sscanf(argv[3], "%d", &member_id);
+	
+	int res = unmute_member( name, member_id );
+	
+	if (res) ast_cli( fd, "User #: %d unmuted\n", member_id) ;
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_unmute_usage[] = 
+	"usage: conference unmute <conference_name> <member no>\n"
+	"       unmute member in a conference\n"
+;
+
+static struct ast_cli_entry cli_unmute = { 
+	{ "conference", "unmute", NULL }, 
+	conference_unmute, 
+	"unmute member in a conference", 
+	conference_unmute_usage 
+} ;
+
+int conference_unmutechannel( int fd, int argc, char *argv[] )
+{
+	struct ast_conf_member *member;
+	char *channel;
+
+	if ( argc < 3 ) 
+		return RESULT_SHOWUSAGE ;
+	
+	channel = argv[2];
+
+	member = find_member(channel, 1);
+	if(!member) {
+	    ast_cli(fd, "Member %s not found\n", channel);
+	    return RESULT_FAILURE;
+	}
+
+	member->mute_audio = 0;
+	ast_mutex_unlock( &member->lock ) ;
+	
+	ast_cli( fd, "Channel #: %s unmuted\n", argv[2]) ;
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_unmutechannel_usage[] = 
+	"usage: conference unmutechannel <channel>\n"
+	"       unmute channel in a conference\n"
+;
+
+static struct ast_cli_entry cli_unmutechannel = { 
+	{ "conference", "unmutechannel", NULL }, 
+	conference_unmutechannel, 
+	"unmute channel in a conference", 
+	conference_unmutechannel_usage 
+} ;
+
 //
 // play sound
 //
 
 static char conference_play_sound_usage[] = 
-	"usage: conference play sound <channel-id> <sound-file> [mute]\n"
+	"usage: conference play sound <channel-id> <sound-file>\n"
 	"       play sound <sound-file> to conference member <channel-id>.\n"
-	"       mute the channel if 'mute' is present.\n"
 ;
 
 static struct ast_cli_entry cli_play_sound = { 
@@ -282,8 +561,6 @@ int conference_stop_sounds( int fd, int argc, char *argv[] )
 	    return RESULT_FAILURE;
 	}
 
-
-
 	// clear all sounds
 	sound = member->soundq;
 	member->soundq = NULL;
@@ -345,6 +622,436 @@ int conference_end( int fd, int argc, char *argv[] )
 	return RESULT_SUCCESS ;
 }
 
+// 
+// lock conference to a video source
+//
+static char conference_lock_usage[] = 
+	"usage: conference lock <conference name> <member id>\n"
+	"       locks incoming video stream for conference <conference name> to member <member id>\n"
+;
+
+static struct ast_cli_entry cli_lock = {
+	{ "conference", "lock", NULL },
+	conference_lock,
+	"locks incoming video to a member",
+	conference_lock_usage
+} ;
+
+int conference_lock( int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 4 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	int member;
+	sscanf(argv[3], "%d", &member);
+	
+	int res = lock_conference(conference, member);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Locking failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+// 
+// lock conference to a video source channel
+//
+static char conference_lockchannel_usage[] = 
+	"usage: conference lockchannel <conference name> <channel>\n"
+	"       locks incoming video stream for conference <conference name> to channel <channel>\n"
+;
+
+static struct ast_cli_entry cli_lockchannel = {
+	{ "conference", "lockchannel", NULL },
+	conference_lockchannel,
+	"locks incoming video to a channel",
+	conference_lockchannel_usage
+} ;
+
+int conference_lockchannel( int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 4 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	const char *channel = argv[3];
+	
+	int res = lock_conference_channel(conference, channel);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Locking failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// unlock conference
+//
+static char conference_unlock_usage[] = 
+	"usage: conference unlock <conference name>\n"
+	"       unlocks conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_unlock = {
+	{ "conference", "unlock", NULL },
+	conference_unlock,
+	"unlocks conference",
+	conference_unlock_usage
+} ;
+
+int conference_unlock( int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 3 )
+		return RESULT_SHOWUSAGE;
+	 
+	
+	const char *conference = argv[2];
+	
+	int res = unlock_conference(conference);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Unlocking failed\n");
+		return RESULT_FAILURE;
+	}
+
+	return RESULT_SUCCESS;
+}
+
+//
+// Set conference default video source
+//
+static char conference_set_default_usage[] = 
+	"usage: conference set default <conference name> <member>\n"
+	"       sets the default video source for conference <conference name> to member <member>\n"
+;
+
+static struct ast_cli_entry cli_set_default = {
+	{ "conference", "set", "default", NULL },
+	conference_set_default,
+	"sets default video source",
+	conference_set_default_usage
+} ;
+
+int conference_set_default(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	int member;
+	sscanf(argv[4], "%d", &member);
+	
+	int res = set_default_video_id(conference, member);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Setting default video id failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Set conference default video source channel
+//
+static char conference_set_defaultchannel_usage[] = 
+	"usage: conference set defaultchannel <conference name> <channel>\n"
+	"       sets the default video source channel for conference <conference name> to channel <channel>\n"
+;
+
+static struct ast_cli_entry cli_set_defaultchannel = {
+	{ "conference", "set", "defaultchannel", NULL },
+	conference_set_defaultchannel,
+	"sets default video source channel",
+	conference_set_defaultchannel_usage
+} ;
+
+int conference_set_defaultchannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	const char *channel = argv[4];
+	
+	int res = set_default_video_channel(conference, channel);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Setting default video id failed\n");
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Mute video from a member
+//
+static char conference_video_mute_usage[] = 
+	"usage: conference video mute <conference name> <member>\n"
+	"       mutes video from member <member> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_mute = {
+	{ "conference", "video", "mute", NULL },
+	conference_video_mute,
+	"mutes video from a member",
+	conference_video_mute_usage
+} ;
+
+int conference_video_mute(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	int member;
+	sscanf(argv[4], "%d", &member);
+	
+	int res = video_mute_member(conference, member);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Muting video from member %d failed\n", member);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Unmute video from a member
+//
+static char conference_video_unmute_usage[] = 
+	"usage: conference video unmute <conference name> <member>\n"
+	"       unmutes video from member <member> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_unmute = {
+	{ "conference", "video", "unmute", NULL },
+	conference_video_unmute,
+	"unmutes video from a member",
+	conference_video_unmute_usage
+} ;
+
+int conference_video_unmute(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	int member;
+	sscanf(argv[4], "%d", &member);
+	
+	int res = video_unmute_member(conference, member);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Unmuting video from member %d failed\n", member);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Mute video from a channel
+//
+static char conference_video_mutechannel_usage[] = 
+	"usage: conference video mutechannel <conference name> <channel>\n"
+	"       mutes video from channel <channel> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_mutechannel = {
+	{ "conference", "video", "mutechannel", NULL },
+	conference_video_mutechannel,
+	"mutes video from a channel",
+	conference_video_mutechannel_usage
+} ;
+
+int conference_video_mutechannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	const char *channel = argv[4];
+	
+	int res = video_mute_channel(conference, channel);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Muting video from channel %s failed\n", channel);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Unmute video from a channel
+//
+static char conference_video_unmutechannel_usage[] = 
+	"usage: conference video unmutechannel <conference name> <channel>\n"
+	"       unmutes video from channel <channel> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_video_unmutechannel = {
+	{ "conference", "video", "unmutechannel", NULL },
+	conference_video_unmutechannel,
+	"unmutes video from a channel",
+	conference_video_unmutechannel_usage
+} ;
+
+int conference_video_unmutechannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[3];
+	const char *channel = argv[4];
+	
+	int res = video_unmute_channel(conference, channel);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Unmuting video from channel %s failed\n", channel);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+
+//
+// Text message functions
+// Send a text message to a member
+//
+static char conference_text_usage[] = 
+	"usage: conference text <conference name> <member> <text>\n"
+	"        Sends text message <text> to member <member> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_text = {
+	{ "conference", "text", NULL },
+	conference_text,
+	"sends a text message to a member",
+	conference_text_usage
+} ;
+
+int conference_text(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	int member;
+	sscanf(argv[3], "%d", &member);
+	const char *text = argv[4];
+	
+	int res = send_text(conference, member, text);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Sending a text message to member %d failed\n", member);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Send a text message to a channel
+//
+static char conference_textchannel_usage[] = 
+	"usage: conference textchannel <conference name> <channel> <text>\n"
+	"        Sends text message <text> to channel <channel> in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_textchannel = {
+	{ "conference", "textchannel", NULL },
+	conference_textchannel,
+	"sends a text message to a channel",
+	conference_textchannel_usage
+} ;
+
+int conference_textchannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	const char *channel = argv[3];
+	const char *text = argv[4];
+	
+	int res = send_text_channel(conference, channel, text);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Sending a text message to channel %s failed\n", channel);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+//
+// Send a text message to all members in a conference
+//
+static char conference_textbroadcast_usage[] = 
+	"usage: conference textbroadcast <conference name> <text>\n"
+	"        Sends text message <text> to all members in conference <conference name>\n"
+;
+
+static struct ast_cli_entry cli_textbroadcast = {
+	{ "conference", "textbroadcast", NULL },
+	conference_textbroadcast,
+	"sends a text message to all members in a conference",
+	conference_textbroadcast_usage
+} ;
+
+int conference_textbroadcast(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 4 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	const char *text = argv[3];
+	
+	int res = send_text_broadcast(conference, text);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Sending a text broadcast to conference %s failed\n", conference);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
+
 
 //
 // cli initialization function
@@ -352,19 +1059,63 @@ int conference_end( int fd, int argc, char *argv[] )
 
 void register_conference_cli( void ) 
 {
+	ast_cli_register( &cli_restart );
 	ast_cli_register( &cli_debug ) ;
 	ast_cli_register( &cli_show_stats ) ;
+	ast_cli_register( &cli_list );
+	ast_cli_register( &cli_kick );
+	ast_cli_register( &cli_mute );
+	ast_cli_register( &cli_mutechannel );
+	ast_cli_register( &cli_viewstream );
+	ast_cli_register( &cli_viewchannel );
+	ast_cli_register( &cli_unmute );
+	ast_cli_register( &cli_unmutechannel );	
 	ast_cli_register( &cli_play_sound ) ;
-	ast_cli_register( &cli_stop_sounds ) ;
-	ast_cli_register( &cli_end ) ;
+	ast_cli_register( &cli_stop_sounds ) ;	
+	ast_cli_register( &cli_end );
+	ast_cli_register( &cli_lock );
+	ast_cli_register( &cli_lockchannel );
+	ast_cli_register( &cli_unlock );
+	ast_cli_register( &cli_set_default );
+	ast_cli_register( &cli_set_defaultchannel );
+	ast_cli_register( &cli_video_mute ) ;
+	ast_cli_register( &cli_video_unmute ) ;
+	ast_cli_register( &cli_video_mutechannel ) ;
+	ast_cli_register( &cli_video_unmutechannel ) ;
+	ast_cli_register( &cli_text );
+	ast_cli_register( &cli_textchannel );
+	ast_cli_register( &cli_textbroadcast );
+	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
+
 }
 
 void unregister_conference_cli( void )
 {
+	ast_cli_unregister( &cli_restart );
 	ast_cli_unregister( &cli_debug ) ;
 	ast_cli_unregister( &cli_show_stats ) ;
+	ast_cli_unregister( &cli_list );
+	ast_cli_unregister( &cli_kick );
+	ast_cli_unregister( &cli_mute );
+	ast_cli_unregister( &cli_mutechannel );
+	ast_cli_unregister( &cli_viewstream );
+	ast_cli_unregister( &cli_viewchannel );
+	ast_cli_unregister( &cli_unmute );
+	ast_cli_unregister( &cli_unmutechannel );
 	ast_cli_unregister( &cli_play_sound ) ;
 	ast_cli_unregister( &cli_stop_sounds ) ;
-	ast_cli_unregister( &cli_end ) ;
+	ast_cli_unregister( &cli_end );
+	ast_cli_unregister( &cli_lock );
+	ast_cli_unregister( &cli_lockchannel );
+	ast_cli_unregister( &cli_unlock );
+	ast_cli_unregister( &cli_set_default );
+	ast_cli_unregister( &cli_set_defaultchannel );
+	ast_cli_unregister( &cli_video_mute ) ;
+	ast_cli_unregister( &cli_video_unmute ) ;
+	ast_cli_unregister( &cli_video_mutechannel ) ;
+	ast_cli_unregister( &cli_video_unmutechannel ) ;
+	ast_cli_unregister( &cli_text );
+	ast_cli_unregister( &cli_textchannel );
+	ast_cli_unregister( &cli_textbroadcast );
+	ast_manager_unregister( "ConferenceList" );
 }
-

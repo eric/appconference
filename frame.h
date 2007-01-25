@@ -10,6 +10,10 @@
  * Copyright (C) 2003, 2004 HorizonLive.com, Inc.
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
+ * 
+ * Video Conferencing support added by 
+ * Neil Stratford <neils@vipadia.com>
+ * Copyright (C) 2005, 2005 Vipadia Limited
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
@@ -45,6 +49,9 @@ conf_frame* copy_conf_frame( conf_frame* src ) ;
 struct ast_frame* convert_frame_to_slinear( struct ast_trans_pvt* trans, struct ast_frame* fr ) ;
 struct ast_frame* convert_frame_from_slinear( struct ast_trans_pvt* trans, struct ast_frame* fr ) ;
 struct ast_frame* convert_frame( struct ast_trans_pvt* trans, struct ast_frame* fr ) ;
+
+// text frame function(s)
+struct ast_frame* create_text_frame(const char *text, int copy);
 
 // slinear frame functions
 struct ast_frame* create_slinear_frame( char* data ) ;

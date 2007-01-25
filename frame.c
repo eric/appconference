@@ -10,12 +10,17 @@
  * Copyright (C) 2003, 2004 HorizonLive.com, Inc.
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
+ * 
+ * Video Conferencing support added by 
+ * Neil Stratford <neils@vipadia.com>
+ * Copyright (C) 2005, 2005 Vipadia Limited
  *
  * This program may be modified and distributed under the 
  * terms of the GNU Public License.
  *
  */
 
+#include "asterisk/autoconfig.h"
 #include "frame.h"
 
 conf_frame* mix_frames( conf_frame* frames_in, int speaker_count, int listener_count )
@@ -43,6 +48,7 @@ conf_frame* mix_frames( conf_frame* frames_in, int speaker_count, int listener_c
 	{
 		// pass-through frames
 		frames_out = mix_single_speaker( frames_in ) ;
+		//printf("mix single speaker\n");
 	}
 	else
 	{
@@ -270,7 +276,7 @@ conf_frame* mix_multiple_speakers(
 			else
 			{			
 				// mix the new frame in with the existing buffer			
-				mix_slinear_frames( cp_listenerData, (char*)( cf_spoken->fr->data ), cf_spoken->fr->samples ) ;
+				mix_slinear_frames( cp_listenerData, (char*)( cf_spoken->fr->data ), AST_CONF_BLOCK_SAMPLES);//XXX NAS cf_spoken->fr->samples ) ;
 			}
 		}
 		
@@ -341,7 +347,7 @@ struct ast_frame* convert_frame_from_slinear( struct ast_trans_pvt* trans, struc
 	// check for null translator ( after we've checked that we need to translate )
 	if ( trans == NULL )
 	{
-		ast_log( LOG_ERROR, "unable to translate frame with null translation path\n" ) ;
+		//ast_log( LOG_ERROR, "unable to translate frame with null translation path\n" ) ;
 		return fr ;
 	}
 
@@ -393,6 +399,7 @@ struct ast_frame* convert_frame( struct ast_trans_pvt* trans, struct ast_frame* 
 
 conf_frame* delete_conf_frame( conf_frame* cf )
 {
+  int c;
 	// check for null frames
 	if ( cf == NULL )
 	{
@@ -411,7 +418,6 @@ conf_frame* delete_conf_frame( conf_frame* cf )
 	}
 		
 	// make sure converted frames are set to null
-	int c;
 	for ( c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
 	{
 		if ( cf->converted[ c ] != NULL )
@@ -502,6 +508,46 @@ conf_frame* copy_conf_frame( conf_frame* src )
 	}
 	
 	return cfr ;
+}
+
+//
+// Create a TEXT frame based on a given string
+//
+struct ast_frame* create_text_frame(const char *text, int copy)
+{
+	struct ast_frame *f;
+	char             *t;
+	
+	f = calloc(1, sizeof(struct ast_frame));
+	if ( f == NULL ) 
+	{
+		ast_log( LOG_ERROR, "unable to allocate memory for text frame\n" ) ;
+		return NULL ;
+	}
+	if ( copy )
+	{
+		t = calloc(strlen(text) + 1, 1);
+		if ( t == NULL )
+		{
+			ast_log( LOG_ERROR, "unable to allocate memory for text data\n" ) ;
+			free(f);
+			return NULL ;
+		}
+		strncpy(t, text, strlen(text));
+	} else
+	{
+		t = (char *)text;
+	}
+	
+	f->frametype = AST_FRAME_TEXT;
+	f->offset = AST_FRIENDLY_OFFSET;
+	f->mallocd = AST_MALLOCD_HDR;
+	if ( copy ) f->mallocd |= AST_MALLOCD_DATA;
+	f->datalen = strlen(t) + 1;
+	f->data = t;
+	f->src = NULL;
+	
+	return f;
 }
 
 //
@@ -610,5 +656,16 @@ struct ast_frame* get_silent_slinear_frame( void )
 	
 	return ast_frdup( f ) ;
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
