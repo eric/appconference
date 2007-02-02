@@ -992,12 +992,12 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	//
 	
 	// silence detection flags w/ defaults
-	int vad_flag = 0 ;
-	int denoise_flag = 0 ;
-	int agc_flag = 0 ;
+	member->vad_flag = 0 ;
+	member->denoise_flag = 0 ;
+	member->agc_flag = 0 ;
 	
 	// is this member using the telephone?
-	int via_telephone = 0 ;
+	member->via_telephone = 0 ;
 	
 	// temp pointer to flags string
 	char* flags = member->flags ;
@@ -1042,13 +1042,13 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 				
 				// speex preprocessing options
 			case 'V':
-				vad_flag = 1 ;
+				member->vad_flag = 1 ;
 				break ;
 			case 'D':
-				denoise_flag = 1 ;
+				member->denoise_flag = 1 ;
 				break ;
 			case 'A':
-				agc_flag = 1 ;
+				member->agc_flag = 1 ;
 				break ;
 				
 				// dtmf/moderator/video switching options
@@ -1064,13 +1064,16 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			case 'M':
 				member->ismoderator = 1;
 				break;
+			case 'N':
+				member->no_camera = 1;
+				break;
 			case 't':
 				member->does_text = 1;
 				break;	
 				
 				//Telephone connection
 			case 'T':
-				via_telephone = 1;
+				member->via_telephone = 1;
 				break;
 				
 			default:
@@ -1091,7 +1094,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// and is not listen-only
 	//
 	if ( 
-		via_telephone == 1 
+		member->via_telephone == 1 
 		&& member->type != 'L'
 	)
 	{
@@ -1105,12 +1108,12 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 		else
 		{
 			ast_log( LOG_NOTICE, "member dsp initialized, channel => %s, v => %d, d => %d, a => %d\n", 
-				chan->name, vad_flag, denoise_flag, agc_flag ) ;
+				chan->name, member->vad_flag, member->denoise_flag, member->agc_flag ) ;
 		
 			// set speex preprocessor options
-			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_VAD, &vad_flag ) ;
-			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_DENOISE, &denoise_flag ) ;
-			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_AGC, &agc_flag ) ;
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_VAD, &(member->vad_flag) ) ;
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_DENOISE, &(member->denoise_flag) ) ;
+			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_AGC, &(member->agc_flag) ) ;
 
 			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_PROB_START, &member->vad_prob_start ) ;
 			speex_preprocess_ctl( member->dsp, SPEEX_PREPROCESS_SET_PROB_CONTINUE, &member->vad_prob_continue ) ;
@@ -1125,7 +1128,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// set connection type
 	//
 
-	if ( via_telephone == 1 )
+	if ( member->via_telephone == 1 )
 	{
 		member->connection_type = 'T' ;
 	}

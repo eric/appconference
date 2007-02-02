@@ -24,6 +24,7 @@ Moderator/video switch options:
 
 Miscellaneous:
 't' : member accepts text based control messages.  The messages are described in a separate document
+'N' : Assume that the member starts off with camera disabled.
 
 Future development (these are not implemented yet):
 'x' : marked member.  We plan to change the behavior so that when ALL moderators quit, all members that are marked will get kicked. Other members in the conference are not affected.

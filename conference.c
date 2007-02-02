@@ -523,7 +523,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 
 	conf->video_id_count = 0;
 	
-	conf->default_video_source_id = 0;
+	conf->default_video_source_id = -1;
 	conf->current_video_source_id = -1;
 	//gettimeofday(&conf->current_video_source_timestamp, NULL);
 	conf->video_locked = 0;
@@ -554,8 +554,8 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	// add the initial member
 	add_member( member, conf ) ;
 	
-	// if the new member is video enabled, we make it default
-	if ( !member->mute_video && !member->mute_audio )
+	// if the new member is video enabled, we switch to it
+	if ( !member->mute_video && !member->mute_audio && !member->no_camera )
 	{
 		do_video_switching(conf, member->video_id, 1);
 	}
@@ -1128,8 +1128,24 @@ int show_conference_list ( int fd, const char *name )
 			{
 				ast_cli( fd, "User #: %d  ", member->video_id ) ;	
 				ast_cli( fd, "Channel: %s ", member->channel_name ) ;
-				if ( member->mute_audio == 1 )
-					ast_cli(fd, "Muted ");
+				
+				ast_cli( fd, "Flags:");
+				if ( member->mute_video ) ast_cli( fd, "C");
+				if ( member->norecv_video ) ast_cli( fd, "c");
+				if ( member->mute_audio ) ast_cli( fd, "L");
+				if ( member->norecv_audio ) ast_cli( fd, "l");
+				if ( member->vad_flag ) ast_cli( fd, "V");
+				if ( member->denoise_flag ) ast_cli( fd, "D");
+				if ( member->agc_flag ) ast_cli( fd, "A");
+				if ( member->dtmf_switch ) ast_cli( fd, "X");
+				if ( member->dtmf_relay ) ast_cli( fd, "R");
+				if ( member->vad_switch ) ast_cli( fd, "S");
+				if ( member->ismoderator ) ast_cli( fd, "M");
+				if ( member->no_camera ) ast_cli( fd, "N");
+				if ( member->does_text ) ast_cli( fd, "t");
+				if ( member->via_telephone ) ast_cli( fd, "T");
+				ast_cli( fd, " " );
+				
 				if ( member->video_id == conf->default_video_source_id )
 					ast_cli(fd, "Default ");
 				if ( member->video_id == conf->current_video_source_id )
@@ -1761,12 +1777,14 @@ void do_VAD_switching(struct ast_conference *conf)
 	struct timeval         current_time;
 	long                   longest_speaking, tmp;
 	struct ast_conf_member *longest_speaking_member;
-	int                    current_silent;
+	int                    current_silent, current_no_camera, current_video_mute;
+	int                    default_no_camera, default_video_mute;
 	
 	gettimeofday(&current_time, NULL);
 	
 	// Scan the member list looking for the longest speaking member
 	// We also check if the currently speaking member has been silent for a while
+	// Also, we check for camera disabled or video muted members
 	// We say that a member is speaking after his speaking state has been on for 
 	// at least AST_CONF_VIDEO_START_TIMEOUT ms
 	// We say that a member is silent after his speaking state has been off for 
@@ -1774,19 +1792,37 @@ void do_VAD_switching(struct ast_conference *conf)
 	longest_speaking = 0;
 	longest_speaking_member = NULL;
 	current_silent = 0;
+	current_no_camera = 0;
+	current_video_mute = 0;
+	default_no_camera = 0;
+	default_video_mute = 0;
 	for ( member = conf->memberlist ;
 	      member != NULL ;
 	      member = member->next )
 	{
-		// We check for video-muted
-		// However, if the member is the currently speaking member we still go on
-		if ( member->video_id != conf->current_video_source_id && member->mute_video ) 
-			continue;
+		// We check for video-muted or camera disabled
+		// If yes, this member will not be considered as a candidate for switching
+		// If this is the currently speaking member, then mark it so we force a switch
+		if ( member->mute_video )
+		{
+			if ( member->video_id == conf->default_video_source_id )
+				default_video_mute = 1;
+			if ( member->video_id == conf->current_video_source_id )
+				current_video_mute = 1;
+			else
+				continue;
+		}
 		
-		// If the member has disabled his camera, move along
 		if ( member->no_camera )
-			continue;
-		
+		{
+			if ( member->video_id == conf->default_video_source_id )
+				default_no_camera = 1;
+			if ( member->video_id == conf->current_video_source_id )
+				current_no_camera = 1;
+			else
+				continue;
+		}
+
 		// Check if current speaker has been silent for a while
 		if ( member->video_id == conf->current_video_source_id &&
 		     member->speaking_state_prev == 0 &&
@@ -1819,19 +1855,29 @@ void do_VAD_switching(struct ast_conference *conf)
 	}
 	
 	// We got our results, now let's make a decision
-	// If the currently speaking member has been silent, then we take the longest 
+	// If the currently speaking member has been marked as silent, then we take the longest 
 	// speaking member.  If no member is speaking, we go to default
 	// As a policy we don't want to switch away from a member that is speaking
 	// however, we might need to refine this to avoid a situation when a member has a 
 	// low noise threshold or its VAD is simply stuck 
-	if ( current_silent )
+	if ( current_silent || current_no_camera || current_video_mute || conf->current_video_source_id < 0 )
 	{
 		if ( longest_speaking_member != NULL )
 		{
 			do_video_switching(conf, longest_speaking_member->video_id, 0);
 		} else
 		{
-			do_video_switching(conf, conf->default_video_source_id, 0);
+			// If there's nobody speaking and we have a default that can send video, switch to it
+			// If not, and the current speaker has his camera on, stay on him.
+			// If he turned off his camera or became video muted, then switch to empty (-1)
+			if ( conf->default_video_source_id >= 0 && 
+			     conf->default_video_source_id != conf->current_video_source_id &&
+			     !default_no_camera &&
+			     !default_video_mute 
+			   )
+				do_video_switching(conf, conf->default_video_source_id, 0);
+			else if ( current_no_camera || current_video_mute )
+				do_video_switching(conf, -1, 0);
 		}
 	}
 }
@@ -2439,6 +2485,8 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 		// acquire conference mutex
 		ast_mutex_lock( &conf->lock );
 	}
+	
+	fprintf(stderr, "Mihai: switching from %d to %d\n", conf->current_video_source_id, new_id);
 	
 	// No need to do anything if the current member is the same as the new member
 	if ( new_id != conf->current_video_source_id )

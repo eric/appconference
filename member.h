@@ -58,6 +58,12 @@ struct ast_conf_member
 	char *callerid;
 	char *callername;
 	
+	// voice flags
+	int vad_flag;
+	int denoise_flag;
+	int agc_flag;
+	int via_telephone;
+	
 	// video conference params
 	int video_id;
 	int initial_id;
