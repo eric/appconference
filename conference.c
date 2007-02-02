@@ -2486,8 +2486,6 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 		ast_mutex_lock( &conf->lock );
 	}
 	
-	fprintf(stderr, "Mihai: switching from %d to %d\n", conf->current_video_source_id, new_id);
-	
 	// No need to do anything if the current member is the same as the new member
 	if ( new_id != conf->current_video_source_id )
 	{
