@@ -771,36 +771,25 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 	// acquire the conference lock
 	ast_mutex_lock( &conf->lock ) ;
 
-	if (member->mute_video == 0)
+	if (member->id < 0)
 	{
-		if (member->id < 0)
+		// get an ID for this member
+		newid = get_new_id( conf );
+		member->id = newid;
+	} else
+	{
+		// boot anyone who has this id already
+		othermember = conf->memberlist;
+		while (othermember)
 		{
-			// get a video ID for this member
-			newid = get_new_id( conf );
-			member->id = newid;
-		}
-		else
-		{
-			// boot anyone who has this id already
-			othermember = conf->memberlist;
-			while (othermember)
-			{
-				if (othermember->id == member->id)
-					othermember->id = -1;
-				othermember = othermember->next;
-			}
-		}
-		if ( member->id == conf->current_video_source_id )
-		{
-			send_text_message_to_member(member, AST_CONF_CONTROL_START_VIDEO);
-		} else
-		{
-			send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
+			if (othermember->id == member->id)
+				othermember->id = -1;
+			othermember = othermember->next;
 		}
 	}
-	else
+	
+	if ( member->mute_video )
 	{
-		member->id = -1;
 		send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
 	}
 
