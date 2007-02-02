@@ -418,7 +418,7 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 
 	// look for an existing conference
 	ast_log( AST_CONF_DEBUG, "attempting to find requested conference\n" ) ;
-	conf = find_conf( member->id ) ;
+	conf = find_conf( member->conf_name ) ;
 	
 	// unable to find an existing conference, try to create one
 	if ( conf == NULL )
@@ -427,7 +427,7 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 		ast_log( AST_CONF_DEBUG, "attempting to create requested conference\n" ) ;
 
 		// create the new conference with one member
-		conf = create_conf( member->id, member ) ;
+		conf = create_conf( member->conf_name, member ) ;
 
 		// return an error if create_conf() failed
 		if ( conf == NULL ) 

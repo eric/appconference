@@ -53,7 +53,7 @@ struct ast_conf_member
 	int priority ;	// highest priority gets the channel
 	char* flags ;	// raw member-type flags
 	char type ;		// L = ListenOnly, M = Moderator, S = Standard (Listen/Talk)
-	char* id ;		// member id
+	char* conf_name ;		// name of the conference that own this member
 	
 	char *callerid;
 	char *callername;

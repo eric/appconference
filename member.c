@@ -818,8 +818,8 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// parse the id
 	if ( ( token = strsep( &stringp, "/" ) ) != NULL )
 	{
-		member->id = malloc( strlen( token ) + 1 ) ;
-		strcpy( member->id, token ) ;
+		member->conf_name = malloc( strlen( token ) + 1 ) ;
+		strcpy( member->conf_name, token ) ;
 	}
 	else
 	{
@@ -863,7 +863,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	ast_log( 
 		AST_CONF_DEBUG, 
 		"parsed data params, id => %s, flags => %s, priority => %d, vad_prob_start => %f, vad_prob_continue => %f\n",
-		member->id, member->flags, member->priority, member->vad_prob_start, member->vad_prob_continue
+		member->conf_name, member->flags, member->priority, member->vad_prob_start, member->vad_prob_continue
 	) ;
 
 	//
