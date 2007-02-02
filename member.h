@@ -65,9 +65,9 @@ struct ast_conf_member
 	int via_telephone;
 	
 	// video conference params
-	int video_id;
+	int id;
 	int initial_id;
-	int req_video_id;
+	int req_id;
 	
 	// muting options - this member will not be heard/seen
 	int mute_audio;
@@ -241,7 +241,7 @@ struct conf_member
 
 int member_exec( struct ast_channel* chan, void* data ) ;
 
-struct ast_conf_member* check_active_video( int video_id, struct ast_conference *conf );
+struct ast_conf_member* check_active_video( int id, struct ast_conference *conf );
 
 struct ast_conf_member* create_member( struct ast_channel* chan, const char* data ) ;
 struct ast_conf_member* delete_member( struct ast_conf_member* member ) ;

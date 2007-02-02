@@ -281,20 +281,20 @@ void conference_exec( struct ast_conference *conf )
 					if ( conf->video_locked )
 					{
 						// Always send video from the locked source
-						if ( conf->current_video_source_id == video_source_member->video_id )
+						if ( conf->current_video_source_id == video_source_member->id )
 							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
 					} else
 					{
 						if ( member->vad_switch )
 						{
 							// VAD-based video switching takes precedence
-							if ( (conf->current_video_source_id == video_source_member->video_id) ||
-							     (conf->current_video_source_id < 0 && conf->default_video_source_id == video_source_member->video_id)
+							if ( (conf->current_video_source_id == video_source_member->id) ||
+							     (conf->current_video_source_id < 0 && conf->default_video_source_id == video_source_member->id)
 							   )
 							{
 								queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
 							}
-						} else if ( member->req_video_id == video_source_member->video_id )
+						} else if ( member->req_id == video_source_member->id )
 						{
 							// If VAD switching is disabled, then we check for DTMF switching
 							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
@@ -521,7 +521,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 
 	conf->debug_flag = 0 ;
 
-	conf->video_id_count = 0;
+	conf->id_count = 0;
 	
 	conf->default_video_source_id = -1;
 	conf->current_video_source_id = -1;
@@ -696,7 +696,7 @@ void remove_conf( struct ast_conference *conf )
 	return ;
 }
 
-int get_new_video_id( struct ast_conference *conf )
+int get_new_id( struct ast_conference *conf )
 {
 	// must have the conf lock when calling this 
 	int newid;
@@ -706,7 +706,7 @@ int get_new_video_id( struct ast_conference *conf )
 	othermember = conf->memberlist;
 	while (othermember)
 	{
-	    if (othermember->video_id == newid) 
+	    if (othermember->id == newid) 
 	    {
 		    newid++;
 		    othermember = conf->memberlist;
@@ -758,7 +758,7 @@ int end_conference( struct ast_conference* conf )
 
 void add_member( struct ast_conf_member *member, struct ast_conference *conf ) 
 {
-        int newid, last_video_id;
+        int newid, last_id;
         struct ast_conf_member *othermember;
 				int count;
 
@@ -773,11 +773,11 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 
 	if (member->mute_video == 0)
 	{
-		if (member->video_id < 0)
+		if (member->id < 0)
 		{
 			// get a video ID for this member
-			newid = get_new_video_id( conf );
-			member->video_id = newid;
+			newid = get_new_id( conf );
+			member->id = newid;
 		}
 		else
 		{
@@ -785,12 +785,12 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 			othermember = conf->memberlist;
 			while (othermember)
 			{
-				if (othermember->video_id == member->video_id)
-					othermember->video_id = -1;
+				if (othermember->id == member->id)
+					othermember->id = -1;
 				othermember = othermember->next;
 			}
 		}
-		if ( member->video_id == conf->current_video_source_id )
+		if ( member->id == conf->current_video_source_id )
 		{
 			send_text_message_to_member(member, AST_CONF_CONTROL_START_VIDEO);
 		} else
@@ -800,7 +800,7 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 	}
 	else
 	{
-		member->video_id = -1;
+		member->id = -1;
 		send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
 	}
 
@@ -819,14 +819,14 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 
 	ast_log( AST_CONF_DEBUG, "new video id %d\n", newid) ;      
 
-	if (conf->memberlist) last_video_id = conf->memberlist->video_id;
-	else last_video_id = 0;
+	if (conf->memberlist) last_id = conf->memberlist->id;
+	else last_id = 0;
 
-	if (member->req_video_id < 0) // otherwise pre-selected in create_member
+	if (member->req_id < 0) // otherwise pre-selected in create_member
 	{
 		// want to watch the last person to 0 or 1 (for now)
-		if (member->video_id > 0) member->req_video_id = 0;
-		else member->req_video_id = 1;
+		if (member->id > 0) member->req_id = 0;
+		else member->req_id = 1;
 	}
 
 	member->next = conf->memberlist ; // next is now list
@@ -875,7 +875,7 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 	{
 		// set conference to send no_video to anyone who was watching us
 		ast_mutex_lock( &member_list->lock ) ;
-		if (member_list->req_video_id == member->video_id)
+		if (member_list->req_id == member->id)
 		{
 			member_list->conference = 1;
 		}
@@ -928,10 +928,10 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			count = count_member( member, conf, 0 ) ;
 
 			// Check if member is the default or current video source
-			if ( conf->current_video_source_id == member->video_id )
+			if ( conf->current_video_source_id == member->id )
 			{
 				do_video_switching(conf, conf->default_video_source_id, 0);
-			} else if ( conf->default_video_source_id == member->video_id )
+			} else if ( conf->default_video_source_id == member->id )
 			{
 				conf->default_video_source_id = -1;
 			}
@@ -948,7 +948,7 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 				"Duration: %ld\r\n"
 				"Count: %d\r\n",
 				conf->name,
-				member->video_id,
+				member->id,
 				member->channel_name,
 				member->callerid,
 				member->callername,
@@ -1119,7 +1119,7 @@ int show_conference_list ( int fd, const char *name )
 			member = conf->memberlist ;
 			while ( member != NULL )
 			{
-				ast_cli( fd, "User #: %d  ", member->video_id ) ;	
+				ast_cli( fd, "User #: %d  ", member->id ) ;	
 				ast_cli( fd, "Channel: %s ", member->channel_name ) ;
 				
 				ast_cli( fd, "Flags:");
@@ -1139,9 +1139,9 @@ int show_conference_list ( int fd, const char *name )
 				if ( member->via_telephone ) ast_cli( fd, "T");
 				ast_cli( fd, " " );
 				
-				if ( member->video_id == conf->default_video_source_id )
+				if ( member->id == conf->default_video_source_id )
 					ast_cli(fd, "Default ");
-				if ( member->video_id == conf->current_video_source_id )
+				if ( member->id == conf->current_video_source_id )
 				{
 					ast_cli(fd, "Showing ");
 					if ( conf->video_locked )
@@ -1208,14 +1208,14 @@ int manager_conference_list( struct mansession *s, struct message *m )
 						"%s"
 						"\r\n",
 						conf->name,
-						member->video_id,
+						member->id,
 						member->channel_name,
 						member->chan->cid.cid_num ? member->chan->cid.cid_num : "unknown",
 						member->chan->cid.cid_name ? member->chan->cid.cid_name : "unknown",
 						member->mute_audio ? "YES" : "NO",
 						member->mute_video ? "YES" : "NO",
-						member->video_id == conf->default_video_source_id ? "YES" : "NO",
-						member->video_id == conf->current_video_source_id ? "YES" : "NO",
+						member->id == conf->default_video_source_id ? "YES" : "NO",
+						member->id == conf->current_video_source_id ? "YES" : "NO",
 						idText);
 			    member = member->next;
 			  }
@@ -1263,7 +1263,7 @@ int kick_member (  const char* confname, int user_id)
 		        member = conf->memberlist ;
 			while (member != NULL)
 			  {
-			    if (member->video_id == user_id)
+			    if (member->id == user_id)
 			      {
 				      ast_mutex_lock( &member->lock ) ;
 				      member->kick_flag = 1;
@@ -1356,7 +1356,7 @@ int mute_member (  const char* confname, int user_id)
 		        member = conf->memberlist ;
 			while (member != NULL)
 			  {
-			    if (member->video_id == user_id)
+			    if (member->id == user_id)
 			      {
 				      ast_mutex_lock( &member->lock ) ;
 				      member->mute_audio = 1;
@@ -1454,7 +1454,7 @@ int unmute_member (  const char* confname, int user_id)
 		        member = conf->memberlist ;
 			while (member != NULL)
 			  {
-			    if (member->video_id == user_id)
+			    if (member->id == user_id)
 			      {
 				      ast_mutex_lock( &member->lock ) ;
 				      member->mute_audio = 0;
@@ -1552,12 +1552,12 @@ int viewstream_switch ( const char* confname, int user_id, int stream_id )
 		        member = conf->memberlist ;
 			while (member != NULL)
 			{
-				if (member->video_id == user_id)
+				if (member->id == user_id)
 				{
 					// switch the video
 					ast_mutex_lock( &member->lock ) ;
 					
-					member->req_video_id = stream_id; 
+					member->req_id = stream_id; 
 					member->conference = 1;
 	
 					ast_mutex_unlock( &member->lock ) ; 
@@ -1608,7 +1608,7 @@ int viewchannel_switch ( const char* confname, const char* userchan, const char*
 			{
 				if (strncasecmp( member->channel_name, streamchan, 80 ) == 0)
 				{
-					stream_id = member->video_id;
+					stream_id = member->id;
 				}
 				member = member->next;
 			}
@@ -1625,7 +1625,7 @@ int viewchannel_switch ( const char* confname, const char* userchan, const char*
 						// switch the video
 						ast_mutex_lock( &member->lock ) ;
 						
-						member->req_video_id = stream_id; 
+						member->req_id = stream_id; 
 						member->conference = 1;
 						
 						ast_mutex_unlock( &member->lock ) ; 
@@ -1798,9 +1798,9 @@ void do_VAD_switching(struct ast_conference *conf)
 		// If this is the currently speaking member, then mark it so we force a switch
 		if ( member->mute_video )
 		{
-			if ( member->video_id == conf->default_video_source_id )
+			if ( member->id == conf->default_video_source_id )
 				default_video_mute = 1;
-			if ( member->video_id == conf->current_video_source_id )
+			if ( member->id == conf->current_video_source_id )
 				current_video_mute = 1;
 			else
 				continue;
@@ -1808,16 +1808,16 @@ void do_VAD_switching(struct ast_conference *conf)
 		
 		if ( member->no_camera )
 		{
-			if ( member->video_id == conf->default_video_source_id )
+			if ( member->id == conf->default_video_source_id )
 				default_no_camera = 1;
-			if ( member->video_id == conf->current_video_source_id )
+			if ( member->id == conf->current_video_source_id )
 				current_no_camera = 1;
 			else
 				continue;
 		}
 
 		// Check if current speaker has been silent for a while
-		if ( member->video_id == conf->current_video_source_id &&
+		if ( member->id == conf->current_video_source_id &&
 		     member->speaking_state_prev == 0 &&
 		     usecdiff(&current_time, &member->last_state_change) > AST_CONF_VIDEO_STOP_TIMEOUT )
 		{
@@ -1839,7 +1839,7 @@ void do_VAD_switching(struct ast_conference *conf)
 		if ( member->speaking_state_notify != member->speaking_state_prev )
 		{
 /*			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s at timestamp %ld\n", 
-				member->video_id,
+				member->id,
 				member->channel_name, 
 				((member->speaking_state_notify == 1 ) ? "speaking" : "silent"),
 				timeval_to_millis(member->last_state_change)
@@ -1857,7 +1857,7 @@ void do_VAD_switching(struct ast_conference *conf)
 	{
 		if ( longest_speaking_member != NULL )
 		{
-			do_video_switching(conf, longest_speaking_member->video_id, 0);
+			do_video_switching(conf, longest_speaking_member->id, 0);
 		} else
 		{
 			// If there's nobody speaking and we have a default that can send video, switch to it
@@ -1897,7 +1897,7 @@ int lock_conference(const char *conference, int member_id)
 			
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
-				if ( member->video_id == member_id && !member->mute_video )
+				if ( member->id == member_id && !member->mute_video )
 				{
 					do_video_switching(conf, member_id, 0);
 					conf->video_locked = 1;
@@ -1946,7 +1946,7 @@ int lock_conference_channel(const char *conference, const char *channel)
 			{
 				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
 				{
-					do_video_switching(conf, member->video_id, 0);
+					do_video_switching(conf, member->id, 0);
 					conf->video_locked = 1;
 					res = 1;
 					
@@ -1999,7 +1999,7 @@ int unlock_conference(const char *conference)
 	return res;
 }
 
-int set_default_video_id(const char *conference, int member_id)
+int set_default_id(const char *conference, int member_id)
 {
 	struct ast_conference  *conf;
 	struct ast_conf_member *member;
@@ -2023,7 +2023,7 @@ int set_default_video_id(const char *conference, int member_id)
 			
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
-				if ( member->video_id == member_id && !member->mute_video )
+				if ( member->id == member_id && !member->mute_video )
 				{
 					conf->default_video_source_id = member_id;
 					res = 1;
@@ -2046,7 +2046,7 @@ int set_default_video_id(const char *conference, int member_id)
 	
 }
 
-int set_default_video_channel(const char *conference, const char *channel)
+int set_default_channel(const char *conference, const char *channel)
 {
 	struct ast_conference  *conf;
 	struct ast_conf_member *member;
@@ -2072,7 +2072,7 @@ int set_default_video_channel(const char *conference, const char *channel)
 			{
 				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
 				{
-					conf->default_video_source_id = member->video_id;
+					conf->default_video_source_id = member->id;
 					res = 1;
 					
 					manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
@@ -2115,7 +2115,7 @@ int video_mute_member(const char *conference, int member_id)
 			
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
-				if ( member->video_id == member_id )
+				if ( member->id == member_id )
 				{
 					// acquire member mutex
 					ast_mutex_lock( &member->lock );
@@ -2127,7 +2127,7 @@ int video_mute_member(const char *conference, int member_id)
 					
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					
-					if ( member->video_id == conf->current_video_source_id )
+					if ( member->id == conf->current_video_source_id )
 					{
 						do_video_switching(conf, conf->default_video_source_id, 0);
 					}
@@ -2173,7 +2173,7 @@ int video_unmute_member(const char *conference, int member_id)
 			
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
-				if ( member->video_id == member_id )
+				if ( member->id == member_id )
 				{
 					// acquire member mutex
 					ast_mutex_lock( &member->lock );
@@ -2238,7 +2238,7 @@ int video_mute_channel(const char *conference, const char *channel)
 
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					
-					if ( member->video_id == conf->current_video_source_id )
+					if ( member->id == conf->current_video_source_id )
 					{
 						do_video_switching(conf, conf->default_video_source_id, 0);
 					}
@@ -2340,7 +2340,7 @@ int send_text(const char *conference, int member_id, const char *text)
 			
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
-				if ( member->video_id == member_id )
+				if ( member->id == member_id )
 				{
 					res = send_text_message_to_member(member, text) == 0;
 					break;
@@ -2484,11 +2484,11 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 	{
 		for ( member = conf->memberlist ; member != NULL ; member = member->next )
 		{
-			if ( member->video_id == conf->current_video_source_id )
+			if ( member->id == conf->current_video_source_id )
 			{
 				send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
 			}
-			if ( member->video_id == new_id )
+			if ( member->id == new_id )
 			{
 				send_text_message_to_member(member, AST_CONF_CONTROL_START_VIDEO);
 				new_member = member;	

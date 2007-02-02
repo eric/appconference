@@ -37,31 +37,31 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 		{
 			ast_mutex_lock( &member->lock ) ;
 			switch (f->subclass) {
-			case '0' :member->req_video_id=0;
+			case '0' :member->req_id=0;
 				break;
-			case '1' :member->req_video_id=1;
+			case '1' :member->req_id=1;
 				break;
-			case '2' :member->req_video_id=2;
+			case '2' :member->req_id=2;
 				break;
-			case '3' :member->req_video_id=3;
+			case '3' :member->req_id=3;
 				break;
-			case '4' :member->req_video_id=4;
+			case '4' :member->req_id=4;
 				break;
-			case '5' :member->req_video_id=5;
+			case '5' :member->req_id=5;
 				break;
-			case '6' :member->req_video_id=6;
+			case '6' :member->req_id=6;
 				break;
-			case '7' :member->req_video_id=7;
+			case '7' :member->req_id=7;
 				break;
-			case '8' :member->req_video_id=8;
+			case '8' :member->req_id=8;
 				break;
-			case '9' :member->req_video_id=9;
+			case '9' :member->req_id=9;
 				break;
 			case '*' : 
 				if (member->mute_video == 0 && member->mute_audio == 0)
 				{
 					member->mute_video = 1;
-					member->video_id = -1;
+					member->id = -1;
 					member->mute_audio = 1;
 				}
 				else if (member->mute_video == 1 && member->mute_audio == 1)
@@ -71,7 +71,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 					ast_mutex_unlock( &member->lock );
 					ast_mutex_lock( &conf->lock ) ;
 					ast_mutex_lock( &member->lock );
-					member->video_id = get_new_video_id(conf);
+					member->id = get_new_id(conf);
 					ast_mutex_unlock( &conf->lock ) ;
 					member->mute_audio = 0;
 				}
@@ -110,7 +110,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 	// Handle a local or remote conference
 	if (member->conference)
 	{
-		int req_id = member->req_video_id;
+		int req_id = member->req_id;
 		ast_mutex_unlock( &member->lock );
 		// this will return NULL or a locked member
 		src_member = check_active_video(req_id,conf);
@@ -613,7 +613,7 @@ int member_exec( struct ast_channel* chan, void* data )
 		"CallerIDName: %s\r\n"
 		"Count: %d\r\n",
 		conf->name,
-		member->video_id,
+		member->id,
 		member->channel_name,
 		member->chan->cid.cid_num ? member->chan->cid.cid_num : "unknown",
 		member->chan->cid.cid_name ? member->chan->cid.cid_name: "unknown",
@@ -740,7 +740,7 @@ int member_exec( struct ast_channel* chan, void* data )
 
 
 
-struct ast_conf_member *check_active_video( int video_id, struct ast_conference *conf ) 
+struct ast_conf_member *check_active_video( int id, struct ast_conference *conf ) 
 {
      struct ast_conf_member *member;
 
@@ -750,7 +750,7 @@ struct ast_conf_member *check_active_video( int video_id, struct ast_conference 
      member = conf->memberlist;
      while (member)
      {
-	     if (member->video_id == video_id) 
+	     if (member->id == id) 
 	     {
 		     // lock this member
 		     ast_mutex_lock( &member->lock ) ;
@@ -912,8 +912,8 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->dtmf_relay = 0; // no dtmf relay by default
 
 	// start of day video ids
-	member->req_video_id = -1;
-	member->video_id = -1;
+	member->req_id = -1;
+	member->id = -1;
 
 	member->first_frame_received = 0; // cause a FIR after NAT delay
 	
@@ -1009,16 +1009,16 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 		
 		if (flags[i] >= (int)'0' && flags[i] <= (int)'9')
 		{
-			if (member->req_video_id < 0) 
+			if (member->req_id < 0) 
 			{
-				member->req_video_id = flags[i] - (int)'0';
+				member->req_id = flags[i] - (int)'0';
 			}
 			else
 			{
 				int newid = flags[i] - (int)'0';
 				// need to boot anyone with this id already
 				// will happen in add_member
-				member->video_id = newid;
+				member->id = newid;
 			}
 		}
 		else
@@ -3094,7 +3094,7 @@ void member_process_spoken_frames(struct ast_conference* conf,
 	if ( member->remove_flag == 1 ) 
 	{
 		// If this member is the default video source for the conference, then change the default to -1
-		if ( member->video_id == conf->default_video_source_id )
+		if ( member->id == conf->default_video_source_id )
 			conf->default_video_source_id = -1;
 		
 		if (conf->debug_flag)

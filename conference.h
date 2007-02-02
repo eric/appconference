@@ -66,7 +66,7 @@ struct ast_conference
 	// single-linked list of members in conference
 	struct ast_conf_member* memberlist ;
 	int membercount ;
-        int video_id_count;
+        int id_count;
 	
 	// id of the default video source 
 	// If nobody is talking and video is unlocked, we use this source
@@ -128,7 +128,7 @@ int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_membe
 int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_silent_frame( struct ast_conference* conf, struct ast_conf_member* member ) ;
 
-int get_new_video_id( struct ast_conference *conf );
+int get_new_id( struct ast_conference *conf );
 void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
@@ -161,8 +161,8 @@ int lock_conference(const char *conference, int member_id);
 int lock_conference_channel(const char *conference, const char *channel);
 int unlock_conference(const char *conference);
 
-int set_default_video_id(const char *conference, int member_id);
-int set_default_video_channel(const char *conference, const char *channel);
+int set_default_id(const char *conference, int member_id);
+int set_default_channel(const char *conference, const char *channel);
 
 int video_mute_member(const char *conference, int member_id);
 int video_unmute_member(const char *conference, int member_id);

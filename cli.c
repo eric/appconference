@@ -753,7 +753,7 @@ int conference_set_default(int fd, int argc, char *argv[] )
 	int member;
 	sscanf(argv[4], "%d", &member);
 	
-	int res = set_default_video_id(conference, member);
+	int res = set_default_id(conference, member);
 	
 	if ( !res ) 
 	{
@@ -788,7 +788,7 @@ int conference_set_defaultchannel(int fd, int argc, char *argv[] )
 	const char *conference = argv[3];
 	const char *channel = argv[4];
 	
-	int res = set_default_video_channel(conference, channel);
+	int res = set_default_channel(conference, channel);
 	
 	if ( !res ) 
 	{
