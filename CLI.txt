@@ -73,7 +73,7 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
   usage: conference video unmute <conference name> <member>
 
 - conference video unmutechannel: unmutes video from a channel
-  usage: conference video unmutechannel <conference name> <member>
+  usage: conference video unmutechannel <conference name> <channel>
 
 - conference viewchannel: switch video for a channel in a conference
   usage: conference viewchannel <conference_name> <dest channel> <src channel>

@@ -3093,6 +3093,10 @@ void member_process_spoken_frames(struct ast_conference* conf,
 	// check for dead members
 	if ( member->remove_flag == 1 ) 
 	{
+		// If this member is the default video source for the conference, then change the default to -1
+		if ( member->video_id == conf->default_video_source_id )
+			conf->default_video_source_id = -1;
+		
 		if (conf->debug_flag)
 		{
 			ast_log( LOG_NOTICE, "found member slated for removal, channel => %s\n", member->channel_name ) ;
