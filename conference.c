@@ -919,6 +919,8 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			// Check if member is the default or current video source
 			if ( conf->current_video_source_id == member->id )
 			{
+				if ( conf->video_locked )
+					unlock_conference(conf->name);
 				do_video_switching(conf, conf->default_video_source_id, 0);
 			} else if ( conf->default_video_source_id == member->id )
 			{
