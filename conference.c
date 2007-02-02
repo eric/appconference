@@ -554,14 +554,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	// add the initial member
 	add_member( member, conf ) ;
 	
-	// if the new member is video enabled, we switch to it
-	if ( !member->mute_video && !member->mute_audio && !member->no_camera )
-	{
-		do_video_switching(conf, member->video_id, 1);
-	}
-	//
 	// prepend new conference to conflist
-	//
 
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
@@ -1868,15 +1861,13 @@ void do_VAD_switching(struct ast_conference *conf)
 		} else
 		{
 			// If there's nobody speaking and we have a default that can send video, switch to it
-			// If not, and the current speaker has his camera on, stay on him.
-			// If he turned off his camera or became video muted, then switch to empty (-1)
+			// If not, then switch to empty (-1)
 			if ( conf->default_video_source_id >= 0 && 
-			     conf->default_video_source_id != conf->current_video_source_id &&
 			     !default_no_camera &&
 			     !default_video_mute 
 			   )
 				do_video_switching(conf, conf->default_video_source_id, 0);
-			else if ( current_no_camera || current_video_mute )
+			else
 				do_video_switching(conf, -1, 0);
 		}
 	}
@@ -2485,6 +2476,8 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 		// acquire conference mutex
 		ast_mutex_lock( &conf->lock );
 	}
+	
+	//fprintf(stderr, "Mihai: video switch from %d to %d\n", conf->current_video_source_id, new_id);
 	
 	// No need to do anything if the current member is the same as the new member
 	if ( new_id != conf->current_video_source_id )
