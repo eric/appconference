@@ -1996,7 +1996,7 @@ int set_default_id(const char *conference, int member_id)
 	struct ast_conf_member *member;
 	int                   res;
 
-	if ( conference == NULL || member_id < 0 )
+	if ( conference == NULL )
 		return -1 ;
 
 	// acquire conference list mutex
@@ -2008,25 +2008,34 @@ int set_default_id(const char *conference, int member_id)
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
-			// Search member list for our member
-			// acquire conference mutex
-			ast_mutex_lock( &conf->lock );
-			
-			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			if ( member_id < 0 )
 			{
-				if ( member->id == member_id && !member->mute_video )
+				conf->default_video_source_id = -1;
+				manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: empty\r\n", conf->name);
+				res = 1;
+				break;
+			} else
+			{
+				// Search member list for our member
+				// acquire conference mutex
+				ast_mutex_lock( &conf->lock );
+				
+				for ( member = conf->memberlist ; member != NULL ; member = member->next )
 				{
-					conf->default_video_source_id = member_id;
-					res = 1;
-					
-					manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
-					break;
+					if ( member->id == member_id && !member->mute_video )
+					{
+						conf->default_video_source_id = member_id;
+						res = 1;
+						
+						manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
+						break;
+					}
 				}
+				
+				// Release conference mutex
+				ast_mutex_unlock( &conf->lock );
+				break;
 			}
-			
-			// Release conference mutex
-			ast_mutex_unlock( &conf->lock );
-			break;
 		}
 	}
 	

@@ -734,6 +734,7 @@ int conference_unlock( int fd, int argc, char *argv[] )
 static char conference_set_default_usage[] = 
 	"usage: conference set default <conference name> <member>\n"
 	"       sets the default video source for conference <conference name> to member <member>\n"
+	"       Use a negative value for member if you want to clear the default\n"
 ;
 
 static struct ast_cli_entry cli_set_default = {

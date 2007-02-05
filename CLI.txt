@@ -38,6 +38,7 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
   
 - conference set default: sets default video source
   usage: conference set default <conference name> <member>
+  use a negative value for member if you want to clear the default
 
 - conference set defaultchannel: sets default video source channel
   usage: conference set defaultchannel <conference name> <channel>
