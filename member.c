@@ -31,7 +31,8 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 	int silent_frame = 0;
 	struct ast_conf_member *src_member ;
 
-	if (f->frametype == AST_FRAME_DTMF)	  
+	// In Asterisk 1.4 AST_FRAME_DTMF is equivalent to AST_FRAME_DTMF_END
+	if (f->frametype == AST_FRAME_DTMF)
 	{
 		if (member->dtmf_switch)
 		{
@@ -102,11 +103,18 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 		if (!member->dtmf_switch && !member->dtmf_relay)
 		{
 			// relay this to the listening channels
-			queue_incoming_dtmf_frame( member, f ); 
+			queue_incoming_dtmf_frame( member, f );
+		}
+	} else if (f->frametype == AST_FRAME_DTMF_BEGIN)
+	{
+		if (!member->dtmf_switch && !member->dtmf_relay)
+		{
+			// relay this to the listening channels
+			queue_incoming_dtmf_frame( member, f );
 		}
 	}
 
-	ast_mutex_lock( &member->lock ) ;			
+	ast_mutex_lock( &member->lock ) ;
 	// Handle a local or remote conference
 	if (member->conference)
 	{
