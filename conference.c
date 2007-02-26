@@ -720,7 +720,7 @@ int get_new_id( struct ast_conference *conf )
 }
 
 
-int end_conference( struct ast_conference* conf ) 
+int end_conference( struct ast_conference* conf, int hangup ) 
 {
 	if ( conf == NULL ) {
 		ast_log( LOG_WARNING, "null conference passed\n" ) ;
@@ -737,8 +737,12 @@ int end_conference( struct ast_conference* conf )
 	while ( member != NULL )
 	{
 		// acquire member mutex and request hangup
+		// or just kick 
 		ast_mutex_lock( &member->lock ) ;
-		ast_softhangup( member->chan, 1 ) ;
+		if (hangup)
+			ast_softhangup( member->chan, 1 ) ;
+		else
+			member->kick_flag = 1;
 		ast_mutex_unlock( &member->lock ) ;
 		
 		// go on to the next member

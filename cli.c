@@ -613,7 +613,7 @@ int conference_end( int fd, int argc, char *argv[] )
 	const char* name = argv[2] ;
 
 	// get the conference
-	if ( end_conference( find_conf( name ) ) != 0 )
+	if ( end_conference( find_conf( name ), 1 ) != 0 )
 	{
 		ast_cli( fd, "unable to end the conference, name => %s\n", name ) ;
 		return RESULT_SHOWUSAGE ;
@@ -622,6 +622,39 @@ int conference_end( int fd, int argc, char *argv[] )
 	return RESULT_SUCCESS ;
 }
 
+//
+// E.BUU - Manager conference end. Additional option to just kick everybody out
+// without hangin up channels
+//
+int manager_conference_end(struct mansession *s, struct message *m)
+{
+	char *confname = astman_get_header(m,"Conference");
+	int hangup = 1;
+
+	char * h =  astman_get_header(m, "Hangup");
+	if (h)
+	{
+		hangup = atoi(h);
+	}
+	
+	ast_log( LOG_NOTICE, "Terminating conference %s on manager's request. Hangup: %s.\n", confname, hangup?"YES":"NO" );
+	struct ast_conference *c = find_conf( confname );
+	if ( ! c )
+	{
+		astman_send_error(s, m, "Unknown conference\r\n");
+		return RESULT_SUCCESS;
+	}
+
+        if ( end_conference( c, hangup ) != 0 )
+        {
+		ast_log( LOG_ERROR, "manager end conf: unable to terminate conference %s.\n", confname );
+		astman_send_error(s, m, "Failed to terminate\r\n");
+		return RESULT_FAILURE;
+	}
+
+	astman_send_ack(s, m, "Conference terminated");
+	return RESULT_SUCCESS;
+}
 // 
 // lock conference to a video source
 //
@@ -1087,6 +1120,7 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_textchannel );
 	ast_cli_register( &cli_textbroadcast );
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
+	ast_manager_register( "ConferenceEnd", EVENT_FLAG_CALL, manager_conference_end, "Terminate a conference" );
 
 }
 
@@ -1119,4 +1153,5 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_textchannel );
 	ast_cli_unregister( &cli_textbroadcast );
 	ast_manager_unregister( "ConferenceList" );
+	ast_manager_unregister( "ConferenceEnd" );
 }

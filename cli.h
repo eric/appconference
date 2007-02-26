@@ -72,6 +72,8 @@ int conference_text( int fd, int argc, char *argv[] ) ;
 int conference_textchannel( int fd, int argc, char *argv[] ) ;
 int conference_textbroadcast( int fd, int argc, char *argv[] ) ;
 
+int manager_conference_end(struct mansession *s, struct message *m);
+
 void register_conference_cli( void ) ;
 void unregister_conference_cli( void ) ;
 
