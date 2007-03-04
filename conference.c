@@ -1159,10 +1159,10 @@ int show_conference_list ( int fd, const char *name )
 }
 
 /* Dump list of conference info */
-int manager_conference_list( struct mansession *s, struct message *m )
+int manager_conference_list( struct mansession *s, const struct message *m )
 {
-	char *id = astman_get_header(m,"ActionID");
-	char *conffilter = astman_get_header(m,"Conference");
+	const char *id = astman_get_header(m,"ActionID");
+	const char *conffilter = astman_get_header(m,"Conference");
 	char idText[256] = "";
 	struct ast_conf_member *member;
 

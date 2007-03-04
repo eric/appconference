@@ -143,7 +143,7 @@ void init_conference( void ) ;
 int get_conference_count( void ) ;
 
 int show_conference_list ( int fd, const char* name );
-int manager_conference_list( struct mansession *s, struct message *m);
+int manager_conference_list( struct mansession *s, const struct message *m);
 int show_conference_stats ( int fd );
 int kick_member ( const char* confname, int user_id);
 int kick_all ( void );

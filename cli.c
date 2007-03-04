@@ -626,12 +626,12 @@ int conference_end( int fd, int argc, char *argv[] )
 // E.BUU - Manager conference end. Additional option to just kick everybody out
 // without hangin up channels
 //
-int manager_conference_end(struct mansession *s, struct message *m)
+int manager_conference_end(struct mansession *s, const struct message *m)
 {
-	char *confname = astman_get_header(m,"Conference");
+	const char *confname = astman_get_header(m,"Conference");
 	int hangup = 1;
 
-	char * h =  astman_get_header(m, "Hangup");
+	const char * h =  astman_get_header(m, "Hangup");
 	if (h)
 	{
 		hangup = atoi(h);
