@@ -179,7 +179,6 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 #ifdef DEBUG_USE_TIMELOG
 			TIMELOG(spx_ret, 3, "speex_preprocess"); 
 #endif
-			fprintf(stderr, "Mihai: spx_ret=%d\n", spx_ret);
 			if ( spx_ret == 0 )
 			{
 				//
