@@ -882,6 +882,18 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 
 	while ( member_list != NULL ) 
 	{
+		// If member is driven by the currently visited member, break the association
+		if ( member_list->driven_member == member )
+		{
+			// Acquire member mutex
+			ast_mutex_lock(&member_list->lock);
+			
+			member_list->driven_member = NULL;
+			
+			// Release member mutex
+			ast_mutex_unlock(&member_list->lock);
+		}
+		
 		if ( member_list == member ) 
 		{
 
@@ -1141,6 +1153,10 @@ int show_conference_list ( int fd, const char *name )
 					ast_cli(fd, "Showing ");
 					if ( conf->video_locked )
 						ast_cli(fd, "Locked ");
+				}
+				if ( member->driven_member != NULL )
+				{
+					ast_cli(fd, "Driving:%s(%d) ", member->driven_member->channel_name, member->driven_member->id);
 				}
 				
 				ast_cli( fd, "\n");
@@ -1788,6 +1804,20 @@ void do_VAD_switching(struct ast_conference *conf)
 	      member != NULL ;
 	      member = member->next )
 	{
+		// Has the state changed since last time through this loop? Notify!
+		if ( member->speaking_state_notify )
+		{
+/*			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s\n", 
+				member->id,
+				member->channel_name, 
+				((member->speaking_state == 1 ) ? "speaking" : "silent")
+			       );			*/
+		}
+
+		// If a member connects via telephone, they don't have video
+		if ( member->via_telephone )
+			continue;
+		
 		// We check for video-muted or camera disabled
 		// If yes, this member will not be considered as a candidate for switching
 		// If this is the currently speaking member, then mark it so we force a switch
@@ -1813,14 +1843,14 @@ void do_VAD_switching(struct ast_conference *conf)
 
 		// Check if current speaker has been silent for a while
 		if ( member->id == conf->current_video_source_id &&
-		     member->speaking_state_prev == 0 &&
+		     member->speaking_state == 0 &&
 		     usecdiff(&current_time, &member->last_state_change) > AST_CONF_VIDEO_STOP_TIMEOUT )
 		{
 			current_silent = 1;
 		}
 		
 		// Find the longest speaking member
-		if ( member->speaking_state_prev == 1 )
+		if ( member->speaking_state == 1 )
 		{
 			tmp = usecdiff(&current_time, &member->last_state_change );
 			if ( tmp > AST_CONF_VIDEO_START_TIMEOUT && tmp > longest_speaking )
@@ -1830,16 +1860,6 @@ void do_VAD_switching(struct ast_conference *conf)
 			}
 		}
 		
-		// Has the state changed since last time through this loop? Notify!
-		if ( member->speaking_state_notify != member->speaking_state_prev )
-		{
-/*			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s at timestamp %ld\n", 
-				member->id,
-				member->channel_name, 
-				((member->speaking_state_notify == 1 ) ? "speaking" : "silent"),
-				timeval_to_millis(member->last_state_change)
-			       );			*/
-		}
 	}
 	
 	// We got our results, now let's make a decision
@@ -2461,6 +2481,83 @@ int send_text_message_to_member(struct ast_conf_member *member, const char *text
 	}
 	
 	return 0;
+}
+
+// Associates two members
+// Drives VAD-based video switching of dst_member from audio from src_member
+// This can be used when a member participates in a video conference but 
+// talks using a telephone (simulcast) connection
+int drive(const char *conference, int src_member_id, int dst_member_id)
+{
+	int res;
+	struct ast_conference *conf;
+	struct ast_conf_member *member;
+	struct ast_conf_member *src;
+	struct ast_conf_member *dst;
+	
+	if ( conference == NULL || src_member_id < 0 )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			src = NULL;
+			dst = NULL;
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( member->id == src_member_id )
+					src = member;
+				if ( member->id == dst_member_id )
+					dst = member;
+			}
+			if ( src != NULL )
+			{
+				// acquire member mutex
+				ast_mutex_lock(&src->lock);
+				
+				if ( dst != NULL )
+				{
+					src->driven_member = dst;
+					// Make sure the driven member's speaker count is correct
+					if ( src->speaking_state == 1 )
+						increment_speaker_count(src->driven_member, 1);
+					res = 1;
+				} else
+				{
+					if ( dst_member_id < 0 )
+					{
+						// Make sure the driven member's speaker count is correct
+						if ( src->speaking_state == 1 )
+							decrement_speaker_count(src->driven_member, 1);
+						src->driven_member = NULL;
+						res = 1;
+					}
+				}
+				
+				// release member mutex
+				ast_mutex_unlock(&src->lock);
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+		
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;	
+	
+	return res;
 }
 
 // Switches video source

@@ -736,6 +736,7 @@ int member_exec( struct ast_channel* chan, void* data )
 		fclose( incoming_fh ) ;
 #endif
 
+	// If we're driving another member, make sure its speaker count is correct
 	if ( member != NULL ) member->remove_flag = 1 ;
 
 //	gettimeofday( &end, NULL ) ;
@@ -951,9 +952,12 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 
 	// used for determining need to mix frames
 	// and for management interface notification
-	member->speaking_state_prev = 0 ;
+	// and for VAD based video switching
 	member->speaking_state_notify = 0 ;
 	member->speaking_state = 0 ;
+	member->local_speaking_state = 0;
+	member->speaker_count = 0;
+	member->driven_member = NULL;
 
 	// linked-list pointer
 	member->next = NULL ;
@@ -1304,6 +1308,10 @@ struct ast_conf_member* delete_member( struct ast_conf_member* member )
 	}
 
 	ast_mutex_lock(&member->lock);
+	
+	// If member is driving another member, make sure its speaker count is correct
+	if ( member->driven_member != NULL && member->speaking_state == 1 )
+		decrement_speaker_count(member->driven_member, 1);
 	
 	//
 	// clean up member flags
@@ -2567,7 +2575,7 @@ void send_state_change_notifications( struct ast_conf_member* member )
 	while ( member != NULL )
 	{
 		// has the state changed since last time through this loop?
-		if ( member->speaking_state_notify != member->speaking_state_prev )
+		if ( member->speaking_state_notify )
 		{
 			manager_event(
 				EVENT_FLAG_CALL, 
@@ -2575,20 +2583,14 @@ void send_state_change_notifications( struct ast_conf_member* member )
 				"Channel: %s\r\n"
 				"State: %s\r\n",
 				member->channel_name, 
-				( ( member->speaking_state_notify == 1 ) ? "speaking" : "silent" )
+				( ( member->speaking_state == 1 ) ? "speaking" : "silent" )
 			) ;
 
 			ast_log( AST_CONF_DEBUG, "member state changed, channel => %s, state => %d, incoming => %d, outgoing => %d\n",
-				member->channel_name, member->speaking_state_notify, member->inFramesCount, member->outFramesCount ) ;
-
-			// remember current state
-			member->speaking_state_prev = member->speaking_state_notify ;
+				member->channel_name, member->speaking_state, member->inFramesCount, member->outFramesCount ) ;
 			
-			// we do not reset the speaking_state_notify flag here
+			member->speaking_state_notify = 0;
 		}
-
-		// reset notification flag so that 
-		member->speaking_state_notify = 0 ;
 
 		// move the pointer to the next member
 		member = member->next ;
@@ -3082,6 +3084,62 @@ void member_process_outgoing_frames(struct ast_conference* conf,
 	ast_mutex_unlock(&member->lock);
 }
 
+// Functions that will increase and decrease speaker_count in a secure way, locking the member mutex if required
+// Will also set speaking_state flag. 
+// Returns the previous speaking state
+int increment_speaker_count(struct ast_conf_member *member, int lock)
+{
+	int old_state;
+	
+	if ( lock )
+		ast_mutex_lock(&member->lock);
+	
+	old_state = member->speaking_state;
+	member->speaker_count++;
+	member->speaking_state = 1;
+	
+	ast_log(AST_CONF_DEBUG, "Increment speaker count: id=%d, count=%d\n", member->id, member->speaker_count);
+	
+	// If this is a state change, update the timestamp
+	if ( old_state == 0 )
+	{
+		member->speaking_state_notify = 1;
+		gettimeofday( &member->last_state_change, NULL );
+	}
+
+	if ( lock )
+		ast_mutex_unlock(&member->lock);
+	
+	return old_state;
+}
+
+int decrement_speaker_count(struct ast_conf_member *member, int lock)
+{
+	int old_state;
+	
+	if ( lock )
+		ast_mutex_lock(&member->lock);
+	
+	old_state = member->speaking_state;
+	if ( member->speaker_count > 0 )
+		member->speaker_count--;
+	if ( member->speaker_count == 0 )
+		member->speaking_state = 0;
+	
+	ast_log(AST_CONF_DEBUG, "Decrement speaker count: id=%d, count=%d\n", member->id, member->speaker_count);
+
+	// If this is a state change, update the timestamp
+	if ( old_state == 1 && member->speaking_state == 0 )
+	{
+		member->speaking_state_notify = 1;
+		gettimeofday( &member->last_state_change, NULL );
+	}
+	
+	if ( lock )
+		ast_mutex_unlock(&member->lock);
+	
+	return old_state;
+}
 
 void member_process_spoken_frames(struct ast_conference* conf, 
 				 struct ast_conf_member *member,
@@ -3132,65 +3190,25 @@ void member_process_spoken_frames(struct ast_conference* conf,
 	cfr = get_incoming_frame( member ) ;
 	
 	// handle retrieved frames
-	if ( cfr == NULL ) 
+	if ( cfr == NULL || cfr->fr == NULL ) 
 	{
-		// this member is listen-only, or has not spoken
-		// ast_log( AST_CONF_DEBUG, "silent member, channel => %s\n", member->channel_name ) ;
-		
-		// !!! TESTING !!!
-#if 1
-		if ( member->speaking_state == 1 )
+		// Decrement speaker count for us and for driven members
+		// This happens only for the first missed frame, since we want to 
+		// decrement only on state transitions
+		if ( member->local_speaking_state == 1 )
 		{
-			ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
-				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
+			decrement_speaker_count(member, 0);
+			member->local_speaking_state = 0;
+			// If we're driving another member, decrement its speaker count as well
+			if ( member->driven_member != NULL )
+				decrement_speaker_count(member->driven_member, 1);
 		}
-		if ( conf->debug_flag == 1 )
-		{
-			ast_log( AST_CONF_DEBUG, "member is silent, channel => %s, incoming => %d, outgoing => %d\n",
-				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
-		}
-#endif
-		// If this is a state change, update the timestamp
-		if ( member->speaking_state == 1 )
-			gettimeofday( &member->last_state_change, NULL );
-		
-		// Mark member as silent
-		member->speaking_state = 0 ;
-		
-		// count the listeners
-		(*listener_count)++ ;
-	}
-	else if ( cfr->fr == NULL )
-	{
-		ast_log( AST_CONF_DEBUG, "got incoming conf_frame with null ast_frame\n" ) ;
-		
-		// !!! TESTING !!!
-		if ( member->speaking_state == 1 )
-		{
-			ast_log( AST_CONF_DEBUG, "member has stopped speaking, channel => %s, incoming => %d, outgoing => %d\n",
-				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
-		}
-		if ( conf->debug_flag == 1 )
-		{
-			ast_log( AST_CONF_DEBUG, "member is silent, channel => %s, incoming => %d, outgoing => %d\n",
-				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
-		}
-		
-		// If this is a state change, update the timestamp
-		if ( member->speaking_state == 1 )
-			gettimeofday( &member->last_state_change, NULL );
-			
-		//Mark member as silent
-		member->speaking_state = 0 ;
 		
 		// count the listeners
 		(*listener_count)++ ;
 	}
 	else
 	{
-		// this speaking member has spoken
-		// ast_log( AST_CONF_DEBUG, "speaking member, channel => %s\n", member->channel_name ) ;
-		
 		// append the frame to the list of spoken frames
 		if ( *spoken_frames != NULL ) 
 		{
@@ -3202,27 +3220,18 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		// point the list at the new frame
 		*spoken_frames = cfr ;
 		
-#if 1				
-		// !!! TESTING !!!
-		if ( member->speaking_state == 0 )
+		// Increment speaker count for us and for driven members
+		// This happens only on the first received frame, since we want to 
+		// increment only on state transitions
+		if ( member->local_speaking_state == 0 )
 		{
-			ast_log( AST_CONF_DEBUG, "member has started speaking, channel => %s, incoming => %d, outgoing => %d\n",
-				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
-		}
-		if ( conf->debug_flag == 1 )
-		{
-			ast_log( AST_CONF_DEBUG, "member is speaking, channel => %s, incoming => %d, outgoing => %d\n",
-				 member->channel_name, member->inFramesCount, member->outFramesCount ) ;
-		}
-#endif
-		
-		// If this is a state change, update the timestamp
-		if ( member->speaking_state == 0 )
-			gettimeofday( &member->last_state_change, NULL );
+			increment_speaker_count(member, 0);
+			member->local_speaking_state = 1;
 			
-		// Mark member as speaking
-		member->speaking_state = 1 ;
-		member->speaking_state_notify = 1 ;
+			// If we're driving another member, increment its speaker count as well
+			if ( member->driven_member != NULL )
+				increment_speaker_count(member->driven_member, 1);
+		}
 		
 		// count the speakers
 		(*speaker_count)++ ;

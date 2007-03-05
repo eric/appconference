@@ -173,6 +173,8 @@ int send_text(const char *conference, int member, const char *text);
 int send_text_channel(const char *conference, const char *channel, const char *text);
 int send_text_broadcast(const char *conference, const char *text);
 
+int drive(const char *conference, int src_member_id, int dst_member_id);
+
 int set_conference_debugging( const char* name, int state ) ;
 
 #endif

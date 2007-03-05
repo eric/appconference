@@ -1085,7 +1085,43 @@ int conference_textbroadcast(int fd, int argc, char *argv[] )
 	return RESULT_SUCCESS;
 }
 
+//
+// Associate two members
+// Audio from the source member will drive VAD based video switching for the destination member
+//
+static char conference_drive_usage[] = 
+	"usage: conference drive <conference name> <source member> <destination member>\n"
+	"        Drives VAD video switching of <destination member> using audio from <source member> in conference <conference name>\n"
+;
 
+static struct ast_cli_entry cli_drive = {
+	{ "conference", "drive", NULL },
+	conference_drive,
+	"pairs two members to drive VAD-based video switching",
+	conference_drive_usage
+} ;
+
+int conference_drive(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 5 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	int src_member, dst_member;
+	sscanf(argv[3], "%d", &src_member);
+	sscanf(argv[4], "%d", &dst_member);
+	
+	int res = drive(conference, src_member, dst_member);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Pairing members %d and %d failed\n", src_member, dst_member);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
 
 //
 // cli initialization function
@@ -1119,6 +1155,7 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_text );
 	ast_cli_register( &cli_textchannel );
 	ast_cli_register( &cli_textbroadcast );
+	ast_cli_register( &cli_drive );
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
 	ast_manager_register( "ConferenceEnd", EVENT_FLAG_CALL, manager_conference_end, "Terminate a conference" );
 
@@ -1152,6 +1189,7 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_text );
 	ast_cli_unregister( &cli_textchannel );
 	ast_cli_unregister( &cli_textbroadcast );
+	ast_cli_unregister( &cli_drive );
 	ast_manager_unregister( "ConferenceList" );
 	ast_manager_unregister( "ConferenceEnd" );
 }

@@ -81,3 +81,6 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
 
 - conference viewstream: switch video for a member a conference
   usage: conference viewstream <conference_name> <member no> <stream no>
+
+- conference drive: drive VAD video switching of destination member using audio from source member
+  usage: conference drive <conference name> <source member> <destination member>

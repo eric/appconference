@@ -162,10 +162,12 @@ struct ast_conf_member
 	
 	// used for determining need to mix frames
 	// and for management interface notification
-	short speaking_state_prev ;
+	// and for VAD based video switching
 	short speaking_state_notify ;
-	short speaking_state ;
+	short speaking_state ; // This flag will be true if this member or any of its drivers is speaking
+	short local_speaking_state; // This flag will be true only if this member is speaking
 	struct timeval last_state_change;
+	int speaker_count; // Number of drivers (including this member) that are speaking
 	
 	// pointer to next member in single-linked list	
 	struct ast_conf_member* next ;
@@ -227,6 +229,9 @@ struct ast_conf_member
 	// For playing sounds
 	struct ast_conf_soundq *soundq;
 	struct ast_conf_soundq *videoq;
+	
+	// Pointer to another member that will be driven from this member's audio
+	struct ast_conf_member *driven_member;
 } ;
 
 struct conf_member 
@@ -268,6 +273,8 @@ conf_frame* get_outgoing_text_frame( struct ast_conf_member* member ) ;
 
 void send_state_change_notifications( struct ast_conf_member* member ) ;
 
+int increment_speaker_count(struct ast_conf_member *member, int lock);
+int decrement_speaker_count(struct ast_conf_member *member, int lock);
 
 void member_process_spoken_frames(struct ast_conference* conf, 
 				  struct ast_conf_member *member,
