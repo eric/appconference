@@ -174,40 +174,40 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 			)
 		{
 			// send the frame to the preprocessor
-#ifdef DEBUG_USE_TIMELOG
 			int spx_ret;
-			TIMELOG(spx_ret = speex_preprocess( member->dsp, f->data, NULL ), 3, "speex_preprocess"); 
-			if ( spx_ret == 0 )
-#else
-				if ( speex_preprocess( member->dsp, f->data, NULL ) == 0 )
+			spx_ret = speex_preprocess( member->dsp, f->data, NULL );
+#ifdef DEBUG_USE_TIMELOG
+			TIMELOG(spx_ret, 3, "speex_preprocess"); 
 #endif
+			fprintf(stderr, "Mihai: spx_ret=%d\n", spx_ret);
+			if ( spx_ret == 0 )
+			{
+				//
+				// we ignore the preprocessor's outcome if we've seen voice frames 
+				// in within the last AST_CONF_SKIP_SPEEX_PREPROCESS frames
+				//
+				if ( member->ignore_speex_count > 0 )
 				{
-					//
-					// we ignore the preprocessor's outcome if we've seen voice frames 
-					// in within the last AST_CONF_SKIP_SPEEX_PREPROCESS frames
-					//
-					if ( member->ignore_speex_count > 0 )
-					{
-						// ast_log( AST_CONF_DEBUG, "ignore_speex_count => %d\n", ignore_speex_count ) ;
-						
-						// skip speex_preprocess(), and decrement counter
-						--member->ignore_speex_count ;
-					}
-					else
-					{
-						// set silent_frame flag
-						silent_frame = 1 ;
-					}
+					// ast_log( AST_CONF_DEBUG, "ignore_speex_count => %d\n", ignore_speex_count ) ;
+					
+					// skip speex_preprocess(), and decrement counter
+					--member->ignore_speex_count ;
 				}
 				else
 				{
-					// voice detected, reset skip count
-					member->ignore_speex_count = AST_CONF_SKIP_SPEEX_PREPROCESS ;
+					// set silent_frame flag
+					silent_frame = 1 ;
 				}
+			}
+			else
+			{
+				// voice detected, reset skip count
+				member->ignore_speex_count = AST_CONF_SKIP_SPEEX_PREPROCESS ;
+			}
 		}
 #endif
-		
-		queue_incoming_frame( member, f );
+		if ( !silent_frame )
+			queue_incoming_frame( member, f );
 
 		// free the original frame
 		ast_frfree( f ) ;
