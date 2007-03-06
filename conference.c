@@ -2560,6 +2560,83 @@ int drive(const char *conference, int src_member_id, int dst_member_id)
 	return res;
 }
 
+// Associates two channels
+// Drives VAD-based video switching of dst_channel from audio from src_channel
+// This can be used when a member participates in a video conference but 
+// talks using a telephone (simulcast) connection
+int drive_channel(const char *conference, const char *src_channel, const char *dst_channel)
+{
+	int res;
+	struct ast_conference *conf;
+	struct ast_conf_member *member;
+	struct ast_conf_member *src;
+	struct ast_conf_member *dst;
+	
+	if ( conference == NULL || src_channel == NULL )
+		return -1;
+	
+	res = 0;
+	
+	// acquire conference list mutex
+	ast_mutex_lock( &conflist_lock ) ;
+	
+	for ( conf = conflist ; conf != NULL ; conf = conf->next )
+	{
+		if ( strcmp(conference, conf->name) == 0 )
+		{
+			// acquire conference mutex
+			ast_mutex_lock( &conf->lock );
+			
+			src = NULL;
+			dst = NULL;
+			for ( member = conf->memberlist ; member != NULL ; member = member->next )
+			{
+				if ( strcmp(src_channel, member->channel_name) == 0 )
+					src = member;
+				if ( dst_channel != NULL && strcmp(dst_channel, member->channel_name) == 0 )
+					dst = member;
+			}
+			if ( src != NULL )
+			{
+				// acquire member mutex
+				ast_mutex_lock(&src->lock);
+				
+				if ( dst != NULL )
+				{
+					src->driven_member = dst;
+					// Make sure the driven member's speaker count is correct
+					if ( src->speaking_state == 1 )
+						increment_speaker_count(src->driven_member, 1);
+					res = 1;
+				} else
+				{
+					if ( dst_channel == NULL )
+					{
+						// Make sure the driven member's speaker count is correct
+						if ( src->speaking_state == 1 )
+							decrement_speaker_count(src->driven_member, 1);
+						src->driven_member = NULL;
+						res = 1;
+					}
+				}
+				
+				// release member mutex
+				ast_mutex_unlock(&src->lock);
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock( &conf->lock );
+		
+			break;
+		}
+	}
+	
+	// release conference list mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+	
+	return res;
+}
+
 // Switches video source
 // Sends a manager event as well as 
 // a text message notifying members of a video switch 

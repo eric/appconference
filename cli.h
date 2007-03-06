@@ -73,6 +73,7 @@ int conference_textchannel( int fd, int argc, char *argv[] ) ;
 int conference_textbroadcast( int fd, int argc, char *argv[] ) ;
 
 int conference_drive( int fd, int argc, char *argv[] ) ;
+int conference_drivechannel(int fd, int argc, char *argv[] );
 
 int manager_conference_end(struct mansession *s, const struct message *m);
 

@@ -1088,10 +1088,12 @@ int conference_textbroadcast(int fd, int argc, char *argv[] )
 //
 // Associate two members
 // Audio from the source member will drive VAD based video switching for the destination member
+// If the destination member is missing or negative, break any existing association
 //
 static char conference_drive_usage[] = 
-	"usage: conference drive <conference name> <source member> <destination member>\n"
+	"usage: conference drive <conference name> <source member> [destination member]\n"
 	"        Drives VAD video switching of <destination member> using audio from <source member> in conference <conference name>\n"
+	"        If destination is missing or negative, break existing association\n"
 ;
 
 static struct ast_cli_entry cli_drive = {
@@ -1104,13 +1106,15 @@ static struct ast_cli_entry cli_drive = {
 int conference_drive(int fd, int argc, char *argv[] )
 {
 	// check args
-	if ( argc < 5 )
+	if ( argc < 4 )
 		return RESULT_SHOWUSAGE;
 	
 	const char *conference = argv[2];
-	int src_member, dst_member;
+	int src_member = -1;
+	int dst_member = -1;
 	sscanf(argv[3], "%d", &src_member);
-	sscanf(argv[4], "%d", &dst_member);
+	if ( argc > 4 )
+		sscanf(argv[4], "%d", &dst_member);
 	
 	int res = drive(conference, src_member, dst_member);
 	
@@ -1122,6 +1126,48 @@ int conference_drive(int fd, int argc, char *argv[] )
 	
 	return RESULT_SUCCESS;
 }
+
+//
+// Associate two channels
+// Audio from the source channel will drive VAD based video switching for the destination channel
+// If the destination channel is missing, break any existing association
+//
+static char conference_drivechannel_usage[] = 
+	"usage: conference drive <conference name> <source channel> [destination channel]\n"
+	"        Drives VAD video switching of <destination member> using audio from <source channel> in conference <conference channel>\n"
+	"        If destination is missing, break existing association\n"
+;
+
+static struct ast_cli_entry cli_drivechannel = {
+	{ "conference", "drivechannel", NULL },
+	conference_drivechannel,
+	"pairs two channels to drive VAD-based video switching",
+	conference_drivechannel_usage
+} ;
+
+int conference_drivechannel(int fd, int argc, char *argv[] )
+{
+	// check args
+	if ( argc < 4 )
+		return RESULT_SHOWUSAGE;
+	
+	const char *conference = argv[2];
+	const char *src_channel = argv[3];
+	const char *dst_channel = NULL;
+	if ( argc > 4 )
+		dst_channel = argv[4];
+	
+	int res = drive_channel(conference, src_channel, dst_channel);
+	
+	if ( !res ) 
+	{
+		ast_cli(fd, "Pairing channels %s and %s failed\n", src_channel, dst_channel);
+		return RESULT_FAILURE;
+	}
+	
+	return RESULT_SUCCESS;
+}
+
 
 //
 // cli initialization function
@@ -1156,6 +1202,7 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_textchannel );
 	ast_cli_register( &cli_textbroadcast );
 	ast_cli_register( &cli_drive );
+	ast_cli_register( &cli_drivechannel );
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
 	ast_manager_register( "ConferenceEnd", EVENT_FLAG_CALL, manager_conference_end, "Terminate a conference" );
 
@@ -1190,6 +1237,7 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_textchannel );
 	ast_cli_unregister( &cli_textbroadcast );
 	ast_cli_unregister( &cli_drive );
+	ast_cli_unregister( &cli_drivechannel );
 	ast_manager_unregister( "ConferenceList" );
 	ast_manager_unregister( "ConferenceEnd" );
 }
