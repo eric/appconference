@@ -21,7 +21,7 @@ INSTALL_PREFIX :=
 INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/usr/lib/asterisk/modules
 INSTALL_SOUNDS_DIR := $(INSTALL_PREFIX)/var/lib/asterisk/sounds
 
-ASTERISK_INCLUDE_DIR := /home/mihai/dld/asterisk-1.4.0-beta3/include
+ASTERISK_INCLUDE_DIR := /home/mihai/dld/asterisk/include
 
 # turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
 APP_CONFERENCE_DEBUG := 0

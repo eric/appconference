@@ -1849,8 +1849,9 @@ void do_VAD_switching(struct ast_conference *conf)
 			current_silent = 1;
 		}
 		
-		// Find the longest speaking member
-		if ( member->speaking_state == 1 )
+		// Find a candidate to switch to by looking for the longest speaking member
+		// We exclude the current video source from the search
+		if ( member->id != conf->current_video_source_id && member->speaking_state == 1 )
 		{
 			tmp = usecdiff(&current_time, &member->last_state_change );
 			if ( tmp > AST_CONF_VIDEO_START_TIMEOUT && tmp > longest_speaking )
@@ -1859,7 +1860,6 @@ void do_VAD_switching(struct ast_conference *conf)
 				longest_speaking_member = member;
 			}
 		}
-		
 	}
 	
 	// We got our results, now let's make a decision
