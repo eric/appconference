@@ -255,8 +255,8 @@ int conference_kick( int fd, int argc, char *argv[] )
 }
 
 static char conference_kick_usage[] = 
-	"usage: conference kick <conference_name> <member no>\n"
-	"       kick member form a conference\n"
+	"usage: conference kick <conference> <channel>\n"
+	"       kick channel from conference\n"
 ;
 
 static struct ast_cli_entry cli_kick = { 
@@ -264,6 +264,37 @@ static struct ast_cli_entry cli_kick = {
 	conference_kick, 
 	"kick member from a conference", 
 	conference_kick_usage 
+} ;
+
+int conference_kickchannel( int fd, int argc, char *argv[] )
+{
+	if ( argc < 4 ) 
+		return RESULT_SHOWUSAGE ;
+
+	const char *name = argv[2] ;
+	const char *channel = argv[3];
+	
+	int res = kick_channel( name, channel );
+	
+	if ( !res )
+	{
+		ast_cli( fd, "Cannot kick channel %s in conference %s\n", channel, name);
+		return RESULT_FAILURE;
+	}
+
+	return RESULT_SUCCESS ;
+}
+
+static char conference_kickchannel_usage[] = 
+	"usage: conference kickchannel <conference_name> <member no>\n"
+	"       kick channel from conference\n"
+;
+
+static struct ast_cli_entry cli_kickchannel = { 
+	{ "conference", "kickchannel", NULL }, 
+	conference_kickchannel, 
+	"kick channel from conference", 
+	conference_kickchannel_usage 
 } ;
 
 int conference_mute( int fd, int argc, char *argv[] )
@@ -1180,6 +1211,7 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_show_stats ) ;
 	ast_cli_register( &cli_list );
 	ast_cli_register( &cli_kick );
+	ast_cli_register( &cli_kickchannel );
 	ast_cli_register( &cli_mute );
 	ast_cli_register( &cli_mutechannel );
 	ast_cli_register( &cli_viewstream );
@@ -1215,6 +1247,7 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_show_stats ) ;
 	ast_cli_unregister( &cli_list );
 	ast_cli_unregister( &cli_kick );
+	ast_cli_unregister( &cli_kickchannel );
 	ast_cli_unregister( &cli_mute );
 	ast_cli_unregister( &cli_mutechannel );
 	ast_cli_unregister( &cli_viewstream );

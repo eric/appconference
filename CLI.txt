@@ -15,6 +15,9 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
 - conference kick: kick member from a conference
   usage: conference kick <conference_name> <member no>
 
+- conference kickchannel: kick channel from a conference
+  usage: conference kickchannel <conference_name> <channel>
+
 - conference list: list members of a conference. If no conference is specified, all conferences are listed
   usage: conference list {conference_name}
 

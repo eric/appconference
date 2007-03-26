@@ -1249,10 +1249,10 @@ int manager_conference_list( struct mansession *s, const struct message *m )
 
 int kick_member (  const char* confname, int user_id)
 {
-  struct ast_conf_member *member;
-  int res = 0;
-
-        // no conferences exist
+	struct ast_conf_member *member;
+	int res = 0;
+	
+	// no conferences exist
 	if ( conflist == NULL ) 
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
@@ -1289,6 +1289,60 @@ int kick_member (  const char* confname, int user_id)
 			break ;
 		}
 	
+		conf = conf->next ;
+	}
+
+	// release mutex
+	ast_mutex_unlock( &conflist_lock ) ;
+
+	return res ;
+}
+
+int kick_channel ( const char *confname, const char *channel)
+{
+	struct ast_conf_member *member;
+	int res = 0;
+	
+	// no conferences exist
+	if ( conflist == NULL ) 
+	{
+		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
+		return 0 ;
+	}
+	
+	if ( confname == NULL || channel == NULL || strlen(confname) == 0 || strlen(channel) == 0 )
+		return 0;
+	
+	// acquire mutex
+	ast_mutex_lock( &conflist_lock ) ;
+
+	struct ast_conference *conf = conflist ;
+	
+	// loop through conf list
+	while ( conf != NULL ) 
+	{
+		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
+		{
+			// do the biz	
+			ast_mutex_lock( &conf->lock ) ;
+			member = conf->memberlist ;
+			while ( member != NULL )
+			{
+				if ( strncasecmp( member->channel_name, channel, 80 ) == 0 )
+				{
+					ast_mutex_lock( &member->lock ) ;
+					member->kick_flag = 1;
+					//ast_soft_hangup(member->chan);
+					ast_mutex_unlock( &member->lock ) ;
+		
+					res = 1;
+				}
+				member = member->next;
+			}
+			ast_mutex_unlock( &conf->lock ) ;
+			break ;
+		}
+
 		conf = conf->next ;
 	}
 

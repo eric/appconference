@@ -40,6 +40,7 @@ int conference_no_debug( int fd, int argc, char *argv[] ) ;
 
 int conference_list( int fd, int argc, char *argv[] ) ;
 int conference_kick( int fd, int argc, char *argv[] ) ;
+int conference_kickchannel( int fd, int argc, char *argv[] ) ;
 
 int conference_mute( int fd, int argc, char *argv[] ) ;
 int conference_unmute( int fd, int argc, char *argv[] ) ;

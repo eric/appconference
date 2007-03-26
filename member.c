@@ -1091,7 +1091,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 				
 			default:
 				ast_log( LOG_WARNING, "received invalid flag, chan => %s, flag => %c\n", 
-					 chan->name, flags[i] ) ;			
+					 chan->name, flags[i] );
 				break ;
 			}
 		}
