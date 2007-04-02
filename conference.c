@@ -285,20 +285,29 @@ void conference_exec( struct ast_conference *conf )
 							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
 					} else
 					{
-						if ( member->vad_switch )
+						// If the member has vad switching disabled and dtmf switching enabled, use that
+						if ( member->dtmf_switch &&
+						     !member->vad_switch &&
+						     member->req_id == video_source_member->id
+						   )
 						{
-							// VAD-based video switching takes precedence
+							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
+						} else
+						{
+							// If no dtmf switching, then do VAD switching
+							// The VAD switching decision code should make sure that our video source 
+							// is legit
 							if ( (conf->current_video_source_id == video_source_member->id) ||
-							     (conf->current_video_source_id < 0 && conf->default_video_source_id == video_source_member->id)
+							       (conf->current_video_source_id < 0 &&
+							        conf->default_video_source_id == video_source_member->id
+							       )
 							   )
 							{
 								queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
 							}
-						} else if ( member->req_id == video_source_member->id )
-						{
-							// If VAD switching is disabled, then we check for DTMF switching
-							queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
 						}
+						
+						
 					}
 				}
 				// Garbage collection
@@ -1872,9 +1881,12 @@ void do_VAD_switching(struct ast_conference *conf)
 		if ( member->via_telephone )
 			continue;
 		
-		// We check for video-muted or camera disabled
+		// We check for no VAD switching, video-muted or camera disabled
 		// If yes, this member will not be considered as a candidate for switching
 		// If this is the currently speaking member, then mark it so we force a switch
+		if ( !member->vad_switch )
+			continue;
+		
 		if ( member->mute_video )
 		{
 			if ( member->id == conf->default_video_source_id )
@@ -2100,7 +2112,12 @@ int set_default_id(const char *conference, int member_id)
 				
 				for ( member = conf->memberlist ; member != NULL ; member = member->next )
 				{
-					if ( member->id == member_id && !member->mute_video )
+					// We do not allow video muted members or members that do not support
+					// VAD switching to become defaults
+					if ( member->id == member_id && 
+					     !member->mute_video &&
+					     member->vad_switch
+					   )
 					{
 						conf->default_video_source_id = member_id;
 						res = 1;
@@ -2148,7 +2165,12 @@ int set_default_channel(const char *conference, const char *channel)
 			
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
-				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
+				// We do not allow video muted members or members that do not support
+				// VAD switching to become defaults
+				if ( strcmp(channel, member->channel_name) == 0 && 
+				     !member->mute_video &&
+				     member->vad_switch
+				   )
 				{
 					conf->default_video_source_id = member->id;
 					res = 1;
