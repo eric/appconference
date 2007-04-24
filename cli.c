@@ -255,8 +255,8 @@ int conference_kick( int fd, int argc, char *argv[] )
 }
 
 static char conference_kick_usage[] = 
-	"usage: conference kick <conference> <channel>\n"
-	"       kick channel from conference\n"
+	"usage: conference kick <conference> <member id>\n"
+	"       kick member <member id> from conference <conference>\n"
 ;
 
 static struct ast_cli_entry cli_kick = { 
@@ -286,7 +286,7 @@ int conference_kickchannel( int fd, int argc, char *argv[] )
 }
 
 static char conference_kickchannel_usage[] = 
-	"usage: conference kickchannel <conference_name> <member no>\n"
+	"usage: conference kickchannel <conference_name> <channel>\n"
 	"       kick channel from conference\n"
 ;
 
@@ -316,7 +316,7 @@ int conference_mute( int fd, int argc, char *argv[] )
 }
 
 static char conference_mute_usage[] = 
-	"usage: conference mute <conference_name> <member no>\n"
+	"usage: conference mute <conference_name> <member id>\n"
 	"       mute member in a conference\n"
 ;
 
@@ -385,8 +385,8 @@ int conference_viewstream( int fd, int argc, char *argv[] )
 }
 
 static char conference_viewstream_usage[] = 
-	"usage: conference viewstream <conference_name> <member no> <stream no>\n"
-	"       member <member no> will receive video stream <stream no>\n"
+	"usage: conference viewstream <conference_name> <member id> <stream no>\n"
+	"       member <member id> will receive video stream <stream no>\n"
 ;
 
 static struct ast_cli_entry cli_viewstream = { 
@@ -444,7 +444,7 @@ int conference_unmute( int fd, int argc, char *argv[] )
 }
 
 static char conference_unmute_usage[] = 
-	"usage: conference unmute <conference_name> <member no>\n"
+	"usage: conference unmute <conference_name> <member id>\n"
 	"       unmute member in a conference\n"
 ;
 
@@ -796,8 +796,8 @@ int conference_unlock( int fd, int argc, char *argv[] )
 // Set conference default video source
 //
 static char conference_set_default_usage[] = 
-	"usage: conference set default <conference name> <member>\n"
-	"       sets the default video source for conference <conference name> to member <member>\n"
+	"usage: conference set default <conference name> <member id>\n"
+	"       sets the default video source for conference <conference name> to member <member id>\n"
 	"       Use a negative value for member if you want to clear the default\n"
 ;
 
@@ -868,8 +868,8 @@ int conference_set_defaultchannel(int fd, int argc, char *argv[] )
 // Mute video from a member
 //
 static char conference_video_mute_usage[] = 
-	"usage: conference video mute <conference name> <member>\n"
-	"       mutes video from member <member> in conference <conference name>\n"
+	"usage: conference video mute <conference name> <member id>\n"
+	"       mutes video from member <member id> in conference <conference name>\n"
 ;
 
 static struct ast_cli_entry cli_video_mute = {
@@ -904,8 +904,8 @@ int conference_video_mute(int fd, int argc, char *argv[] )
 // Unmute video from a member
 //
 static char conference_video_unmute_usage[] = 
-	"usage: conference video unmute <conference name> <member>\n"
-	"       unmutes video from member <member> in conference <conference name>\n"
+	"usage: conference video unmute <conference name> <member id>\n"
+	"       unmutes video from member <member id> in conference <conference name>\n"
 ;
 
 static struct ast_cli_entry cli_video_unmute = {
@@ -1012,8 +1012,8 @@ int conference_video_unmutechannel(int fd, int argc, char *argv[] )
 // Send a text message to a member
 //
 static char conference_text_usage[] = 
-	"usage: conference text <conference name> <member> <text>\n"
-	"        Sends text message <text> to member <member> in conference <conference name>\n"
+	"usage: conference text <conference name> <member id> <text>\n"
+	"        Sends text message <text> to member <member id> in conference <conference name>\n"
 ;
 
 static struct ast_cli_entry cli_text = {

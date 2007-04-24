@@ -50,6 +50,7 @@ LIBS = -ldl -lpthread -lm
 DEBUG := -g 
 
 CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG) $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
+CFLAGS += -DDEBUG_THREADS
 #CFLAGS += -O2
 #CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math 
 # PERF: below is 10% faster than -O2 or -O3 alone.

@@ -13,7 +13,7 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
   usage: conference end <conference name>
 
 - conference kick: kick member from a conference
-  usage: conference kick <conference_name> <member no>
+  usage: conference kick <conference_name> <member id>
 
 - conference kickchannel: kick channel from a conference
   usage: conference kickchannel <conference_name> <channel>
@@ -28,7 +28,7 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
   usage: conference lockchannel <conference name> <channel>
 
 - conference mute: mute member in a conference
-  usage: conference mute <conference_name> <member no>
+  usage: conference mute <conference_name> <member id>
 
 - conference mutechannel: mute channel in a conference
   usage: conference mutechannel <channel>
@@ -62,7 +62,7 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
   usage: conference unlock <conference name>
 
 - conference unmute: unmute member in a conference
-  usage: conference unmute <conference_name> <member no>
+  usage: conference unmute <conference_name> <member id>
 
 - conference unmutechannel: unmute channel in a conference
   usage: conference unmutechannel <channel>
@@ -83,7 +83,7 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
   usage: conference viewchannel <conference_name> <dest channel> <src channel>
 
 - conference viewstream: switch video for a member a conference
-  usage: conference viewstream <conference_name> <member no> <stream no>
+  usage: conference viewstream <conference_name> <member id> <stream no>
 
 - conference drive: drive VAD video switching of destination member using audio from source member
   usage: conference drive <conference name> <source member> [destination member]
