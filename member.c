@@ -745,7 +745,7 @@ int member_exec( struct ast_channel* chan, void* data )
 //	int expected_frames = ( int )( floor( (double)( usecdiff( &end, &start ) / AST_CONF_FRAME_INTERVAL ) ) ) ;
 //	ast_log( AST_CONF_DEBUG, "expected_frames => %d\n", expected_frames ) ;
 
-	return -1 ;
+	return 0 ;
 }
 
 
