@@ -2897,7 +2897,9 @@ int queue_frame_for_speaker(
 	for ( ; frame != NULL ; frame = frame->next ) 
 	{
 		if ( frame->member != member )
+		{
 			continue ;
+		}
 
 		if ( frame->fr == NULL )
 		{
@@ -3073,7 +3075,7 @@ void member_process_outgoing_frames(struct ast_conference* conf,
 		return;
 	}	
 
-	if ( member->speaking_state == 0 )
+	if ( member->local_speaking_state == 0 )
 	{
 		// queue listener frame
 		queue_frame_for_listener( conf, member, send_frames ) ;

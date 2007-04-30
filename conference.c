@@ -257,7 +257,6 @@ void conference_exec( struct ast_conference *conf )
 		for ( member = conf->memberlist ; member != NULL ; member = member->next ) 
 		{
 			member_process_outgoing_frames(conf, member, send_frames);
-
 		}
 
 		//-------//
