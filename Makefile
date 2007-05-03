@@ -7,7 +7,7 @@
 #
 # Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
 #
-# This program is free software and may be modified and 
+# This program is free software and may be modified and
 # distributed under the terms of the GNU Public License.
 #
 
@@ -17,14 +17,14 @@
 # app_conference defines which can be passed on the command-line
 #
 
-INSTALL_PREFIX := 
+INSTALL_PREFIX :=
 INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/usr/lib/asterisk/modules
 INSTALL_SOUNDS_DIR := $(INSTALL_PREFIX)/var/lib/asterisk/sounds
 
-ASTERISK_INCLUDE_DIR := /home/mihai/dld/asterisk/include
+ASTERISK_INCLUDE_DIR ?= /home/mihai/dld/asterisk/include
 
 # turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
-APP_CONFERENCE_DEBUG := 0
+APP_CONFERENCE_DEBUG ?= 0
 
 # 0 = OFF 1 = astdsp 2 = speex
 SILDET := 2
@@ -34,7 +34,7 @@ SILDET := 2
 #
 
 OBJS = app_conference.o conference.o member.o frame.o cli.o
-SHAREDOS = app_conference.so
+TARGET = app_conference.so
 
 
 #
@@ -43,15 +43,14 @@ SHAREDOS = app_conference.so
 
 PROC = $(shell uname -m)
 INSTALL = install
-CC = gcc
 
-INCLUDE = -I$(ASTERISK_INCLUDE_DIR) 
-LIBS = -ldl -lpthread -lm
-DEBUG := -g 
+INCLUDE = -I$(ASTERISK_INCLUDE_DIR)
+DEBUG := -g
 
-CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG) $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
+CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG)
+CPPFLAGS = $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
 #CFLAGS += -O2
-#CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math 
+#CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math
 # PERF: below is 10% faster than -O2 or -O3 alone.
 #CFLAGS += -O3 -ffast-math -funroll-loops
 # below is another 5% faster or so.
@@ -61,16 +60,16 @@ CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG
 #CFLAGS += -O3 -msse -mfpmath=sse
 #CFLAGS += $(shell if $(CC) -march=$(PROC) -S -o /dev/null -xc /dev/null >/dev/null 2>&1; then echo "-march=$(PROC)"; fi)
 CFLAGS += $(shell if uname -m | grep -q ppc; then echo "-fsigned-char"; fi)
-CFLAGS += -DCRYPTO
+CPPFLAGS += -DCRYPTO
 
 #
 # Uncomment this if you want G.729A support (need to have the actual codec installed
 #
-# CFLAGS += -DAC_USE_G729A
+# CPPFLAGS += -DAC_USE_G729A
 
 
 ifeq ($(APP_CONFERENCE_DEBUG), 1)
-CFLAGS += -DAPP_CONFERENCE_DEBUG
+CPPFLAGS += -DAPP_CONFERENCE_DEBUG
 endif
 
 #
@@ -79,11 +78,11 @@ endif
 
 ifeq ($(SILDET), 2)
 OBJS += libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
-CFLAGS += -Ilibspeex -DSILDET=2
+CPPFLAGS += -Ilibspeex -DSILDET=2
 endif
 
 ifeq ($(SILDET), 1)
-CFLAGS += -DSILDET=1
+CPPFLAGS += -DSILDET=1
 endif
 
 OSARCH=$(shell uname -s)
@@ -93,16 +92,23 @@ else
 SOLINK=-shared -Xlinker -x
 endif
 
+DEPS += $(subst .o,.d,$(OBJS))
+
 #
 # targets
 #
 
-all: $(SHAREDOS) 
+all: $(TARGET)
 
+.PHONY: clean
 clean:
-	rm -f *.so *.o *.d $(OBJS)
+	$(RM) $(OBJS) $(DEPS)
 
-app_conference.so : $(OBJS)
+.PHONY: distclean
+distclean: clean
+	$(RM) $(TARGET)
+
+$(TARGET): $(OBJS)
 	$(CC) -pg $(SOLINK) -o $@ $(OBJS)
 
 vad_test: vad_test.o libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
@@ -114,10 +120,11 @@ sounds: all
 	done
 
 install: sounds
-	for x in $(SHAREDOS); do $(INSTALL) -m 755 $$x $(INSTALL_MODULES_DIR) ; done
+	$(INSTALL) -m 755 $(TARGET) $(INSTALL_MODULES_DIR)
 
 
 # config: all
 # 	cp conf.conf /etc/asterisk/
 
--include *.d
+-include $(DEPS)
+
