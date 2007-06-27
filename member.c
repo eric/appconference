@@ -342,7 +342,8 @@ static int process_outgoing(struct ast_conf_member *member)
 		cf = get_outgoing_frame( member ) ;
 		
                 // if there's no frames exit the loop.
-		if(!cf){
+		if ( !cf )
+		{
 			ast_mutex_unlock( &member->lock ) ;
 			break;
 		}
@@ -352,13 +353,26 @@ static int process_outgoing(struct ast_conf_member *member)
 
 		// if we're playing sounds, we can just replace the frame with the
 		// next sound frame, and send it instead
-		if(member->soundq) {
-		    realframe = f;
-		    f = get_next_soundframe(member, f);
-		    if(!f) { // if we didn't get anything, just revert to "normal"
-			f = realframe;
-			realframe = NULL;
-		    }
+		if ( member->soundq )
+		{
+			realframe = f;
+			f = get_next_soundframe(member, f);
+			if ( !f )
+			{
+				// if we didn't get anything, just revert to "normal"
+				f = realframe;
+				realframe = NULL;
+			} else
+			{
+				// We have a sound frame now, but we need to make sure it's the same
+				// format as our channel write format
+				int wf = member->chan->writeformat & AST_FORMAT_AUDIO_MASK;
+				if ( f->frametype == AST_FRAME_VOICE && !(wf & f->subclass) )
+				{
+					// We need to change our channel's write format
+					ast_set_write_format(member->chan, f->subclass);
+				}
+			}
 		}
 
 		ast_mutex_unlock(&member->lock);
