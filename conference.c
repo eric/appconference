@@ -1793,7 +1793,7 @@ int get_conference_stats_by_name( ast_conference_stats* stats, const char* name 
 	return ( stats == NULL ) ? 0 : 1 ;
 }
 
-struct ast_conf_member *find_member ( char *chan, int lock) 
+struct ast_conf_member *find_member (const char *chan, int lock) 
 {
 	struct ast_conf_member *found = NULL;
 	struct ast_conf_member *member;	
@@ -2771,4 +2771,81 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 		// release conference mutex
 		ast_mutex_unlock( &conf->lock );
 	}
+}
+
+int play_sound_channel(int fd, const char *channel, const char *file, int mute)
+{
+	struct ast_conf_member *member;
+	struct ast_conf_soundq *newsound;
+	struct ast_conf_soundq **q;
+
+	member = find_member(channel, 1);
+	if( !member ) 
+	{
+		ast_cli(fd, "Member %s not found\n", channel);
+		return 0;
+	}
+
+	newsound = calloc(1, sizeof(struct ast_conf_soundq));
+	newsound->stream = ast_openstream(member->chan, file, NULL);
+	if( !newsound->stream ) 
+	{ 
+		ast_cli(fd, "Sound %s not found\n", file);
+		free(newsound);
+		ast_mutex_unlock(&member->lock);
+		return 0;
+	}
+	member->chan->stream = NULL;
+	
+	newsound->muted = mute;	
+	ast_copy_string(newsound->name, file, sizeof(newsound->name));
+
+	// append sound to the end of the list.
+	for ( q=&member->soundq; *q; q = &((*q)->next) ) ;
+	*q = newsound;
+	
+	ast_mutex_unlock(&member->lock);
+
+	ast_cli(fd, "Playing sound %s to member %s %s\n",
+		      file, channel, mute ? "with mute" : "");	
+
+	return 1 ;
+}
+
+int stop_sound_channel(int fd, const char *channel)
+{
+	struct ast_conf_member *member;
+	struct ast_conf_soundq *sound;
+	struct ast_conf_soundq *next;
+
+	member = find_member(channel, 1);
+	if ( !member )
+	{
+		ast_cli(fd, "Member %s not found\n", channel);
+		return 0;
+	}
+
+	// clear all sounds
+	sound = member->soundq;
+	member->soundq = NULL;
+
+	while ( sound )
+	{
+		next = sound->next;
+		ast_closestream(sound->stream);
+		free(sound);
+		sound = next;
+	}
+
+	// reset write format, since we're done playing the sound
+	if ( ast_set_write_format( member->chan, member->write_format ) < 0 ) 
+	{
+		ast_log( LOG_ERROR, "unable to set write format to %d\n",
+		    member->write_format ) ;
+	}
+
+	ast_mutex_unlock(&member->lock);
+
+	ast_cli( fd, "Stopped sounds to member %s\n", channel);	
+	return 1;
 }

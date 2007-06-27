@@ -34,7 +34,8 @@ A member in a conference can be referred to by its id or by its channel.  Id is 
   usage: conference mutechannel <channel>
 
 - conference play sound: play a sound to a conference member
-  usage: conference play sound <channel-id> <sound-file>
+  usage: conference play sound <channel-id> <sound-file> [mute]
+  If mute is specified, all other audio is muted while the sound is played back.
 
 - conference restart: kick all users in all conferences
   usage: conference restart

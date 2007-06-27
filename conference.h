@@ -122,7 +122,7 @@ void remove_conf( struct ast_conference* conf ) ;
 int end_conference( struct ast_conference* conf, int hangup ) ;
 
 // find a particular member, locking if requested.
-struct ast_conf_member *find_member ( char *chan, int lock) ;
+struct ast_conf_member *find_member ( const char *chan, int lock) ;
 
 int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
@@ -176,6 +176,9 @@ int send_text_broadcast(const char *conference, const char *text);
 
 int drive(const char *conference, int src_member_id, int dst_member_id);
 int drive_channel(const char *conference, const char *src_channel, const char *dst_channel);
+
+int play_sound_channel(int fd, const char *channel, const char *file, int mute);
+int stop_sound_channel(int fd, const char *channel);
 
 int set_conference_debugging( const char* name, int state ) ;
 
