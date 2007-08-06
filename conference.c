@@ -49,6 +49,7 @@ static int conference_count = 0 ;
 void conference_exec( struct ast_conference *conf ) 
 {
 
+	struct ast_conf_member *next_member;
 	struct ast_conf_member *member, *video_source_member, *dtmf_source_member;;
 	struct conf_frame *cfr, *spoken_frames, *send_frames;
 	
@@ -204,11 +205,15 @@ void conference_exec( struct ast_conference *conf )
 		// loop over member list to retrieve queued frames
 		while ( member != NULL )
 		{
+			// take note of next member - before it's too late
+			next_member = member->next;
+
+			// this MIGHT delete member
 			member_process_spoken_frames(conf,member,&spoken_frames,time_diff,
 						     &listener_count, &speaker_count);
 
 			// adjust our pointer to the next inline
-			member = member->next ;
+			member = next_member;
 		} 
 
 		//
@@ -884,9 +889,9 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 		member_list = member_list->next ;		
 	}
 
-	
-
 	member_list = conf->memberlist ;
+
+	int member_is_moderator = member->ismoderator;
 
 	while ( member_list != NULL ) 
 	{
@@ -970,29 +975,37 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 				tt, count
 			) ;
 
+			// save a pointer to the current member,
+			// and then point to the next member in the list
+			member_list = member_list->next ;
+
+			// leave member_temp alone.
+			// it already points to the previous (or NULL).
+			// it will still be the previous after member is deleted
+
 			// delete the member
 			delete_member( member ) ;
 			
-			ast_log( AST_CONF_DEBUG, "removed member from conference, name => %s, remaining => %d\n", conf->name, conf->membercount ) ;
+			ast_log( AST_CONF_DEBUG, "removed member from conference, name => %s, remaining => %d\n",
+					conf->name, conf->membercount ) ;
 			
 			//break ;
 		}
 		else
 		{
 			// if member is a moderator, we end the conference when they leave
-			if (member->ismoderator) 
+			if ( member_is_moderator ) 
 			{
 				ast_mutex_lock( &member_list->lock ) ;
 				member_list->kick_flag = 1;
 				ast_mutex_unlock( &member_list->lock ) ;
 			}
+
+			// save a pointer to the current member,
+			// and then point to the next member in the list
+			member_temp = member_list ;
+			member_list = member_list->next ;
 		}
-		
-		
-		// save a pointer to the current member,
-		// and then point to the next member in the list
-		member_temp = member_list ;
-		member_list = member_list->next ;
 	}
 	ast_mutex_unlock( &conf->lock );
 
