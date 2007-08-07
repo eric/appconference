@@ -1,7 +1,13 @@
-app_conference is a channel-independent conference application.
+Introduction
+
+App_conference is a channel-independent conference application.
+It features efficient audio mixing algorithms as well as video selection
+support based on VAD, DTMF or CLI. 
+
 
 Design goals
-It has several design goals which are different than meetme:
+
+Appconference has several design goals which are different than Meetme:
 
     * It does not require a zap channel for timing.
     * It is very efficient when used with channels which support DTX (silence
@@ -12,17 +18,6 @@ It has several design goals which are different than meetme:
 	encoding; therefore it might still be a win). 
     * It presents messages on the Monitor interface for determine which 
 	speakers are active. 
-
-
-I believe that people other than myself are using this, but my environment is
-pretty rigid, and cases outside of this aren't tested:
-
-    * Some callers come from the PSTN via IAX2 from a box with Zaptel cards, 
-	via uLaw.
-    * Other callers come from iaxclient based softphones using speex
-     	(was GSM) via IAX2 (with DTX). 
-    * Some conferences have a single SIP channel which listens in GSM.
-
 
 Mixing design
 
@@ -36,38 +31,47 @@ Mixing design
 		The two speaker's frames are decoded and mixed, and then 
 		encoded _once_ for each codec type used by participants. 
 
+Video features
+
+    * Video passthrough: video from selected member is passed to every
+        member of the conference.
+    * Multiple ways to select video
+        - VAD
+	- DTMF from conference members
+	- CLI 
+    * Ability to set default video sources and to lock/unlock video sources.
+
 
 License
-Naturally, app_conference is GPL. The CVS also includes parts of libspeex,
-which is distributed under it's a BSD-style license.
+
+Naturally, app_conference is GPL. The SVN repository also includes parts of 
+libspeex, which is distributed under a BSD-style license. See LICENSE for more
+details.
+
 
 Getting app_conference
-app_conference is available from the 'iaxclient' project on sourceforge:
 
-    * CVS browse: http://cvs.sourceforge.net/viewcvs.py/iaxclient/app_conference/ (cache)
-    * Project page: http://sourceforge.net/projects/iaxclient/ (cache) 
+app_conference is available via SVN from its own home on sourceforge:
+
+    * http://sourceforge.net/projects/appconference
 
 
 Compiling app_conference
 
-    * just like any other asterisk application.
-    * Some makefile fiddling may be necessary 
+    * Checkout sources
+    * Modify Makefile to point to your Asterisk include directory
+    * make
+    * sudo make install 
 
 
 Using app_conference
+
 There is no configuration file. Conferences are created on-the-fly.
 
 Dialplan syntax: Conference(ConferenceName/Flags/Priority[/VADSTART/VADCONTINUE])
 
     * ConferenceName: Whatever you want to name the conference
-    * Flags one of more of the following:
-          o M: Moderator (presently same as speaker)
-          o S: Speaker
-          o L: Listener
-          o T: "Telephone caller" (just for stats?).
-          o V: Do VAD on this caller
-          o D: Use Denoise filter on this caller. 
-          o d: Send manager events when DTMF is received.
+    * Flags: please see Flags.txt for a comprehensive list of dialplan flags
     * Priority: Currently ignored; was to be a "speaking priority" so a 
 	higher priority caller could "override" others.
     * VADSTART: Optional: "probability" to use to detect start of speech.
@@ -75,20 +79,14 @@ Dialplan syntax: Conference(ConferenceName/Flags/Priority[/VADSTART/VADCONTINUE]
 	of speech. 
 
 
-Features / CLI/Manager Commands
+CLI Commands
 
-    * conference debug <conference_name> [ on | off ]  
-	enable debugging for a conference
+Please look at CLI.txt for a comprehensive list of CLI commands and parameters.
 
-    * conference show stats  show conference stats
-
-    * conference play sound <channel-id> <sound-file> [mute]
-	play a sound to a conference member, optionally muting them.
-
-    * confernce end <conference_name>
-	kills a conference ( by name ) and hangups on members
 
 Manager Events
+
+<This section is outdated>
 app_conference generates several detailed manager events so that applications
 interfacing with the manager API can monitor conferences:
 
@@ -108,13 +106,18 @@ interfacing with the manager API can monitor conferences:
 
 
 Benchmarking
+
 It would be nice to have solid benchmarks to present, but a good size 
 machine should be able to handle many callers when either (a) they are 
 using DTX, or (b) they are listen-only.  It's used often with hundreds of
 simultaneous callers.
 
+
 Discussion
-The iaxclient-devel mailing list is probably as good a place as any to discuss.
+
+The appconference-devel mailing list is the place to discuss everything related
+to app_conference.  The bug tracker on SourceForge gets a little bit of 
+attention now and then.
 
 
 ---
