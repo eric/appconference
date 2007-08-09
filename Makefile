@@ -19,7 +19,6 @@
 
 INSTALL_PREFIX :=
 INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/usr/lib/asterisk/modules
-INSTALL_SOUNDS_DIR := $(INSTALL_PREFIX)/var/lib/asterisk/sounds
 
 ASTERISK_INCLUDE_DIR ?= ../asterisk/include
 
@@ -114,12 +113,7 @@ $(TARGET): $(OBJS)
 vad_test: vad_test.o libspeex/preprocess.o libspeex/misc.o libspeex/smallft.o
 	$(CC) $(PROFILE) -o $@ $^ -lm
 
-sounds: all
-	for x in sounds/*; do \
-		install -m 644 $$x $(INSTALL_SOUNDS_DIR) ; \
-	done
-
-install: sounds
+install:
 	$(INSTALL) -m 755 $(TARGET) $(INSTALL_MODULES_DIR)
 
 
