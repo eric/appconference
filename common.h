@@ -1,5 +1,5 @@
 
-// $Id$
+// $Id: common.h 880 2007-04-25 15:23:59Z jpgrayson $
 
 /*
  * app_conference

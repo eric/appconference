@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile 889 2007-08-09 14:42:48Z sbalea $
 
 #
 # Makefile, based on the Asterisk Makefile, Coypright (C) 1999, Mark Spencer
@@ -21,6 +21,8 @@ INSTALL_PREFIX :=
 INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/usr/lib/asterisk/modules
 
 ASTERISK_INCLUDE_DIR ?= ../asterisk/include
+
+REVISION = $(shell svnversion -n)
 
 # turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
 APP_CONFERENCE_DEBUG ?= 0
@@ -46,7 +48,7 @@ INSTALL = install
 INCLUDE = -I$(ASTERISK_INCLUDE_DIR)
 DEBUG := -g
 
-CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG)
+CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG) -DREVISION=\"$(REVISION)\"
 CPPFLAGS = $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE
 #CFLAGS += -O2
 #CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math

@@ -1,5 +1,5 @@
  
-// $Id$
+// $Id: app_conference.c 693 2006-11-15 22:29:26Z sbalea $
 
 /*
  * app_conference
@@ -50,6 +50,13 @@ static char *synopsis = "Channel Independent Conference" ;
 static char *descrip = "  Conference():  returns 0\n"
 "if the user exits with the '#' key, or -1 if the user hangs up.\n" ;
 
+// SVN revision number, provided by Make
+#ifdef REVISION
+static char *revision = REVISION;
+#else
+static char *revision = "unknown";
+#endif
+
 //
 // functions defined in asterisk/module.h
 //
@@ -70,7 +77,7 @@ static int unload_module( void *mod )
 
 static int load_module( void *mod )
 {
-	ast_log( LOG_NOTICE, "loading app_conference module [ $Revision$ ]\n" ) ;
+	ast_log( LOG_NOTICE, "Loading app_conference module, revision=%s\n", revision) ;
 
 	// intialize conference
 	init_conference() ;

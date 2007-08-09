@@ -1,5 +1,5 @@
 
-// $Id$
+// $Id: member.c 885 2007-06-27 15:41:18Z sbalea $
 
 /*
  * app_conference
@@ -556,7 +556,7 @@ int member_exec( struct ast_channel* chan, void* data )
 	int left = 0 ;
 	int res;
 	
-	ast_log( AST_CONF_DEBUG, "[ $Revision$ ] begin processing member thread, channel => %s\n", chan->name ) ;
+	ast_log( AST_CONF_DEBUG, "Begin processing member thread, channel => %s\n", chan->name ) ;
 	
 	// 
 	// If the call has not yet been answered, answer the call

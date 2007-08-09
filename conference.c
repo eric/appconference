@@ -1,5 +1,5 @@
 
-// $Id$
+// $Id: conference.c 886 2007-08-06 14:33:34Z bcholew $
 
 /*
  * app_conference
@@ -57,7 +57,7 @@ void conference_exec( struct ast_conference *conf )
 	int speaker_count ;
 	int listener_count ;
 	
-	ast_log( AST_CONF_DEBUG, "[ $Revision$ ] entered conference_exec, name => %s\n", conf->name ) ;
+	ast_log( AST_CONF_DEBUG, "Entered conference_exec, name => %s\n", conf->name ) ;
 	
 	// timer timestamps
 	struct timeval base, curr, notify ;

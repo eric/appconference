@@ -1,5 +1,5 @@
 
-// $Id$
+// $Id: app_conference.h 839 2007-01-17 22:32:03Z sbalea $
 
 /*
  * app_conference
