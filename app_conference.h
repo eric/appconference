@@ -241,6 +241,13 @@
 // main module function
 int app_conference_main( struct ast_channel* chan, void* data ) ;
 
+// Interface with the Asterisk loader
+int load_module(void *mod);
+int unload_module(void *mod);
+const char *description(void);
+char *key(void);
+int reload(void *mod);
+
 // utility functions
 long usecdiff( struct timeval* timeA, struct timeval* timeB ) ;
 void add_milliseconds( struct timeval* tv, long ms ) ;

@@ -70,7 +70,7 @@ static char *revision = "unknown";
 //
 
 
-static int unload_module( void *mod )
+int unload_module(void *mod)
 {
 	ast_log( LOG_NOTICE, "unloading app_conference module\n" ) ;
 
@@ -83,7 +83,7 @@ static int unload_module( void *mod )
 	return ast_unregister_application( app ) ;
 }
 
-static int load_module( void *mod )
+int load_module(void *mod)
 {
 	ast_log( LOG_NOTICE, "Loading app_conference module, revision=%s\n", revision) ;
 
@@ -96,7 +96,7 @@ static int load_module( void *mod )
 	return ast_register_application( app, app_conference_main, synopsis, descrip ) ;
 }
 
-static const char *description( void )
+const char *description()
 {
 	return tdesc ;
 }
@@ -110,7 +110,7 @@ static int usecount( void *mod )
 }
 #endif
 
-static char *key( )
+char *key()
 {
 	return ASTERISK_GPL_KEY ;
 }
@@ -121,7 +121,7 @@ static char *key( )
 // main app_conference function
 //
 
-int app_conference_main( struct ast_channel* chan, void* data ) 
+int app_conference_main(struct ast_channel* chan, void* data)
 {
 	int res = 0 ;
 	struct ast_module_user *u ;
@@ -145,7 +145,7 @@ int app_conference_main( struct ast_channel* chan, void* data )
 //
 
 // now returns milliseconds
-long usecdiff( struct timeval* timeA, struct timeval* timeB )
+long usecdiff(struct timeval* timeA, struct timeval* timeB)
 {
 	long a_secs = timeA->tv_sec - timeB->tv_sec ;
 	long b_secs = (long)( timeA->tv_usec / 1000 ) - (long)( timeB->tv_usec / 1000 ) ;
@@ -154,7 +154,7 @@ long usecdiff( struct timeval* timeA, struct timeval* timeB )
 }
 
 // increment a timeval by ms milliseconds
-void add_milliseconds( struct timeval* tv, long ms )
+void add_milliseconds(struct timeval* tv, long ms)
 {
 	// add the microseconds to the microseconds field
 	tv->tv_usec += ( ms * 1000 ) ;
@@ -171,7 +171,7 @@ void add_milliseconds( struct timeval* tv, long ms )
 	return ;
 }
 
-static int reload(void *mod)
+int reload(void *mod)
 {
 	return 0;	
 }
