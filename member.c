@@ -263,22 +263,44 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 	{
 		if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_DISABLED, strlen(AST_CONF_CONTROL_CAMERA_DISABLED)) == 0 )
 		{
+			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL, 
 			              "ConferenceCameraDisabled", 
 			              "ConferenceName: %s\r\nChannel: %s\r\n", 
 			              conf->name, 
 			              member->channel_name);
-			
 			member->no_camera = 1;
+			ast_mutex_unlock(&member->lock);
 		} else if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_CAMERA_ENABLED)) == 0 )
 		{
+			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL, 
 			              "ConferenceCameraEnabled", 
 			              "ConferenceName: %s\r\nChannel: %s\r\n", 
 			              conf->name, 
 			              member->channel_name);
-			
 			member->no_camera = 0;
+			ast_mutex_unlock(&member->lock);
+		} else if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT)) == 0 )
+		{
+			ast_mutex_lock(&member->lock);
+			manager_event(EVENT_FLAG_CALL, 
+			              "ConferenceStopVideoTransmit", 
+			              "ConferenceName: %s\r\nChannel: %s\r\n", 
+			              conf->name, 
+			              member->channel_name);
+			member->norecv_video = 1;
+			ast_mutex_unlock(&member->lock);
+		} else if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_START_VIDEO_TRANSMIT)) == 0 )
+		{
+			ast_mutex_lock(&member->lock);
+			manager_event(EVENT_FLAG_CALL, 
+			              "ConferenceStartVideoTransmit", 
+			              "ConferenceName: %s\r\nChannel: %s\r\n", 
+			              conf->name, 
+			              member->channel_name);
+			member->norecv_video = 0;
+			ast_mutex_unlock(&member->lock);
 		}
 		ast_frfree(f);
 		f = NULL;
