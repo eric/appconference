@@ -534,7 +534,7 @@ static int process_outgoing(struct ast_conf_member *member)
 		// if there's no frames exit the loop.
 		if(!cf) break;
 		
-		// send the dtmf frame
+		// send the text frame
 		if ( ast_write( member->chan, cf->fr ) == 0 )
 		{
 			struct timeval tv ;
