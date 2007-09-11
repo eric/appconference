@@ -662,7 +662,7 @@ struct ast_frame* get_silent_slinear_frame( void )
 		f = create_slinear_frame( data ) ;
 	}
 	
-	return ast_frdup( f ) ;
+	return f;
 }
 
 
