@@ -548,7 +548,7 @@ struct ast_frame* create_text_frame(const char *text, int copy)
 	}
 	
 	f->frametype = AST_FRAME_TEXT;
-	f->offset = AST_FRIENDLY_OFFSET;
+	f->offset = 0;
 	f->mallocd = AST_MALLOCD_HDR;
 	if ( copy ) f->mallocd |= AST_MALLOCD_DATA;
 	f->datalen = strlen(t) + 1;
