@@ -1449,6 +1449,9 @@ struct ast_conf_member* delete_member( struct ast_conf_member* member )
 	// free the member's copy for the channel name
 	free( member->channel_name ) ;
 	
+	// free the member's copy of the conference name
+	free(member->conf_name);
+	
 	// !!! DEBUGING !!!	
 	ast_log( AST_CONF_DEBUG, "freeing member\n" ) ;
 
