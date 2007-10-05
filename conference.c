@@ -1161,6 +1161,9 @@ int show_conference_list ( int fd, const char *name )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), name, 80 ) == 0 )
 		{
+			// acquire conference mutex
+			ast_mutex_lock(&conf->lock);
+			
 			// do the biz
 			member = conf->memberlist ;
 			while ( member != NULL )
@@ -1200,7 +1203,11 @@ int show_conference_list ( int fd, const char *name )
 				
 				ast_cli( fd, "\n");
 				member = member->next;
-				}
+			}
+			
+			// release conference mutex
+			ast_mutex_unlock(&conf->lock);
+			
 			break ;
 		}
 	
