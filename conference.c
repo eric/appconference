@@ -589,16 +589,11 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	// add the initial member
 	add_member( member, conf ) ;
 	
-	// prepend new conference to conflist
-	conf->next = conflist ;
-	conflist = conf ;
-
 	ast_log( AST_CONF_DEBUG, "added new conference to conflist, name => %s\n", name ) ;
 
 	//
 	// spawn thread for new conference, using conference_exec( conf )
 	//
-
 	// acquire conference mutexes
 	ast_mutex_lock( &conf->lock ) ;
 	
@@ -606,7 +601,11 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	{
 		// detach the thread so it doesn't leak
 		pthread_detach( conf->conference_thread ) ;
-	
+
+		// prepend new conference to conflist
+		conf->next = conflist ;
+		conflist = conf ;
+
 		// release conference mutexes
 		ast_mutex_unlock( &conf->lock ) ;
 
