@@ -127,7 +127,7 @@ void conference_exec( struct ast_conference* conf ) ;
 struct ast_conference* find_conf( const char* name ) ;
 struct ast_conference* create_conf( char* name, struct ast_conf_member* member ) ;
 void remove_conf( struct ast_conference* conf ) ;
-int end_conference( struct ast_conference* conf, int hangup ) ;
+int end_conference( const char *name, int hangup ) ;
 
 // find a particular member, locking if requested.
 struct ast_conf_member *find_member ( const char *chan, int lock) ;

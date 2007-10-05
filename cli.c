@@ -600,7 +600,7 @@ int conference_end( int fd, int argc, char *argv[] )
 	const char* name = argv[2] ;
 
 	// get the conference
-	if ( end_conference( find_conf( name ), 1 ) != 0 )
+	if ( end_conference( name, 1 ) != 0 )
 	{
 		ast_cli( fd, "unable to end the conference, name => %s\n", name ) ;
 		return RESULT_SHOWUSAGE ;
@@ -625,14 +625,7 @@ int manager_conference_end(struct mansession *s, const struct message *m)
 	}
 	
 	ast_log( LOG_NOTICE, "Terminating conference %s on manager's request. Hangup: %s.\n", confname, hangup?"YES":"NO" );
-	struct ast_conference *c = find_conf( confname );
-	if ( ! c )
-	{
-		astman_send_error(s, m, "Unknown conference\r\n");
-		return RESULT_SUCCESS;
-	}
-
-        if ( end_conference( c, hangup ) != 0 )
+        if ( end_conference( confname, hangup ) != 0 )
         {
 		ast_log( LOG_ERROR, "manager end conf: unable to terminate conference %s.\n", confname );
 		astman_send_error(s, m, "Failed to terminate\r\n");

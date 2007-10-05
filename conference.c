@@ -43,10 +43,6 @@ struct ast_conference *conflist = NULL ;
 //static ast_mutex_t conflist_lock = AST_MUTEX_INITIALIZER ;
 AST_MUTEX_DEFINE_STATIC(conflist_lock);
 
-// mutex for synchronizing calls to start_conference() and remove_conf()
-//static ast_mutex_t start_stop_conf_lock = AST_MUTEX_INITIALIZER ;
-AST_MUTEX_DEFINE_STATIC(start_stop_conf_lock);
-
 static int conference_count = 0 ;
 
 
@@ -181,9 +177,54 @@ void conference_exec( struct ast_conference *conf )
 		// ast_log( AST_CONF_DEBUG, "PROCESSING FRAMES, conference => %s, step => %d, ms => %ld\n", 
 		//	conf->name, step, ( base.tv_usec / 20000 ) ) ;
 
+		//
+		// check if the conference is empty and if so
+		// remove it and break the loop
+		//
+		
+		// acquire the conference list lock
+		ast_mutex_lock(&conflist_lock);		
+		
+		// acquire the conference mutex
+		ast_mutex_lock(&conf->lock);
+		
+		if ( conf->membercount == 0 ) 
+		{
+			if (conf->debug_flag)
+			{
+				ast_log( LOG_NOTICE, "removing conference, count => %d, name => %s\n", conf->membercount, conf->name ) ;
+			}
+			remove_conf( conf ) ; // stop the conference
+			
+			// We don't need to release the conf mutex, since it was destroyed anyway
+			
+			// release the conference list lock
+			ast_mutex_unlock(&conflist_lock);
+			
+			break ; // break from main processing loop
+		}
+		
+		// release the conference mutex
+		ast_mutex_unlock(&conf->lock);
+		
+		// release the conference list lock
+		ast_mutex_unlock(&conflist_lock);
+		
+		
+		//
+		// Start processing frames
+		//
+		
 		// acquire conference mutex
 		TIMELOG(ast_mutex_lock( &conf->lock ),1,"conf thread conf lock");
 
+		if ( conf->membercount == 0 )
+		{
+			// release the conference mutex
+			ast_mutex_unlock(&conf->lock);
+			continue; // We'll check again at the top of the loop
+		}
+		
 		// update the current delivery time
 		conf->delivery_time = base ;
 		
@@ -223,20 +264,6 @@ void conference_exec( struct ast_conference *conf )
 			// adjust our pointer to the next inline
 			member = next_member;
 		} 
-
-		//
-		// break, if we have no more members
-		//
-
-		if ( conf->membercount == 0 ) 
-		{
-			if (conf->debug_flag)
-			{
-			ast_log( LOG_NOTICE, "removing conference, count => %d, name => %s\n", conf->membercount, conf->name ) ;
-			}
-			remove_conf( conf ) ; // stop the conference
-			break ; // break from main processing loop
-		}
 
 		// ast_log( AST_CONF_DEBUG, "finished processing incoming audio, name => %s\n", conf->name ) ;
 
@@ -419,7 +446,6 @@ void conference_exec( struct ast_conference *conf )
 // called by app_conference.c:load_module()
 void init_conference( void ) 
 {
-	ast_mutex_init( &start_stop_conf_lock ) ;
 	ast_mutex_init( &conflist_lock ) ;
 }
 
@@ -434,9 +460,11 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 
 	struct ast_conference* conf = NULL ;
 
-	// acquire mutex
-	ast_mutex_lock( &start_stop_conf_lock ) ;
-
+	// acquire the conference list lock
+	ast_mutex_lock(&conflist_lock);
+	
+	
+	
 	// look for an existing conference
 	ast_log( AST_CONF_DEBUG, "attempting to find requested conference\n" ) ;
 	conf = find_conf( member->conf_name ) ;
@@ -452,11 +480,7 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 
 		// return an error if create_conf() failed
 		if ( conf == NULL ) 
-		{
 			ast_log( LOG_ERROR, "unable to find or create requested conference\n" ) ;
-			ast_mutex_unlock( &start_stop_conf_lock ) ; // release mutex
-			return NULL ;
-		}
 	}
 	else
 	{
@@ -467,15 +491,15 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 		// is responsible for calling delete_member()
 		//
 		add_member( member, conf ) ;
-			}
-
-	// release mutex
-	ast_mutex_unlock( &start_stop_conf_lock ) ;
-
+	}
+	
+	// release the conference list lock
+	ast_mutex_unlock(&conflist_lock);
+	
 	return conf ;
 }
 
-
+// This function should be called with conflist_lock mutex being held
 struct ast_conference* find_conf( const char* name ) 
 {	
 	// no conferences exist
@@ -485,9 +509,6 @@ struct ast_conference* find_conf( const char* name )
 		return NULL ;
 	}
 	
-	// acquire mutex
-	ast_mutex_lock( &conflist_lock ) ;
-
 	struct ast_conference *conf = conflist ;
 	
 	// loop through conf list
@@ -497,23 +518,16 @@ struct ast_conference* find_conf( const char* name )
 		{
 			// found conf name match 
 			ast_log( AST_CONF_DEBUG, "found conference in conflist, name => %s\n", name ) ;
-			break ;
+			return conf;
 		}
-	
 		conf = conf->next ;
 	}
 
-	// release mutex
-	ast_mutex_unlock( &conflist_lock ) ;
-
-	if ( conf == NULL )
-	{
-		ast_log( AST_CONF_DEBUG, "unable to find conference in conflist, name => %s\n", name ) ;
-	}
-
-	return conf ;
+	ast_log( AST_CONF_DEBUG, "unable to find conference in conflist, name => %s\n", name ) ;
+	return NULL;
 }
 
+// This function should be called with conflist_lock held
 struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 {
 	ast_log( AST_CONF_DEBUG, "entered create_conf, name => %s\n", name ) ;	
@@ -576,10 +590,6 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	add_member( member, conf ) ;
 	
 	// prepend new conference to conflist
-
-	// acquire mutex
-	ast_mutex_lock( &conflist_lock ) ;
-
 	conf->next = conflist ;
 	conflist = conf ;
 
@@ -620,12 +630,10 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	if ( conf != NULL )
 		++conference_count ;
 
-	// release mutex
-	ast_mutex_unlock( &conflist_lock ) ;
-
 	return conf ;
 }
 
+//This function should be called with conflist_lock and conf->lock held
 void remove_conf( struct ast_conference *conf )
 {
   int c;
@@ -634,12 +642,6 @@ void remove_conf( struct ast_conference *conf )
 
 	struct ast_conference *conf_current = conflist ;
 	struct ast_conference *conf_temp = NULL ;
-
-	// acquire mutex
-	ast_mutex_lock( &start_stop_conf_lock ) ;
-
-	// acquire mutex
-	ast_mutex_lock( &conflist_lock ) ;
 
 	// loop through list of conferences
 	while ( conf_current != NULL ) 
@@ -708,12 +710,6 @@ void remove_conf( struct ast_conference *conf )
 	// count new conference 
 	--conference_count ;
 
-	// release mutex
-	ast_mutex_unlock( &conflist_lock ) ;
-	
-	// release mutex
-	ast_mutex_unlock( &start_stop_conf_lock ) ;
-
 	return ;
 }
 
@@ -741,10 +737,21 @@ int get_new_id( struct ast_conference *conf )
 }
 
 
-int end_conference( struct ast_conference* conf, int hangup ) 
+int end_conference(const char *name, int hangup ) 
 {
-	if ( conf == NULL ) {
-		ast_log( LOG_WARNING, "null conference passed\n" ) ;
+	struct ast_conference *conf;
+	
+	// acquire the conference list lock
+	ast_mutex_lock(&conflist_lock);
+	
+	conf = find_conf(name);
+	if ( conf == NULL ) 
+	{
+		ast_log( LOG_WARNING, "could not find conference\n" ) ;
+		
+		// release the conference list lock
+		ast_mutex_unlock(&conflist_lock);
+		
 		return -1 ;
 	}
 	
@@ -772,7 +779,10 @@ int end_conference( struct ast_conference* conf, int hangup )
 	}
 	
 	// release the conference lock
-	ast_mutex_unlock( &conf->lock ) ;	
+	ast_mutex_unlock( &conf->lock ) ;
+	
+	// release the conference list lock
+	ast_mutex_unlock(&conflist_lock);
 		
 	return 0 ;
 }
@@ -781,6 +791,7 @@ int end_conference( struct ast_conference* conf, int hangup )
 // member-related functions
 //
 
+// This function should be called with conflist_lock held
 void add_member( struct ast_conf_member *member, struct ast_conference *conf ) 
 {
         int newid, last_id;
