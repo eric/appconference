@@ -70,18 +70,11 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 				if (member->mute_video == 0 && member->mute_audio == 0)
 				{
 					member->mute_video = 1;
-					member->id = -1;
 					member->mute_audio = 1;
 				}
 				else if (member->mute_video == 1 && member->mute_audio == 1)
 				{
 					member->mute_video = 0;
-					// avoid potential deadlock
-					ast_mutex_unlock( &member->lock );
-					ast_mutex_lock( &conf->lock ) ;
-					ast_mutex_lock( &member->lock );
-					member->id = get_new_id(conf);
-					ast_mutex_unlock( &conf->lock ) ;
 					member->mute_audio = 0;
 				}
 				break;
