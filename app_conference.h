@@ -235,19 +235,6 @@
 #define AST_CONF_CONTROL_STOP_VIDEO           "CONTROL:STOPVIDEO"
 #define AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT  "CONTROL:STOP_VIDEO_TRANSMIT"
 #define AST_CONF_CONTROL_START_VIDEO_TRANSMIT "CONTROL:START_VIDEO_TRANSMIT"
-//
-// app_conference functions
-//
-
-// main module function
-int app_conference_main( struct ast_channel* chan, void* data ) ;
-
-// Interface with the Asterisk loader
-int load_module(void *mod);
-int unload_module(void *mod);
-const char *description(void);
-char *key(void);
-int reload(void *mod);
 
 // utility functions
 void add_milliseconds( struct timeval* tv, long ms ) ;

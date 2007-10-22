@@ -1,6 +1,3 @@
-
-// $Id: app_conference.c 693 2006-11-15 22:29:26Z sbalea $
-
 /*
  * app_conference
  *
@@ -28,116 +25,72 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "asterisk/autoconfig.h"
+#include "asterisk.h"
+
+// SVN revision number, provided by make
+#ifndef REVISION
+#define REVISION "unknown"
+#endif
+
+static char *revision = REVISION;
+
+ASTERISK_FILE_VERSION(__FILE__, REVISION)
+
 #include "app_conference.h"
 #include "common.h"
-#include "asterisk/module.h"
 
 /*
+ * a conference has n + 1 threads, where n is the number of
+ * members and 1 is a conference thread which sends audio
+ * back to the members.
+ *
+ * each member thread reads frames from the channel and
+ * add's them to the member's frame queue.
+ *
+ * the conference thread reads frames from each speaking members
+ * queue, mixes them, and then re-queues them for the member thread
+ * to send back to the user.
+ */
 
-a conference has n + 1 threads, where n is the number of
-members and 1 is a conference thread which sends audio
-back to the members.
+static char *app = "Conference";
+static char *synopsis = "Channel Independent Conference";
+static char *descrip = "Channel Independent Conference Application";
 
-each member thread reads frames from the channel and
-add's them to the member's frame queue.
-
-the conference thread reads frames from each speaking members
-queue, mixes them, and then re-queues them for the member thread
-to send back to the user.
-
-*/
-
-//
-// app_conference text descriptions
-//
-
-static char *tdesc = "Channel Independent Conference Application" ;
-static char *app = "Conference" ;
-static char *synopsis = "Channel Independent Conference" ;
-static char *descrip = "  Conference():  returns 0\n"
-"if the user exits with the '#' key, or -1 if the user hangs up.\n" ;
-
-// SVN revision number, provided by Make
-#ifdef REVISION
-static char *revision = REVISION;
-#else
-static char *revision = "unknown";
-#endif
-
-//
-// functions defined in asterisk/module.h
-//
-
-
-int unload_module(void *mod)
+static int app_conference_main(struct ast_channel* chan, void* data)
 {
-	ast_log( LOG_NOTICE, "unloading app_conference module\n" ) ;
-
-	ast_module_user_hangup_all();
-	//STANDARD_HANGUP_LOCALUSERS ; // defined in asterisk/module.h
-
-	// register conference cli functions
-	unregister_conference_cli() ;
-
-	return ast_unregister_application( app ) ;
-}
-
-int load_module(void *mod)
-{
-	ast_log( LOG_NOTICE, "Loading app_conference module, revision=%s\n", revision) ;
-
-	// intialize conference
-	init_conference() ;
-
-	// register conference cli functions
-	register_conference_cli() ;
-
-	return ast_register_application( app, app_conference_main, synopsis, descrip ) ;
-}
-
-const char *description()
-{
-	return tdesc ;
-}
-
-#if 0
-static int usecount( void *mod )
-{
-	int res;
-	STANDARD_USECOUNT( res ) ; // defined in asterisk/module.h
-	return res;
-}
-#endif
-
-char *key()
-{
-	return ASTERISK_GPL_KEY ;
-}
-
-
-
-//
-// main app_conference function
-//
-
-int app_conference_main(struct ast_channel* chan, void* data)
-{
-	int res = 0 ;
+	int res ;
 	struct ast_module_user *u ;
 
-	// defined in asterisk/module.h
-	//LOCAL_USER_ADD( u ) ;
 	u = ast_module_user_add(chan);
 
 	// call member thread function
 	res = member_exec( chan, data ) ;
 
-	// defined in asterisk/module.h
-	//LOCAL_USER_REMOVE( u ) ;
-	ast_module_user_remove (u);
+	ast_module_user_remove(u);
 
 	return res ;
+}
+
+static int unload_module( void )
+{
+	ast_log( LOG_NOTICE, "unloading app_conference module\n" ) ;
+
+	ast_module_user_hangup_all();
+
+	unregister_conference_cli() ;
+
+	return ast_unregister_application( app ) ;
+}
+
+static int load_module( void )
+{
+	ast_log( LOG_NOTICE, "Loading app_conference module, revision=%s\n", revision) ;
+
+	init_conference() ;
+
+	register_conference_cli() ;
+
+	return ast_register_application( app, app_conference_main, synopsis, descrip ) ;
 }
 
 // increment a timeval by ms milliseconds
@@ -156,13 +109,8 @@ void add_milliseconds(struct timeval* tv, long ms)
 	tv->tv_sec += s ;
 }
 
-int reload(void *mod)
-{
-	return 0;
-}
+#define AST_MODULE "Conference"
+AST_MODULE_INFO_STANDARD(ASTERISK_GPL_KEY,
+		"Channel Independent Conference Application");
+#undef AST_MODULE
 
-#define AST_MODULE "conference"
-
-AST_MODULE_INFO_STANDARD(ASTERISK_GPL_KEY, "Conference");
-
-//STD_MOD(MOD_1, reload, NULL, NULL);
