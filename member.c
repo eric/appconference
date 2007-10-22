@@ -3187,7 +3187,6 @@ void member_process_spoken_frames(struct ast_conference* conf,
 	)
 {
 	struct conf_frame *cfr;
-	struct ast_conf_member *temp_member;
 
 	// acquire member mutex
 	TIMELOG(ast_mutex_lock( &member->lock ),1,"conf thread member lock") ;
@@ -3203,9 +3202,7 @@ void member_process_spoken_frames(struct ast_conference* conf,
 		{
 			ast_log( LOG_NOTICE, "found member slated for removal, channel => %s\n", member->channel_name ) ;
 		}
-		temp_member = member->next ;
 		remove_member( member, conf ) ;
-		member = temp_member ;
 		return;
 	}
 
