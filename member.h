@@ -13,17 +13,17 @@
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
- * Video Conferencing support added by 
+ * Video Conferencing support added by
  * Neil Stratford <neils@vipadia.com>
  * Copyright (C) 2005, 2005 Vipadia Limited
  *
- * VAD driven video conferencing, text message support 
- * and miscellaneous enhancements added by 
+ * VAD driven video conferencing, text message support
+ * and miscellaneous enhancements added by
  * Mihai Balea <mihai at hates dot ms>
  *
- * This program may be modified and distributed under the 
- * terms of the GNU General Public License. You should have received 
- * a copy of the GNU General Public License along with this 
+ * This program may be modified and distributed under the
+ * terms of the GNU General Public License. You should have received
+ * a copy of the GNU General Public License along with this
  * program; if not, write to the Free Software Foundation, Inc.
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
@@ -42,7 +42,7 @@
 // struct declarations
 //
 
-struct ast_conf_soundq 
+struct ast_conf_soundq
 {
 	char name[256];
 	struct ast_filestream *stream; // the stream
@@ -50,11 +50,11 @@ struct ast_conf_soundq
 	struct ast_conf_soundq *next;
 };
 
-struct ast_conf_member 
+struct ast_conf_member
 {
 	ast_mutex_t lock ; // member data mutex
-  
-	struct ast_channel* chan ; // member's channel  
+
+	struct ast_channel* chan ; // member's channel
 	char* channel_name ; // member's channel name
 
 	// values passed to create_member () via *data
@@ -62,21 +62,21 @@ struct ast_conf_member
 	char* flags ;	// raw member-type flags
 	char type ;		// L = ListenOnly, M = Moderator, S = Standard (Listen/Talk)
 	char* conf_name ;		// name of the conference that own this member
-	
+
 	char *callerid;
 	char *callername;
-	
+
 	// voice flags
 	int vad_flag;
 	int denoise_flag;
 	int agc_flag;
 	int via_telephone;
-	
+
 	// video conference params
 	int id;
 	int initial_id;
 	int req_id;
-	
+
 	// muting options - this member will not be heard/seen
 	int mute_audio;
 	int mute_video;
@@ -84,38 +84,38 @@ struct ast_conf_member
 	// this member will not hear/see
 	int norecv_audio;
 	int norecv_video;
-	
+
 	// this member does not have a camera
 	int no_camera;
 
 	// is this person a moderator?
 	int ismoderator;
 
-	// determine by flags and channel name	
+	// determine by flags and channel name
 	char connection_type ; // T = telephone, X = iaxclient, S = sip
-	
+
 	// vad voice probability thresholds
 	float vad_prob_start ;
 	float vad_prob_continue ;
-	
+
 	// ready flag
 	short ready_for_outgoing ;
-	
+
 	// input frame queue
 	conf_frame* inFrames ;
-	conf_frame* inFramesTail ;	
+	conf_frame* inFramesTail ;
 	unsigned int inFramesCount ;
 	conf_frame* inVideoFrames ;
-	conf_frame* inVideoFramesTail ;	
+	conf_frame* inVideoFramesTail ;
 	unsigned int inVideoFramesCount ;
 	conf_frame* inDTMFFrames ;
-	conf_frame* inDTMFFramesTail ;	
+	conf_frame* inDTMFFramesTail ;
 	unsigned int inDTMFFramesCount ;
 	conf_frame* inTextFrames ;
-	conf_frame* inTextFramesTail ;	
+	conf_frame* inTextFramesTail ;
 	unsigned int inTextFramesCount ;
 
-	
+
 	// input/output smoother
 	struct ast_smoother *inSmoother;
 	struct ast_packer *outPacker;
@@ -131,20 +131,20 @@ struct ast_conf_member
 	conf_frame* inFramesLast ;
 	unsigned int inFramesRepeatLast ;
 	unsigned short okayToCacheLast ;
-		
+
 	// LL output frame queue
 	conf_frame* outFrames ;
-	conf_frame* outFramesTail ;	
+	conf_frame* outFramesTail ;
 	unsigned int outFramesCount ;
 	conf_frame* outVideoFrames ;
-	conf_frame* outVideoFramesTail ;	
+	conf_frame* outVideoFramesTail ;
 	unsigned int outVideoFramesCount ;
 	conf_frame* outDTMFFrames ;
-	conf_frame* outDTMFFramesTail ;	
+	conf_frame* outDTMFFramesTail ;
 	unsigned int outDTMFFramesCount ;
 	conf_frame* outTextFrames ;
-	conf_frame* outTextFramesTail ;	
-	unsigned int outTextFramesCount ;	
+	conf_frame* outTextFramesTail ;
+	unsigned int outTextFramesCount ;
 
 	// LL video switched flag
 	short conference;
@@ -159,15 +159,15 @@ struct ast_conf_member
 	short first_frame_received;
 	// does text messages?
 	short does_text;
-	
-	
+
+
 	// time we last dropped a frame
 	struct timeval last_in_dropped ;
 	struct timeval last_out_dropped ;
-	
+
 	// ( not currently used )
-	// int samplesperframe ; 
-	
+	// int samplesperframe ;
+
 	// used for determining need to mix frames
 	// and for management interface notification
 	// and for VAD based video switching
@@ -176,31 +176,31 @@ struct ast_conf_member
 	short local_speaking_state; // This flag will be true only if this member is speaking
 	struct timeval last_state_change;
 	int speaker_count; // Number of drivers (including this member) that are speaking
-	
-	// pointer to next member in single-linked list	
+
+	// pointer to next member in single-linked list
 	struct ast_conf_member* next ;
-	
+
 	// accounting values
-	unsigned long frames_in ; 
+	unsigned long frames_in ;
 	unsigned long frames_in_dropped ;
 	unsigned long frames_out ;
 	unsigned long frames_out_dropped ;
 
-	unsigned long video_frames_in ; 
+	unsigned long video_frames_in ;
 	unsigned long video_frames_in_dropped ;
 	unsigned long video_frames_out ;
 	unsigned long video_frames_out_dropped ;
 
-	unsigned long dtmf_frames_in ; 
+	unsigned long dtmf_frames_in ;
 	unsigned long dtmf_frames_in_dropped ;
 	unsigned long dtmf_frames_out ;
 	unsigned long dtmf_frames_out_dropped ;
 
-	unsigned long text_frames_in ; 
+	unsigned long text_frames_in ;
 	unsigned long text_frames_in_dropped ;
 	unsigned long text_frames_out ;
 	unsigned long text_frames_out_dropped ;
-	
+
 	// for counting sequentially dropped frames
 	unsigned int sequential_drops ;
 	unsigned long since_dropped ;
@@ -208,7 +208,7 @@ struct ast_conf_member
 	// start time
 	struct timeval time_entered ;
 	struct timeval lastsent_timeval ;
-		
+
 	// flag indicating we should remove this member
 	short remove_flag ;
 	short kick_flag ;
@@ -229,7 +229,7 @@ struct ast_conf_member
 
 	int write_format_index ;
 	int read_format_index ;
-	
+
 	// member frame translators
 	struct ast_trans_pvt* to_slinear ;
 	struct ast_trans_pvt* from_slinear ;
@@ -237,12 +237,12 @@ struct ast_conf_member
 	// For playing sounds
 	struct ast_conf_soundq *soundq;
 	struct ast_conf_soundq *videoq;
-	
+
 	// Pointer to another member that will be driven from this member's audio
 	struct ast_conf_member *driven_member;
 } ;
 
-struct conf_member 
+struct conf_member
 {
 	struct ast_conf_member* realmember ;
 	struct conf_member* next ;
@@ -284,20 +284,20 @@ void send_state_change_notifications( struct ast_conf_member* member ) ;
 int increment_speaker_count(struct ast_conf_member *member, int lock);
 int decrement_speaker_count(struct ast_conf_member *member, int lock);
 
-void member_process_spoken_frames(struct ast_conference* conf, 
+void member_process_spoken_frames(struct ast_conference* conf,
 				  struct ast_conf_member *member,
 				  struct conf_frame **spoken_frames,
 				  long time_diff,
 				 int *listener_count,
 				 int *speaker_count);
 
-void member_process_outgoing_frames(struct ast_conference* conf, 
+void member_process_outgoing_frames(struct ast_conference* conf,
 				    struct ast_conf_member *member,
 				    struct conf_frame *send_frames);
 
 //
 // packer functions
-// 
+//
 
 struct ast_packer;
 

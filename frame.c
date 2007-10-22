@@ -13,17 +13,17 @@
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
- * Video Conferencing support added by 
+ * Video Conferencing support added by
  * Neil Stratford <neils@vipadia.com>
  * Copyright (C) 2005, 2005 Vipadia Limited
  *
- * VAD driven video conferencing, text message support 
- * and miscellaneous enhancements added by 
+ * VAD driven video conferencing, text message support
+ * and miscellaneous enhancements added by
  * Mihai Balea <mihai at hates dot ms>
  *
- * This program may be modified and distributed under the 
- * terms of the GNU General Public License. You should have received 
- * a copy of the GNU General Public License along with this 
+ * This program may be modified and distributed under the
+ * terms of the GNU General Public License. You should have received
+ * a copy of the GNU General Public License along with this
  * program; if not, write to the Free Software Foundation, Inc.
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
@@ -42,12 +42,12 @@ conf_frame* mix_frames( conf_frame* frames_in, int speaker_count, int listener_c
 	{
 		if ( speaker_count == 2 && listener_count == 0 )
 		{
-			// optimize here also?				
+			// optimize here also?
 			frames_out = mix_multiple_speakers( frames_in, speaker_count, listener_count ) ;
 		}
 		else
 		{
-			// mix spoken frames for sending 
+			// mix spoken frames for sending
 			// ( note: this call also releases us from free'ing spoken_frames )
 			frames_out = mix_multiple_speakers( frames_in, speaker_count, listener_count ) ;
 		}
@@ -97,14 +97,14 @@ conf_frame* mix_single_speaker( conf_frame* frames_in )
 	//
 	// 'mix' the frame
 	//
-	
+
 	// copy orignal frame to converted array so listeners don't need to re-encode it
 	frames_in->converted[ frames_in->member->read_format_index ] = ast_frdup( frames_in->fr ) ;
 
 	// convert frame to slinear, if we have a path
-	frames_in->fr = convert_frame_to_slinear( 
-		frames_in->member->to_slinear, 
-		frames_in->fr 
+	frames_in->fr = convert_frame_to_slinear(
+		frames_in->member->to_slinear,
+		frames_in->fr
 	) ;
 
 	// set the frame's member to null ( i.e. all listeners )
@@ -120,11 +120,11 @@ conf_frame* mix_single_speaker( conf_frame* frames_in )
 	// are in a conference, we just swamp the frame's member pointers
 	//
 /*
-	if ( 
-		listeners == 0 
-		&& speakers == 2 
-		&& cf_spokenFrames->member->read_format == cf_spokenFrames->next->member->write_format 
-		&& cf_spokenFrames->member->write_format == cf_spokenFrames->next->member->read_format 
+	if (
+		listeners == 0
+		&& speakers == 2
+		&& cf_spokenFrames->member->read_format == cf_spokenFrames->next->member->write_format
+		&& cf_spokenFrames->member->write_format == cf_spokenFrames->next->member->read_format
 	)
 	{
 		struct ast_conf_member* m = NULL ;
@@ -150,10 +150,10 @@ void set_conf_frame_delivery( conf_frame* frame, struct timeval time )
 	return ;
 }
 
-conf_frame* mix_multiple_speakers(  
-	conf_frame* frames_in, 
-	int speakers, 
-	int listeners 
+conf_frame* mix_multiple_speakers(
+	conf_frame* frames_in,
+	int speakers,
+	int listeners
 )
 {
 #ifdef APP_CONFERENCE_DEBUG
@@ -180,15 +180,15 @@ conf_frame* mix_multiple_speakers(
 	// at this point we know that there is more than one frame,
 	// and that the frames need to be converted to pcm to be mixed
 	//
-	// now, if there are only two frames and two members, 
-	// we can swap them. ( but we'll get to that later. ) 
+	// now, if there are only two frames and two members,
+	// we can swap them. ( but we'll get to that later. )
 	//
 
 	//
 	// loop through the spoken frames, making a list of spoken members,
 	// and converting gsm frames to slinear frames so we can mix them.
 	//
-	
+
 	// pointer to the spoken frames list
 	conf_frame* cf_spoken = frames_in ;
 
@@ -198,14 +198,14 @@ conf_frame* mix_multiple_speakers(
 	while ( cf_spoken != NULL )
 	{
 		//
-		// while we're looping through the spoken frames, we'll 
+		// while we're looping through the spoken frames, we'll
 		// convert the frame to a format suitable for mixing
 		//
-		// if the frame fails to convert, drop it and treat 
+		// if the frame fails to convert, drop it and treat
 		// the speaking member like a listener by not adding
 		// them to the cf_sendFrames list
 		//
-		
+
 		if ( cf_spoken->member == NULL )
 		{
 			ast_log( LOG_WARNING, "unable to determine frame member\n" ) ;
@@ -213,11 +213,11 @@ conf_frame* mix_multiple_speakers(
 		else
 		{
 			// ast_log( AST_CONF_DEBUG, "converting frame to slinear, channel => %s\n", cf_spoken->member->channel_name ) ;
-			cf_spoken->fr = convert_frame_to_slinear( 
-				cf_spoken->member->to_slinear, 
-				cf_spoken->fr 
+			cf_spoken->fr = convert_frame_to_slinear(
+				cf_spoken->member->to_slinear,
+				cf_spoken->fr
 			) ;
-			
+
 			if ( cf_spoken->fr == NULL )
 			{
 				ast_log( LOG_WARNING, "unable to convert frame to slinear\n" ) ;
@@ -228,9 +228,9 @@ conf_frame* mix_multiple_speakers(
 				cf_sendFrames = create_conf_frame( cf_spoken->member, cf_sendFrames, NULL ) ;
 			}
 		}
-		
+
 		// point to the next spoken frame
-		cf_spoken = cf_spoken->next ; 
+		cf_spoken = cf_spoken->next ;
 	}
 
 	// if necessary, add a frame with a null member pointer.
@@ -239,11 +239,11 @@ conf_frame* mix_multiple_speakers(
 	{
 		cf_sendFrames = create_conf_frame( NULL, cf_sendFrames, NULL ) ;
 	}
-		
+
 	//
 	// mix the audio
 	//
-	
+
 	// convenience pointer that skips over the friendly offset
 	char* cp_listenerData ;
 
@@ -252,11 +252,11 @@ conf_frame* mix_multiple_speakers(
 
 	for ( cf_send = cf_sendFrames ; cf_send != NULL ; cf_send = cf_send->next )
 	{
-		// allocate a mix buffer which fill large enough memory to 
+		// allocate a mix buffer which fill large enough memory to
 		// hold a frame, and reset it's memory so we don't get noise
 		char* cp_listenerBuffer = malloc( AST_CONF_BUFFER_SIZE ) ;
 		memset( cp_listenerBuffer, 0x0, AST_CONF_BUFFER_SIZE ) ;
-		
+
 		// point past the friendly offset right to the data
 		cp_listenerData = cp_listenerBuffer + AST_FRIENDLY_OFFSET ;
 
@@ -267,12 +267,12 @@ conf_frame* mix_multiple_speakers(
 		for ( ; cf_spoken != NULL ; cf_spoken = cf_spoken->next )
 		{
 			//
-			// if the members are equal, and they 
+			// if the members are equal, and they
 			// are not null, do not mix them.
 			//
 			if (
 				( cf_send->member == cf_spoken->member )
-				&& ( cf_send->member != NULL ) 
+				&& ( cf_send->member != NULL )
 			)
 			{
 				// don't mix this frame
@@ -282,20 +282,20 @@ conf_frame* mix_multiple_speakers(
 				ast_log( LOG_WARNING, "unable to mix conf_frame with null ast_frame\n" ) ;
 			}
 			else
-			{			
-				// mix the new frame in with the existing buffer			
+			{
+				// mix the new frame in with the existing buffer
 				mix_slinear_frames( cp_listenerData, (char*)( cf_spoken->fr->data ), AST_CONF_BLOCK_SAMPLES);//XXX NAS cf_spoken->fr->samples ) ;
 			}
 		}
-		
+
 		// copy a pointer to the frame data to the conf_frame
 		cf_send->mixed_buffer = cp_listenerData ;
 	}
-	
+
 	//
 	// copy the mixed buffer to a new frame
 	//
-	
+
 	// reset the send list pointer
 	cf_send = cf_sendFrames ;
 
@@ -304,7 +304,7 @@ conf_frame* mix_multiple_speakers(
 		cf_send->fr = create_slinear_frame( cf_send->mixed_buffer ) ;
 		cf_send = cf_send->next ;
 	}
-	
+
 	//
 	// clean up the spoken frames we were passed
 	// ( caller will only be responsible for free'ing returns frames )
@@ -318,7 +318,7 @@ conf_frame* mix_multiple_speakers(
 		// delete the frame
 		cf_spoken = delete_conf_frame( cf_spoken ) ;
 	}
-	
+
 	// return the list of frames for sending
 	return cf_sendFrames ;
 }
@@ -333,10 +333,10 @@ struct ast_frame* convert_frame_to_slinear( struct ast_trans_pvt* trans, struct 
 		return NULL ;
 	}
 
-	// we don't need to duplicate this frame since 
+	// we don't need to duplicate this frame since
 	// the normal translation would free it anyway, so
-	// we'll just pretend we free'd and malloc'd a new one. 
-	if ( fr->subclass == AST_FORMAT_SLINEAR ) 
+	// we'll just pretend we free'd and malloc'd a new one.
+	if ( fr->subclass == AST_FORMAT_SLINEAR )
 		return fr ;
 
 	// check for null translator ( after we've checked that we need to translate )
@@ -365,14 +365,14 @@ struct ast_frame* convert_frame_from_slinear( struct ast_trans_pvt* trans, struc
 		ast_log( LOG_ERROR, "unable to translate null slinear frame\n" ) ;
 		return NULL ;
 	}
-	
+
 	// if the frame is not slinear, return an error
 	if ( fr->subclass != AST_FORMAT_SLINEAR )
 	{
 		ast_log( LOG_ERROR, "unable to translate non-slinear frame\n" ) ;
 		return NULL ;
 	}
-	
+
 	// return the converted frame
 	return convert_frame( trans, fr ) ;
 }
@@ -395,7 +395,7 @@ struct ast_frame* convert_frame( struct ast_trans_pvt* trans, struct ast_frame* 
 	struct ast_frame* translated_frame = ast_translate( trans, fr, 1 ) ;
 
 	// check for errors
-	if ( translated_frame == NULL ) 
+	if ( translated_frame == NULL )
 	{
 		ast_log( LOG_ERROR, "unable to translate frame\n" ) ;
 		return NULL ;
@@ -414,17 +414,17 @@ conf_frame* delete_conf_frame( conf_frame* cf )
 		ast_log( AST_CONF_DEBUG, "unable to delete null conf frame\n" ) ;
 		return NULL ;
 	}
-	
+
 	// check for frame marked as static
 	if ( cf->static_frame == 1 )
 		return NULL ;
 
-	if ( cf->fr != NULL ) 
+	if ( cf->fr != NULL )
 	{
 		ast_frfree( cf->fr ) ;
 		cf->fr = NULL ;
 	}
-		
+
 	// make sure converted frames are set to null
 	for ( c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
 	{
@@ -435,13 +435,13 @@ conf_frame* delete_conf_frame( conf_frame* cf )
 		}
 	}
 
-	// get a pointer to the next frame 
+	// get a pointer to the next frame
 	// in the list so we can return it
 	conf_frame* nf = cf->next ;
-		
+
 	free( cf ) ;
-	cf = NULL ;	
-	
+	cf = NULL ;
+
 	return nf ;
 }
 
@@ -459,7 +459,7 @@ conf_frame* create_conf_frame( struct ast_conf_member* member, conf_frame* next,
 	//
 	// init with some defaults
 	//
-	
+
 	// make sure converted frames are set to null
 //	for ( int c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
 //	{
@@ -477,11 +477,11 @@ conf_frame* create_conf_frame( struct ast_conf_member* member, conf_frame* next,
 	cf->static_frame = 0 ;
 
 	// establish relationship to 'next'
-	if ( next != NULL ) next->prev = cf ; 
+	if ( next != NULL ) next->prev = cf ;
 
 	// this holds the ast_frame pointer
 	cf->fr = ( fr == NULL ) ? NULL : ast_frdup( ( struct ast_frame* )( fr ) ) ;
-	
+
 	// this holds the temporu mix buffer
 	cf->mixed_buffer = NULL ;
 
@@ -499,13 +499,13 @@ conf_frame* copy_conf_frame( conf_frame* src )
 		ast_log( AST_CONF_DEBUG, "unable to copy null conf frame\n" ) ;
 		return NULL ;
 	}
-	
+
 	//
 	// copy the frame
 	//
 
 	struct conf_frame *cfr = NULL ;
-	
+
 	// create a new conf frame
 	cfr = create_conf_frame( src->member, NULL, src->fr ) ;
 
@@ -514,7 +514,7 @@ conf_frame* copy_conf_frame( conf_frame* src )
 		ast_log( AST_CONF_DEBUG, "unable to create new conf frame for copy\n" ) ;
 		return NULL ;
 	}
-	
+
 	return cfr ;
 }
 
@@ -525,9 +525,9 @@ struct ast_frame* create_text_frame(const char *text, int copy)
 {
 	struct ast_frame *f;
 	char             *t;
-	
+
 	f = calloc(1, sizeof(struct ast_frame));
-	if ( f == NULL ) 
+	if ( f == NULL )
 	{
 		ast_log( LOG_ERROR, "unable to allocate memory for text frame\n" ) ;
 		return NULL ;
@@ -546,7 +546,7 @@ struct ast_frame* create_text_frame(const char *text, int copy)
 	{
 		t = (char *)text;
 	}
-	
+
 	f->frametype = AST_FRAME_TEXT;
 	f->offset = 0;
 	f->mallocd = AST_MALLOCD_HDR;
@@ -554,7 +554,7 @@ struct ast_frame* create_text_frame(const char *text, int copy)
 	f->datalen = strlen(t) + 1;
 	f->data = t;
 	f->src = NULL;
-	
+
 	return f;
 }
 
@@ -567,12 +567,12 @@ struct ast_frame* create_slinear_frame( char* data )
 	struct ast_frame* f ;
 
 	f = calloc( 1, sizeof( struct ast_frame ) ) ;
-	if ( f == NULL ) 
+	if ( f == NULL )
 	{
 		ast_log( LOG_ERROR, "unable to allocate memory for slinear frame\n" ) ;
 		return NULL ;
 	}
-	
+
 	f->frametype = AST_FRAME_VOICE ;
 	f->subclass = AST_FORMAT_SLINEAR ;
 	f->samples = AST_CONF_BLOCK_SAMPLES ;
@@ -587,34 +587,34 @@ struct ast_frame* create_slinear_frame( char* data )
 	return f ;
 }
 
-void mix_slinear_frames( char *dst, const char *src, int samples ) 
+void mix_slinear_frames( char *dst, const char *src, int samples )
 {
 	if ( dst == NULL ) return ;
 	if ( src == NULL ) return ;
 
 	int i, val ;
 
-	for ( i = 0 ; i < samples ; ++i ) 
+	for ( i = 0 ; i < samples ; ++i )
 	{
 		val = ( (short*)dst )[i] + ( (short*)src )[i] ;
 
-		if ( val > 0x7fff ) 
+		if ( val > 0x7fff )
 		{
 			( (short*)dst )[i] = 0x7fff - 1 ;
 			continue ;
-		} 
+		}
 		else if ( val < -0x7fff )
 		{
 			( (short*)dst )[i] = -0x7fff + 1 ;
 			continue ;
-		} 
-		else 
+		}
+		else
 		{
 			( (short*)dst )[i] = val ;
 	   		continue ;
-		} 
+		}
 	}
-	
+
 	return ;
 }
 
@@ -622,7 +622,7 @@ void mix_slinear_frames( char *dst, const char *src, int samples )
 // silent frame functions
 //
 
-conf_frame* get_silent_frame( void ) 
+conf_frame* get_silent_frame( void )
 {
 	static conf_frame* static_silent_frame = NULL ;
 
@@ -631,29 +631,29 @@ conf_frame* get_silent_frame( void )
 	{
 		// ast_log( AST_CONF_DEBUG, "creating cached silent frame\n" ) ;
 		struct ast_frame* fr = get_silent_slinear_frame() ;
-		
+
 		static_silent_frame = create_conf_frame( NULL, NULL, fr ) ;
-		
+
 		if ( static_silent_frame == NULL )
 		{
 			ast_log( LOG_WARNING, "unable to create cached silent frame\n" ) ;
 			return NULL ;
 		}
-		
+
 		// init the 'converted' slinear silent frame
 		static_silent_frame->converted[ AC_SLINEAR_INDEX ] = get_silent_slinear_frame() ;
-		
+
 		// mark frame as static so it's not deleted
 		static_silent_frame->static_frame = 1 ;
 	}
-	
+
 	return static_silent_frame ;
 }
 
 struct ast_frame* get_silent_slinear_frame( void )
 {
 	static struct ast_frame* f = NULL ;
-	
+
 	// we'll let this leak until the application terminates
 	if ( f == NULL )
 	{
@@ -661,7 +661,7 @@ struct ast_frame* get_silent_slinear_frame( void )
 		memset( data, 0x0, AST_CONF_BUFFER_SIZE ) ;
 		f = create_slinear_frame( data ) ;
 	}
-	
+
 	return f;
 }
 

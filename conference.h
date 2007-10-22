@@ -13,17 +13,17 @@
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
- * Video Conferencing support added by 
+ * Video Conferencing support added by
  * Neil Stratford <neils@vipadia.com>
  * Copyright (C) 2005, 2005 Vipadia Limited
  *
- * VAD driven video conferencing, text message support 
- * and miscellaneous enhancements added by 
+ * VAD driven video conferencing, text message support
+ * and miscellaneous enhancements added by
  * Mihai Balea <mihai at hates dot ms>
  *
- * This program may be modified and distributed under the 
- * terms of the GNU General Public License. You should have received 
- * a copy of the GNU General Public License along with this 
+ * This program may be modified and distributed under the
+ * terms of the GNU General Public License. You should have received
+ * a copy of the GNU General Public License along with this
  * program; if not, write to the Free Software Foundation, Inc.
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
@@ -45,72 +45,72 @@
 typedef struct ast_conference_stats
 {
 	// conference name ( copied for ease of use )
-	char name[128] ; 
+	char name[128] ;
 
 	// type of connection
 	unsigned short phone ;
 	unsigned short iaxclient ;
 	unsigned short sip ;
-	
+
 	// type of users
 	unsigned short moderators ;
 	unsigned short listeners ;
-	
+
 	// accounting data
 	unsigned long frames_in ;
 	unsigned long frames_out ;
 	unsigned long frames_mixed ;
 
-	struct timeval time_entered ; 
+	struct timeval time_entered ;
 
 } ast_conference_stats ;
 
 
-struct ast_conference 
+struct ast_conference
 {
 	// conference name
-	char name[128] ; 
-	
+	char name[128] ;
+
 	// single-linked list of members in conference
 	struct ast_conf_member* memberlist ;
 	int membercount ;
         int id_count;
-	
-	// id of the default video source 
+
+	// id of the default video source
 	// If nobody is talking and video is unlocked, we use this source
 	int default_video_source_id;
-	
+
 	// id of the current video source
 	// this changes according to VAD rules and lock requests
 	int current_video_source_id;
-	
+
 	// timestamp of when the current source has started talking
 	// TODO: do we really need this?
 	//struct timeval current_video_source_timestamp;
-	
+
 	// Video source locked flag, 1 -> locked, 0 -> unlocked
 	short video_locked;
-	
+
 	// conference thread id
 	pthread_t conference_thread ;
 
 	// conference data mutex
 	ast_mutex_t lock ;
-	
+
 	// pointer to next conference in single-linked list
 	struct ast_conference* next ;
-	
+
 	// pointer to translation paths
 	struct ast_trans_pvt* from_slinear_paths[ AC_SUPPORTED_FORMATS ] ;
-	
+
 	// conference stats
 	ast_conference_stats stats ;
-	
+
 	// keep track of current delivery time
 	struct timeval delivery_time ;
 
 	// 1 => on, 0 => off
-	short debug_flag ;	
+	short debug_flag ;
 } ;
 
 
@@ -141,7 +141,7 @@ void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
 
-void do_VAD_switching(struct ast_conference *conf); 
+void do_VAD_switching(struct ast_conference *conf);
 int send_text_message_to_member(struct ast_conf_member *member, const char *text);
 void do_video_switching(struct ast_conference *conf, int new_id, int lock);
 

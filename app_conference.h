@@ -13,17 +13,17 @@
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
- * Video Conferencing support added by 
+ * Video Conferencing support added by
  * Neil Stratford <neils@vipadia.com>
  * Copyright (C) 2005, 2005 Vipadia Limited
  *
- * VAD driven video conferencing, text message support 
- * and miscellaneous enhancements added by 
+ * VAD driven video conferencing, text message support
+ * and miscellaneous enhancements added by
  * Mihai Balea <mihai at hates dot ms>
  *
- * This program may be modified and distributed under the 
- * terms of the GNU General Public License. You should have received 
- * a copy of the GNU General Public License along with this 
+ * This program may be modified and distributed under the
+ * terms of the GNU General Public License. You should have received
+ * a copy of the GNU General Public License along with this
  * program; if not, write to the Free Software Foundation, Inc.
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
@@ -80,7 +80,7 @@
 // feature defines
 //
 
-// number of times the last non-silent frame should be 
+// number of times the last non-silent frame should be
 // repeated after silence starts
 #define AST_CONF_CACHE_LAST_FRAME 1
 
@@ -108,10 +108,10 @@
 //neils#define AST_CONF_FRAME_INTERVAL 30
 
 //
-// so, since we cycle approximately every 20ms, 
+// so, since we cycle approximately every 20ms,
 // we can compute the following values:
 //
-// 160 samples per 20 ms frame -or- 
+// 160 samples per 20 ms frame -or-
 // ( 8000 samples-per-second * ( 20 ms / 1000 ms-per-second ) ) = 160 samples
 //
 // 320 bytes ( 2560 bits ) of data  20 ms frame -or-
@@ -124,7 +124,7 @@
 // 2 bytes per sample ( i.e. 16-bit )
 #define AST_CONF_BYTES_PER_SAMPLE 2
 
-// 320 bytes for each 160 sample frame of 16-bit audio 
+// 320 bytes for each 160 sample frame of 16-bit audio
 #define AST_CONF_FRAME_DATA_SIZE 320
 
 // 1000 ms-per-second / 20 ms-per-frame = 50 frames-per-second
@@ -149,7 +149,7 @@
 
 // max text frames in the queue
 #define AST_CONF_MAX_TEXT_QUEUE 8
-		
+
 // minimum number of frames queued per member
 #define AST_CONF_MIN_QUEUE 0
 
@@ -168,7 +168,7 @@
 #define AST_CONF_WAITFOR_LATENCY 40
 
 // milliseconds to sleep before trying to process frames
-#define AST_CONF_CONFERENCE_SLEEP 40 
+#define AST_CONF_CONFERENCE_SLEEP 40
 
 // milliseconds to wait between state notification updates
 #define AST_CONF_NOTIFICATION_SLEEP 200

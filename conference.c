@@ -13,17 +13,17 @@
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
- * Video Conferencing support added by 
+ * Video Conferencing support added by
  * Neil Stratford <neils@vipadia.com>
  * Copyright (C) 2005, 2005 Vipadia Limited
  *
- * VAD driven video conferencing, text message support 
- * and miscellaneous enhancements added by 
+ * VAD driven video conferencing, text message support
+ * and miscellaneous enhancements added by
  * Mihai Balea <mihai at hates dot ms>
  *
- * This program may be modified and distributed under the 
- * terms of the GNU General Public License. You should have received 
- * a copy of the GNU General Public License along with this 
+ * This program may be modified and distributed under the
+ * terms of the GNU General Public License. You should have received
+ * a copy of the GNU General Public License along with this
  * program; if not, write to the Free Software Foundation, Inc.
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
@@ -50,19 +50,19 @@ static int conference_count = 0 ;
 // main conference function
 //
 
-void conference_exec( struct ast_conference *conf ) 
+void conference_exec( struct ast_conference *conf )
 {
 
 	struct ast_conf_member *next_member;
 	struct ast_conf_member *member, *video_source_member, *dtmf_source_member;;
 	struct conf_frame *cfr, *spoken_frames, *send_frames;
-	
+
 	// count number of speakers, number of listeners
 	int speaker_count ;
 	int listener_count ;
-	
+
 	ast_log( AST_CONF_DEBUG, "Entered conference_exec, name => %s\n", conf->name ) ;
-	
+
 	// timer timestamps
 	struct timeval base, curr, notify ;
 	gettimeofday( &base, NULL ) ;
@@ -71,9 +71,9 @@ void conference_exec( struct ast_conference *conf )
 	// holds differences of curr and base
 	long time_diff = 0 ;
 	long time_sleep = 0 ;
-	
+
 	int since_last_slept = 0 ;
-	
+
 	//
 	// variables for checking thread frequency
 	//
@@ -90,7 +90,7 @@ void conference_exec( struct ast_conference *conf )
 	// main conference thread loop
 	//
 
- 
+
 	while ( 42 == 42 )
 	{
 		// update the current timestamp
@@ -101,9 +101,9 @@ void conference_exec( struct ast_conference *conf )
 
 		// calculate time we should sleep
 		time_sleep = AST_CONF_FRAME_INTERVAL - time_diff ;
-		
-		if ( time_sleep > 0 ) 
-		{		
+
+		if ( time_sleep > 0 )
+		{
 			// sleep for sleep_time ( as milliseconds )
 			usleep( time_sleep * 1000 ) ;
 
@@ -115,15 +115,15 @@ void conference_exec( struct ast_conference *conf )
 		else
 		{
 			// long sleep warning
-			if ( 
+			if (
 				since_last_slept == 0
-				&& time_diff > AST_CONF_CONFERENCE_SLEEP * 2 
+				&& time_diff > AST_CONF_CONFERENCE_SLEEP * 2
 			)
 			{
-				ast_log( 
-					AST_CONF_DEBUG, 
+				ast_log(
+					AST_CONF_DEBUG,
 					"long scheduling delay, time_diff => %ld, AST_CONF_FRAME_INTERVAL => %d\n",
-					time_diff, AST_CONF_FRAME_INTERVAL 
+					time_diff, AST_CONF_FRAME_INTERVAL
 				) ;
 			}
 
@@ -137,14 +137,14 @@ void conference_exec( struct ast_conference *conf )
 
 		// adjust the timer base ( it will be used later to timestamp outgoing frames )
 		add_milliseconds( &base, AST_CONF_FRAME_INTERVAL ) ;
-		
+
 		//
 		// check thread frequency
 		//
-	
+
 		if ( ++tf_count >= AST_CONF_FRAMES_PER_SECOND )
 		{
-			// update current timestamp	
+			// update current timestamp
 			gettimeofday( &tf_curr, NULL ) ;
 
 			// compute timestamp difference
@@ -153,19 +153,19 @@ void conference_exec( struct ast_conference *conf )
 			// compute sampling frequency
 			tf_frequency = ( float )( tf_diff ) / ( float )( tf_count ) ;
 
-			if ( 
+			if (
 				( tf_frequency <= ( float )( AST_CONF_FRAME_INTERVAL - 1 ) )
 				|| ( tf_frequency >= ( float )( AST_CONF_FRAME_INTERVAL + 1 ) )
 			)
 			{
-				ast_log( 
-					LOG_WARNING, 
+				ast_log(
+					LOG_WARNING,
 					"processed frame frequency variation, name => %s, tf_count => %d, tf_diff => %ld, tf_frequency => %2.4f\n",
 					conf->name, tf_count, tf_diff, tf_frequency
 				) ;
 			}
 
-			// reset values 
+			// reset values
 			tf_base = tf_curr ;
 			tf_count = 0 ;
 		}
@@ -174,47 +174,47 @@ void conference_exec( struct ast_conference *conf )
 		// INCOMING FRAMES //
 		//-----------------//
 
-		// ast_log( AST_CONF_DEBUG, "PROCESSING FRAMES, conference => %s, step => %d, ms => %ld\n", 
+		// ast_log( AST_CONF_DEBUG, "PROCESSING FRAMES, conference => %s, step => %d, ms => %ld\n",
 		//	conf->name, step, ( base.tv_usec / 20000 ) ) ;
 
 		//
 		// check if the conference is empty and if so
 		// remove it and break the loop
 		//
-		
+
 		// acquire the conference list lock
-		ast_mutex_lock(&conflist_lock);		
-		
+		ast_mutex_lock(&conflist_lock);
+
 		// acquire the conference mutex
 		ast_mutex_lock(&conf->lock);
-		
-		if ( conf->membercount == 0 ) 
+
+		if ( conf->membercount == 0 )
 		{
 			if (conf->debug_flag)
 			{
 				ast_log( LOG_NOTICE, "removing conference, count => %d, name => %s\n", conf->membercount, conf->name ) ;
 			}
 			remove_conf( conf ) ; // stop the conference
-			
+
 			// We don't need to release the conf mutex, since it was destroyed anyway
-			
+
 			// release the conference list lock
 			ast_mutex_unlock(&conflist_lock);
-			
+
 			break ; // break from main processing loop
 		}
-		
+
 		// release the conference mutex
 		ast_mutex_unlock(&conf->lock);
-		
+
 		// release the conference list lock
 		ast_mutex_unlock(&conflist_lock);
-		
-		
+
+
 		//
 		// Start processing frames
 		//
-		
+
 		// acquire conference mutex
 		TIMELOG(ast_mutex_lock( &conf->lock ),1,"conf thread conf lock");
 
@@ -224,12 +224,12 @@ void conference_exec( struct ast_conference *conf )
 			ast_mutex_unlock(&conf->lock);
 			continue; // We'll check again at the top of the loop
 		}
-		
+
 		// update the current delivery time
 		conf->delivery_time = base ;
-		
+
 		//
-		// loop through the list of members 
+		// loop through the list of members
 		// ( conf->memberlist is a single-linked list )
 		//
 
@@ -238,7 +238,7 @@ void conference_exec( struct ast_conference *conf )
 		// reset speaker and listener count
 		speaker_count = 0 ;
 		listener_count = 0 ;
-		
+
 		// get list of conference members
 		member = conf->memberlist ;
 
@@ -263,7 +263,7 @@ void conference_exec( struct ast_conference *conf )
 
 			// adjust our pointer to the next inline
 			member = next_member;
-		} 
+		}
 
 		// ast_log( AST_CONF_DEBUG, "finished processing incoming audio, name => %s\n", conf->name ) ;
 
@@ -278,7 +278,7 @@ void conference_exec( struct ast_conference *conf )
 		// accounting: if there are frames, count them as one incoming frame
 		if ( send_frames != NULL )
 		{
-			// set delivery timestamp 
+			// set delivery timestamp
 			//set_conf_frame_delivery( send_frames, base ) ;
 //			ast_log ( LOG_WARNING, "base = %d,%d: conf->delivery_time = %d,%d\n",base.tv_sec,base.tv_usec, conf->delivery_time.tv_sec, conf->delivery_time.tv_usec);
 
@@ -286,7 +286,7 @@ void conference_exec( struct ast_conference *conf )
 
 			conf->stats.frames_in++ ;
 		}
-			
+
 		//-----------------//
 		// OUTGOING FRAMES //
 		//-----------------//
@@ -294,7 +294,7 @@ void conference_exec( struct ast_conference *conf )
 		//
 		// loop over member list to queue outgoing frames
 		//
-		for ( member = conf->memberlist ; member != NULL ; member = member->next ) 
+		for ( member = conf->memberlist ; member != NULL ; member = member->next )
 		{
 			member_process_outgoing_frames(conf, member, send_frames);
 		}
@@ -305,8 +305,8 @@ void conference_exec( struct ast_conference *conf )
 
 		// loop over the incoming frames and send to all outgoing
 		// TODO: this is an O(n^2) algorithm. Can we speed it up without sacrificing per-member switching?
-		for (video_source_member = conf->memberlist; 
-		     video_source_member != NULL; 
+		for (video_source_member = conf->memberlist;
+		     video_source_member != NULL;
 		     video_source_member = video_source_member->next)
 		{
 			while ((cfr = get_incoming_video_frame( video_source_member )))
@@ -314,9 +314,9 @@ void conference_exec( struct ast_conference *conf )
 				for (member = conf->memberlist; member != NULL; member = member->next)
 				{
 					// skip members that are not ready or are not supposed to receive video
-					if ( !member->ready_for_outgoing || member->norecv_video ) 
+					if ( !member->ready_for_outgoing || member->norecv_video )
 						continue ;
-					
+
 					if ( conf->video_locked )
 					{
 						// Always send video from the locked source
@@ -334,7 +334,7 @@ void conference_exec( struct ast_conference *conf )
 						} else
 						{
 							// If no dtmf switching, then do VAD switching
-							// The VAD switching decision code should make sure that our video source 
+							// The VAD switching decision code should make sure that our video source
 							// is legit
 							if ( (conf->current_video_source_id == video_source_member->id) ||
 							       (conf->current_video_source_id < 0 &&
@@ -345,8 +345,8 @@ void conference_exec( struct ast_conference *conf )
 								queue_outgoing_video_frame(member, cfr->fr, conf->delivery_time);
 							}
 						}
-						
-						
+
+
 					}
 				}
 				// Garbage collection
@@ -366,11 +366,11 @@ void conference_exec( struct ast_conference *conf )
 				for (member = conf->memberlist; member != NULL; member = member->next)
 				{
 					// skip members that are not ready
-					if ( member->ready_for_outgoing == 0 ) 
+					if ( member->ready_for_outgoing == 0 )
 					{
 						continue ;
 					}
-					
+
 					if (member != dtmf_source_member)
 					{
  						// Send the latest frame
@@ -386,15 +386,15 @@ void conference_exec( struct ast_conference *conf )
 		// CLEANUP //
 		//---------//
 
-		// clean up send frames		
+		// clean up send frames
 		while ( send_frames != NULL )
-		{		
+		{
 			// accouting: count all frames and mixed frames
 			if ( send_frames->member == NULL )
 				conf->stats.frames_out++ ;
 			else
 				conf->stats.frames_mixed++ ;
-			
+
 			// delete the frame
 			send_frames = delete_conf_frame( send_frames ) ;
 		}
@@ -403,34 +403,34 @@ void conference_exec( struct ast_conference *conf )
 		// notify the manager of state changes every 100 milliseconds
 		// we piggyback on this for VAD switching logic
 		//
-		
+
 		if ( ( usecdiff( &curr, &notify ) / AST_CONF_NOTIFICATION_SLEEP ) >= 1 )
 		{
 			// Do VAD switching logic
 			// We need to do this here since send_state_change_notifications
 			// resets the flags
-			if ( !conf->video_locked ) 
+			if ( !conf->video_locked )
 				do_VAD_switching(conf);
-						
+
 			// send the notifications
 			send_state_change_notifications( conf->memberlist ) ;
-		
+
 			// increment the notification timer base
 			add_milliseconds( &notify, AST_CONF_NOTIFICATION_SLEEP ) ;
 		}
 
 		// release conference mutex
 		ast_mutex_unlock( &conf->lock ) ;
-		
+
 		// !!! TESTING !!!
 		// usleep( 1 ) ;
-	} 
+	}
 	// end while ( 42 == 42 )
 
 	//
 	// exit the conference thread
-	// 
-	
+	//
+
 	ast_log( AST_CONF_DEBUG, "exit conference_exec\n" ) ;
 
 	// exit the thread
@@ -444,12 +444,12 @@ void conference_exec( struct ast_conference *conf )
 //
 
 // called by app_conference.c:load_module()
-void init_conference( void ) 
+void init_conference( void )
 {
 	ast_mutex_init( &conflist_lock ) ;
 }
 
-struct ast_conference* start_conference( struct ast_conf_member* member ) 
+struct ast_conference* start_conference( struct ast_conf_member* member )
 {
 	// check input
 	if ( member == NULL )
@@ -462,13 +462,13 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 
 	// acquire the conference list lock
 	ast_mutex_lock(&conflist_lock);
-	
-	
-	
+
+
+
 	// look for an existing conference
 	ast_log( AST_CONF_DEBUG, "attempting to find requested conference\n" ) ;
 	conf = find_conf( member->conf_name ) ;
-	
+
 	// unable to find an existing conference, try to create one
 	if ( conf == NULL )
 	{
@@ -479,7 +479,7 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 		conf = create_conf( member->conf_name, member ) ;
 
 		// return an error if create_conf() failed
-		if ( conf == NULL ) 
+		if ( conf == NULL )
 			ast_log( LOG_ERROR, "unable to find or create requested conference\n" ) ;
 	}
 	else
@@ -492,31 +492,31 @@ struct ast_conference* start_conference( struct ast_conf_member* member )
 		//
 		add_member( member, conf ) ;
 	}
-	
+
 	// release the conference list lock
 	ast_mutex_unlock(&conflist_lock);
-	
+
 	return conf ;
 }
 
 // This function should be called with conflist_lock mutex being held
-struct ast_conference* find_conf( const char* name ) 
-{	
+struct ast_conference* find_conf( const char* name )
+{
 	// no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", name ) ;
 		return NULL ;
 	}
-	
+
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (char*)&(conf->name), name, 80 ) == 0 )
 		{
-			// found conf name match 
+			// found conf name match
 			ast_log( AST_CONF_DEBUG, "found conference in conflist, name => %s\n", name ) ;
 			return conf;
 		}
@@ -530,15 +530,15 @@ struct ast_conference* find_conf( const char* name )
 // This function should be called with conflist_lock held
 struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 {
-	ast_log( AST_CONF_DEBUG, "entered create_conf, name => %s\n", name ) ;	
+	ast_log( AST_CONF_DEBUG, "entered create_conf, name => %s\n", name ) ;
 
 	//
 	// allocate memory for conference
 	//
 
 	struct ast_conference *conf = malloc( sizeof( struct ast_conference ) ) ;
-	
-	if ( conf == NULL ) 
+
+	if ( conf == NULL )
 	{
 		ast_log( LOG_ERROR, "unable to malloc ast_conference\n" ) ;
 		return NULL ;
@@ -547,7 +547,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	//
 	// initialize conference
 	//
-	
+
 	conf->next = NULL ;
 	conf->memberlist = NULL ;
 
@@ -557,7 +557,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	conf->debug_flag = 0 ;
 
 	conf->id_count = 0;
-	
+
 	conf->default_video_source_id = -1;
 	conf->current_video_source_id = -1;
 	//gettimeofday(&conf->current_video_source_timestamp, NULL);
@@ -565,30 +565,30 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 
 	// zero stats
 	memset(	&conf->stats, 0x0, sizeof( ast_conference_stats ) ) ;
-	
+
 	// record start time
 	gettimeofday( &conf->stats.time_entered, NULL ) ;
 
 	// copy name to conference
 	strncpy( (char*)&(conf->name), name, sizeof(conf->name) - 1 ) ;
 	strncpy( (char*)&(conf->stats.name), name, sizeof(conf->name) - 1 ) ;
-	
+
 	// initialize mutexes
 	ast_mutex_init( &conf->lock ) ;
-	
-	// build translation paths	
+
+	// build translation paths
 	conf->from_slinear_paths[ AC_SLINEAR_INDEX ] = NULL ;
 	conf->from_slinear_paths[ AC_ULAW_INDEX ] = ast_translator_build_path( AST_FORMAT_ULAW, AST_FORMAT_SLINEAR ) ;
 	conf->from_slinear_paths[ AC_ALAW_INDEX ] = ast_translator_build_path( AST_FORMAT_ALAW, AST_FORMAT_SLINEAR ) ;
 	conf->from_slinear_paths[ AC_GSM_INDEX ] = ast_translator_build_path( AST_FORMAT_GSM, AST_FORMAT_SLINEAR ) ;
 	conf->from_slinear_paths[ AC_SPEEX_INDEX ] = ast_translator_build_path( AST_FORMAT_SPEEX, AST_FORMAT_SLINEAR ) ;
-#ifdef AC_USE_G729A	
+#ifdef AC_USE_G729A
 	conf->from_slinear_paths[ AC_G729A_INDEX ] = ast_translator_build_path( AST_FORMAT_G729A, AST_FORMAT_SLINEAR ) ;
 #endif
-		
+
 	// add the initial member
 	add_member( member, conf ) ;
-	
+
 	ast_log( AST_CONF_DEBUG, "added new conference to conflist, name => %s\n", name ) ;
 
 	//
@@ -596,8 +596,8 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	//
 	// acquire conference mutexes
 	ast_mutex_lock( &conf->lock ) ;
-	
-	if ( ast_pthread_create( &conf->conference_thread, NULL, (void*)conference_exec, conf ) == 0 ) 
+
+	if ( ast_pthread_create( &conf->conference_thread, NULL, (void*)conference_exec, conf ) == 0 )
 	{
 		// detach the thread so it doesn't leak
 		pthread_detach( conf->conference_thread ) ;
@@ -614,7 +614,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 	else
 	{
 		ast_log( LOG_ERROR, "unable to start conference thread for conference %s\n", conf->name ) ;
-		
+
 		conf->conference_thread = -1 ;
 
 		// release conference mutexes
@@ -625,7 +625,7 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 		conf = NULL ;
 	}
 
-	// count new conference 
+	// count new conference
 	if ( conf != NULL )
 		++conference_count ;
 
@@ -643,18 +643,18 @@ void remove_conf( struct ast_conference *conf )
 	struct ast_conference *conf_temp = NULL ;
 
 	// loop through list of conferences
-	while ( conf_current != NULL ) 
+	while ( conf_current != NULL )
 	{
 		// if conf_current point to the passed conf,
-		if ( conf_current == conf ) 
+		if ( conf_current == conf )
 		{
-			if ( conf_temp == NULL ) 
+			if ( conf_temp == NULL )
 			{
-				// this is the first conf in the list, so we just point 
+				// this is the first conf in the list, so we just point
 				// conflist past the current conf to the next
 				conflist = conf_current->next ;
 			}
-			else 
+			else
 			{
 				// this is not the first conf in the list, so we need to
 				// point the preceeding conf to the next conf in the list
@@ -664,9 +664,9 @@ void remove_conf( struct ast_conference *conf )
 			//
 			// do some frame clean up
 			//
-		
+
 			for ( c = 0 ; c < AC_SUPPORTED_FORMATS ; ++c )
-			{				
+			{
 				// free the translation paths
 				if ( conf_current->from_slinear_paths[ c ] != NULL )
 				{
@@ -678,35 +678,35 @@ void remove_conf( struct ast_conference *conf )
 			// calculate time in conference
 			struct timeval time_exited ;
 			gettimeofday( &time_exited, NULL ) ;
-			
+
 			// total time converted to seconds
 			long tt = ( usecdiff( &time_exited, &conf_current->stats.time_entered ) / 1000 ) ;
-	
+
 			// report accounting information
 			if (conf->debug_flag)
 			{
 				ast_log( LOG_NOTICE, "conference accounting, fi => %ld, fo => %ld, fm => %ld, tt => %ld\n",
 					 conf_current->stats.frames_in, conf_current->stats.frames_out, conf_current->stats.frames_mixed, tt ) ;
-				
+
 				ast_log( AST_CONF_DEBUG, "removed conference, name => %s\n", conf_current->name ) ;
 			}
 
 			ast_mutex_unlock( &conf_current->lock ) ;
-			
+
 			free( conf_current ) ;
 			conf_current = NULL ;
-			
+
 			break ;
 		}
 
 		// save a refence to the soon to be previous conf
 		conf_temp = conf_current ;
-		
+
 		// move conf_current to the next in the list
 		conf_current = conf_current->next ;
 	}
-	
-	// count new conference 
+
+	// count new conference
 	--conference_count ;
 
 	return ;
@@ -714,7 +714,7 @@ void remove_conf( struct ast_conference *conf )
 
 int get_new_id( struct ast_conference *conf )
 {
-	// must have the conf lock when calling this 
+	// must have the conf lock when calling this
 	int newid;
 	struct ast_conf_member *othermember;
 	// get a video ID for this member
@@ -722,7 +722,7 @@ int get_new_id( struct ast_conference *conf )
 	othermember = conf->memberlist;
 	while (othermember)
 	{
-	    if (othermember->id == newid) 
+	    if (othermember->id == newid)
 	    {
 		    newid++;
 		    othermember = conf->memberlist;
@@ -736,24 +736,24 @@ int get_new_id( struct ast_conference *conf )
 }
 
 
-int end_conference(const char *name, int hangup ) 
+int end_conference(const char *name, int hangup )
 {
 	struct ast_conference *conf;
-	
+
 	// acquire the conference list lock
 	ast_mutex_lock(&conflist_lock);
-	
+
 	conf = find_conf(name);
-	if ( conf == NULL ) 
+	if ( conf == NULL )
 	{
 		ast_log( LOG_WARNING, "could not find conference\n" ) ;
-		
+
 		// release the conference list lock
 		ast_mutex_unlock(&conflist_lock);
-		
+
 		return -1 ;
 	}
-	
+
 	// acquire the conference lock
 	ast_mutex_lock( &conf->lock ) ;
 
@@ -764,25 +764,25 @@ int end_conference(const char *name, int hangup )
 	while ( member != NULL )
 	{
 		// acquire member mutex and request hangup
-		// or just kick 
+		// or just kick
 		ast_mutex_lock( &member->lock ) ;
 		if (hangup)
 			ast_softhangup( member->chan, 1 ) ;
 		else
 			member->kick_flag = 1;
 		ast_mutex_unlock( &member->lock ) ;
-		
+
 		// go on to the next member
 		// ( we have the conf lock, so we know this is okay )
 		member = member->next ;
 	}
-	
+
 	// release the conference lock
 	ast_mutex_unlock( &conf->lock ) ;
-	
+
 	// release the conference list lock
 	ast_mutex_unlock(&conflist_lock);
-		
+
 	return 0 ;
 }
 
@@ -791,18 +791,18 @@ int end_conference(const char *name, int hangup )
 //
 
 // This function should be called with conflist_lock held
-void add_member( struct ast_conf_member *member, struct ast_conference *conf ) 
+void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 {
         int newid, last_id;
         struct ast_conf_member *othermember;
 				int count;
 
-	if ( conf == NULL ) 
+	if ( conf == NULL )
 	{
 		ast_log( LOG_ERROR, "unable to add member to NULL conference\n" ) ;
 		return ;
 	}
-	
+
 	// acquire the conference lock
 	ast_mutex_lock( &conf->lock ) ;
 
@@ -822,7 +822,7 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 			othermember = othermember->next;
 		}
 	}
-	
+
 	if ( member->mute_video )
 	{
 		send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
@@ -835,13 +835,13 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 	{
 		if (othermember->initial_id >= new_initial_id)
 			new_initial_id++;
-		
+
 		othermember = othermember->next;
 	}
 	member->initial_id = new_initial_id;
 
 
-	ast_log( AST_CONF_DEBUG, "new video id %d\n", newid) ;      
+	ast_log( AST_CONF_DEBUG, "new video id %d\n", newid) ;
 
 	if (conf->memberlist) last_id = conf->memberlist->id;
 	else last_id = 0;
@@ -860,14 +860,14 @@ void add_member( struct ast_conf_member *member, struct ast_conference *conf )
 	count = count_member( member, conf, 1 ) ;
 
 	ast_log( AST_CONF_DEBUG, "member added to conference, name => %s\n", conf->name ) ;
-	
+
 	// release the conference lock
-	ast_mutex_unlock( &conf->lock ) ;	
+	ast_mutex_unlock( &conf->lock ) ;
 
 	return ;
 }
 
-int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) 
+int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 {
 	// check for member
 	if ( member == NULL )
@@ -892,10 +892,10 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 
 	struct ast_conf_member *member_list = conf->memberlist ;
 	struct ast_conf_member *member_temp = NULL ;
-	
+
 	int count = -1 ; // default return code
 
-	while ( member_list != NULL ) 
+	while ( member_list != NULL )
 	{
 		// set conference to send no_video to anyone who was watching us
 		ast_mutex_lock( &member_list->lock ) ;
@@ -904,28 +904,28 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			member_list->conference = 1;
 		}
 		ast_mutex_unlock( &member_list->lock ) ;
-		member_list = member_list->next ;		
+		member_list = member_list->next ;
 	}
 
 	member_list = conf->memberlist ;
 
 	int member_is_moderator = member->ismoderator;
 
-	while ( member_list != NULL ) 
+	while ( member_list != NULL )
 	{
 		// If member is driven by the currently visited member, break the association
 		if ( member_list->driven_member == member )
 		{
 			// Acquire member mutex
 			ast_mutex_lock(&member_list->lock);
-			
+
 			member_list->driven_member = NULL;
-			
+
 			// Release member mutex
 			ast_mutex_unlock(&member_list->lock);
 		}
-		
-		if ( member_list == member ) 
+
+		if ( member_list == member )
 		{
 
 			//
@@ -939,12 +939,12 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 
 			if (conf->debug_flag)
 			{
-				ast_log( 
-					LOG_NOTICE, 
+				ast_log(
+					LOG_NOTICE,
 					"member accounting, channel => %s, te => %ld, fi => %ld, fid => %ld, fo => %ld, fod => %ld, tt => %ld\n",
 					member->channel_name,
-					member->time_entered.tv_sec, member->frames_in, member->frames_in_dropped, 
-					member->frames_out, member->frames_out_dropped, tt 
+					member->time_entered.tv_sec, member->frames_in, member->frames_in_dropped,
+					member->frames_out, member->frames_out_dropped, tt
 					) ;
 			}
 
@@ -953,11 +953,11 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			// skip over the first member in the list, else
 			//
 			// point the previous 'next' to the current 'next',
-			// thus skipping the current member in the list	
-			//	
+			// thus skipping the current member in the list
+			//
 			if ( member_temp == NULL )
 				conf->memberlist = member->next ;
-			else 
+			else
 				member_temp->next = member->next ;
 
 			// update conference stats
@@ -973,7 +973,7 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			{
 				conf->default_video_source_id = -1;
 			}
-			
+
 			// output to manager...
 			manager_event(
 				EVENT_FLAG_CALL,
@@ -1003,16 +1003,16 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 
 			// delete the member
 			delete_member( member ) ;
-			
+
 			ast_log( AST_CONF_DEBUG, "removed member from conference, name => %s, remaining => %d\n",
 					conf->name, conf->membercount ) ;
-			
+
 			//break ;
 		}
 		else
 		{
 			// if member is a moderator, we end the conference when they leave
-			if ( member_is_moderator ) 
+			if ( member_is_moderator )
 			{
 				ast_mutex_lock( &member_list->lock ) ;
 				member_list->kick_flag = 1;
@@ -1027,7 +1027,7 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 	}
 	ast_mutex_unlock( &conf->lock );
 
-	// return -1 on error, or the number of members 
+	// return -1 on error, or the number of members
 	// remaining if the requested member was deleted
 	return count ;
 }
@@ -1073,9 +1073,9 @@ int set_conference_debugging( const char* name, int state )
 
 	struct ast_conference *conf = conflist ;
 	int new_state = -1 ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), name, 80 ) == 0 )
 		{
@@ -1095,18 +1095,18 @@ int set_conference_debugging( const char* name, int state )
 
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
 	// release mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return new_state ;
 }
 
 
-int get_conference_count( void ) 
+int get_conference_count( void )
 {
 	return conference_count ;
 }
@@ -1114,23 +1114,23 @@ int get_conference_count( void )
 int show_conference_stats ( int fd )
 {
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized.\n") ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
 
 	ast_cli( fd, "%-20.20s  %-40.40s\n", "Name", "Members") ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
-		ast_cli( fd, "%-20.20s %3d\n", conf->name, conf->membercount ) ;		
+		ast_cli( fd, "%-20.20s %3d\n", conf->name, conf->membercount ) ;
 		conf = conf->next ;
 	}
 
@@ -1145,32 +1145,32 @@ int show_conference_list ( int fd, const char *name )
 	struct ast_conf_member *member;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", name ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), name, 80 ) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock(&conf->lock);
-			
+
 			// do the biz
 			member = conf->memberlist ;
 			while ( member != NULL )
 			{
-				ast_cli( fd, "User #: %d  ", member->id ) ;	
+				ast_cli( fd, "User #: %d  ", member->id ) ;
 				ast_cli( fd, "Channel: %s ", member->channel_name ) ;
-				
+
 				ast_cli( fd, "Flags:");
 				if ( member->mute_video ) ast_cli( fd, "C");
 				if ( member->norecv_video ) ast_cli( fd, "c");
@@ -1187,7 +1187,7 @@ int show_conference_list ( int fd, const char *name )
 				if ( member->does_text ) ast_cli( fd, "t");
 				if ( member->via_telephone ) ast_cli( fd, "T");
 				ast_cli( fd, " " );
-				
+
 				if ( member->id == conf->default_video_source_id )
 					ast_cli(fd, "Default ");
 				if ( member->id == conf->current_video_source_id )
@@ -1200,17 +1200,17 @@ int show_conference_list ( int fd, const char *name )
 				{
 					ast_cli(fd, "Driving:%s(%d) ", member->driven_member->channel_name, member->driven_member->id);
 				}
-				
+
 				ast_cli( fd, "\n");
 				member = member->next;
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock(&conf->lock);
-			
+
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1231,9 +1231,9 @@ int manager_conference_list( struct mansession *s, const struct message *m )
 	astman_send_ack(s, m, "Conference list will follow");
 
   // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", conffilter );;
-	
+
 	if (!ast_strlen_zero(id)) {
 		snprintf(idText,256,"ActionID: %s\r\n",id);
 	}
@@ -1242,9 +1242,9 @@ int manager_conference_list( struct mansession *s, const struct message *m )
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), conffilter, 80 ) == 0 )
 		{
@@ -1253,8 +1253,8 @@ int manager_conference_list( struct mansession *s, const struct message *m )
 			while (member != NULL)
 			  {
 					astman_append(s, "Event: ConferenceEntry\r\n"
-						"ConferenceName: %s\r\n"	
-						"Member: %d\r\n"	
+						"ConferenceName: %s\r\n"
+						"Member: %d\r\n"
 						"Channel: %s\r\n"
 						"CallerID: %s\r\n"
 						"CallerIDName: %s\r\n"
@@ -1278,7 +1278,7 @@ int manager_conference_list( struct mansession *s, const struct message *m )
 			  }
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1297,25 +1297,25 @@ int kick_member (  const char* confname, int user_id)
 {
 	struct ast_conf_member *member;
 	int res = 0;
-	
+
 	// no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
-		        // do the biz	
+		        // do the biz
 			ast_mutex_lock( &conf->lock ) ;
 		        member = conf->memberlist ;
 			while (member != NULL)
@@ -1334,7 +1334,7 @@ int kick_member (  const char* confname, int user_id)
 			ast_mutex_unlock( &conf->lock ) ;
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1348,28 +1348,28 @@ int kick_channel ( const char *confname, const char *channel)
 {
 	struct ast_conf_member *member;
 	int res = 0;
-	
+
 	// no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	if ( confname == NULL || channel == NULL || strlen(confname) == 0 || strlen(channel) == 0 )
 		return 0;
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
-			// do the biz	
+			// do the biz
 			ast_mutex_lock( &conf->lock ) ;
 			member = conf->memberlist ;
 			while ( member != NULL )
@@ -1380,7 +1380,7 @@ int kick_channel ( const char *confname, const char *channel)
 					member->kick_flag = 1;
 					//ast_soft_hangup(member->chan);
 					ast_mutex_unlock( &member->lock ) ;
-		
+
 					res = 1;
 				}
 				member = member->next;
@@ -1404,21 +1404,21 @@ int kick_all ( void )
   int res = 0;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized\n" ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
-		// do the biz	
+		// do the biz
 		ast_mutex_lock( &conf->lock ) ;
 		member = conf->memberlist ;
 		while (member != NULL)
@@ -1430,7 +1430,7 @@ int kick_all ( void )
 		}
 		ast_mutex_unlock( &conf->lock ) ;
 		break ;
-	
+
 	conf = conf->next ;
 	}
 
@@ -1446,19 +1446,19 @@ int mute_member (  const char* confname, int user_id)
   int res = 0;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
@@ -1472,14 +1472,14 @@ int mute_member (  const char* confname, int user_id)
 				      ast_mutex_lock( &member->lock ) ;
 				      member->mute_audio = 1;
 				      ast_mutex_unlock( &member->lock ) ;
-				      res = 1;		
+				      res = 1;
 			      }
 			    member = member->next;
 			  }
 			ast_mutex_unlock( &conf->lock ) ;
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1495,19 +1495,19 @@ int mute_channel (  const char* confname, const char* user_chan)
   int res = 0;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
@@ -1521,14 +1521,14 @@ int mute_channel (  const char* confname, const char* user_chan)
 				      ast_mutex_lock( &member->lock ) ;
 				      member->mute_audio = 1;
 				      ast_mutex_unlock( &member->lock ) ;
-				      res = 1;		
+				      res = 1;
 			      }
 			    member = member->next;
 			  }
 			ast_mutex_unlock( &conf->lock ) ;
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1544,19 +1544,19 @@ int unmute_member (  const char* confname, int user_id)
   int res = 0;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
@@ -1577,7 +1577,7 @@ int unmute_member (  const char* confname, int user_id)
 			ast_mutex_unlock( &conf->lock ) ;
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1593,19 +1593,19 @@ int unmute_channel (const char* confname, const char* user_chan)
   int res = 0;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
@@ -1626,7 +1626,7 @@ int unmute_channel (const char* confname, const char* user_chan)
 			ast_mutex_unlock( &conf->lock ) ;
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1642,19 +1642,19 @@ int viewstream_switch ( const char* confname, int user_id, int stream_id )
   int res = 0;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
@@ -1667,19 +1667,19 @@ int viewstream_switch ( const char* confname, int user_id, int stream_id )
 				{
 					// switch the video
 					ast_mutex_lock( &member->lock ) ;
-					
-					member->req_id = stream_id; 
+
+					member->req_id = stream_id;
 					member->conference = 1;
-	
-					ast_mutex_unlock( &member->lock ) ; 
-					res = 1;			      
+
+					ast_mutex_unlock( &member->lock ) ;
+					res = 1;
 				}
 				member = member->next;
 			}
 			ast_mutex_unlock( &conf->lock ) ;
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1696,19 +1696,19 @@ int viewchannel_switch ( const char* confname, const char* userchan, const char*
   int stream_id = -1;
 
         // no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", confname ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), confname, 80 ) == 0 )
 		{
@@ -1724,7 +1724,7 @@ int viewchannel_switch ( const char* confname, const char* userchan, const char*
 				member = member->next;
 			}
 			ast_mutex_unlock( &conf->lock ) ;
-			if (stream_id >= 0) 
+			if (stream_id >= 0)
 			{
 				// do the biz
 				ast_mutex_lock( &conf->lock ) ;
@@ -1735,12 +1735,12 @@ int viewchannel_switch ( const char* confname, const char* userchan, const char*
 					{
 						// switch the video
 						ast_mutex_lock( &member->lock ) ;
-						
-						member->req_id = stream_id; 
+
+						member->req_id = stream_id;
 						member->conference = 1;
-						
-						ast_mutex_unlock( &member->lock ) ; 
-						res = 1;			      
+
+						ast_mutex_unlock( &member->lock ) ;
+						res = 1;
 					}
 					member = member->next;
 				}
@@ -1748,7 +1748,7 @@ int viewchannel_switch ( const char* confname, const char* userchan, const char*
 			}
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1759,14 +1759,14 @@ int viewchannel_switch ( const char* confname, const char* userchan, const char*
 }
 
 int get_conference_stats( ast_conference_stats* stats, int requested )
-{	
+{
 	// no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialize\n" ) ;
 		return 0 ;
 	}
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
@@ -1779,12 +1779,12 @@ int get_conference_stats( ast_conference_stats* stats, int requested )
 
 	struct ast_conference* conf = conflist ;
 	int count = 0 ;
-	
-	while ( count <= requested && conf != NULL ) 
+
+	while ( count <= requested && conf != NULL )
 	{
 		// copy stats struct to array
-		stats[ count ] = conf->stats ; 
-		
+		stats[ count ] = conf->stats ;
+
 		conf = conf->next ;
 		++count ;
 	}
@@ -1796,24 +1796,24 @@ int get_conference_stats( ast_conference_stats* stats, int requested )
 }
 
 int get_conference_stats_by_name( ast_conference_stats* stats, const char* name )
-{	
+{
 	// no conferences exist
-	if ( conflist == NULL ) 
+	if ( conflist == NULL )
 	{
 		ast_log( AST_CONF_DEBUG, "conflist has not yet been initialized, name => %s\n", name ) ;
 		return 0 ;
 	}
-	
+
 	// make sure stats is null
 	stats = NULL ;
-	
+
 	// acquire mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
 	struct ast_conference *conf = conflist ;
-	
+
 	// loop through conf list
-	while ( conf != NULL ) 
+	while ( conf != NULL )
 	{
 		if ( strncasecmp( (const char*)&(conf->name), name, 80 ) == 0 )
 		{
@@ -1821,7 +1821,7 @@ int get_conference_stats_by_name( ast_conference_stats* stats, const char* name 
 			*stats = conf->stats ;
 			break ;
 		}
-	
+
 		conf = conf->next ;
 	}
 
@@ -1831,10 +1831,10 @@ int get_conference_stats_by_name( ast_conference_stats* stats, const char* name 
 	return ( stats == NULL ) ? 0 : 1 ;
 }
 
-struct ast_conf_member *find_member (const char *chan, int lock) 
+struct ast_conf_member *find_member (const char *chan, int lock)
 {
 	struct ast_conf_member *found = NULL;
-	struct ast_conf_member *member;	
+	struct ast_conf_member *member;
 	struct ast_conference *conf;
 
 	ast_mutex_lock( &conflist_lock ) ;
@@ -1842,18 +1842,18 @@ struct ast_conf_member *find_member (const char *chan, int lock)
 	conf = conflist;
 
 	// loop through conf list
-	while ( conf != NULL && !found ) 
+	while ( conf != NULL && !found )
 	{
 		// lock conference
 		ast_mutex_lock( &conf->lock );
 
 		member = conf->memberlist ;
 
-		while (member != NULL) 
+		while (member != NULL)
 		{
 		    if(!strcmp(member->channel_name, chan)) {
 			found = member;
-			if(lock) 
+			if(lock)
 			    ast_mutex_lock(&member->lock);
 			break;
 		    }
@@ -1883,15 +1883,15 @@ void do_VAD_switching(struct ast_conference *conf)
 	struct ast_conf_member *longest_speaking_member;
 	int                    current_silent, current_no_camera, current_video_mute;
 	int                    default_no_camera, default_video_mute;
-	
+
 	gettimeofday(&current_time, NULL);
-	
+
 	// Scan the member list looking for the longest speaking member
 	// We also check if the currently speaking member has been silent for a while
 	// Also, we check for camera disabled or video muted members
-	// We say that a member is speaking after his speaking state has been on for 
+	// We say that a member is speaking after his speaking state has been on for
 	// at least AST_CONF_VIDEO_START_TIMEOUT ms
-	// We say that a member is silent after his speaking state has been off for 
+	// We say that a member is silent after his speaking state has been off for
 	// at least AST_CONF_VIDEO_STOP_TIMEOUT ms
 	longest_speaking = 0;
 	longest_speaking_member = NULL;
@@ -1907,9 +1907,9 @@ void do_VAD_switching(struct ast_conference *conf)
 		// Has the state changed since last time through this loop? Notify!
 		if ( member->speaking_state_notify )
 		{
-/*			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s\n", 
+/*			fprintf(stderr, "Mihai: member %d, channel %s has changed state to %s\n",
 				member->id,
-				member->channel_name, 
+				member->channel_name,
 				((member->speaking_state == 1 ) ? "speaking" : "silent")
 			       );			*/
 		}
@@ -1917,13 +1917,13 @@ void do_VAD_switching(struct ast_conference *conf)
 		// If a member connects via telephone, they don't have video
 		if ( member->via_telephone )
 			continue;
-		
+
 		// We check for no VAD switching, video-muted or camera disabled
 		// If yes, this member will not be considered as a candidate for switching
 		// If this is the currently speaking member, then mark it so we force a switch
 		if ( !member->vad_switch )
 			continue;
-		
+
 		if ( member->mute_video )
 		{
 			if ( member->id == conf->default_video_source_id )
@@ -1933,7 +1933,7 @@ void do_VAD_switching(struct ast_conference *conf)
 			else
 				continue;
 		}
-		
+
 		if ( member->no_camera )
 		{
 			if ( member->id == conf->default_video_source_id )
@@ -1951,7 +1951,7 @@ void do_VAD_switching(struct ast_conference *conf)
 		{
 			current_silent = 1;
 		}
-		
+
 		// Find a candidate to switch to by looking for the longest speaking member
 		// We exclude the current video source from the search
 		if ( member->id != conf->current_video_source_id && member->speaking_state == 1 )
@@ -1964,13 +1964,13 @@ void do_VAD_switching(struct ast_conference *conf)
 			}
 		}
 	}
-	
+
 	// We got our results, now let's make a decision
-	// If the currently speaking member has been marked as silent, then we take the longest 
+	// If the currently speaking member has been marked as silent, then we take the longest
 	// speaking member.  If no member is speaking, we go to default
 	// As a policy we don't want to switch away from a member that is speaking
-	// however, we might need to refine this to avoid a situation when a member has a 
-	// low noise threshold or its VAD is simply stuck 
+	// however, we might need to refine this to avoid a situation when a member has a
+	// low noise threshold or its VAD is simply stuck
 	if ( current_silent || current_no_camera || current_video_mute || conf->current_video_source_id < 0 )
 	{
 		if ( longest_speaking_member != NULL )
@@ -1980,9 +1980,9 @@ void do_VAD_switching(struct ast_conference *conf)
 		{
 			// If there's nobody speaking and we have a default that can send video, switch to it
 			// If not, then switch to empty (-1)
-			if ( conf->default_video_source_id >= 0 && 
+			if ( conf->default_video_source_id >= 0 &&
 			     !default_no_camera &&
-			     !default_video_mute 
+			     !default_video_mute
 			   )
 				do_video_switching(conf, conf->default_video_source_id, 0);
 			else
@@ -2012,7 +2012,7 @@ int lock_conference(const char *conference, int member_id)
 			// Search member list for our member
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( member->id == member_id && !member->mute_video )
@@ -2020,21 +2020,21 @@ int lock_conference(const char *conference, int member_id)
 					do_video_switching(conf, member_id, 0);
 					conf->video_locked = 1;
 					res = 1;
-					
+
 					manager_event(EVENT_FLAG_CALL, "ConferenceLock", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
 				}
 			}
-			
+
 			// Release conference mutex
 			ast_mutex_unlock( &conf->lock );
 			break;
 		}
 	}
-	
+
 	// release mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
 }
 
@@ -2059,7 +2059,7 @@ int lock_conference_channel(const char *conference, const char *channel)
 			// Search member list for our member
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( strcmp(channel, member->channel_name) == 0 && !member->mute_video )
@@ -2067,21 +2067,21 @@ int lock_conference_channel(const char *conference, const char *channel)
 					do_video_switching(conf, member->id, 0);
 					conf->video_locked = 1;
 					res = 1;
-					
+
 					manager_event(EVENT_FLAG_CALL, "ConferenceLock", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
 				}
 			}
-			
+
 			// Release conference mutex
 			ast_mutex_unlock( &conf->lock );
 			break;
 		}
 	}
-	
+
 	// release mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
 }
 
@@ -2089,10 +2089,10 @@ int unlock_conference(const char *conference)
 {
 	struct ast_conference  *conf;
 	int                   res;
-	
+
 	if ( conference == NULL )
 		return -1;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
 
@@ -2106,14 +2106,14 @@ int unlock_conference(const char *conference)
 			manager_event(EVENT_FLAG_CALL, "ConferenceUnlock", "ConferenceName: %s\r\n", conf->name);
 			do_video_switching(conf, conf->default_video_source_id, 0);
 			res = 1;
-			
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
 }
 
@@ -2146,36 +2146,36 @@ int set_default_id(const char *conference, int member_id)
 				// Search member list for our member
 				// acquire conference mutex
 				ast_mutex_lock( &conf->lock );
-				
+
 				for ( member = conf->memberlist ; member != NULL ; member = member->next )
 				{
 					// We do not allow video muted members or members that do not support
 					// VAD switching to become defaults
-					if ( member->id == member_id && 
+					if ( member->id == member_id &&
 					     !member->mute_video &&
 					     member->vad_switch
 					   )
 					{
 						conf->default_video_source_id = member_id;
 						res = 1;
-						
+
 						manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 						break;
 					}
 				}
-				
+
 				// Release conference mutex
 				ast_mutex_unlock( &conf->lock );
 				break;
 			}
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
-	
+
 }
 
 int set_default_channel(const char *conference, const char *channel)
@@ -2199,33 +2199,33 @@ int set_default_channel(const char *conference, const char *channel)
 			// Search member list for our member
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				// We do not allow video muted members or members that do not support
 				// VAD switching to become defaults
-				if ( strcmp(channel, member->channel_name) == 0 && 
+				if ( strcmp(channel, member->channel_name) == 0 &&
 				     !member->mute_video &&
 				     member->vad_switch
 				   )
 				{
 					conf->default_video_source_id = member->id;
 					res = 1;
-					
+
 					manager_event(EVENT_FLAG_CALL, "ConferenceDefault", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
 					break;
 				}
 			}
-			
+
 			// Release conference mutex
 			ast_mutex_unlock( &conf->lock );
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
 }
 
@@ -2237,50 +2237,50 @@ int video_mute_member(const char *conference, int member_id)
 
 	if ( conference == NULL || member_id < 0 )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( member->id == member_id )
 				{
 					// acquire member mutex
 					ast_mutex_lock( &member->lock );
-					
+
 					member->mute_video = 1;
-					
+
 					// release member mutex
 					ast_mutex_unlock( &member->lock );
-					
+
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
-					
+
 					if ( member->id == conf->current_video_source_id )
 					{
 						do_video_switching(conf, conf->default_video_source_id, 0);
 					}
-					
+
 					res = 1;
 					break;
 				}
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-			
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
 
@@ -2295,45 +2295,45 @@ int video_unmute_member(const char *conference, int member_id)
 
 	if ( conference == NULL || member_id < 0 )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( member->id == member_id )
 				{
 					// acquire member mutex
 					ast_mutex_lock( &member->lock );
-					
+
 					member->mute_video = 0;
-					
+
 					// release member mutex
 					ast_mutex_unlock( &member->lock );
 
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
-										
+
 					res = 1;
 					break;
 				}
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-			
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
 
@@ -2348,50 +2348,50 @@ int video_mute_channel(const char *conference, const char *channel)
 
 	if ( conference == NULL || channel == NULL )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( strcmp(channel, member->channel_name) == 0 )
 				{
 					// acquire member mutex
 					ast_mutex_lock( &member->lock );
-					
+
 					member->mute_video = 1;
-					
+
 					// release member mutex
 					ast_mutex_unlock( &member->lock );
 
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoMute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
-					
+
 					if ( member->id == conf->current_video_source_id )
 					{
 						do_video_switching(conf, conf->default_video_source_id, 0);
 					}
-					
+
 					res = 1;
 					break;
 				}
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-			
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
 
@@ -2406,45 +2406,45 @@ int video_unmute_channel(const char *conference, const char *channel)
 
 	if ( conference == NULL || channel == NULL )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( strcmp(channel, member->channel_name) == 0 )
 				{
 					// acquire member mutex
 					ast_mutex_lock( &member->lock );
-					
+
 					member->mute_video = 0;
-					
+
 					// release member mutex
-					ast_mutex_unlock( &member->lock );					
-					
+					ast_mutex_unlock( &member->lock );
+
 					manager_event(EVENT_FLAG_CALL, "ConferenceVideoUnmute", "ConferenceName: %s\r\nChannel: %s\r\n", conf->name, member->channel_name);
-					
+
 					res = 1;
 					break;
 				}
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-			
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
 
@@ -2462,19 +2462,19 @@ int send_text(const char *conference, int member_id, const char *text)
 
 	if ( conference == NULL || member_id < 0 || text == NULL )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( member->id == member_id )
@@ -2483,14 +2483,14 @@ int send_text(const char *conference, int member_id, const char *text)
 					break;
 				}
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-		
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
 	return res;
@@ -2504,19 +2504,19 @@ int send_text_channel(const char *conference, const char *channel, const char *t
 
 	if ( conference == NULL || channel == NULL || text == NULL )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( strcmp(member->channel_name, channel) == 0 )
@@ -2525,17 +2525,17 @@ int send_text_channel(const char *conference, const char *channel, const char *t
 					break;
 				}
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-		
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
 }
 
@@ -2547,35 +2547,35 @@ int send_text_broadcast(const char *conference, const char *text)
 
 	if ( conference == NULL || text == NULL )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
 			{
 				if ( send_text_message_to_member(member, text) == 0 )
 					res = res || 1;
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-		
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
 }
 
@@ -2584,22 +2584,22 @@ int send_text_broadcast(const char *conference, const char *text)
 int send_text_message_to_member(struct ast_conf_member *member, const char *text)
 {
 	struct ast_frame *f;
-	
+
 	if ( member == NULL || text == NULL ) return -1;
-	
+
 	if ( member->does_text )
 	{
 		f = create_text_frame(text, 1);
 		if ( f == NULL || queue_outgoing_text_frame(member, f) != 0) return -1;
 		ast_frfree(f);
 	}
-	
+
 	return 0;
 }
 
 // Associates two members
 // Drives VAD-based video switching of dst_member from audio from src_member
-// This can be used when a member participates in a video conference but 
+// This can be used when a member participates in a video conference but
 // talks using a telephone (simulcast) connection
 int drive(const char *conference, int src_member_id, int dst_member_id)
 {
@@ -2608,22 +2608,22 @@ int drive(const char *conference, int src_member_id, int dst_member_id)
 	struct ast_conf_member *member;
 	struct ast_conf_member *src;
 	struct ast_conf_member *dst;
-	
+
 	if ( conference == NULL || src_member_id < 0 )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			src = NULL;
 			dst = NULL;
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
@@ -2637,7 +2637,7 @@ int drive(const char *conference, int src_member_id, int dst_member_id)
 			{
 				// acquire member mutex
 				ast_mutex_lock(&src->lock);
-				
+
 				if ( dst != NULL )
 				{
 					src->driven_member = dst;
@@ -2656,27 +2656,27 @@ int drive(const char *conference, int src_member_id, int dst_member_id)
 						res = 1;
 					}
 				}
-				
+
 				// release member mutex
 				ast_mutex_unlock(&src->lock);
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-		
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
-	ast_mutex_unlock( &conflist_lock ) ;	
-	
+	ast_mutex_unlock( &conflist_lock ) ;
+
 	return res;
 }
 
 // Associates two channels
 // Drives VAD-based video switching of dst_channel from audio from src_channel
-// This can be used when a member participates in a video conference but 
+// This can be used when a member participates in a video conference but
 // talks using a telephone (simulcast) connection
 int drive_channel(const char *conference, const char *src_channel, const char *dst_channel)
 {
@@ -2685,22 +2685,22 @@ int drive_channel(const char *conference, const char *src_channel, const char *d
 	struct ast_conf_member *member;
 	struct ast_conf_member *src;
 	struct ast_conf_member *dst;
-	
+
 	if ( conference == NULL || src_channel == NULL )
 		return -1;
-	
+
 	res = 0;
-	
+
 	// acquire conference list mutex
 	ast_mutex_lock( &conflist_lock ) ;
-	
+
 	for ( conf = conflist ; conf != NULL ; conf = conf->next )
 	{
 		if ( strcmp(conference, conf->name) == 0 )
 		{
 			// acquire conference mutex
 			ast_mutex_lock( &conf->lock );
-			
+
 			src = NULL;
 			dst = NULL;
 			for ( member = conf->memberlist ; member != NULL ; member = member->next )
@@ -2714,7 +2714,7 @@ int drive_channel(const char *conference, const char *src_channel, const char *d
 			{
 				// acquire member mutex
 				ast_mutex_lock(&src->lock);
-				
+
 				if ( dst != NULL )
 				{
 					src->driven_member = dst;
@@ -2733,44 +2733,44 @@ int drive_channel(const char *conference, const char *src_channel, const char *d
 						res = 1;
 					}
 				}
-				
+
 				// release member mutex
 				ast_mutex_unlock(&src->lock);
 			}
-			
+
 			// release conference mutex
 			ast_mutex_unlock( &conf->lock );
-		
+
 			break;
 		}
 	}
-	
+
 	// release conference list mutex
 	ast_mutex_unlock( &conflist_lock ) ;
-	
+
 	return res;
 }
 
 // Switches video source
-// Sends a manager event as well as 
-// a text message notifying members of a video switch 
+// Sends a manager event as well as
+// a text message notifying members of a video switch
 // The notification is sent to the current member and to the new member
 // The function locks the conference mutex as required
 void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 {
 	struct ast_conf_member *member;
 	struct ast_conf_member *new_member = NULL;
-	
+
 	if ( conf == NULL ) return;
-		
+
 	if ( lock )
 	{
 		// acquire conference mutex
 		ast_mutex_lock( &conf->lock );
 	}
-	
+
 	//fprintf(stderr, "Mihai: video switch from %d to %d\n", conf->current_video_source_id, new_id);
-	
+
 	// No need to do anything if the current member is the same as the new member
 	if ( new_id != conf->current_video_source_id )
 	{
@@ -2783,16 +2783,16 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 			if ( member->id == new_id )
 			{
 				send_text_message_to_member(member, AST_CONF_CONTROL_START_VIDEO);
-				new_member = member;	
+				new_member = member;
 			}
 		}
-		
-		conf->current_video_source_id = new_id;	
+
+		conf->current_video_source_id = new_id;
 
 		if ( new_member != NULL )
 		{
 			manager_event(EVENT_FLAG_CALL,
-				"ConferenceVideoSwitch", 
+				"ConferenceVideoSwitch",
 				"ConferenceName: %s\r\nChannel: %s\r\n",
 				conf->name,
 				new_member->channel_name);
@@ -2804,7 +2804,7 @@ void do_video_switching(struct ast_conference *conf, int new_id, int lock)
 				conf->name);
 		}
 	}
-	
+
 	if ( lock )
 	{
 		// release conference mutex
@@ -2819,7 +2819,7 @@ int play_sound_channel(int fd, const char *channel, const char *file, int mute)
 	struct ast_conf_soundq **q;
 
 	member = find_member(channel, 1);
-	if( !member ) 
+	if( !member )
 	{
 		ast_cli(fd, "Member %s not found\n", channel);
 		return 0;
@@ -2827,26 +2827,26 @@ int play_sound_channel(int fd, const char *channel, const char *file, int mute)
 
 	newsound = calloc(1, sizeof(struct ast_conf_soundq));
 	newsound->stream = ast_openstream(member->chan, file, NULL);
-	if( !newsound->stream ) 
-	{ 
+	if( !newsound->stream )
+	{
 		ast_cli(fd, "Sound %s not found\n", file);
 		free(newsound);
 		ast_mutex_unlock(&member->lock);
 		return 0;
 	}
 	member->chan->stream = NULL;
-	
-	newsound->muted = mute;	
+
+	newsound->muted = mute;
 	ast_copy_string(newsound->name, file, sizeof(newsound->name));
 
 	// append sound to the end of the list.
 	for ( q=&member->soundq; *q; q = &((*q)->next) ) ;
 	*q = newsound;
-	
+
 	ast_mutex_unlock(&member->lock);
 
 	ast_cli(fd, "Playing sound %s to member %s %s\n",
-		      file, channel, mute ? "with mute" : "");	
+		      file, channel, mute ? "with mute" : "");
 
 	return 1 ;
 }
@@ -2877,7 +2877,7 @@ int stop_sound_channel(int fd, const char *channel)
 	}
 
 	// reset write format, since we're done playing the sound
-	if ( ast_set_write_format( member->chan, member->write_format ) < 0 ) 
+	if ( ast_set_write_format( member->chan, member->write_format ) < 0 )
 	{
 		ast_log( LOG_ERROR, "unable to set write format to %d\n",
 		    member->write_format ) ;
@@ -2885,6 +2885,6 @@ int stop_sound_channel(int fd, const char *channel)
 
 	ast_mutex_unlock(&member->lock);
 
-	ast_cli( fd, "Stopped sounds to member %s\n", channel);	
+	ast_cli( fd, "Stopped sounds to member %s\n", channel);
 	return 1;
 }

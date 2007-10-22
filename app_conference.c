@@ -1,4 +1,4 @@
- 
+
 // $Id: app_conference.c 693 2006-11-15 22:29:26Z sbalea $
 
 /*
@@ -13,17 +13,17 @@
  *
  * Klaus-Peter Junghanns <kapejod@ns1.jnetdns.de>
  *
- * Video Conferencing support added by 
+ * Video Conferencing support added by
  * Neil Stratford <neils@vipadia.com>
  * Copyright (C) 2005, 2005 Vipadia Limited
  *
- * VAD driven video conferencing, text message support 
- * and miscellaneous enhancements added by 
+ * VAD driven video conferencing, text message support
+ * and miscellaneous enhancements added by
  * Mihai Balea <mihai at hates dot ms>
  *
- * This program may be modified and distributed under the 
- * terms of the GNU General Public License. You should have received 
- * a copy of the GNU General Public License along with this 
+ * This program may be modified and distributed under the
+ * terms of the GNU General Public License. You should have received
+ * a copy of the GNU General Public License along with this
  * program; if not, write to the Free Software Foundation, Inc.
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
@@ -35,12 +35,12 @@
 
 /*
 
-a conference has n + 1 threads, where n is the number of 
+a conference has n + 1 threads, where n is the number of
 members and 1 is a conference thread which sends audio
-back to the members. 
+back to the members.
 
 each member thread reads frames from the channel and
-add's them to the member's frame queue. 
+add's them to the member's frame queue.
 
 the conference thread reads frames from each speaking members
 queue, mixes them, and then re-queues them for the member thread
@@ -125,9 +125,9 @@ int app_conference_main(struct ast_channel* chan, void* data)
 {
 	int res = 0 ;
 	struct ast_module_user *u ;
-	
+
 	// defined in asterisk/module.h
-	//LOCAL_USER_ADD( u ) ; 
+	//LOCAL_USER_ADD( u ) ;
 	u = ast_module_user_add(chan);
 
 	// call member thread function
@@ -173,7 +173,7 @@ void add_milliseconds(struct timeval* tv, long ms)
 
 int reload(void *mod)
 {
-	return 0;	
+	return 0;
 }
 
 #define AST_MODULE "conference"
