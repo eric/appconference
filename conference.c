@@ -65,8 +65,7 @@ void conference_exec( struct ast_conference *conf )
 
 	// timer timestamps
 	struct timeval base, curr, notify ;
-	gettimeofday( &base, NULL ) ;
-	gettimeofday( &notify, NULL ) ;
+	base = notify = ast_tvnow();
 
 	// holds differences of curr and base
 	long time_diff = 0 ;
@@ -84,7 +83,7 @@ void conference_exec( struct ast_conference *conf )
 	float tf_frequency = 0.0 ;
 
 	struct timeval tf_base, tf_curr ;
-	gettimeofday( &tf_base, NULL ) ;
+	tf_base = ast_tvnow();
 
 	//
 	// main conference thread loop
@@ -94,10 +93,10 @@ void conference_exec( struct ast_conference *conf )
 	while ( 42 == 42 )
 	{
 		// update the current timestamp
-		gettimeofday( &curr, NULL ) ;
+		curr = ast_tvnow();
 
 		// calculate difference in timestamps
-		time_diff = usecdiff( &curr, &base ) ;
+		time_diff = ast_tvdiff_ms(curr, base);
 
 		// calculate time we should sleep
 		time_sleep = AST_CONF_FRAME_INTERVAL - time_diff ;
@@ -145,10 +144,10 @@ void conference_exec( struct ast_conference *conf )
 		if ( ++tf_count >= AST_CONF_FRAMES_PER_SECOND )
 		{
 			// update current timestamp
-			gettimeofday( &tf_curr, NULL ) ;
+			tf_curr = ast_tvnow();
 
 			// compute timestamp difference
-			tf_diff = usecdiff( &tf_curr, &tf_base ) ;
+			tf_diff = ast_tvdiff_ms(tf_curr, tf_base);
 
 			// compute sampling frequency
 			tf_frequency = ( float )( tf_diff ) / ( float )( tf_count ) ;
@@ -404,7 +403,7 @@ void conference_exec( struct ast_conference *conf )
 		// we piggyback on this for VAD switching logic
 		//
 
-		if ( ( usecdiff( &curr, &notify ) / AST_CONF_NOTIFICATION_SLEEP ) >= 1 )
+		if ( ( ast_tvdiff_ms(curr, notify) / AST_CONF_NOTIFICATION_SLEEP ) >= 1 )
 		{
 			// Do VAD switching logic
 			// We need to do this here since send_state_change_notifications
@@ -560,14 +559,14 @@ struct ast_conference* create_conf( char* name, struct ast_conf_member* member )
 
 	conf->default_video_source_id = -1;
 	conf->current_video_source_id = -1;
-	//gettimeofday(&conf->current_video_source_timestamp, NULL);
+	//conf->current_video_source_timestamp = ast_tvnow();
 	conf->video_locked = 0;
 
 	// zero stats
 	memset(	&conf->stats, 0x0, sizeof( ast_conference_stats ) ) ;
 
 	// record start time
-	gettimeofday( &conf->stats.time_entered, NULL ) ;
+	conf->stats.time_entered = ast_tvnow();
 
 	// copy name to conference
 	strncpy( (char*)&(conf->name), name, sizeof(conf->name) - 1 ) ;
@@ -676,11 +675,9 @@ void remove_conf( struct ast_conference *conf )
 			}
 
 			// calculate time in conference
-			struct timeval time_exited ;
-			gettimeofday( &time_exited, NULL ) ;
-
 			// total time converted to seconds
-			long tt = ( usecdiff( &time_exited, &conf_current->stats.time_entered ) / 1000 ) ;
+			long tt = ast_tvdiff_ms(ast_tvnow(),
+					conf_current->stats.time_entered) / 1000;
 
 			// report accounting information
 			if (conf->debug_flag)
@@ -932,10 +929,9 @@ int remove_member( struct ast_conf_member* member, struct ast_conference* conf )
 			// log some accounting information
 			//
 
-			// calculate time in conference
-			struct timeval time_exited ;
-			gettimeofday( &time_exited, NULL ) ;
-			long tt = ( usecdiff( &time_exited, &member->time_entered ) / 1000 ) ; // convert to seconds
+			// calculate time in conference (in seconds)
+			long tt = ast_tvdiff_ms(ast_tvnow(),
+					member->time_entered) / 1000;
 
 			if (conf->debug_flag)
 			{
@@ -1879,12 +1875,12 @@ void do_VAD_switching(struct ast_conference *conf)
 {
 	struct ast_conf_member *member;
 	struct timeval         current_time;
-	long                   longest_speaking, tmp;
+	long                   longest_speaking;
 	struct ast_conf_member *longest_speaking_member;
 	int                    current_silent, current_no_camera, current_video_mute;
 	int                    default_no_camera, default_video_mute;
 
-	gettimeofday(&current_time, NULL);
+	current_time = ast_tvnow();
 
 	// Scan the member list looking for the longest speaking member
 	// We also check if the currently speaking member has been silent for a while
@@ -1947,7 +1943,7 @@ void do_VAD_switching(struct ast_conference *conf)
 		// Check if current speaker has been silent for a while
 		if ( member->id == conf->current_video_source_id &&
 		     member->speaking_state == 0 &&
-		     usecdiff(&current_time, &member->last_state_change) > AST_CONF_VIDEO_STOP_TIMEOUT )
+		     ast_tvdiff_ms(current_time, member->last_state_change) > AST_CONF_VIDEO_STOP_TIMEOUT )
 		{
 			current_silent = 1;
 		}
@@ -1956,7 +1952,7 @@ void do_VAD_switching(struct ast_conference *conf)
 		// We exclude the current video source from the search
 		if ( member->id != conf->current_video_source_id && member->speaking_state == 1 )
 		{
-			tmp = usecdiff(&current_time, &member->last_state_change );
+			long tmp = ast_tvdiff_ms(current_time, member->last_state_change);
 			if ( tmp > AST_CONF_VIDEO_START_TIMEOUT && tmp > longest_speaking )
 			{
 				longest_speaking = tmp;

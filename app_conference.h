@@ -250,7 +250,6 @@ char *key(void);
 int reload(void *mod);
 
 // utility functions
-long usecdiff( struct timeval* timeA, struct timeval* timeB ) ;
 void add_milliseconds( struct timeval* tv, long ms ) ;
 
 #endif

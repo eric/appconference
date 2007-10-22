@@ -433,8 +433,7 @@ static int process_outgoing(struct ast_conf_member *member)
 		// send the voice frame
 		if ( ast_write( member->chan, f ) == 0 )
 		{
-			struct timeval tv ;
-			gettimeofday( &tv, NULL ) ;
+			struct timeval tv = ast_tvnow();
 			ast_log( AST_CONF_DEBUG, "SENT VOICE FRAME, channel => %s, frames_out => %ld, s => %ld, ms => %ld\n",
 				 member->channel_name, member->frames_out, tv.tv_sec, tv.tv_usec ) ;
 		}
@@ -468,8 +467,7 @@ static int process_outgoing(struct ast_conf_member *member)
 		// send the video frame
 		if ( ast_write_video( member->chan, f ) == 1 )
 		{
-			struct timeval tv ;
-			gettimeofday( &tv, NULL ) ;
+			struct timeval tv = ast_tvnow();
 			ast_log( AST_CONF_DEBUG, "SENT VIDEO FRAME, channel => %s, frames_out => %ld, s => %ld, ms => %ld\n",
 				 member->channel_name, member->frames_out, tv.tv_sec, tv.tv_usec ) ;
 		}
@@ -499,8 +497,7 @@ static int process_outgoing(struct ast_conf_member *member)
 		// send the dtmf frame
 		if ( ast_write( member->chan, cf->fr ) == 0 )
 		{
-			struct timeval tv ;
-			gettimeofday( &tv, NULL ) ;
+			struct timeval tv = ast_tvnow();
 			ast_log( AST_CONF_DEBUG, "SENT DTMF FRAME, channel => %s, frames_out => %ld, s => %ld, ms => %ld\n",
 				 member->channel_name, member->frames_out, tv.tv_sec, tv.tv_usec ) ;
 
@@ -530,8 +527,7 @@ static int process_outgoing(struct ast_conf_member *member)
 		// send the text frame
 		if ( ast_write( member->chan, cf->fr ) == 0 )
 		{
-			struct timeval tv ;
-			gettimeofday( &tv, NULL ) ;
+			struct timeval tv = ast_tvnow();
 			ast_log( AST_CONF_DEBUG, "SENT TEXT FRAME, channel => %s, frames_out => %ld, s => %ld, ms => %ld\n",
 				 member->channel_name, member->frames_out, tv.tv_sec, tv.tv_usec ) ;
 
@@ -569,7 +565,7 @@ static int member_checkkick( struct ast_conf_member *member )
 int member_exec( struct ast_channel* chan, void* data )
 {
 //	struct timeval start, end ;
-//	gettimeofday( &start, NULL ) ;
+//	start = ast_tvnow();
 
 	struct ast_conference *conf ;
 	struct ast_conf_member *member ;
@@ -690,7 +686,7 @@ int member_exec( struct ast_channel* chan, void* data )
 
 	// timer timestamps
 	struct timeval base, curr ;
-	gettimeofday( &base, NULL ) ;
+	base = ast_tvnow();
 
 	// tell conference_exec we're ready for frames
 	member->ready_for_outgoing = 1 ;
@@ -756,7 +752,7 @@ int member_exec( struct ast_channel* chan, void* data )
 		//-----------------//
 
 		// update the current timestamps
-		gettimeofday( &curr, NULL ) ;
+		curr = ast_tvnow();
 
 		process_outgoing(member);
 		// back to process incoming frames
@@ -778,8 +774,8 @@ int member_exec( struct ast_channel* chan, void* data )
 	// If we're driving another member, make sure its speaker count is correct
 	if ( member != NULL ) member->remove_flag = 1 ;
 
-//	gettimeofday( &end, NULL ) ;
-//	int expected_frames = ( int )( floor( (double)( usecdiff( &end, &start ) / AST_CONF_FRAME_INTERVAL ) ) ) ;
+//	end = ast_tvnow();
+//	int expected_frames = ( int )( floor( (double)( msecdiff( &end, &start ) / AST_CONF_FRAME_INTERVAL ) ) ) ;
 //	ast_log( AST_CONF_DEBUG, "expected_frames => %d\n", expected_frames ) ;
 
 	return 0 ;
@@ -1028,14 +1024,12 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->kick_flag = 0;
 
 	// record start time
-	gettimeofday( &member->time_entered, NULL ) ;
-
 	// init dropped frame timestamps
-	gettimeofday( &member->last_in_dropped, NULL ) ;
-	gettimeofday( &member->last_out_dropped, NULL ) ;
-
 	// init state change timestamp
-	gettimeofday( &member->last_state_change, NULL );
+	member->time_entered =
+		member->last_in_dropped =
+		member->last_out_dropped =
+		member->last_state_change = ast_tvnow();
 
 	//
 	// parse passed flags
@@ -1886,11 +1880,10 @@ int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr )
 	{
 		if ( member->inFramesCount > AST_CONF_QUEUE_DROP_THRESHOLD )
 		{
-			struct timeval curr ;
-			gettimeofday( &curr, NULL ) ;
+			struct timeval curr = ast_tvnow();
 
 			// time since last dropped frame
-			long diff = usecdiff( &curr, &member->last_in_dropped ) ;
+			long diff = ast_tvdiff_ms(curr, member->last_in_dropped);
 
 			// number of milliseconds which must pass between frame drops
 			// ( 15 frames => -100ms, 10 frames => 400ms, 5 frames => 900ms, 0 frames => 1400ms, etc. )
@@ -1916,7 +1909,7 @@ int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr )
 				// delete the frame
 				delete_conf_frame( get_incoming_frame( member ) ) ;
 
-				gettimeofday( &member->last_in_dropped, NULL ) ;
+				member->last_in_dropped = ast_tvnow();
 			}
 			else
 			{
@@ -3148,7 +3141,7 @@ int increment_speaker_count(struct ast_conf_member *member, int lock)
 	if ( old_state == 0 )
 	{
 		member->speaking_state_notify = 1;
-		gettimeofday( &member->last_state_change, NULL );
+		member->last_state_change = ast_tvnow();
 	}
 
 	if ( lock )
@@ -3176,7 +3169,7 @@ int decrement_speaker_count(struct ast_conf_member *member, int lock)
 	if ( old_state == 1 && member->speaking_state == 0 )
 	{
 		member->speaking_state_notify = 1;
-		gettimeofday( &member->last_state_change, NULL );
+		member->last_state_change = ast_tvnow();
 	}
 
 	if ( lock )

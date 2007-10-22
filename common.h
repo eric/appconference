@@ -31,6 +31,8 @@
 #ifndef _APP_CONF_COMMON_H
 #define _APP_CONF_COMMON_H
 
+#include <asterisk/time.h>
+
 // typedef includes
 #include "conf_frame.h"
 
@@ -48,10 +50,10 @@
 	do { \
 		struct timeval t1, t2; \
 		int diff; \
-		gettimeofday(&t1,NULL); \
+		t1 = ast_tvnow(); \
 		func; \
-		gettimeofday(&t2,NULL); \
-		if((diff = usecdiff(&t2, &t1)) > min) \
+		t2 = ast_tvnow(); \
+		if ( (diff = ast_tvdiff_ms(t2, t1)) > min ) \
 			ast_log( AST_CONF_DEBUG, "TimeLog: %s: %d ms\n", message, diff); \
 	} while (0)
 #else

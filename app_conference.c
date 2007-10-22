@@ -140,19 +140,6 @@ int app_conference_main(struct ast_channel* chan, void* data)
 	return res ;
 }
 
-//
-// utility functions
-//
-
-// now returns milliseconds
-long usecdiff(struct timeval* timeA, struct timeval* timeB)
-{
-	long a_secs = timeA->tv_sec - timeB->tv_sec ;
-	long b_secs = (long)( timeA->tv_usec / 1000 ) - (long)( timeB->tv_usec / 1000 ) ;
-	long u_secs = ( a_secs * 1000 ) + b_secs ;
-	return u_secs ;
-}
-
 // increment a timeval by ms milliseconds
 void add_milliseconds(struct timeval* tv, long ms)
 {
@@ -167,8 +154,6 @@ void add_milliseconds(struct timeval* tv, long ms)
 
 	// increment the seconds field
 	tv->tv_sec += s ;
-
-	return ;
 }
 
 int reload(void *mod)
