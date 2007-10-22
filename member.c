@@ -274,7 +274,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 			              member->channel_name);
 			member->no_camera = 0;
 			ast_mutex_unlock(&member->lock);
-		} else if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT)) == 0 )
+		} else if ( strncmp(f->data, AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT, strlen(AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT)) == 0 )
 		{
 			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL, 
@@ -284,7 +284,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 			              member->channel_name);
 			member->norecv_video = 1;
 			ast_mutex_unlock(&member->lock);
-		} else if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_START_VIDEO_TRANSMIT)) == 0 )
+		} else if ( strncmp(f->data, AST_CONF_CONTROL_START_VIDEO_TRANSMIT, strlen(AST_CONF_CONTROL_START_VIDEO_TRANSMIT)) == 0 )
 		{
 			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL, 
