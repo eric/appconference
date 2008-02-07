@@ -226,6 +226,10 @@
 // Amount of audio required before we decide somebody started talking
 #define AST_CONF_VIDEO_START_TIMEOUT 2000
 
+// Amount of time we wait for a video frame until we decide that
+// the member has stopped broadcasting video
+#define AST_CONF_VIDEO_STOP_BROADCAST_TIMEOUT 200
+
 //
 // Text frame control protocol
 //

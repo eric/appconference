@@ -109,6 +109,12 @@ struct ast_conference
 	// keep track of current delivery time
 	struct timeval delivery_time ;
 
+	// the conference does chat mode: special treatment for situations with 1 and 2 members
+	short does_chat_mode;
+
+	// chat mode is on;
+	short chat_mode_on;
+	
 	// 1 => on, 0 => off
 	short debug_flag ;
 } ;
@@ -120,13 +126,8 @@ struct ast_conference
 // function declarations
 //
 
-struct ast_conference* start_conference( struct ast_conf_member* member ) ;
+struct ast_conference* join_conference( struct ast_conf_member* member ) ;
 
-void conference_exec( struct ast_conference* conf ) ;
-
-struct ast_conference* find_conf( const char* name ) ;
-struct ast_conference* create_conf( char* name, struct ast_conf_member* member ) ;
-void remove_conf( struct ast_conference* conf ) ;
 int end_conference( const char *name, int hangup ) ;
 
 // find a particular member, locking if requested.
@@ -136,14 +137,9 @@ int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_membe
 int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
 int queue_silent_frame( struct ast_conference* conf, struct ast_conf_member* member ) ;
 
-int get_new_id( struct ast_conference *conf );
-void add_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
 int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
-int count_member( struct ast_conf_member* member, struct ast_conference* conf, short add_member ) ;
 
-void do_VAD_switching(struct ast_conference *conf);
 int send_text_message_to_member(struct ast_conf_member *member, const char *text);
-void do_video_switching(struct ast_conference *conf, int new_id, int lock);
 
 // called by app_confernce.c:load_module()
 void init_conference( void ) ;

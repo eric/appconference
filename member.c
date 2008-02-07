@@ -635,7 +635,7 @@ int member_exec( struct ast_channel* chan, void* data )
 	// setup a conference for the new member
 	//
 
-	conf = start_conference( member ) ;
+	conf = join_conference( member ) ;
 
 	if ( conf == NULL )
 	{
@@ -991,8 +991,14 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	member->speaking_state_notify = 0 ;
 	member->speaking_state = 0 ;
 	member->local_speaking_state = 0;
+	member->last_state_change = (struct timeval){0, 0};
 	member->speaker_count = 0;
 	member->driven_member = NULL;
+
+	member->video_broadcast_active = 0;
+	member->last_video_frame_time = (struct timeval){0, 0};
+
+	member->video_started = 0;
 
 	// linked-list pointer
 	member->next = NULL ;
@@ -1067,7 +1073,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 		}
 		else
 		{
-			// allowed flags are C, c, L, l, V, D, A, C, X, R, T, t, M, S
+			// allowed flags are C, c, L, l, V, D, A, C, X, R, T, t, M, S, z, o, F
 			// mute/no_recv options
 			switch ( flags[i] )
 			{
@@ -1105,6 +1111,9 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 			case 'S':
 				member->vad_switch = 1;
 				break;
+			case 'F':
+				member->force_vad_switch = 1;
+				break;
 			case 'M':
 				member->ismoderator = 1;
 				break;
@@ -1113,6 +1122,12 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 				break;
 			case 't':
 				member->does_text = 1;
+				break;
+			case 'z':
+				member->vad_linger = 1;
+				break;
+			case 'o':
+				member->does_chat_mode = 1;
 				break;
 
 				//Telephone connection
@@ -3275,4 +3290,32 @@ void member_process_spoken_frames(struct ast_conference* conf,
 	ast_mutex_unlock( &member->lock ) ;
 
 	return;
+}
+
+int is_video_eligible(struct ast_conf_member *member)
+{
+	if ( member == NULL )
+		return 0;
+	
+	return !member->no_camera && !member->mute_video && !member->via_telephone;
+}
+
+// Member start and stop video methods
+void start_video(struct ast_conf_member *member)
+{
+	if ( member == NULL || member->video_started || !is_video_eligible(member))
+		return;
+
+	send_text_message_to_member(member, AST_CONF_CONTROL_START_VIDEO);
+	member->video_started = 1;
+}
+
+void stop_video(struct ast_conf_member *member)
+{
+	if ( member == NULL || !member->video_started )
+		return;
+
+	send_text_message_to_member(member, AST_CONF_CONTROL_STOP_VIDEO);
+	member->video_started = 0;
+
 }

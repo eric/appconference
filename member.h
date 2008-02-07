@@ -151,6 +151,10 @@ struct ast_conf_member
 
 	// switch video by VAD?
 	short vad_switch;
+	// do a VAD switch even if video is not enabled?
+	short force_vad_switch;
+	// if member is current speaker, video will stay on it when it becomes silent
+	short vad_linger;
 	// switch by dtmf?
 	short dtmf_switch;
 	// relay dtmf to manager?
@@ -159,6 +163,8 @@ struct ast_conf_member
 	short first_frame_received;
 	// does text messages?
 	short does_text;
+	// conference does chat mode (1 on 1 video when two members in conference)
+	short does_chat_mode;
 
 
 	// time we last dropped a frame
@@ -176,6 +182,15 @@ struct ast_conf_member
 	short local_speaking_state; // This flag will be true only if this member is speaking
 	struct timeval last_state_change;
 	int speaker_count; // Number of drivers (including this member) that are speaking
+
+	// Stuff used to determine video broadcast state
+	// This member's video is sent out to at least one member of the conference
+	short video_broadcast_active;
+	// Time when we last sent out a video frame from this member
+	struct timeval last_video_frame_time;
+
+	// Is the member supposed to be transmitting video?
+	short video_started;
 
 	// pointer to next member in single-linked list
 	struct ast_conf_member* next ;
@@ -294,6 +309,12 @@ void member_process_spoken_frames(struct ast_conference* conf,
 void member_process_outgoing_frames(struct ast_conference* conf,
 				    struct ast_conf_member *member,
 				    struct conf_frame *send_frames);
+
+int is_video_eligible(struct ast_conf_member *member);
+
+// Member start and stop video methods
+void start_video(struct ast_conf_member *member);
+void stop_video(struct ast_conf_member *member);
 
 //
 // packer functions
