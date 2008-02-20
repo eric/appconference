@@ -435,7 +435,7 @@ static struct ast_cli_entry cli_viewchannel = {
 
 int conference_unmute( int fd, int argc, char *argv[] )
 {
-	if ( argc < 3 )
+	if ( argc < 4 )
 		return RESULT_SHOWUSAGE ;
 
 	// get the conference name
