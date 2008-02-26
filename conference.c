@@ -2046,7 +2046,7 @@ static void do_VAD_switching(struct ast_conference *conf)
 		if ( longest_speaking_member )
 			// Somebody is talking, switch to that member
 			new_id = longest_speaking_member->id;
-		else if ( conf->default_video_source_id &&
+		else if ( conf->default_video_source_id >= 0  &&
 		          (!default_no_video || default_force_switch)
 		        )
 			// No talking, but we have a default that can send video
