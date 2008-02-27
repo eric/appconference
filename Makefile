@@ -51,7 +51,7 @@ DEBUG := -g
 CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG)
 CPPFLAGS = $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE -DREVISION=\"$(REVISION)\"
 #CFLAGS += -O2
-#CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math
+CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math
 # PERF: below is 10% faster than -O2 or -O3 alone.
 #CFLAGS += -O3 -ffast-math -funroll-loops
 # below is another 5% faster or so.
