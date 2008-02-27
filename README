@@ -67,17 +67,7 @@ Compiling app_conference
 Using app_conference
 
 There is no configuration file. Conferences are created on-the-fly.
-
-Dialplan syntax: Conference(ConferenceName/Flags/Priority[/VADSTART/VADCONTINUE])
-
-    * ConferenceName: Whatever you want to name the conference
-    * Flags: please see Flags.txt for a comprehensive list of dialplan flags
-    * Priority: Currently ignored; was to be a "speaking priority" so a 
-	higher priority caller could "override" others.
-    * VADSTART: Optional: "probability" to use to detect start of speech.
-    * VADCONTINUE: Optional: "probability" to use to detect continuation 
-	of speech. 
-
+Please see the file Dialplan.txt for details about the Dialplan syntax.
 
 CLI Commands
 

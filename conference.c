@@ -2009,7 +2009,7 @@ static void do_VAD_switching(struct ast_conference *conf)
 		// Check if current speaker has been silent for a while
 		if ( member->id == conf->current_video_source_id &&
 		     !member->speaking_state &&
-		     ast_tvdiff_ms(current_time, member->last_state_change) > AST_CONF_VIDEO_STOP_TIMEOUT )
+		     ast_tvdiff_ms(current_time, member->last_state_change) > member->video_stop_timeout )
 		{
 			current_silent = 1;
 		}
@@ -2019,7 +2019,7 @@ static void do_VAD_switching(struct ast_conference *conf)
 		if ( member->id != conf->current_video_source_id && member->speaking_state == 1 )
 		{
 			long tmp = ast_tvdiff_ms(current_time, member->last_state_change);
-			if ( tmp > AST_CONF_VIDEO_START_TIMEOUT && tmp > longest_speaking )
+			if ( tmp > member->video_start_timeout && tmp > longest_speaking )
 			{
 				longest_speaking = tmp;
 				longest_speaking_member = member;

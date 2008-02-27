@@ -166,7 +166,12 @@ struct ast_conf_member
 	// conference does chat mode (1 on 1 video when two members in conference)
 	short does_chat_mode;
 
-
+	// Timeouts for VAD based video switching (in ms)
+	// Length of audio needed to decide that the member has started talking
+	unsigned int video_start_timeout;
+	// Length of silence needed to decide that the member has stopped talking
+	unsigned int video_stop_timeout;
+	
 	// time we last dropped a frame
 	struct timeval last_in_dropped ;
 	struct timeval last_out_dropped ;

@@ -843,11 +843,17 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// initialize mutex
 	ast_mutex_init( &member->lock ) ;
 
+	// Default values for parameters that can get overwritten by dialplan arguments
+	member->video_start_timeout = AST_CONF_VIDEO_START_TIMEOUT;
+	member->video_stop_timeout = AST_CONF_VIDEO_STOP_TIMEOUT;
+	member->priority = 0;
+	member->vad_prob_start = AST_CONF_PROB_START;
+	member->vad_prob_continue = AST_CONF_PROB_CONTINUE;
+
 	//
 	// initialize member with passed data values
 	//
-
-	char argstr[80] ;
+	char argstr[256] ;
 	char *stringp, *token ;
 
 	// copy the passed data
@@ -884,30 +890,41 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 		memset( member->flags, 0x0, sizeof( char ) ) ;
 	}
 
-	// parse the priority
-	member->priority = ( token = strsep( &stringp, "/" ) ) != NULL
-		? atoi( token )
-		: 0
-	;
+	while ( (token = strsep(&stringp, "/")) != NULL )
+	{
+		char *arg;
 
-	// parse the vad_prob_start
-	member->vad_prob_start = ( token = strsep( &stringp, "/" ) ) != NULL
-		? atof( token )
-		: AST_CONF_PROB_START
-	;
-
-	// parse the vad_prob_continue
-	member->vad_prob_continue = ( token = strsep( &stringp, "/" ) ) != NULL
-		? atof( token )
-		: AST_CONF_PROB_CONTINUE
-	;
-
-	// debugging
-	ast_log(
-		AST_CONF_DEBUG,
-		"parsed data params, id => %s, flags => %s, priority => %d, vad_prob_start => %f, vad_prob_continue => %f\n",
-		member->conf_name, member->flags, member->priority, member->vad_prob_start, member->vad_prob_continue
-	) ;
+		arg = strsep(&token, "=");
+		if ( arg == NULL || token == NULL )
+		{
+			ast_log(LOG_WARNING, "Incorrect argument %s\n", token);
+			continue;
+		}
+		if ( strncasecmp(arg, "priority", strlen("priority")) == 0 )
+		{
+			member->priority = atoi(token);
+			ast_log(AST_CONF_DEBUG, "priority = %d\n", member->priority);
+		} else if ( strncasecmp(arg, "vad_prob_start", strlen("vad_prob_start")) == 0 )
+		{
+			member->vad_prob_start = atof(token);
+			ast_log(AST_CONF_DEBUG, "vad_prob_start = %f\n", member->vad_prob_start);
+		} else if ( strncasecmp(arg, "vad_prob_continue", strlen("vad_prob_continue")) == 0 )
+		{
+			member->vad_prob_continue = atof(token);
+			ast_log(AST_CONF_DEBUG, "vad_prob_continue = %f\n", member->vad_prob_continue);
+		} else if ( strncasecmp(arg, "video_start_timeout", strlen("video_start_timeout")) == 0 )
+		{
+			member->video_start_timeout = atoi(token);
+			ast_log(AST_CONF_DEBUG, "video_start_timeout = %d\n", member->video_start_timeout);
+		} else if ( strncasecmp(arg, "video_stop_timeout", strlen("video_stop_timeout")) == 0 )
+		{
+			member->video_stop_timeout = atoi(token);
+			ast_log(AST_CONF_DEBUG, "video_stop_timeout = %d\n", member->video_stop_timeout);
+		} else
+		{
+			ast_log(LOG_WARNING, "unknown parameter %s with value %s\n", arg, token);
+		}
+	}
 
 	//
 	// initialize member with default values
@@ -1048,7 +1065,7 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 
 	// is this member using the telephone?
 	member->via_telephone = 0 ;
-
+	
 	// temp pointer to flags string
 	char* flags = member->flags ;
 

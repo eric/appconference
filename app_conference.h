@@ -216,7 +216,7 @@
 #endif
 
 //
-// VAD based video switching parameters
+// Default VAD based video switching parameters
 // All time related values are in ms
 //
 
