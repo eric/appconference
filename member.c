@@ -854,17 +854,17 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 	// initialize member with passed data values
 	//
 	char argstr[256] ;
-	char *stringp, *token ;
 
 	// copy the passed data
 	strncpy( argstr, data, sizeof(argstr) - 1 ) ;
 
 	// point to the copied data
-	stringp = argstr ;
+	char *stringp = argstr;
 
 	ast_log( AST_CONF_DEBUG, "attempting to parse passed params, stringp => %s\n", stringp ) ;
 
 	// parse the id
+	char *token;
 	if ( ( token = strsep( &stringp, "/" ) ) != NULL )
 	{
 		member->conf_name = malloc( strlen( token ) + 1 ) ;
@@ -892,37 +892,43 @@ struct ast_conf_member* create_member( struct ast_channel *chan, const char* dat
 
 	while ( (token = strsep(&stringp, "/")) != NULL )
 	{
-		char *arg;
+		static const char arg_priority[] = "priority";
+		static const char arg_vad_prob_start[] = "vad_prob_start";
+		static const char arg_vad_prob_continue[] = "vad_prob_continue";
+		static const char arg_video_start_timeout[] = "video_start_timeout";
+		static const char arg_video_stop_timeout[] = "video_stop_timeout";
 
-		arg = strsep(&token, "=");
-		if ( arg == NULL || token == NULL )
+		char *value = token;
+		const char *key = strsep(&value, "=");
+		
+		if ( key == NULL || value == NULL )
 		{
 			ast_log(LOG_WARNING, "Incorrect argument %s\n", token);
 			continue;
 		}
-		if ( strncasecmp(arg, "priority", strlen("priority")) == 0 )
+		if ( strncasecmp(key, arg_priority, sizeof(arg_priority) - 1) == 0 )
 		{
-			member->priority = atoi(token);
+			member->priority = strtol(value, (char **)NULL, 10);
 			ast_log(AST_CONF_DEBUG, "priority = %d\n", member->priority);
-		} else if ( strncasecmp(arg, "vad_prob_start", strlen("vad_prob_start")) == 0 )
+		} else if ( strncasecmp(key, arg_vad_prob_start, sizeof(arg_vad_prob_start) - 1) == 0 )
 		{
-			member->vad_prob_start = atof(token);
+			member->vad_prob_start = strtof(value, (char **)NULL);
 			ast_log(AST_CONF_DEBUG, "vad_prob_start = %f\n", member->vad_prob_start);
-		} else if ( strncasecmp(arg, "vad_prob_continue", strlen("vad_prob_continue")) == 0 )
+		} else if ( strncasecmp(key, arg_vad_prob_continue, sizeof(arg_vad_prob_continue) - 1) == 0 )
 		{
-			member->vad_prob_continue = atof(token);
+			member->vad_prob_continue = strtof(value, (char **)NULL);
 			ast_log(AST_CONF_DEBUG, "vad_prob_continue = %f\n", member->vad_prob_continue);
-		} else if ( strncasecmp(arg, "video_start_timeout", strlen("video_start_timeout")) == 0 )
+		} else if ( strncasecmp(key, arg_video_start_timeout, sizeof(arg_video_start_timeout) - 1) == 0 )
 		{
-			member->video_start_timeout = atoi(token);
+			member->video_start_timeout = strtol(value, (char **)NULL, 10);;
 			ast_log(AST_CONF_DEBUG, "video_start_timeout = %d\n", member->video_start_timeout);
-		} else if ( strncasecmp(arg, "video_stop_timeout", strlen("video_stop_timeout")) == 0 )
+		} else if ( strncasecmp(key, arg_video_stop_timeout, sizeof(arg_video_stop_timeout) - 1) == 0 )
 		{
-			member->video_stop_timeout = atoi(token);
+			member->video_stop_timeout = strtol(value, (char **)NULL, 10);;
 			ast_log(AST_CONF_DEBUG, "video_stop_timeout = %d\n", member->video_stop_timeout);
 		} else
 		{
-			ast_log(LOG_WARNING, "unknown parameter %s with value %s\n", arg, token);
+			ast_log(LOG_WARNING, "unknown parameter %s with value %s\n", key, value);
 		}
 	}
 

@@ -2018,10 +2018,10 @@ static void do_VAD_switching(struct ast_conference *conf)
 		// We exclude the current video source from the search
 		if ( member->id != conf->current_video_source_id && member->speaking_state == 1 )
 		{
-			long tmp = ast_tvdiff_ms(current_time, member->last_state_change);
-			if ( tmp > member->video_start_timeout && tmp > longest_speaking )
+			long speak_time = ast_tvdiff_ms(current_time, member->last_state_change);
+			if ( speak_time > member->video_start_timeout && speak_time > longest_speaking )
 			{
-				longest_speaking = tmp;
+				longest_speaking = speak_time;
 				longest_speaking_member = member;
 			}
 		}
