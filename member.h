@@ -142,6 +142,9 @@ struct ast_conf_member
 	int video_start_timeout;
 	// Length of silence needed to decide that the member has stopped talking
 	int video_stop_timeout;
+	// Length of time (in milliseconds) subsequent to last sent video frame 
+	// to wait before sending ConferenceVideoBroadcastOff manager event.
+	int video_stop_broadcast_timeout;
 
 	// time we last dropped a frame
 	struct timeval last_in_dropped ;

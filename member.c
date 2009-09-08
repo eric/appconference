@@ -507,6 +507,7 @@ struct ast_conf_member* member_create(struct ast_channel *chan, const char* data
 
 	member->video_start_timeout = AST_CONF_VIDEO_START_TIMEOUT;
 	member->video_stop_timeout = AST_CONF_VIDEO_STOP_TIMEOUT;
+	member->video_stop_broadcast_timeout = AST_CONF_VIDEO_STOP_BROADCAST_TIMEOUT;
 	member->vad_prob_start = AST_CONF_PROB_START;
 	member->vad_prob_continue = AST_CONF_PROB_CONTINUE;
 
@@ -542,6 +543,8 @@ struct ast_conf_member* member_create(struct ast_channel *chan, const char* data
 		static const char arg_vad_prob_continue[] = "vad_prob_continue";
 		static const char arg_video_start_timeout[] = "video_start_timeout";
 		static const char arg_video_stop_timeout[] = "video_stop_timeout";
+		static const char arg_video_stop_broadcast_timeout[] =
+			"video_stop_broadcast_timeout";
 
 		char *value = token;
 		const char *key = strsep(&value, "=");
@@ -575,6 +578,11 @@ struct ast_conf_member* member_create(struct ast_channel *chan, const char* data
 					sizeof(arg_video_stop_timeout) - 1) == 0 )
 		{
 			member->video_stop_timeout = strtol(value, (char **)NULL, 10);
+		}
+		else if ( !strncasecmp(key, arg_video_stop_broadcast_timeout,
+					sizeof(arg_video_stop_broadcast_timeout) - 1) )
+		{
+			member->video_stop_broadcast_timeout = strtol(value, NULL, 10);
 		}
 		else
 		{
@@ -1741,7 +1749,7 @@ void member_update_video_broadcast(struct ast_conf_member * member,
 	if ( !input_frames_available &&
 	     member->video_broadcast_active &&
 	     ast_tvdiff_ms(now, member->last_video_frame_time) >
-	     AST_CONF_VIDEO_STOP_BROADCAST_TIMEOUT
+	     member->video_stop_broadcast_timeout
 	   )
 	{
 		member->video_broadcast_active = 0;
