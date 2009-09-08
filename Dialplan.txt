@@ -1,5 +1,5 @@
 Current dialplan flags and arguments used by app_conference
-Please note that app_conference is still work in progress, so this document might be outdated. As always, the source code is the definitive reference (member.c in create_member())
+Please note that app_conference is still work in progress, so this document might be outdated. As always, the source code is the definitive reference (member.c in member_create())
 
 The general syntax of Appconference dialplan entries is:
 

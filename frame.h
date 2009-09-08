@@ -31,45 +31,22 @@
 #ifndef _APP_CONF_FRAME_H
 #define _APP_CONF_FRAME_H
 
-//
-// includes
-//
-
 #include "app_conference.h"
-#include "common.h"
+#include "conf_frame.h"
 
-//
-// function declarations
-//
+struct conf_frame* frame_mix_frames(struct conf_frame* frames_in,
+		int speaker_count, int listener_count);
 
-// mixing
-conf_frame* mix_frames( conf_frame* frames_in, int speaker_count, int listener_count ) ;
+struct conf_frame* frame_create(struct ast_conf_member* member,
+		struct conf_frame* next, const struct ast_frame* fr);
+struct conf_frame* frame_delete(struct conf_frame* cf);
+struct conf_frame* frame_copy(struct conf_frame* src);
 
-conf_frame* mix_multiple_speakers( conf_frame* frames_in, int speakers, int listeners ) ;
-conf_frame* mix_single_speaker( conf_frame* frames_in ) ;
+struct ast_frame* frame_convert_from_slinear(struct ast_trans_pvt* trans,
+		struct ast_frame* fr);
 
-// frame creation and deletion
-conf_frame* create_conf_frame( struct ast_conf_member* member, conf_frame* next, const struct ast_frame* fr ) ;
-conf_frame* delete_conf_frame( conf_frame* cf ) ;
-conf_frame* copy_conf_frame( conf_frame* src ) ;
+struct ast_frame* frame_create_text(const char *text);
 
-// convert frame functions
-struct ast_frame* convert_frame_to_slinear( struct ast_trans_pvt* trans, struct ast_frame* fr ) ;
-struct ast_frame* convert_frame_from_slinear( struct ast_trans_pvt* trans, struct ast_frame* fr ) ;
-struct ast_frame* convert_frame( struct ast_trans_pvt* trans, struct ast_frame* fr ) ;
-
-// text frame function(s)
-struct ast_frame* create_text_frame(const char *text, int copy);
-
-// slinear frame functions
-struct ast_frame* create_slinear_frame( char* data ) ;
-void mix_slinear_frames( char* dst, const char* src, int samples ) ;
-
-// silent frame functions
-conf_frame* get_silent_frame( void ) ;
-struct ast_frame* get_silent_slinear_frame( void ) ;
-
-// set delivery timestamp for frames
-void set_conf_frame_delivery( conf_frame* frame, struct timeval time ) ;
+struct conf_frame* frame_get_silent(void);
 
 #endif

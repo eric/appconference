@@ -31,30 +31,16 @@
 #ifndef _APP_CONF_CONFERENCE_H
 #define _APP_CONF_CONFERENCE_H
 
-//
-// includes
-//
-
 #include "app_conference.h"
-#include "common.h"
 
 //
 // struct declarations
 //
 
-typedef struct ast_conference_stats
+struct ast_conf_stats
 {
-	// conference name ( copied for ease of use )
+	// conference name
 	char name[128] ;
-
-	// type of connection
-	unsigned short phone ;
-	unsigned short iaxclient ;
-	unsigned short sip ;
-
-	// type of users
-	unsigned short moderators ;
-	unsigned short listeners ;
 
 	// accounting data
 	unsigned long frames_in ;
@@ -62,19 +48,17 @@ typedef struct ast_conference_stats
 	unsigned long frames_mixed ;
 
 	struct timeval time_entered ;
-
-} ast_conference_stats ;
+};
 
 
 struct ast_conference
 {
 	// conference name
-	char name[128] ;
+	const char name[128] ;
 
 	// single-linked list of members in conference
 	struct ast_conf_member* memberlist ;
 	int membercount ;
-        int id_count;
 
 	// id of the default video source
 	// If nobody is talking and video is unlocked, we use this source
@@ -83,10 +67,6 @@ struct ast_conference
 	// id of the current video source
 	// this changes according to VAD rules and lock requests
 	int current_video_source_id;
-
-	// timestamp of when the current source has started talking
-	// TODO: do we really need this?
-	//struct timeval current_video_source_timestamp;
 
 	// Video source locked flag, 1 -> locked, 0 -> unlocked
 	short video_locked;
@@ -104,10 +84,7 @@ struct ast_conference
 	struct ast_trans_pvt* from_slinear_paths[ AC_SUPPORTED_FORMATS ] ;
 
 	// conference stats
-	ast_conference_stats stats ;
-
-	// keep track of current delivery time
-	struct timeval delivery_time ;
+	struct ast_conf_stats stats ;
 
 	// the conference does chat mode: special treatment for situations with 1 and 2 members
 	short does_chat_mode;
@@ -120,70 +97,54 @@ struct ast_conference
 } ;
 
 
-#include "member.h"
+struct ast_conference* conference_join(struct ast_conf_member* member);
 
-//
-// function declarations
-//
-
-struct ast_conference* join_conference( struct ast_conf_member* member ) ;
-
-int end_conference( const char *name, int hangup ) ;
-
-// find a particular member, locking if requested.
-struct ast_conf_member *find_member ( const char *chan, int lock) ;
-
-int queue_frame_for_listener( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
-int queue_frame_for_speaker( struct ast_conference* conf, struct ast_conf_member* member, conf_frame* frame ) ;
-int queue_silent_frame( struct ast_conference* conf, struct ast_conf_member* member ) ;
-
-int remove_member( struct ast_conf_member* member, struct ast_conference* conf ) ;
-
-int send_text_message_to_member(struct ast_conf_member *member, const char *text);
+int conference_end(const char *name, int hangup);
 
 // called by app_confernce.c:load_module()
-void init_conference( void ) ;
+void conference_init(void);
 
-int get_conference_count( void ) ;
+int conference_get_count(void);
 
-int show_conference_list ( int fd, const char* name );
-int manager_conference_list( struct mansession *s, const struct message *m);
-int show_conference_stats ( int fd );
-int kick_member ( const char* confname, int user_id);
-int kick_channel ( const char *confname, const char *channel);
-int kick_all ( void );
-int mute_member ( const char* confname, int user_id);
-int unmute_member ( const char* confname, int user_id);
-int mute_channel ( const char* confname, const char* user_chan);
-int unmute_channel ( const char* confname, const char* user_chan);
-int viewstream_switch ( const char* confname, int user_id, int stream_id);
-int viewchannel_switch ( const char* confname, const char* user_chan, const char* stream_chan);
+int conference_show_list(int fd, const char* name);
+int conference_manager_show_list(struct mansession *s, const struct message *m);
+int conference_show_stats(int fd);
+int conference_kick_member(const char * conf_name, int user_id);
+int conference_kick_channel(const char * conf_name, const char * channel_name);
+int conference_kick_all(void);
+int conference_set_mute_member(const char * conf_name, int user_id, int mute);
+int conference_set_mute_channel(const char * channel_name, int mute);
 
-int get_conference_stats( ast_conference_stats* stats, int requested ) ;
-int get_conference_stats_by_name( ast_conference_stats* stats, const char* name ) ;
+int conference_set_view_stream(const char * conf_name,
+		int channel_id, int stream_id,
+		const char * channel_name, const char * stream_name);
 
-int lock_conference(const char *conference, int member_id);
-int lock_conference_channel(const char *conference, const char *channel);
-int unlock_conference(const char *conference);
+int conference_get_stats(struct ast_conf_stats* stats, int requested);
 
-int set_default_id(const char *conference, int member_id);
-int set_default_channel(const char *conference, const char *channel);
+int conference_lock_video(const char * conf_name, int member_id,
+		const char * channel_name);
 
-int video_mute_member(const char *conference, int member_id);
-int video_unmute_member(const char *conference, int member_id);
-int video_mute_channel(const char *conference, const char *channel);
-int video_unmute_channel(const char *conference, const char *channel);
+int conference_unlock_video(const char *conf_name);
 
-int send_text(const char *conference, int member, const char *text);
-int send_text_channel(const char *conference, const char *channel, const char *text);
-int send_text_broadcast(const char *conference, const char *text);
+int conference_set_default_video(const char * conf_name, int member_id,
+		const char * channel_name);
 
-int drive(const char *conference, int src_member_id, int dst_member_id);
-int drive_channel(const char *conference, const char *src_channel, const char *dst_channel);
+int conference_set_video_mute(const char * conf_name, int member_id,
+		const char * channel_name, int mute);
 
-int play_sound_channel(int fd, const char *channel, const char *file, int mute);
-int stop_sound_channel(int fd, const char *channel);
+int conference_send_text(const char * conf_name, int member_id,
+		const char * channel_name, const char * text);
 
-int set_conference_debugging( const char* name, int state ) ;
+int conference_broadcast_text(const char *conf_name, const char *text);
+
+int conference_set_video_drive(const char *conf_name,
+		int src_member_id, int dst_member_id,
+		const char * src_channel, const char * dst_channel);
+
+int conference_play_sound(const char *channel_name, const char *file, int mute);
+
+int conference_stop_sound(const char *channel_name);
+
+int conference_set_debug(const char* name, int state);
 
 #endif

@@ -22,10 +22,7 @@ INSTALL_MODULES_DIR := $(INSTALL_PREFIX)/usr/lib/asterisk/modules
 
 ASTERISK_INCLUDE_DIR ?= ../asterisk/include
 
-REVISION = $(shell svnversion -n .)
-
-# turn app_conference debugging on or off ( 0 == OFF, 1 == ON )
-APP_CONFERENCE_DEBUG ?= 0
+REVISION ?= $(shell svnversion -n .)
 
 # 0 = OFF 1 = astdsp 2 = speex
 SILDET := 2
@@ -34,7 +31,7 @@ SILDET := 2
 # app_conference objects to build
 #
 
-OBJS = app_conference.o conference.o member.o frame.o cli.o
+OBJS = app_conference.o conference.o member.o frame.o framelist.o cli.o packer.o
 TARGET = app_conference.so
 
 
@@ -51,7 +48,7 @@ DEBUG := -g
 CFLAGS = -pipe -Wall -Wmissing-prototypes -Wmissing-declarations -MD -MP $(DEBUG)
 CPPFLAGS = $(INCLUDE) -D_REENTRANT -D_GNU_SOURCE -DREVISION=\"$(REVISION)\"
 #CFLAGS += -O2
-CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math
+#CFLAGS += -O3 -march=pentium3 -msse -mfpmath=sse,387 -ffast-math
 # PERF: below is 10% faster than -O2 or -O3 alone.
 #CFLAGS += -O3 -ffast-math -funroll-loops
 # below is another 5% faster or so.
@@ -68,11 +65,6 @@ CPPFLAGS += -DCRYPTO
 # Uncomment this if you want G.729A support (need to have the actual codec installed
 #
 # CPPFLAGS += -DAC_USE_G729A
-
-
-ifeq ($(APP_CONFERENCE_DEBUG), 1)
-CPPFLAGS += -DAPP_CONFERENCE_DEBUG
-endif
 
 #
 # additional flag values for silence detection

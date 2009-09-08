@@ -628,7 +628,7 @@ static void update_noise_prob(SpeexPreprocessState *st)
 
 }
 
-inline void ephraim_malah(SpeexPreprocessState *st, int N, float Pframe)
+static inline void ephraim_malah(SpeexPreprocessState *st, int N, float Pframe)
 {
    int i;   
 

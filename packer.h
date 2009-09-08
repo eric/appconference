@@ -1,6 +1,4 @@
 
-// $Id: conf_frame.h 880 2007-04-25 15:23:59Z jpgrayson $
-
 /*
  * app_conference
  *
@@ -28,32 +26,18 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _APP_CONF_STRUCTS_H
-#define _APP_CONF_STRUCTS_H
+#ifndef APP_CONF_PACKER_H_
+#define APP_CONF_PACKER_H_
 
-#include "app_conference.h"
+struct ast_packer;
+struct ast_frame;
 
-struct conf_frame
-{
-	// frame audio data
-	struct ast_frame* fr ;
-
-	// array of converted versions for listeners
-	struct ast_frame* converted[ AC_SUPPORTED_FORMATS ] ;
-
-	// pointer to the frame's owner
-	struct ast_conf_member* member ; // who sent this frame
-
-	// linked-list pointers
-	struct conf_frame* next ;
-	struct conf_frame* prev ;
-
-	// should this frame be preserved
-	short static_frame ;
-
-	// pointer to mixing buffer
-	char* mixed_buffer ;
-};
-
+struct ast_packer *ast_packer_new(int bytes);
+void ast_packer_set_flags(struct ast_packer *, int flags);
+int ast_packer_get_flags(struct ast_packer *);
+void ast_packer_free(struct ast_packer *);
+void ast_packer_reset(struct ast_packer *, int bytes);
+int ast_packer_feed(struct ast_packer *, const struct ast_frame *);
+struct ast_frame *ast_packer_read(struct ast_packer *);
 
 #endif

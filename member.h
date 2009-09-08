@@ -31,40 +31,39 @@
 #ifndef _APP_CONF_MEMBER_H
 #define _APP_CONF_MEMBER_H
 
-//
-// includes
-//
-
 #include "app_conference.h"
-#include "common.h"
+#include "framelist.h"
 
-//
-// struct declarations
-//
+#if ( SILDET == 2 )
+#include "libspeex/speex_preprocess.h"
+#endif
 
-struct ast_conf_soundq
-{
-	char name[256];
-	struct ast_filestream *stream; // the stream
-	int muted; // should incoming audio be muted while we play?
-	struct ast_conf_soundq *next;
-};
+struct conf_frame;
+struct ast_conf_soundq;
 
 struct ast_conf_member
 {
 	ast_mutex_t lock ; // member data mutex
 
 	struct ast_channel* chan ; // member's channel
-	char* channel_name ; // member's channel name
 
-	// values passed to create_member () via *data
-	int priority ;	// highest priority gets the channel
-	char* flags ;	// raw member-type flags
-	char type ;		// L = ListenOnly, M = Moderator, S = Standard (Listen/Talk)
-	char* conf_name ;		// name of the conference that own this member
+	// member's channel name
+	const char * channel_name;
 
-	char *callerid;
-	char *callername;
+	// highest priority gets the channel
+	int priority;
+
+	// raw member-type flags
+	const char * flags;
+
+	// L = ListenOnly, M = Moderator, S = Standard (Listen/Talk)
+	char type;
+
+	// name of the conference that own this member
+	const char * conf_name;
+
+	const char * callerid;
+	const char * callername;
 
 	// voice flags
 	int vad_flag;
@@ -74,8 +73,7 @@ struct ast_conf_member
 
 	// video conference params
 	int id;
-	int initial_id;
-	int req_id;
+	int requested_video_id;
 
 	// muting options - this member will not be heard/seen
 	int mute_audio;
@@ -91,63 +89,36 @@ struct ast_conf_member
 	// is this person a moderator?
 	int ismoderator;
 
-	// determine by flags and channel name
-	char connection_type ; // T = telephone, X = iaxclient, S = sip
-
 	// vad voice probability thresholds
 	float vad_prob_start ;
 	float vad_prob_continue ;
 
-	// ready flag
-	short ready_for_outgoing ;
+	struct ast_conf_framelist in_audio_framelist;
+	struct ast_conf_framelist in_video_framelist;
+	struct ast_conf_framelist in_dtmf_framelist;
 
-	// input frame queue
-	conf_frame* inFrames ;
-	conf_frame* inFramesTail ;
-	unsigned int inFramesCount ;
-	conf_frame* inVideoFrames ;
-	conf_frame* inVideoFramesTail ;
-	unsigned int inVideoFramesCount ;
-	conf_frame* inDTMFFrames ;
-	conf_frame* inDTMFFramesTail ;
-	unsigned int inDTMFFramesCount ;
-	conf_frame* inTextFrames ;
-	conf_frame* inTextFramesTail ;
-	unsigned int inTextFramesCount ;
-
+	struct ast_conf_framelist out_audio_framelist;
+	struct ast_conf_framelist out_video_framelist;
+	struct ast_conf_framelist out_dtmf_framelist;
+	struct ast_conf_framelist out_text_framelist;
 
 	// input/output smoother
-	struct ast_smoother *inSmoother;
-	struct ast_packer *outPacker;
+	struct ast_smoother *in_smoother;
+	struct ast_packer *out_packer;
 	int smooth_size_in;
 	int smooth_size_out;
 	int smooth_multiple;
 
 	// frames needed by conference_exec
-	unsigned int inFramesNeeded ;
-	unsigned int inVideoFramesNeeded ;
+	unsigned int in_frames_needed ;
 
 	// used when caching last frame
-	conf_frame* inFramesLast ;
-	unsigned int inFramesRepeatLast ;
-	unsigned short okayToCacheLast ;
-
-	// LL output frame queue
-	conf_frame* outFrames ;
-	conf_frame* outFramesTail ;
-	unsigned int outFramesCount ;
-	conf_frame* outVideoFrames ;
-	conf_frame* outVideoFramesTail ;
-	unsigned int outVideoFramesCount ;
-	conf_frame* outDTMFFrames ;
-	conf_frame* outDTMFFramesTail ;
-	unsigned int outDTMFFramesCount ;
-	conf_frame* outTextFrames ;
-	conf_frame* outTextFramesTail ;
-	unsigned int outTextFramesCount ;
+	struct conf_frame* cached_audio_frame ;
+	unsigned int in_frames_repeat_last ;
+	unsigned short okay_to_cache_last ;
 
 	// LL video switched flag
-	short conference;
+	short video_switch;
 
 	// switch video by VAD?
 	short vad_switch;
@@ -176,9 +147,6 @@ struct ast_conf_member
 	struct timeval last_in_dropped ;
 	struct timeval last_out_dropped ;
 
-	// ( not currently used )
-	// int samplesperframe ;
-
 	// used for determining need to mix frames
 	// and for management interface notification
 	// and for VAD based video switching
@@ -206,18 +174,12 @@ struct ast_conf_member
 	unsigned long frames_out ;
 	unsigned long frames_out_dropped ;
 
-	unsigned long video_frames_in ;
-	unsigned long video_frames_in_dropped ;
 	unsigned long video_frames_out ;
 	unsigned long video_frames_out_dropped ;
 
-	unsigned long dtmf_frames_in ;
-	unsigned long dtmf_frames_in_dropped ;
 	unsigned long dtmf_frames_out ;
 	unsigned long dtmf_frames_out_dropped ;
 
-	unsigned long text_frames_in ;
-	unsigned long text_frames_in_dropped ;
 	unsigned long text_frames_out ;
 	unsigned long text_frames_out_dropped ;
 
@@ -227,10 +189,10 @@ struct ast_conf_member
 
 	// start time
 	struct timeval time_entered ;
-	struct timeval lastsent_timeval ;
 
 	// flag indicating we should remove this member
 	short remove_flag ;
+	// flag indicating this member thread should finish
 	short kick_flag ;
 
 #if ( SILDET == 2 )
@@ -244,7 +206,6 @@ struct ast_conf_member
 #endif
 
 	// audio format this member is using
-	int write_format ;
 	int read_format ;
 
 	int write_format_index ;
@@ -256,16 +217,9 @@ struct ast_conf_member
 
 	// For playing sounds
 	struct ast_conf_soundq *soundq;
-	struct ast_conf_soundq *videoq;
 
 	// Pointer to another member that will be driven from this member's audio
 	struct ast_conf_member *driven_member;
-} ;
-
-struct conf_member
-{
-	struct ast_conf_member* realmember ;
-	struct conf_member* next ;
 } ;
 
 //
@@ -274,64 +228,150 @@ struct conf_member
 
 int member_exec( struct ast_channel* chan, void* data ) ;
 
-struct ast_conf_member* check_active_video( int id, struct ast_conference *conf );
+struct ast_conf_member* member_create( struct ast_channel *, const char* data );
+void member_delete( struct ast_conf_member *);
 
-struct ast_conf_member* create_member( struct ast_channel* chan, const char* data ) ;
-struct ast_conf_member* delete_member( struct ast_conf_member* member ) ;
+static inline int member_lock(struct ast_conf_member * member)
+{
+	return ast_mutex_lock(&member->lock);
+}
 
-// incoming queue
-int queue_incoming_frame( struct ast_conf_member* member, struct ast_frame* fr ) ;
-int queue_incoming_video_frame( struct ast_conf_member* member, const struct ast_frame* fr ) ;
-int queue_incoming_dtmf_frame( struct ast_conf_member* member, const struct ast_frame* fr ) ;
-conf_frame* get_incoming_frame( struct ast_conf_member* member ) ;
-conf_frame* get_incoming_video_frame( struct ast_conf_member* member ) ;
-conf_frame* get_incoming_dtmf_frame( struct ast_conf_member* member ) ;
+static inline int member_unlock(struct ast_conf_member * member)
+{
+	return ast_mutex_unlock(&member->lock);
+}
 
-// outgoing queue
-int queue_outgoing_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
-int __queue_outgoing_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
-conf_frame* get_outgoing_frame( struct ast_conf_member* member ) ;
+static inline void member_kick(struct ast_conf_member * member)
+{
+	member->kick_flag = 1;
+}
 
-int queue_outgoing_video_frame( struct ast_conf_member* member, const struct ast_frame* fr, struct timeval delivery ) ;
-conf_frame* get_outgoing_video_frame( struct ast_conf_member* member ) ;
-int queue_outgoing_dtmf_frame( struct ast_conf_member* member, const struct ast_frame* fr ) ;
-int queue_outgoing_text_frame( struct ast_conf_member* member, const struct ast_frame* fr ) ;
-conf_frame* get_outgoing_dtmf_frame( struct ast_conf_member* member ) ;
-conf_frame* get_outgoing_text_frame( struct ast_conf_member* member ) ;
+static inline int member_valid(const struct ast_conf_member * member)
+{
+	return !member->remove_flag && !member->kick_flag;
+}
 
-void send_state_change_notifications( struct ast_conf_member* member ) ;
+static inline int member_match(const struct ast_conf_member * member,
+		const int id, const char * name)
+{
+	return (member->id == id && id >= 0) ||
+		(name && strcmp(member->channel_name, name) == 0);
+}
 
-int increment_speaker_count(struct ast_conf_member *member, int lock);
-int decrement_speaker_count(struct ast_conf_member *member, int lock);
-
-void member_process_spoken_frames(struct ast_conference* conf,
-				  struct ast_conf_member *member,
-				  struct conf_frame **spoken_frames,
-				  long time_diff,
-				 int *listener_count,
-				 int *speaker_count);
-
-void member_process_outgoing_frames(struct ast_conference* conf,
-				    struct ast_conf_member *member,
-				    struct conf_frame *send_frames);
-
-int is_video_eligible(struct ast_conf_member *member);
-
-// Member start and stop video methods
-void start_video(struct ast_conf_member *member);
-void stop_video(struct ast_conf_member *member);
-
+// This function is useful for iterating over a linked list of members. The
+// member returned from this function is the next valid member in the list.
+// The returned member is guaranteed to be either locked and valid, or null.
+// The member_head argument should point to the head of the member list. The
+// member argument should initially be 0 (null). The conference holding the
+// member list must be locked prior to using member_iter_locked().
 //
-// packer functions
+// Here is the intended loop construct:
 //
+//     struct ast_conf_member * m = 0;
+//     while ( (m = member_iter_locked(conf->memberlist, m)) )
+//     {
+//        /* m is locked and valid inside the loop */
+//
+//        /* Note that if 'break' is used, m will remain locked
+//         * outside the loop unless explicitly unlocked with
+//         * member_unlock().
+//         */
+//
+//        /* Note also that if 'continue' is used, m will be
+//         * unlocked when member_iter_locked() is evaluated
+//         * again.
+//         */
+//     }
+//     /* m is null after the loop completes */
+//
+static inline struct ast_conf_member *
+member_iter_locked(struct ast_conf_member * member_head,
+		struct ast_conf_member * member)
+{
+	while ( 1 )
+	{
+		struct ast_conf_member * member_next;
 
-struct ast_packer;
+		if ( member )
+		{
+			member_next = member->next;
+			member_unlock(member);
+		}
+		else
+		{
+			member_next = member_head;
+		}
 
-extern struct ast_packer *ast_packer_new(int bytes);
-extern void ast_packer_set_flags(struct ast_packer *packer, int flags);
-extern int ast_packer_get_flags(struct ast_packer *packer);
-extern void ast_packer_free(struct ast_packer *s);
-extern void ast_packer_reset(struct ast_packer *s, int bytes);
-extern int ast_packer_feed(struct ast_packer *s, const struct ast_frame *f);
-extern struct ast_frame *ast_packer_read(struct ast_packer *s);
+		if ( !member_next )
+			return 0;
+
+		member_lock(member_next);
+		if ( member_valid(member_next) )
+			return member_next;
+		else
+			member = member_next;
+	}
+}
+
+// This function finds a member in a member list based on id and/or name. The
+// returned member is guaranteed to be either null or locked and valid. This
+// function relies on the member list (conference) to be locked. We take
+// advantage of the fact that the member's 'id' and 'channel_name' properties
+// are okay to test/compare when the member is unlocked, but the conference is
+// locked. Note that the member is [must be] locked prior to testing its
+// validity. To avoid matching based on id, pass -1 for the id parameter. To
+// avoid matching based on the name, pass null (0) for the name parameter.
+static inline struct ast_conf_member * member_find_locked(
+		struct ast_conf_member * member_head,
+		int id, const char * name)
+{
+	struct ast_conf_member * member = member_head;
+
+	while ( member && !member_match(member, id, name) )
+		member = member->next;
+
+	if ( member )
+	{
+		member_lock(member);
+		if ( !member_valid(member) )
+		{
+			member_unlock(member);
+			member = 0;
+		}
+	}
+
+	return member;
+}
+
+int member_set_audio_mute(struct ast_conf_member *, int mute);
+int member_set_video_mute(struct ast_conf_member *, int mute);
+
+int member_send_text_message(struct ast_conf_member *, const char * text);
+
+int member_queue_outgoing_video(struct ast_conf_member *, const struct ast_frame *);
+int member_queue_outgoing_dtmf(struct ast_conf_member *, const struct ast_frame *);
+
+void member_notify_state_change(struct ast_conf_member *);
+
+int member_increment_speaker_count(struct ast_conf_member *);
+int member_decrement_speaker_count(struct ast_conf_member *);
+
+void member_process_spoken_frames(struct ast_conf_member *member,
+		struct conf_frame **spoken_frames,
+		long time_diff,
+		int *listener_count,
+		int *speaker_count);
+
+int member_process_outgoing_frames(struct ast_conf_member *member,
+				    struct conf_frame *send_frames,
+				    const struct timeval delivery_time,
+				    struct ast_trans_pvt * from_slinear_path);
+
+void member_start_video(struct ast_conf_member *);
+void member_stop_video(struct ast_conf_member *);
+void member_update_video_broadcast(struct ast_conf_member *, struct timeval);
+
+int member_close_soundq(struct ast_conf_member *);
+int member_add_soundq(struct ast_conf_member *, const char * filename, int mute);
+
 #endif

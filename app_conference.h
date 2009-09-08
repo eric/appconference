@@ -55,26 +55,11 @@
 #include <asterisk/translate.h>
 #include <asterisk/channel.h>
 #include <asterisk/file.h>
-//#include <asterisk/channel_pvt.h>
 #include <asterisk/cli.h>
-
-
-#if (SILDET == 2)
-#include "libspeex/speex_preprocess.h"
-#endif
 
 //
 // app_conference defines
 //
-
-// debug logging level
-
-// LOG_NOTICE for debugging, LOG_DEBUG for production
-#ifdef APP_CONFERENCE_DEBUG
-#define AST_CONF_DEBUG LOG_NOTICE
-#else
-#define AST_CONF_DEBUG LOG_DEBUG
-#endif
 
 //
 // feature defines
@@ -83,16 +68,6 @@
 // number of times the last non-silent frame should be
 // repeated after silence starts
 #define AST_CONF_CACHE_LAST_FRAME 1
-
-//
-// debug defines
-//
-
-//#define DEBUG_USE_TIMELOG
-
-//#define DEBUG_FRAME_TIMESTAMPS
-
-// #define DEBUG_OUTPUT_PCM
 
 //
 // !!! THESE CONSTANTS SHOULD BE CLEANED UP AND CLARIFIED !!!
@@ -156,9 +131,6 @@
 // number of queued frames before we start dropping
 #define AST_CONF_QUEUE_DROP_THRESHOLD 40
 
-// number of milliseconds between frame drops
-#define AST_CONF_QUEUE_DROP_TIME_LIMIT 750
-
 //
 // timer and sleep values
 //
@@ -189,9 +161,6 @@
 
 // toggle silence detection
 #define ENABLE_SILENCE_DETECTION 1
-
-// silence threshold
-#define AST_CONF_SILENCE_THRESHOLD 128
 
 // speech tail (delay before dropping silent frames, in ms.
 // #define AST_CONF_SPEECH_TAIL 180
@@ -239,9 +208,6 @@
 #define AST_CONF_CONTROL_STOP_VIDEO           "CONTROL:STOPVIDEO"
 #define AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT  "CONTROL:STOP_VIDEO_TRANSMIT"
 #define AST_CONF_CONTROL_START_VIDEO_TRANSMIT "CONTROL:START_VIDEO_TRANSMIT"
-
-// utility functions
-void add_milliseconds( struct timeval* tv, long ms ) ;
 
 #endif
 

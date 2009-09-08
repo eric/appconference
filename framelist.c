@@ -1,6 +1,4 @@
 
-// $Id: common.h 880 2007-04-25 15:23:59Z jpgrayson $
-
 /*
  * app_conference
  *
@@ -28,36 +26,54 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _APP_CONF_COMMON_H
-#define _APP_CONF_COMMON_H
-
-#include <asterisk/time.h>
-
-// typedef includes
-#include "conf_frame.h"
-
-// function includesee
-//#include "member.h"
-#include "conference.h"
+#include "app_conference.h"
 #include "frame.h"
-#include "cli.h"
+#include "framelist.h"
 
-/* Utility functions */
+struct conf_frame *
+framelist_pop_tail(struct ast_conf_framelist * list)
+{
+	if ( list->len == 0 || list->len <= AST_CONF_MIN_QUEUE )
+		return 0;
 
-/* LOG the time taken to execute a function (like lock acquisition */
-#if 1
-#define TIMELOG(func,min,message) \
-	do { \
-		struct timeval t1, t2; \
-		int diff; \
-		t1 = ast_tvnow(); \
-		func; \
-		t2 = ast_tvnow(); \
-		if ( (diff = ast_tvdiff_ms(t2, t1)) > min ) \
-			ast_log( AST_CONF_DEBUG, "TimeLog: %s: %d ms\n", message, diff); \
-	} while (0)
-#else
-#define TIMELOG(func,min,message) func
-#endif
+	struct conf_frame * cfr = list->tail;
 
-#endif
+	if ( list->tail == list->head )
+	{
+		list->head = 0;
+		list->tail = 0;
+	}
+	else
+	{
+		list->tail = list->tail->prev;
+		if ( list->tail )
+			list->tail->next = 0;
+	}
+
+	cfr->next = cfr->prev = 0;
+
+	--list->len;
+
+	return cfr;
+}
+
+int
+framelist_push_head(struct ast_conf_framelist * list,
+		const struct ast_frame * fr,
+		struct ast_conf_member * member)
+{
+	struct conf_frame * cfr = frame_create(member, list->head, fr);
+
+	if ( !cfr )
+		return -1;
+
+	if ( !list->head )
+		list->head = list->tail = cfr;
+	else
+		list->head = cfr;
+
+	++list->len;
+
+	return 0;
+}
+

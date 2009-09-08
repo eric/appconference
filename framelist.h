@@ -1,6 +1,4 @@
 
-// $Id: conf_frame.h 880 2007-04-25 15:23:59Z jpgrayson $
-
 /*
  * app_conference
  *
@@ -28,32 +26,36 @@
  * 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef _APP_CONF_STRUCTS_H
-#define _APP_CONF_STRUCTS_H
+#ifndef APP_CONF_FRAMELIST_H_
+#define APP_CONF_FRAMELIST_H_
 
-#include "app_conference.h"
+struct conf_frame;
+struct ast_conf_member;
 
-struct conf_frame
+struct ast_conf_framelist
 {
-	// frame audio data
-	struct ast_frame* fr ;
-
-	// array of converted versions for listeners
-	struct ast_frame* converted[ AC_SUPPORTED_FORMATS ] ;
-
-	// pointer to the frame's owner
-	struct ast_conf_member* member ; // who sent this frame
-
-	// linked-list pointers
-	struct conf_frame* next ;
-	struct conf_frame* prev ;
-
-	// should this frame be preserved
-	short static_frame ;
-
-	// pointer to mixing buffer
-	char* mixed_buffer ;
+	unsigned int len;
+	struct conf_frame * head;
+	struct conf_frame * tail;
 };
 
+struct conf_frame *
+framelist_pop_tail(struct ast_conf_framelist *);
+
+int
+framelist_push_head(struct ast_conf_framelist *, const struct ast_frame *,
+		struct ast_conf_member *);
+
+static inline struct conf_frame *
+framelist_peek_head(struct ast_conf_framelist * list)
+{
+	return list->head;
+}
+
+static inline unsigned int
+framelist_len(struct ast_conf_framelist * list)
+{
+	return list->len;
+}
 
 #endif
