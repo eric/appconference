@@ -44,6 +44,7 @@
 #include <pthread.h>
 
 /* asterisk includes */
+#include "asterisk.h"
 #include <asterisk/utils.h>
 #include <asterisk/pbx.h>
 #include <asterisk/module.h>

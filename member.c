@@ -176,7 +176,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 		{
 			// send the frame to the preprocessor
 			int spx_ret;
-			spx_ret = speex_preprocess( member->dsp, f->data, NULL );
+			spx_ret = speex_preprocess( member->dsp, f->data.ptr, NULL );
 #ifdef DEBUG_USE_TIMELOG
 			TIMELOG(spx_ret, 3, "speex_preprocess");
 #endif
@@ -254,7 +254,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 	}
 	else if ( f->frametype == AST_FRAME_TEXT  && member->does_text )
 	{
-		if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_DISABLED, strlen(AST_CONF_CONTROL_CAMERA_DISABLED)) == 0 )
+		if ( strncmp(f->data.ptr, AST_CONF_CONTROL_CAMERA_DISABLED, strlen(AST_CONF_CONTROL_CAMERA_DISABLED)) == 0 )
 		{
 			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL,
@@ -264,7 +264,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 			              member->channel_name);
 			member->no_camera = 1;
 			ast_mutex_unlock(&member->lock);
-		} else if ( strncmp(f->data, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_CAMERA_ENABLED)) == 0 )
+		} else if ( strncmp(f->data.ptr, AST_CONF_CONTROL_CAMERA_ENABLED, strlen(AST_CONF_CONTROL_CAMERA_ENABLED)) == 0 )
 		{
 			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL,
@@ -274,7 +274,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 			              member->channel_name);
 			member->no_camera = 0;
 			ast_mutex_unlock(&member->lock);
-		} else if ( strncmp(f->data, AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT, strlen(AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT)) == 0 )
+		} else if ( strncmp(f->data.ptr, AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT, strlen(AST_CONF_CONTROL_STOP_VIDEO_TRANSMIT)) == 0 )
 		{
 			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL,
@@ -284,7 +284,7 @@ static int process_incoming(struct ast_conf_member *member, struct ast_conferenc
 			              member->channel_name);
 			member->norecv_video = 1;
 			ast_mutex_unlock(&member->lock);
-		} else if ( strncmp(f->data, AST_CONF_CONTROL_START_VIDEO_TRANSMIT, strlen(AST_CONF_CONTROL_START_VIDEO_TRANSMIT)) == 0 )
+		} else if ( strncmp(f->data.ptr, AST_CONF_CONTROL_START_VIDEO_TRANSMIT, strlen(AST_CONF_CONTROL_START_VIDEO_TRANSMIT)) == 0 )
 		{
 			ast_mutex_lock(&member->lock);
 			manager_event(EVENT_FLAG_CALL,
@@ -2751,7 +2751,7 @@ int ast_packer_feed(struct ast_packer *s, const struct ast_frame *f)
 		return -1;
 	}
 
-	memcpy(s->data + s->len, f->data, f->datalen);
+	memcpy(s->data + s->len, f->data.ptr, f->datalen);
 	/* If either side is empty, reset the delivery time */
 	if (!s->len || (!f->delivery.tv_sec && !f->delivery.tv_usec) ||
 			(!s->delivery.tv_sec && !s->delivery.tv_usec))
@@ -2789,13 +2789,13 @@ struct ast_frame *ast_packer_read(struct ast_packer *s)
 	/* Make frame */
 	s->f.frametype = AST_FRAME_VOICE;
 	s->f.subclass = s->format;
-	s->f.data = s->framedata + AST_FRIENDLY_OFFSET;
+	s->f.data.ptr = s->framedata + AST_FRIENDLY_OFFSET;
 	s->f.offset = AST_FRIENDLY_OFFSET;
 	s->f.datalen = len;
 	s->f.samples = s->sample_queue[0];
 	s->f.delivery = s->delivery;
 	/* Fill Data */
-	memcpy(s->f.data, s->data, len);
+	memcpy(s->f.data.ptr, s->data, len);
 	s->len -= len;
 	/* Move remaining data to the front if applicable */
 	if (s->len) {

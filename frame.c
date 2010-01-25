@@ -284,7 +284,7 @@ conf_frame* mix_multiple_speakers(
 			else
 			{
 				// mix the new frame in with the existing buffer
-				mix_slinear_frames( cp_listenerData, (char*)( cf_spoken->fr->data ), AST_CONF_BLOCK_SAMPLES);//XXX NAS cf_spoken->fr->samples ) ;
+				mix_slinear_frames( cp_listenerData, (char*)( cf_spoken->fr->data.ptr ), AST_CONF_BLOCK_SAMPLES);//XXX NAS cf_spoken->fr->samples ) ;
 			}
 		}
 
@@ -552,7 +552,7 @@ struct ast_frame* create_text_frame(const char *text, int copy)
 	f->mallocd = AST_MALLOCD_HDR;
 	if ( copy ) f->mallocd |= AST_MALLOCD_DATA;
 	f->datalen = strlen(t) + 1;
-	f->data = t;
+	f->data.ptr = t;
 	f->src = NULL;
 
 	return f;
@@ -580,7 +580,7 @@ struct ast_frame* create_slinear_frame( char* data )
 	f->mallocd = AST_MALLOCD_HDR | AST_MALLOCD_DATA ;
 
 	f->datalen = AST_CONF_FRAME_DATA_SIZE ;
-	f->data = data ;
+	f->data.ptr = data ;
 
 	f->src = NULL ;
 

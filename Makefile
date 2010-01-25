@@ -64,6 +64,9 @@ CFLAGS += $(shell if uname -m | grep -q ppc; then echo "-fsigned-char"; fi)
 CFLAGS += -fPIC
 CPPFLAGS += -DCRYPTO
 
+# Uncomment for Asterisk 1.6
+CFLAGS += -DAST16
+
 #
 # Uncomment this if you want G.729A support (need to have the actual codec installed
 #

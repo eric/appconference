@@ -31,18 +31,54 @@
 #include "asterisk/autoconfig.h"
 #include "cli.h"
 
+#ifdef AST16
+static char *handle_cli_app_helper(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a, char *choices[], char command[], char usage[], int (*worker)(int, int, char**))
+{
+	switch (cmd) {
+	case CLI_INIT:
+		printf("Init %s\n",command);
+		e->command = command;
+		e->usage = usage;
+      		return NULL;
+	case CLI_GENERATE:
+		return NULL;
+//		if (a->pos > e->args)
+//			return NULL;
+//		return ast_cli_complete(a->word, choices, a->n);
+	default:
+		switch((*worker)(a->fd,a->argc,a->argv)) {
+			case RESULT_SHOWUSAGE:
+				return CLI_SHOWUSAGE;
+			case RESULT_SUCCESS:
+				return CLI_SUCCESS;
+			}
+	}
+	return CLI_FAILURE;
+}
+#endif
+
 static char conference_restart_usage[] =
 	"usage: conference restart\n"
 	"       kick all users in all conferences\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_restart = {
 	{ "conference", "restart", NULL },
 	conference_restart,
 	"restart a conference",
 	conference_restart_usage
 } ;
-
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_restart(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "restart", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference restart",
+				     conference_restart_usage,&conference_restart);
+}
+#endif
 
 int conference_restart( int fd, int argc, char *argv[] )
 {
@@ -63,13 +99,23 @@ static char conference_debug_usage[] =
 	"       enable debugging for a conference\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_debug = {
 	{ "conference", "debug", NULL },
 	conference_debug,
 	"enable debugging for a conference",
 	conference_debug_usage
 } ;
-
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_debug(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "debug", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference debug",
+				     conference_debug_usage,&conference_debug);
+}
+#endif
 
 int conference_debug( int fd, int argc, char *argv[] )
 {
@@ -127,12 +173,23 @@ static char conference_show_stats_usage[] =
 	"       display stats for active conferences.\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_show_stats = {
 	{ "conference", "show", "stats", NULL },
 	conference_show_stats,
 	"show conference stats",
 	conference_show_stats_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_show_stats(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "show", "stats", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference show stats",
+				     conference_show_stats_usage,&conference_show_stats);
+}
+#endif
 
 int conference_show_stats( int fd, int argc, char *argv[] )
 {
@@ -211,14 +268,23 @@ static char conference_list_usage[] =
 	"       list members of a conference\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_list = {
 	{ "conference", "list", NULL },
 	conference_list,
 	"list members of a conference",
 	conference_list_usage
 } ;
-
-
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_list(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "list", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference list",
+				     conference_list_usage,&conference_list);
+}
+#endif
 
 int conference_list( int fd, int argc, char *argv[] )
 {
@@ -267,12 +333,23 @@ static char conference_kick_usage[] =
 	"       kick member <member id> from conference <conference>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_kick = {
 	{ "conference", "kick", NULL },
 	conference_kick,
 	"kick member from a conference",
 	conference_kick_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_kick(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "kick", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference kick",
+				     conference_kick_usage,&conference_kick);
+}
+#endif
 
 int conference_kickchannel( int fd, int argc, char *argv[] )
 {
@@ -298,12 +375,23 @@ static char conference_kickchannel_usage[] =
 	"       kick channel from conference\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_kickchannel = {
 	{ "conference", "kickchannel", NULL },
 	conference_kickchannel,
 	"kick channel from conference",
 	conference_kickchannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_kickchannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "kickchannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference kickchannel",
+				     conference_kickchannel_usage,&conference_kickchannel);
+}
+#endif
 
 int conference_mute( int fd, int argc, char *argv[] )
 {
@@ -328,12 +416,23 @@ static char conference_mute_usage[] =
 	"       mute member in a conference\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_mute = {
 	{ "conference", "mute", NULL },
 	conference_mute,
 	"mute member in a conference",
 	conference_mute_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_mute(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "mute", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference mute",
+				     conference_mute_usage,&conference_mute);
+}
+#endif
 
 int conference_mutechannel( int fd, int argc, char *argv[] )
 {
@@ -364,12 +463,23 @@ static char conference_mutechannel_usage[] =
 	"       mute channel in a conference\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_mutechannel = {
 	{ "conference", "mutechannel", NULL },
 	conference_mutechannel,
 	"mute channel in a conference",
 	conference_mutechannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_mutechannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "mutechannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference mutechannel",
+				     conference_mutechannel_usage,&conference_mutechannel);
+}
+#endif
 
 int conference_viewstream( int fd, int argc, char *argv[] )
 {
@@ -397,12 +507,23 @@ static char conference_viewstream_usage[] =
 	"       member <member id> will receive video stream <stream no>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_viewstream = {
 	{ "conference", "viewstream", NULL },
 	conference_viewstream,
 	"switch view in a conference",
 	conference_viewstream_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_viewstream(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "viewstream", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference viewstream",
+				     conference_viewstream_usage,&conference_viewstream);
+}
+#endif
 
 int conference_viewchannel( int fd, int argc, char *argv[] )
 {
@@ -426,12 +547,23 @@ static char conference_viewchannel_usage[] =
 	"       channel <dest channel> will receive video stream <src channel>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_viewchannel = {
 	{ "conference", "viewchannel", NULL },
 	conference_viewchannel,
 	"switch channel in a conference",
 	conference_viewchannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_viewchannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "viewchannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference viewchannel",
+				     conference_viewchannel_usage,&conference_viewchannel);
+}
+#endif
 
 int conference_unmute( int fd, int argc, char *argv[] )
 {
@@ -456,12 +588,23 @@ static char conference_unmute_usage[] =
 	"       unmute member in a conference\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_unmute = {
 	{ "conference", "unmute", NULL },
 	conference_unmute,
 	"unmute member in a conference",
 	conference_unmute_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_unmute(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "unmute", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference unmute",
+				     conference_unmute_usage,&conference_unmute);
+}
+#endif
 
 int conference_unmutechannel( int fd, int argc, char *argv[] )
 {
@@ -492,12 +635,23 @@ static char conference_unmutechannel_usage[] =
 	"       unmute channel in a conference\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_unmutechannel = {
 	{ "conference", "unmutechannel", NULL },
 	conference_unmutechannel,
 	"unmute channel in a conference",
 	conference_unmutechannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_unmutechannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "unmutechannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference unmutechannel",
+				     conference_unmutechannel_usage,&conference_unmutechannel);
+}
+#endif
 
 //
 // play sound
@@ -508,12 +662,23 @@ static char conference_play_sound_usage[] =
 	"       If mute is specified, all other audio is muted while the sound is played back.\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_play_sound = {
 	{ "conference", "play", "sound", NULL },
 	conference_play_sound,
 	"play a sound to a conference member",
 	conference_play_sound_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_play_sound(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "play", "sound", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference play sound",
+				     conference_play_sound_usage,&conference_play_sound);
+}
+#endif
 
 int conference_play_sound( int fd, int argc, char *argv[] )
 {
@@ -548,12 +713,23 @@ static char conference_stop_sounds_usage[] =
 	"       stop sounds for conference member <channel-id>.\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_stop_sounds = {
 	{ "conference", "stop", "sounds", NULL },
 	conference_stop_sounds,
 	"stop sounds for a conference member",
 	conference_stop_sounds_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_stop_sounds(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "stop", "sounds", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference stop sounds",
+				     conference_stop_sounds_usage,&conference_stop_sounds);
+}
+#endif
 
 int conference_stop_sounds( int fd, int argc, char *argv[] )
 {
@@ -583,12 +759,23 @@ static char conference_end_usage[] =
 	"       ends a conference.\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_end = {
 	{ "conference", "end", NULL },
 	conference_end,
 	"stops a conference",
 	conference_end_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_end(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "end", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference end",
+				     conference_end_usage,&conference_end);
+}
+#endif
 
 int conference_end( int fd, int argc, char *argv[] )
 {
@@ -643,12 +830,23 @@ static char conference_lock_usage[] =
 	"       locks incoming video stream for conference <conference name> to member <member id>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_lock = {
 	{ "conference", "lock", NULL },
 	conference_lock,
 	"locks incoming video to a member",
 	conference_lock_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_lock(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "lock", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference lock",
+				     conference_lock_usage,&conference_lock);
+}
+#endif
 
 int conference_lock( int fd, int argc, char *argv[] )
 {
@@ -679,12 +877,23 @@ static char conference_lockchannel_usage[] =
 	"       locks incoming video stream for conference <conference name> to channel <channel>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_lockchannel = {
 	{ "conference", "lockchannel", NULL },
 	conference_lockchannel,
 	"locks incoming video to a channel",
 	conference_lockchannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_lockchannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "lockchannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference lockchannel",
+				     conference_lockchannel_usage,&conference_lockchannel);
+}
+#endif
 
 int conference_lockchannel( int fd, int argc, char *argv[] )
 {
@@ -714,12 +923,23 @@ static char conference_unlock_usage[] =
 	"       unlocks conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_unlock = {
 	{ "conference", "unlock", NULL },
 	conference_unlock,
 	"unlocks conference",
 	conference_unlock_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_unlock(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "unlock", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference unlock",
+				     conference_unlock_usage,&conference_unlock);
+}
+#endif
 
 int conference_unlock( int fd, int argc, char *argv[] )
 {
@@ -750,12 +970,23 @@ static char conference_set_default_usage[] =
 	"       Use a negative value for member if you want to clear the default\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_set_default = {
 	{ "conference", "set", "default", NULL },
 	conference_set_default,
 	"sets default video source",
 	conference_set_default_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_set_default(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "set", "default", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference set default",
+				     conference_set_default_usage,&conference_set_default);
+}
+#endif
 
 int conference_set_default(int fd, int argc, char *argv[] )
 {
@@ -786,12 +1017,23 @@ static char conference_set_defaultchannel_usage[] =
 	"       sets the default video source channel for conference <conference name> to channel <channel>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_set_defaultchannel = {
 	{ "conference", "set", "defaultchannel", NULL },
 	conference_set_defaultchannel,
 	"sets default video source channel",
 	conference_set_defaultchannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_set_defaultchannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "set", "defaultchannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference set defaultchannel",
+				     conference_set_defaultchannel_usage,&conference_set_defaultchannel);
+}
+#endif
 
 int conference_set_defaultchannel(int fd, int argc, char *argv[] )
 {
@@ -821,12 +1063,23 @@ static char conference_video_mute_usage[] =
 	"       mutes video from member <member id> in conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_video_mute = {
 	{ "conference", "video", "mute", NULL },
 	conference_video_mute,
 	"mutes video from a member",
 	conference_video_mute_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_video_mute(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "video", "mute", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference video mute",
+				     conference_video_mute_usage,&conference_video_mute);
+}
+#endif
 
 int conference_video_mute(int fd, int argc, char *argv[] )
 {
@@ -857,12 +1110,23 @@ static char conference_video_unmute_usage[] =
 	"       unmutes video from member <member id> in conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_video_unmute = {
 	{ "conference", "video", "unmute", NULL },
 	conference_video_unmute,
 	"unmutes video from a member",
 	conference_video_unmute_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_video_unmute(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "video", "unmute", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference video unmute",
+				     conference_video_unmute_usage,&conference_video_unmute);
+}
+#endif
 
 int conference_video_unmute(int fd, int argc, char *argv[] )
 {
@@ -893,12 +1157,24 @@ static char conference_video_mutechannel_usage[] =
 	"       mutes video from channel <channel> in conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_video_mutechannel = {
 	{ "conference", "video", "mutechannel", NULL },
 	conference_video_mutechannel,
 	"mutes video from a channel",
 	conference_video_mutechannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_video_mutechannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "video", "mutechannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference video mutechannel",
+				     conference_video_mutechannel_usage,&conference_video_mutechannel);
+}
+#endif
+
 
 int conference_video_mutechannel(int fd, int argc, char *argv[] )
 {
@@ -928,12 +1204,23 @@ static char conference_video_unmutechannel_usage[] =
 	"       unmutes video from channel <channel> in conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_video_unmutechannel = {
 	{ "conference", "video", "unmutechannel", NULL },
 	conference_video_unmutechannel,
 	"unmutes video from a channel",
 	conference_video_unmutechannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_video_unmutechannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "video", "unmutechannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference video unmutechannel",
+				     conference_video_unmutechannel_usage,&conference_video_unmutechannel);
+}
+#endif
 
 int conference_video_unmutechannel(int fd, int argc, char *argv[] )
 {
@@ -965,12 +1252,24 @@ static char conference_text_usage[] =
 	"        Sends text message <text> to member <member id> in conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_text = {
 	{ "conference", "text", NULL },
 	conference_text,
 	"sends a text message to a member",
 	conference_text_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_text(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "text", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference text",
+				     conference_text_usage,&conference_text);
+}
+#endif
+
 
 int conference_text(int fd, int argc, char *argv[] )
 {
@@ -1002,12 +1301,23 @@ static char conference_textchannel_usage[] =
 	"        Sends text message <text> to channel <channel> in conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_textchannel = {
 	{ "conference", "textchannel", NULL },
 	conference_textchannel,
 	"sends a text message to a channel",
 	conference_textchannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_textchannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "textchannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference textchannel",
+				     conference_textchannel_usage,&conference_textchannel);
+}
+#endif
 
 int conference_textchannel(int fd, int argc, char *argv[] )
 {
@@ -1038,12 +1348,24 @@ static char conference_textbroadcast_usage[] =
 	"        Sends text message <text> to all members in conference <conference name>\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_textbroadcast = {
 	{ "conference", "textbroadcast", NULL },
 	conference_textbroadcast,
 	"sends a text message to all members in a conference",
 	conference_textbroadcast_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_textbroadcast(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "textbroadcast", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference textbroadcast",
+				     conference_textbroadcast_usage,&conference_textbroadcast);
+}
+#endif
+
 
 int conference_textbroadcast(int fd, int argc, char *argv[] )
 {
@@ -1076,12 +1398,23 @@ static char conference_drive_usage[] =
 	"        If destination is missing or negative, break existing association\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_drive = {
 	{ "conference", "drive", NULL },
 	conference_drive,
 	"pairs two members to drive VAD-based video switching",
 	conference_drive_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_drive(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "drive", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference drive",
+				     conference_drive_usage,&conference_drive);
+}
+#endif
 
 int conference_drive(int fd, int argc, char *argv[] )
 {
@@ -1118,12 +1451,23 @@ static char conference_drivechannel_usage[] =
 	"        If destination is missing, break existing association\n"
 ;
 
+#ifndef AST16
 static struct ast_cli_entry cli_drivechannel = {
 	{ "conference", "drivechannel", NULL },
 	conference_drivechannel,
 	"pairs two channels to drive VAD-based video switching",
 	conference_drivechannel_usage
 } ;
+#endif
+#ifdef AST16
+static char *handle_cli_app_conference_drivechannel(struct ast_cli_entry *e, int cmd, struct ast_cli_args *a)
+{
+	static char *choices[] = { "conference", "drivechannel", NULL };
+	return handle_cli_app_helper(e,cmd,a,
+				     choices,"conference drivechannel",
+				     conference_drivechannel_usage,&conference_drivechannel);
+}
+#endif
 
 int conference_drivechannel(int fd, int argc, char *argv[] )
 {
@@ -1149,12 +1493,50 @@ int conference_drivechannel(int fd, int argc, char *argv[] )
 }
 
 
+#ifdef AST16
+static struct ast_cli_entry app_conference_clis[] = {
+	 AST_CLI_DEFINE(handle_cli_app_conference_restart, "Restart a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_debug, "Enable debugging for a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_show_stats, "Display stats for active conferences"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_list, "List members of a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_kick, "Kick member from a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_kickchannel, "Kick channel from conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_mute, "Mute member in a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_mutechannel, "Mute channel in a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_viewstream, "Switch view in a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_viewchannel, "Switch channel in a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_unmute, "Unmute member in a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_unmutechannel, "Unmute channel in a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_play_sound, "Play a sound to a conference member"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_stop_sounds, "Stop sounds for a conference member"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_end, "Stops a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_lock, "Locks incoming video to a member"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_lockchannel, "Locks incoming video to a channel"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_unlock, "Unlocks conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_set_default, "Sets default video sourcee"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_set_defaultchannel, "Sets default video source channel"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_video_mute, "Mutes video from a member"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_video_unmute, "Unmutes video from a member"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_video_mutechannel, "Mutes video from a channel"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_video_unmutechannel, "Unmutes video from a channel"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_text, "Sends a text message to a member"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_textchannel, "Sends a text message to a channel"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_textbroadcast, "Sends a text message to all members in a conference"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_drive, "Pairs two members to drive VAD-based video switching"),
+	 AST_CLI_DEFINE(handle_cli_app_conference_drivechannel, "Pairs two channels to drive VAD-based video switching"),
+};
+#endif
+
 //
 // cli initialization function
 //
 
 void register_conference_cli( void )
 {
+	printf("Register conference cli");
+#ifdef AST16
+	ast_cli_register_multiple(app_conference_clis,sizeof(app_conference_clis)/sizeof(struct ast_cli_entry));
+#else
 	ast_cli_register( &cli_restart );
 	ast_cli_register( &cli_debug ) ;
 	ast_cli_register( &cli_show_stats ) ;
@@ -1184,6 +1566,7 @@ void register_conference_cli( void )
 	ast_cli_register( &cli_textbroadcast );
 	ast_cli_register( &cli_drive );
 	ast_cli_register( &cli_drivechannel );
+#endif
 	ast_manager_register( "ConferenceList", 0, manager_conference_list, "Conference List" );
 	ast_manager_register( "ConferenceEnd", EVENT_FLAG_CALL, manager_conference_end, "Terminate a conference" );
 
@@ -1191,6 +1574,9 @@ void register_conference_cli( void )
 
 void unregister_conference_cli( void )
 {
+#ifdef AST16
+	ast_cli_unregister_multiple(app_conference_clis,sizeof(app_conference_clis)/sizeof(struct ast_cli_entry));
+#else
 	ast_cli_unregister( &cli_restart );
 	ast_cli_unregister( &cli_debug ) ;
 	ast_cli_unregister( &cli_show_stats ) ;
@@ -1220,6 +1606,7 @@ void unregister_conference_cli( void )
 	ast_cli_unregister( &cli_textbroadcast );
 	ast_cli_unregister( &cli_drive );
 	ast_cli_unregister( &cli_drivechannel );
+#endif
 	ast_manager_unregister( "ConferenceList" );
 	ast_manager_unregister( "ConferenceEnd" );
 }
